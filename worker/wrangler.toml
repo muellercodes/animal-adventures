@@ -9,7 +9,7 @@ ALLOWED_ORIGINS = "https://muellercodes.github.io"
 [[d1_databases]]
 binding = "DB"
 database_name = "animal-adventures"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "1939f3d1-ce39-4db2-a489-67af9021098c"
 
 [triggers]
 crons = ["23 4 * * *"]
