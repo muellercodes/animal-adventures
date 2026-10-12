@@ -1,0 +1,257 @@
+<title>Animal Adventures</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Grandstander:wght@700;900&display=swap">
+<style>
+/* Layout: a full-screen 3D world. Sticker-like chips pinned to the corners, a thumb stick on the left and action buttons on the right.
+   Single committed look: the world has its own day and night, so the page does not follow the OS theme. */
+:root{
+  --ink:#1D3124;
+  --paper:#F8FBF1;
+  --paper-2:#E5EFD6;
+  --leaf:#3E9A49;
+  --sun:#FFC83A;
+  --sun-soft:#FFE9A6;
+  --berry:#8B4CC4;
+  --warn:#D9573B;
+  --moss:#2C5534;
+  --scrim:rgba(18,34,24,.5);
+  --glass:rgba(248,251,241,.86);
+  --display:'Grandstander','Trebuchet MS','Arial Rounded MT Bold',system-ui,sans-serif;
+  --body:'Andika','Verdana','Segoe UI',system-ui,sans-serif;
+  color-scheme:light;
+}
+html{height:100%;box-sizing:border-box;background:var(--moss)}
+*,*::before,*::after{box-sizing:inherit}
+[hidden]{display:none!important}
+body{height:100%;margin:0;background:var(--moss);color:var(--ink);font-family:var(--body);font-size:16px;overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+#app{position:relative;height:100%;overflow:hidden}
+#world{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+#touch{position:absolute;inset:0;touch-action:none}
+button{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible{outline:3px solid var(--berry);outline-offset:3px}
+
+/* floating labels (speech bubbles, +leaves, hearts) */
+#labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.bub{position:absolute;left:0;top:0;transform:translate(-50%,-100%);max-width:220px;width:max-content;background:#fff;border:3px solid var(--ink);border-radius:14px;padding:6px 11px;font:700 15px/1.25 var(--body);text-align:center;box-shadow:0 3px 0 var(--ink);white-space:normal}
+.bub::after{content:'';position:absolute;left:50%;bottom:-10px;width:14px;height:14px;background:#fff;border-right:3px solid var(--ink);border-bottom:3px solid var(--ink);transform:translateX(-50%) rotate(45deg)}
+.tag{position:absolute;left:0;top:0;transform:translate(-50%,-100%);font:900 14px/1 var(--display);color:#fff;text-shadow:0 1px 0 var(--ink),0 0 4px var(--ink);white-space:nowrap}
+.pop{position:absolute;left:0;top:0;display:flex;align-items:center;gap:3px;transform:translate(-50%,-50%);font:900 22px/1 var(--display);color:#fff;-webkit-text-stroke:5px var(--ink);paint-order:stroke fill;white-space:nowrap}
+.pop svg{width:26px;height:26px}
+.heart{position:absolute;left:0;top:0;width:22px;height:22px;transform:translate(-50%,-50%)}
+
+/* HUD */
+.hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:12px 16px 0;pointer-events:none}
+.chip,.pill{pointer-events:auto;background:var(--paper);border:3px solid var(--ink);border-radius:16px;box-shadow:0 4px 0 var(--ink)}
+.me{display:flex;align-items:center;gap:8px;padding:5px 12px 5px 5px;cursor:pointer;text-align:left;min-width:0}
+.me img{width:44px;height:44px;border-radius:11px;background:var(--paper-2);display:block;object-fit:contain}
+.me-text{display:flex;flex-direction:column;gap:5px;min-width:0}
+.me .name{font:900 17px/1 var(--display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+.hunger{display:block;width:104px;height:12px;border:2px solid var(--ink);border-radius:8px;background:#fff;overflow:hidden}
+.hunger i{display:block;height:100%;width:100%;background:var(--leaf);transition:width .25s,background-color .4s}
+.stats{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;min-height:44px;font:900 18px/1 var(--display);font-variant-numeric:tabular-nums;white-space:nowrap}
+button.pill{cursor:pointer}
+.pill svg{width:24px;height:24px;flex:none}
+.where{font-size:16px}
+
+/* side menu */
+.side{position:absolute;left:16px;top:84px;display:flex;flex-direction:column;gap:10px}
+.sbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:62px;height:62px;border-radius:18px;border:3px solid var(--ink);background:var(--sun);box-shadow:0 4px 0 var(--ink);font:900 12px/1 var(--display);cursor:pointer;padding:0}
+.sbtn svg{width:28px;height:28px}
+.sbtn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+
+/* touch stick */
+#stick{position:absolute;left:0;top:0;width:128px;height:128px;margin:-64px 0 0 -64px;border-radius:50%;background:rgba(248,251,241,.22);border:3px solid rgba(248,251,241,.7);pointer-events:none}
+#stick i{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:var(--glass);border:3px solid var(--ink);box-shadow:0 3px 0 var(--ink)}
+#stickHint{position:absolute;left:28px;bottom:34px;width:110px;height:110px;border-radius:50%;border:3px dashed rgba(248,251,241,.75);display:grid;place-items:center;font:900 13px/1.15 var(--display);color:#fff;text-shadow:0 1px 0 var(--ink),0 0 4px var(--ink);text-align:center;pointer-events:none}
+
+/* action buttons */
+.actions{position:absolute;right:16px;bottom:18px;display:grid;grid-template-columns:auto auto;grid-template-rows:auto auto;gap:12px;align-items:end;justify-items:center;pointer-events:none}
+.abtn{pointer-events:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:50%;border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);font:900 15px/1 var(--display);cursor:pointer;touch-action:none;padding:0}
+.abtn svg{width:30px;height:30px}
+.abtn.big{width:92px;height:92px;background:var(--sun);grid-column:2;grid-row:2}
+.abtn.mid{width:76px;height:76px;background:var(--paper)}
+#btnEat{grid-column:1;grid-row:2}
+#btnLand{grid-column:2;grid-row:1}
+.abtn.ready{background:var(--leaf);color:#fff;animation:ready 1s ease-in-out infinite}
+.abtn.held,.abtn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+@keyframes ready{50%{box-shadow:0 5px 0 var(--ink),0 0 0 8px rgba(62,154,73,.35)}}
+.keys{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);font:700 13px/1.3 var(--body);color:#fff;text-shadow:0 1px 0 var(--ink),0 0 5px var(--ink);white-space:nowrap;pointer-events:none}
+.keys b{font-family:var(--display)}
+
+/* person prompt + toast */
+.prompt{position:absolute;left:50%;bottom:130px;transform:translateX(-50%);width:min(440px,calc(100% - 32px));background:var(--paper);border:3px solid var(--ink);border-radius:20px;box-shadow:0 5px 0 var(--ink);padding:14px 16px;display:flex;flex-direction:column;gap:12px;animation:rise .25s ease-out}
+.prompt p{margin:0;font:900 18px/1.25 var(--display);text-wrap:balance}
+.prompt .row{display:flex;gap:10px;flex-wrap:wrap}
+.toast{position:absolute;left:50%;top:84px;transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);background:var(--sun-soft);border:3px solid var(--ink);border-radius:16px;box-shadow:0 4px 0 var(--ink);padding:10px 16px;font:900 17px/1.25 var(--display);text-align:center;text-wrap:balance;pointer-events:none;animation:pop .25s ease-out}
+@keyframes fade{from{opacity:.3}to{opacity:1}}
+@keyframes rise{from{transform:translate(-50%,16px);opacity:.4}to{transform:translate(-50%,0);opacity:1}}
+@keyframes pop{from{transform:translate(-50%,-8px) scale(.96)}to{transform:translate(-50%,0) scale(1)}}
+
+.btn{pointer-events:auto;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:8px 18px;font:900 18px/1 var(--display);color:var(--ink);background:var(--sun);border:3px solid var(--ink);border-radius:16px;box-shadow:0 5px 0 var(--ink);cursor:pointer;white-space:nowrap}
+.btn svg{width:26px;height:26px;flex:none}
+.btn:active:not([disabled]){transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+.btn.green{background:var(--leaf);color:#fff}
+.btn.ghost{background:var(--paper)}
+.btn.small{min-height:44px;font-size:16px;padding:6px 14px;box-shadow:0 4px 0 var(--ink)}
+.btn[disabled]{background:var(--paper-2);color:#6B7A6E;box-shadow:0 2px 0 var(--ink);cursor:not-allowed}
+
+/* sheets (map, animals, shop) */
+.sheet-wrap{position:absolute;inset:0;background:var(--scrim);display:flex;align-items:flex-end;justify-content:center;padding:16px}
+.sheet{width:min(760px,100%);max-height:100%;overflow:auto;background:var(--paper);border:3px solid var(--ink);border-radius:22px;box-shadow:0 6px 0 var(--ink);padding:16px 16px 20px;animation:sheet .22s ease-out;-webkit-user-select:text;user-select:text}
+@keyframes sheet{from{transform:translateY(24px);opacity:.5}to{transform:none;opacity:1}}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.sheet h2{margin:0;font:900 clamp(22px,5vw,30px)/1.05 var(--display);text-wrap:balance}
+.x{flex:none;width:48px;height:48px;display:grid;place-items:center;border-radius:14px;border:3px solid var(--ink);background:var(--paper-2);cursor:pointer;box-shadow:0 3px 0 var(--ink)}
+.x svg{width:22px;height:22px}
+.note{margin:0 0 12px;font-size:15px;line-height:1.45;max-width:62ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.card{display:flex;flex-direction:column;gap:6px;text-align:left;background:#fff;border:3px solid var(--ink);border-radius:16px;padding:8px 8px 10px;cursor:pointer;box-shadow:0 4px 0 var(--ink);min-width:0}
+.card .pv{display:block;width:100%;max-width:100%;aspect-ratio:16/9;border-radius:10px;border:2px solid var(--ink);background:var(--paper-2) center/cover no-repeat}
+.card .t{font:900 20px/1.1 var(--display)}
+.card .d{font-size:14px;line-height:1.35}
+.card.here{background:var(--sun-soft)}
+.card[disabled]{cursor:not-allowed;box-shadow:0 2px 0 var(--ink)}
+.card[disabled] .pv{filter:grayscale(.7) opacity(.7)}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tg{display:inline-block;font:700 12px/1 var(--body);letter-spacing:.05em;text-transform:uppercase;padding:5px 8px;border-radius:999px;border:2px solid var(--ink);background:var(--paper-2)}
+.tg.new{background:var(--sun)}
+.tg.lock{background:#F7D9D0}
+.list{display:flex;flex-direction:column;gap:10px}
+.arow{display:grid;grid-template-columns:84px minmax(0,1fr) auto;gap:12px;align-items:center;padding:8px 10px;border:3px solid var(--ink);border-radius:16px;background:#fff}
+.arow.on{background:var(--sun-soft)}
+.arow > img{width:84px;height:84px;border-radius:12px;background:var(--paper-2);display:block;object-fit:contain}
+.aname{font:900 19px/1.1 var(--display);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.eats{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.food{display:inline-flex;align-items:center;font-size:13px;line-height:1;padding:5px 9px;border-radius:999px;background:var(--paper-2);white-space:nowrap}
+.food.fav{background:var(--sun);font-weight:700}
+.need{display:block;font-size:13px;margin-top:6px;color:#5A665C}
+.playing{font:900 15px/1 var(--display);padding:8px 12px;border-radius:12px;border:2px dashed var(--ink)}
+.price{display:inline-flex;align-items:center;gap:4px}
+.price svg{width:20px;height:20px}
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tab{flex:1;min-height:46px;border:3px solid var(--ink);border-radius:14px;background:var(--paper-2);font:900 17px/1 var(--display);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--sun);box-shadow:0 3px 0 var(--ink)}
+.packs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.pack{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 10px;background:#fff;border:3px solid var(--ink);border-radius:16px;box-shadow:0 4px 0 var(--ink);cursor:pointer}
+.pack-leaves{display:inline-flex;align-items:center;gap:6px;font:900 26px/1 var(--display);font-variant-numeric:tabular-nums}
+.pack-leaves svg{width:30px;height:30px}
+.pack-price{font:700 16px/1 var(--body);padding:6px 12px;border-radius:999px;background:var(--paper-2)}
+.gc{display:flex;flex-direction:column;gap:10px;max-width:420px}
+.gc h3{margin:0;font:900 22px/1.1 var(--display)}
+.gc p{margin:0;line-height:1.45}
+.gcq{font:900 24px/1.2 var(--display)}
+.gcform{display:flex;flex-direction:column;gap:10px}
+.gcform input{font:900 26px/1 var(--display);width:140px;padding:8px 12px;border:3px solid var(--ink);border-radius:12px;background:#fff;color:var(--ink)}
+.gcform .row{display:flex;gap:10px;flex-wrap:wrap}
+.gcmsg{min-height:1.4em;color:var(--warn);font-weight:700}
+.cloudform{width:100%;max-width:340px;text-align:left}
+.cloudform label{font:900 16px/1 var(--display)}
+.cloudform input{width:100%;font:700 18px/1.2 var(--body);padding:10px 12px}
+.cloudform .row{justify-content:flex-start}
+.cloud-line{font-size:15px}
+
+/* loading + title */
+.loading{position:absolute;inset:0;display:grid;place-items:center;background:var(--moss);color:var(--paper);font:900 22px/1.2 var(--display);text-align:center;padding:16px}
+.loading p{margin:0}
+.title-wrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;background:radial-gradient(ellipse at 50% 45%,rgba(18,34,24,0),rgba(18,34,24,.45));overflow:auto}
+.title-card{width:min(660px,100%);max-height:100%;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+.title-card h1{margin:0;font:900 clamp(46px,12vw,96px)/.9 var(--display);color:var(--sun);-webkit-text-stroke:7px var(--ink);paint-order:stroke fill;text-shadow:0 7px 0 var(--ink);letter-spacing:.01em;text-wrap:balance}
+.byline{margin:0;font:700 18px/1.2 var(--body);color:var(--paper);text-shadow:0 2px 0 var(--ink),0 0 8px var(--ink)}
+.title-body{width:100%;background:var(--paper);border:3px solid var(--ink);border-radius:22px;box-shadow:0 6px 0 var(--ink);padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px;overflow:auto}
+.title-body h2{margin:0;font:900 24px/1.1 var(--display);text-wrap:balance}
+.title-body p{margin:0;line-height:1.45;max-width:46ch}
+.title-body .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.linkish{background:none;border:0;padding:8px;font:700 15px var(--body);text-decoration:underline;cursor:pointer;color:var(--ink)}
+.pick{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;width:100%}
+.pcard{width:116px;display:flex;flex-direction:column;align-items:center;gap:2px;background:#fff;border:3px solid var(--ink);border-radius:16px;box-shadow:0 4px 0 var(--ink);padding:6px 4px 10px;font:900 16px/1.1 var(--display);cursor:pointer}
+.pcard img{width:96px;height:96px;display:block;object-fit:contain}
+.pcard:active,.card:active:not([disabled]),.pack:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+
+@media (max-width:560px){
+  .arow{grid-template-columns:64px minmax(0,1fr)}
+  .arow > img{width:64px;height:64px}
+  .arow > .btn,.arow > .playing{grid-column:1 / -1;justify-self:stretch;text-align:center}
+  .hud{gap:6px}
+  .stats{gap:6px}
+  .pill{font-size:16px;padding:5px 8px;min-height:40px;gap:5px}
+  .pill svg{width:21px;height:21px}
+  .me{padding:4px 10px 4px 4px;gap:6px}
+  .me img{width:38px;height:38px}
+  .me .name{font-size:15px;max-width:88px}
+  .hunger{width:76px}
+  .where,.clock-word{display:none}
+  .side{top:74px;gap:8px}
+  .toast{left:82px;right:16px;top:76px;transform:none;width:auto;max-width:none;font-size:15px;animation:fade .25s ease-out}
+  .prompt{bottom:118px}
+  .sbtn{width:54px;height:54px;font-size:11px}
+  .abtn.big{width:82px;height:82px}
+  .abtn.mid{width:68px;height:68px}
+}
+@media (hover:hover) and (pointer:fine){ #stickHint{display:none} }
+@media (hover:none),(pointer:coarse){ .keys{display:none} }
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div id="app">
+  <canvas id="world" tabindex="-1" aria-label="Game world"></canvas>
+  <div id="touch"></div>
+  <div id="labels"></div>
+
+  <div class="hud" id="hud" hidden>
+    <button class="chip me" type="button" data-action="animals" aria-label="My animals">
+      <img id="meImg" alt="" width="44" height="44">
+      <span class="me-text"><span class="name" id="meName">Duck</span><span class="hunger" title="Tummy"><i id="hungerFill"></i></span></span>
+    </button>
+    <div class="stats">
+      <span class="pill where" id="wherePill">Land</span>
+      <button class="pill" type="button" data-action="shop" data-v="leaves" aria-label="Leaves"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20C4 10 10 4 20 4C20 14 14 20 4 20Z" fill="#5DBB4E" stroke="#1D3124" stroke-width="2" stroke-linejoin="round"/><path d="M4 20L16 8M9 15V11M12 12V8.5M9 15H13M12 12H15.5" stroke="#1D3124" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg><span id="leafCount">0</span></button>
+      <span class="pill" id="clockPill">
+        <span id="sunIco"><svg viewBox="0 0 24 24" aria-hidden="true"><g stroke="#1D3124" stroke-width="2" stroke-linecap="round"><path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3M4.8 4.8l2.1 2.1M17.1 17.1l2.1 2.1M4.8 19.2l2.1-2.1M17.1 6.9l2.1-2.1"/></g><circle cx="12" cy="12" r="5.2" fill="#FFC83A" stroke="#1D3124" stroke-width="2"/></svg></span>
+        <span id="moonIco" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 3.2A8.8 8.8 0 1 0 20.8 15 7 7 0 0 1 15.5 3.2Z" fill="#F4EBC0" stroke="#1D3124" stroke-width="2" stroke-linejoin="round"/></svg></span>
+        <span class="clock-word" id="clockWord">Day</span><span id="clockText">12:00</span>
+      </span>
+    </div>
+  </div>
+
+  <div class="side" id="side" hidden>
+    <button class="sbtn" type="button" data-action="map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l6-2.2 6 2.2 6-2.2v14.2l-6 2.2-6-2.2-6 2.2Z" fill="#FFFFFF" stroke="#1D3124" stroke-width="2" stroke-linejoin="round"/><path d="M9 3.8v14.2M15 6v14.2" stroke="#1D3124" stroke-width="2"/></svg>Map</button>
+    <button class="sbtn" type="button" data-action="animals"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="#FFFFFF" stroke="#1D3124" stroke-width="1.8"><ellipse cx="12" cy="16" rx="5" ry="4.2"/><circle cx="5.5" cy="10.5" r="2.3"/><circle cx="9.3" cy="6.3" r="2.3"/><circle cx="14.7" cy="6.3" r="2.3"/><circle cx="18.5" cy="10.5" r="2.3"/></g></svg>Animals</button>
+    <button class="sbtn" type="button" data-action="shop" data-v="animals"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 12.5H6.2Z" fill="#FFFFFF" stroke="#1D3124" stroke-width="2" stroke-linejoin="round"/><path d="M8.5 10V7a3.5 3.5 0 0 1 7 0v3" fill="none" stroke="#1D3124" stroke-width="2" stroke-linecap="round"/></svg>Shop</button>
+  </div>
+
+  <div id="stick" hidden><i id="knob"></i></div>
+  <div id="stickHint" hidden>Drag here<br>to walk</div>
+
+  <div class="actions" id="actions" hidden>
+    <button class="abtn mid" id="btnLand" type="button" hidden aria-label="Land"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v13M6 12l6 6 6-6" fill="none" stroke="#1D3124" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>Land</button>
+    <button class="abtn mid" id="btnEat" type="button" aria-label="Eat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6c4.4 0 8 3.1 8 7s-3.6 6-8 6-8-2.1-8-6 3.6-7 8-7Z" fill="#E2372E" stroke="#1D3124" stroke-width="2"/><path d="M12 6c0-2 1-3 3-3.5" fill="none" stroke="#1D3124" stroke-width="2" stroke-linecap="round"/><path d="M14 4.6c1.6-1.4 3.6-1.2 4.4-.2-1.2 1.3-3 1.4-4.4.2Z" fill="#5DBB4E" stroke="#1D3124" stroke-width="1.6" stroke-linejoin="round"/></svg><span>Eat</span></button>
+    <button class="abtn big" id="btnJump" type="button" aria-label="Jump"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V7M6 12l6-6 6 6" fill="none" stroke="#1D3124" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="jumpLabel">Jump</span></button>
+  </div>
+  <div class="keys" id="keys" hidden><b>WASD</b> walk &middot; <b>Shift</b> slow &middot; <b>Space</b> jump/fly &middot; <b>E</b> eat &middot; <b>C</b> land &middot; drag to look</div>
+
+  <div class="prompt" id="prompt" hidden role="dialog" aria-live="polite">
+    <p id="promptText"></p>
+    <div class="row"><button class="btn green" type="button" data-action="yes">Yes!</button><button class="btn ghost" type="button" data-action="no">Not now</button></div>
+  </div>
+
+  <div class="toast" id="toast" hidden role="status"></div>
+
+  <div class="sheet-wrap" id="sheetWrap" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+      <div class="sheet-head"><h2 id="sheetTitle"></h2><button class="x" type="button" data-action="close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19" stroke="#1D3124" stroke-width="3.2" stroke-linecap="round"/></svg></button></div>
+      <div id="sheetBody"></div>
+    </div>
+  </div>
+
+  <div class="title-wrap" id="titleWrap">
+    <div class="title-card">
+      <h1>Animal<br>Adventures</h1>
+      <p class="byline">A game by Rosemary</p>
+      <div class="title-body" id="titleBody"><p>Loading...</p></div>
+    </div>
+  </div>
+
+  <div class="loading" id="loading" hidden><p id="loadingText">Loading...</p></div>
+</div>

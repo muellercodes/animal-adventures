@@ -1,20 +1,26 @@
 # Animal Adventures
 
-A game by Rosemary. Pick an animal, eat food, earn leaves, and explore six worlds. It runs in the browser on a tablet, phone or computer.
+A game by Rosemary. Pick an animal, eat food, earn leaves, and explore six worlds in 3D. It runs in the browser on a tablet, phone or computer.
 
 **Play it:** https://muellercodes.github.io/animal-adventures/
 
 ## How it plays
 
 - **Start animals:** duck, swan, chicken, tree frog, lizard (black with yellow spots), garter snake and bunny. All of them are free, and you can switch any time.
-- **Food:** apples, worms, small fish, fish, grass, berries, carrots, pine cones and acorns. Each animal eats different things, and food your animal can eat glows. Every animal has a favorite food that's worth more.
+- **Real animal moves:** bunnies, frogs and squirrels hop, snakes slither, ducks waddle and paddle, and the duck, swan, owl and parrot can fly. Animals that swim can go in the water, where the fish are.
+- **Food:** apples fall under apple trees, acorns under oaks, pine cones under pines, berries by bushes, carrots grow in the garden and fish swim in the ponds. Food your animal can eat glows. Walk up to it and tap Eat. Every animal has a favorite food that's worth more. Food your animal can't eat does nothing to you.
 - **Leaves:** leaves are the money in the game. You earn them by eating (1 leaf, or 2 for a favorite) and by finding a new world for the first time (10 leaves).
 - **Shop:** spend leaves on more animals: squirrel, turtle, fox, owl, deer, parrot and moose. There's also a pretend leaf store where you can "buy" leaf packs. A grown-up has to answer a times-table question first, and no real money is involved.
-- **Worlds:** Land, Sky Lands, Forest, Swamp, Jungle and Meadow. Only animals that fly can go to the Sky Lands. Animals that swim (or fly) can go in the water, which is where the fish are.
-- **Day and night:** a day lasts 12 minutes and a night lasts 10. At night it gets dark and the fireflies come out. Owls can see farther in the dark.
-- **People:** friendly people walk around the Land and the Meadow and want animals as pets. Say yes and your person follows you around and brings you snacks.
+- **Worlds:** Land (a farm with a barn, garden, orchard and pond), Sky Lands (floating islands, only for animals that fly), Forest, Swamp, Jungle and Meadow.
+- **Wild animals:** each world has wild animals that wander, graze, rest at night and run (or fly) away if something big comes at them too fast. Play as the same kind of animal and some of them will tag along with you.
+- **Day and night:** a day lasts 12 minutes and a night lasts 10. The sun moves across the sky, sunsets glow, and at night the stars and fireflies come out. Owls can see better in the dark.
+- **People:** friendly people walk around the Land and the Meadow. They crouch down and ask if your animal will be their pet. Say yes and your person follows you around, pets you and brings you snacks.
 
-Tap or drag to walk. On a computer, the arrow keys or WASD work too.
+## Controls
+
+On a phone or tablet: drag on the left side to walk (push farther to run), drag on the right side to look around, pinch to zoom. Tap Jump, and tap it again in the air to fly. While flying, hold Flap to go up and Land to come down.
+
+On a computer: WASD or the arrow keys to walk, Shift to walk slowly, Space to jump (press again in the air to fly, hold to flap up), E to eat, C to land, drag with the mouse to look around and scroll to zoom.
 
 ## Saves
 
@@ -25,12 +31,23 @@ The backend is a tiny [Cloudflare Worker](worker/src/index.js) with a [D1](https
 ## Project layout
 
 ```
-game/game.html   the whole game (markup, styles and script in one file)
-game/config.json address of the cloud save API
-build.mjs        builds docs/index.html
-docs/            the published site (GitHub Pages serves this folder)
-worker/          Cloudflare Worker API + D1 schema
+game/shell.html         page markup and styles
+game/src/00_core.js     game data (animals, food, prices) and helpers
+game/src/35_envkit.js   3D scenery: trees, plants, barn, grass, water, sky, clouds, food
+game/src/40_animals.js  the 14 animals as 3D models with walk, hop, swim, fly and eat animation
+game/src/45_people.js   the people
+game/src/50_world.js    the six worlds: terrain, water, where things grow
+game/src/60_actors.js   movement, wild animal and people behavior, food
+game/src/70_game.js     rendering, camera, controls, day and night, menus, saves
+game/vendor/            three.js r149
+game/assets/            pre-rendered menu pictures (made by tools/assets.py)
+game/config.json        address of the cloud save API
+build.mjs               builds docs/index.html
+docs/                   the published site (GitHub Pages serves this folder)
+worker/                 Cloudflare Worker API + D1 schema
 ```
+
+Everything 3D is built from code when the game loads (no model or texture files), using [three.js](https://threejs.org).
 
 ## Building
 
@@ -41,6 +58,12 @@ API_BASE= node build.mjs                         # no cloud saves
 ```
 
 Then open `docs/index.html`, or serve the folder (`npx serve docs`).
+
+To redraw the animal icons and world pictures in the menus after changing a model or a world:
+
+```bash
+NO_ASSETS=1 API_BASE= node build.mjs && python3 tools/assets.py && node build.mjs
+```
 
 ## Running the backend
 
