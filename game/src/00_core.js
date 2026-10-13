@@ -40,27 +40,35 @@ const linear = (hex) => new THREE.Color(hex).convertSRGBToLinear();
 const FOODS = {
   apple: { name: 'Apples' }, worm: { name: 'Worms' }, smallfish: { name: 'Small fish', water: true }, fish: { name: 'Fish', water: true },
   grass: { name: 'Grass' }, berries: { name: 'Berries' }, carrot: { name: 'Carrots' }, pinecone: { name: 'Pine cones' }, acorn: { name: 'Acorns' },
+  pumpkin: { name: 'Pumpkins' },
 };
-// swim/fly/hop are what the animal can do; swimSpeed and flySpeed are m/s
+// swim/fly/hop/climb are what the animal can do; swimSpeed and flySpeed are m/s
+// egg: hatches from an egg (shell color); outdoor: when adopted it lives in a pen in the yard instead of inside the house
 const SPECIES = {
-  duck: { name: 'Duck', many: 'Ducks', eats: ['worm', 'smallfish', 'grass', 'berries'], fav: 'smallfish', fly: true, swim: true, swimSpeed: 2.4, flySpeed: 10 },
-  swan: { name: 'Swan', many: 'Swans', eats: ['grass', 'smallfish', 'berries'], fav: 'grass', fly: true, swim: true, swimSpeed: 2.4, flySpeed: 9 },
-  chicken: { name: 'Chicken', many: 'Chickens', eats: ['worm', 'berries', 'acorn', 'grass', 'carrot'], fav: 'worm' },
-  frog: { name: 'Tree frog', many: 'Tree frogs', eats: ['worm', 'smallfish'], fav: 'worm', swim: true, hop: true, swimSpeed: 1.8, hopV: 3.0 },
-  lizard: { name: 'Lizard', many: 'Lizards', eats: ['worm', 'berries', 'apple'], fav: 'worm' },
-  snake: { name: 'Garter snake', many: 'Garter snakes', eats: ['worm', 'smallfish', 'fish'], fav: 'fish', swim: true, swimSpeed: 1.8, noJump: true },
-  bunny: { name: 'Bunny', many: 'Bunnies', eats: ['grass', 'carrot', 'apple', 'berries'], fav: 'carrot', hop: true, hopV: 3.3 },
-  squirrel: { name: 'Squirrel', many: 'Squirrels', eats: ['acorn', 'pinecone', 'berries', 'apple'], fav: 'acorn', hop: true, hopV: 2.9, price: 40 },
-  turtle: { name: 'Turtle', many: 'Turtles', eats: ['grass', 'berries', 'worm', 'smallfish'], fav: 'berries', swim: true, swimSpeed: 2.2, noJump: true, price: 60 },
-  fox: { name: 'Fox', many: 'Foxes', eats: ['worm', 'berries', 'apple', 'smallfish'], fav: 'berries', price: 90, hunter: true },
-  owl: { name: 'Owl', many: 'Owls', eats: ['worm', 'smallfish'], fav: 'worm', fly: true, nightEyes: true, flySpeed: 8, price: 120, hunter: true },
-  deer: { name: 'Deer', many: 'Deer', eats: ['grass', 'acorn', 'apple', 'carrot'], fav: 'apple', price: 150 },
-  parrot: { name: 'Parrot', many: 'Parrots', eats: ['berries', 'apple', 'acorn'], fav: 'berries', fly: true, flySpeed: 10, price: 200 },
-  moose: { name: 'Moose', many: 'Moose', eats: ['grass', 'apple', 'carrot'], fav: 'grass', swim: true, swimSpeed: 2.2, price: 300 },
+  duck: { name: 'Duck', many: 'Ducks', eats: ['worm', 'smallfish', 'grass', 'berries'], fav: 'smallfish', fly: true, swim: true, swimSpeed: 2.4, flySpeed: 10, egg: 0xdfe8d8, outdoor: true, baby: 'Duckling' },
+  swan: { name: 'Swan', many: 'Swans', eats: ['grass', 'smallfish', 'berries'], fav: 'grass', fly: true, swim: true, swimSpeed: 2.4, flySpeed: 9, egg: 0xe8e4da, outdoor: true, baby: 'Cygnet' },
+  chicken: { name: 'Chicken', many: 'Chickens', eats: ['worm', 'berries', 'acorn', 'grass', 'carrot', 'pumpkin'], fav: 'worm', egg: 0xc8946a, outdoor: true, baby: 'Chick' },
+  frog: { name: 'Tree frog', many: 'Tree frogs', eats: ['worm', 'smallfish'], fav: 'worm', swim: true, hop: true, climb: true, swimSpeed: 1.8, hopV: 3.0, egg: 0xb8d8a0, baby: 'Froglet' },
+  lizard: { name: 'Lizard', many: 'Lizards', eats: ['worm', 'berries', 'apple'], fav: 'worm', climb: true, egg: 0xf0ece0, baby: 'Baby lizard' },
+  snake: { name: 'Garter snake', many: 'Garter snakes', eats: ['worm', 'smallfish', 'fish'], fav: 'fish', swim: true, swimSpeed: 1.8, noJump: true, baby: 'Baby snake' },
+  bunny: { name: 'Bunny', many: 'Bunnies', eats: ['grass', 'carrot', 'apple', 'berries'], fav: 'carrot', hop: true, hopV: 3.3, baby: 'Baby bunny' },
+  squirrel: { name: 'Squirrel', many: 'Squirrels', eats: ['acorn', 'pinecone', 'berries', 'apple', 'pumpkin'], fav: 'acorn', hop: true, climb: true, hopV: 2.9, price: 150, baby: 'Baby squirrel' },
+  hedgehog: { name: 'Hedgehog', many: 'Hedgehogs', eats: ['worm', 'berries', 'apple'], fav: 'worm', noJump: true, price: 200, baby: 'Hoglet' },
+  turtle: { name: 'Turtle', many: 'Turtles', eats: ['grass', 'berries', 'worm', 'smallfish'], fav: 'berries', swim: true, swimSpeed: 2.2, noJump: true, price: 250, egg: 0xf2efe6, baby: 'Baby turtle' },
+  pig: { name: 'Pig', many: 'Pigs', eats: ['apple', 'carrot', 'acorn', 'grass', 'pumpkin', 'worm'], fav: 'pumpkin', price: 300, outdoor: true, baby: 'Piglet' },
+  goat: { name: 'Goat', many: 'Goats', eats: ['grass', 'apple', 'carrot', 'berries', 'pumpkin'], fav: 'apple', price: 350, outdoor: true, baby: 'Kid goat' },
+  fox: { name: 'Fox', many: 'Foxes', eats: ['worm', 'berries', 'apple', 'smallfish'], fav: 'berries', price: 400, hunter: true, baby: 'Fox kit' },
+  otter: { name: 'Otter', many: 'Otters', eats: ['fish', 'smallfish', 'worm'], fav: 'fish', swim: true, swimSpeed: 4.2, price: 450, baby: 'Otter pup' },
+  raccoon: { name: 'Raccoon', many: 'Raccoons', eats: ['berries', 'apple', 'worm', 'smallfish', 'acorn', 'pumpkin'], fav: 'apple', climb: true, price: 500, baby: 'Raccoon kit' },
+  owl: { name: 'Owl', many: 'Owls', eats: ['worm', 'smallfish'], fav: 'worm', fly: true, nightEyes: true, flySpeed: 8, price: 600, hunter: true, egg: 0xf4f2ee, baby: 'Owlet' },
+  deer: { name: 'Deer', many: 'Deer', eats: ['grass', 'acorn', 'apple', 'carrot', 'pumpkin'], fav: 'apple', price: 800, outdoor: true, baby: 'Fawn' },
+  parrot: { name: 'Parrot', many: 'Parrots', eats: ['berries', 'apple', 'acorn'], fav: 'berries', fly: true, flySpeed: 10, price: 1000, egg: 0xf6f3ec, baby: 'Parrot chick' },
+  horse: { name: 'Horse', many: 'Horses', eats: ['grass', 'apple', 'carrot', 'pumpkin'], fav: 'carrot', price: 1200, outdoor: true, baby: 'Foal' },
+  moose: { name: 'Moose', many: 'Moose', eats: ['grass', 'apple', 'carrot'], fav: 'grass', swim: true, swimSpeed: 2.2, price: 1500, outdoor: true, baby: 'Moose calf' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
-const SHOP = ['squirrel', 'turtle', 'fox', 'owl', 'deer', 'parrot', 'moose'];
-const SMALL_PREY = ['chicken', 'frog', 'lizard', 'bunny', 'squirrel', 'duck'];
+const SHOP = ['squirrel', 'hedgehog', 'turtle', 'pig', 'goat', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
+const SMALL_PREY = ['chicken', 'frog', 'lizard', 'bunny', 'squirrel', 'duck', 'hedgehog'];
 const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow'];
 const PACKS = [{ id: 's', leaves: 100, price: '$0.99' }, { id: 'm', leaves: 300, price: '$1.99' }, { id: 'l', leaves: 1000, price: '$4.99' }];
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];
@@ -71,5 +79,15 @@ const PANTS = ['#2F3E5E', '#4A4A4A', '#6B4A2B', '#2E5A7A', '#6E6A5A'];
 const SHOES = ['#2A2A2A', '#5A3A22', '#E8E8E8', '#7A2E2E'];
 
 /* ---------- save state ---------- */
-const fresh = () => ({ v: 1, d3: true, saved: 0, leaves: 0, owned: [], animal: 'duck', world: 'land', visited: [], time: 120, hunger: 100, x: null, z: null, started: false });
+// ages: species -> 0 (newborn) .. 1 (grown up). names: nicknames. homes: species -> the person who adopted it.
+const fresh = () => ({ v: 1, d3: true, saved: 0, leaves: 0, owned: [], animal: 'duck', world: 'land', visited: [], time: 120, hunger: 100, x: null, z: null, started: false,
+  ages: {}, names: {}, homes: {}, sick: 0, hatched: [], treats: {}, sound: true, music: true });
+const ADULT_AT = 1, FLY_AGE = 0.6;
+const ageOf = (sp) => (S.ages[sp] === undefined ? 1 : S.ages[sp]);
+const nameOf = (sp) => S.names[sp] || SPECIES[sp].name;
+const stageName = (sp) => { const a = ageOf(sp); return a < 0.4 ? SPECIES[sp].baby : a < 1 ? 'Young ' + SPECIES[sp].name.toLowerCase() : SPECIES[sp].name; };
+// what day of the year is it (for holidays)
+const TODAY = (() => { const m = /date=(\d{4}-\d{2}-\d{2})/.exec(location.hash); return m ? new Date(m[1] + 'T12:00:00') : /assets/.test(location.hash) ? new Date(2026, 6, 1, 12) : new Date(); })();
+const HOLIDAY = (() => { const m = TODAY.getMonth() + 1, d = TODAY.getDate(); if (m === 10 || (m === 11 && d <= 2)) return 'halloween'; return null; })();
+const AUTUMN = (() => { const m = TODAY.getMonth() + 1, d = TODAY.getDate(); return (m === 9 && d >= 20) || m === 10 || (m === 11 && d <= 20); })();
 const S = fresh();

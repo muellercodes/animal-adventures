@@ -5,7 +5,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
-const ORDER = ['00_core', '35_envkit', '40_animals', '45_people', '50_world', '60_actors', '70_game'];
+const ORDER = ['00_core', '35_envkit', '40_animals', '45_people', '50_world', '60_actors', '65_audio', '70_game'];
 const cfg = JSON.parse(readFileSync('game/config.json', 'utf8'));
 const api = process.env.API_BASE ?? cfg.apiBase ?? '';
 
@@ -19,7 +19,7 @@ if (/—/.test(js)) { console.error('em dash found in game code'); process.exit(
 const assets = { icons: {}, worlds: {} };
 if (!process.env.NO_ASSETS && existsSync('game/assets')) {
   for (const f of readdirSync('game/assets')) {
-    const m = f.match(/^(icon|world)-([a-z]+)\.(png|jpg)$/); if (!m) continue;
+    const m = f.match(/^(icon|world)-([a-z]+(?:-baby)?)\.(png|jpg)$/); if (!m) continue;
     const uri = `data:image/${m[3] === 'jpg' ? 'jpeg' : 'png'};base64,${readFileSync(`game/assets/${f}`).toString('base64')}`;
     assets[m[1] === 'icon' ? 'icons' : 'worlds'][m[2]] = uri;
   }

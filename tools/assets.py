@@ -1,4 +1,5 @@
-# Renders the animal icons and world pictures used in the menus into game/assets/.
+# Renders the animal icons (grown-up and baby) and world pictures used in the menus into game/assets/.
+# The #assets page pretends it is summer, so the pictures have no autumn or Halloween things in them.
 # Run after building with assets off:  NO_ASSETS=1 API_BASE= node build.mjs && python3 tools/assets.py
 # Needs Playwright with Chromium (WebGL runs in software, so this takes a few minutes).
 import base64, os, sys
@@ -8,7 +9,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'game', 'assets')
 os.makedirs(OUT, exist_ok=True)
 SHOTS = {  # camera position, look-at point (relative to the world spawn) for each world picture
-    'land': ([-58, 26, 40], [-20, 2, -12]), 'forest': ([30, 14, 48], [-6, 6, 4]), 'swamp': ([26, 11, 30], [-6, 0, -4]),
+    'land': ([28, 20, -14], [92, 2, -58]), 'forest': ([30, 14, 48], [-6, 6, 4]), 'swamp': ([26, 11, 30], [-6, 0, -4]),
     'jungle': ([-30, 16, 34], [20, 2, -6]), 'meadow': ([40, 16, 46], [-10, 2, -20]), 'sky': ([46, 30, 60], [0, 2, 0]),
 }
 with sync_playwright() as p:
@@ -21,6 +22,8 @@ with sync_playwright() as p:
     for sp in ids:
         url = pg.evaluate(f'__aa.animalIcon("{sp}")')
         open(os.path.join(OUT, f'icon-{sp}.png'), 'wb').write(base64.b64decode(url.split(',')[1]))
+        url = pg.evaluate(f'__aa.animalIcon("{sp}", 0)')
+        open(os.path.join(OUT, f'icon-{sp}-baby.png'), 'wb').write(base64.b64decode(url.split(',')[1]))
         print('icon', sp)
     for wid, (cam, look) in SHOTS.items():
         url = pg.evaluate('''([wid, cam, look]) => {
