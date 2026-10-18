@@ -11,5 +11,14 @@ binding = "DB"
 database_name = "animal-adventures"
 database_id = "1939f3d1-ce39-4db2-a489-67af9021098c"
 
+# live multiplayer: one Durable Object per world (SQLite-backed, which works on the free plan)
+[[durable_objects.bindings]]
+name = "WORLDS"
+class_name = "WorldRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["WorldRoom"]
+
 [triggers]
 crons = ["23 4 * * *"]

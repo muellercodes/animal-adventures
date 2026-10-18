@@ -5008,11 +5008,12 @@ const Animals = (() => {
     // some babies have different eye colors (chicks: dark eyes)
     const e0 = A.spec.eyes && A.spec.eyes[0];
     if (R.eyeMat && e0 && e0.babyIris != null) R.eyeMat.map = baby ? eyeTexture(Object.assign({}, e0, { iris: e0.babyIris })) : eyeTexture(e0);
-    syncShells(R, A);
-    if (A.spec.shell && A.spec.shell.babyOnly) setDetail(R, A, R.detail);
     R.ageDrop = AG.drop * t;
     R.eat = a >= 1 ? A.eat0 : computeEat(A, R.rest, R.ageDrop);
     R.age = a;
+    syncShells(R, A);
+    // baby down only shows on babies: decide after the new age is set
+    if (A.spec.shell && A.spec.shell.babyOnly) setDetail(R, A, R.detail);
     for (const f of R.hooks) f();
   }
 

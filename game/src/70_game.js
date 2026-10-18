@@ -497,6 +497,15 @@ function updateLabels(dt) {
     else tag.style.display = 'none';
   }
   for (const [p, el] of tagEls) if (!Folk.list.includes(p)) { el.remove(); tagEls.delete(p); }
+  // other players: just their animal kind
+  for (const o of Net.others.values()) {
+    if (!o.tag) { o.tag = document.createElement('div'); o.tag.className = 'tag net'; labelsEl.appendChild(o.tag); o.tagText = ''; }
+    const b = o.b, d = b.pos.distanceTo(camera.position);
+    if (!b.rig.root.visible || d > 35) { o.tag.style.display = 'none'; continue; }
+    const t = b.age < 1 ? stageName(o.sp) : SPECIES[o.sp].name;
+    if (o.tagText !== t) { o.tagText = t; o.tag.textContent = t; }
+    place(o.tag, proj.set(b.pos.x, b.pos.y + b.m.height + 0.18, b.pos.z));
+  }
   if (Player.bub) {
     if (Player.bub.until < G.t) UI.dropBubble(Player);
     else place(Player.bub.el, proj.set(Player.pos.x, Player.pos.y + Player.m.height + 0.15, Player.pos.z));
@@ -524,6 +533,8 @@ function updateHud() {
     $('sunIco').hidden = di.night; $('moonIco').hidden = !di.night;
     $('clockPill').setAttribute('aria-label', (di.night ? 'Night, ' : 'Day, ') + ct + (di.night ? ' until morning' : ' until night'));
   }
+  const online = Net.open ? Net.count() : -1;
+  if (h.online !== online) { h.online = online; const np = $('netPill'); np.hidden = online < 0; $('netCount').textContent = online; np.setAttribute('aria-label', online === 1 ? '1 other player here' : `${online} other players here`); }
   const hasHome = !!S.homes[S.animal];
   if (h.hasHome !== hasHome) { h.hasHome = hasHome; $('homeBtn').hidden = !hasHome; }
   // action buttons
@@ -657,7 +668,8 @@ function gcView() {
 function sheetSettings() {
   const sw = (id, label, val) => `<button class="switch" type="button" role="switch" aria-checked="${val}" data-action="${id}"><span class="knob"></span>${label}</button>`;
   return `<div class="settings">${sw('toggle-sound', 'Sound', S.sound !== false)}${sw('toggle-music', 'Music', S.music !== false)}
-    <div class="setline">${API ? (cloud.user ? `Saving online as <b>${esc(cloud.user)}</b>. Your animals and leaves are saved on every device you sign in on. <button class="linkish" type="button" data-action="signout">Sign out</button>` : 'Your game saves on this device. <button class="linkish" type="button" data-action="cloud-here">Save online to play on other devices</button>') : 'Your game saves on this device by itself.'}</div>
+    <div class="setline">${API ? (cloud.user ? `Saving online as <b>${esc(cloud.user)}</b>. Your animals and leaves are saved on every device you sign in on. <button class="linkish" type="button" data-action="signout">Sign out</button>` : 'Your game saves on this device. <button class="linkish" type="button" data-action="cloud-here">Sign in to save online and play with other people</button>') : 'Your game saves on this device by itself.'}</div>
+    ${API && cloud.user ? `<div class="setline">${Net.open ? `You're playing online. Other players show up as their animal (${Net.count() === 1 ? '1 other player' : Net.count() + ' other players'} in this world right now).` : 'Connecting to other players...'}</div>` : ''}
     ${R.cloudForm ? cloudFormHtml() : ''}
     <div class="setline"><button class="linkish" type="button" data-action="quit">Back to the title screen</button></div></div>`;
 }
@@ -828,7 +840,7 @@ function esc(t) { return String(t).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', 
 function cloudBlock() {
   if (!API) return '';
   if (cloud.user) return `<p class="cloud-line">Saving online as <b>${esc(cloud.user)}</b>. <button class="linkish" type="button" data-action="signout">Sign out</button></p>`;
-  return '<button class="linkish" type="button" data-action="cloud">Save online to play on other devices</button>';
+  return '<button class="linkish" type="button" data-action="cloud">Sign in to save online and play with other people</button>';
 }
 function cloudFormHtml() {
   return `<form id="cloudForm" class="gcform cloudform">
@@ -956,7 +968,7 @@ function tick(dt, raw, draw) {
       readInput();
       R.action = findAction();
       if (press.act) { press.act = false; doAction(R.action); }
-      if (press.call) { press.call = false; Sound.call(Player.b); Player.b.happy = 1; for (const w of Wild.list) if (w.sp === Player.sp && !w.caged && w.pos.distanceTo(Player.pos) < 25) setTimeout(() => Sound.wildCall(w, camera.position, Cam.yaw), 500 + Math.random() * 900); }
+      if (press.call) { press.call = false; Net.sendCall(); Sound.call(Player.b); Player.b.happy = 1; for (const w of Wild.list) if (w.sp === Player.sp && !w.caged && w.pos.distanceTo(Player.pos) < 25) setTimeout(() => Sound.wildCall(w, camera.position, Cam.yaw), 500 + Math.random() * 900); }
       Player.update(dt, inp);
       Homes.update(dt);
       updateDoorSeq(dt);
@@ -980,6 +992,7 @@ function tick(dt, raw, draw) {
   if (G.world) {
     Wild.update(dt, camera.position);
     Folk.update(dt, camera.position);
+    Net.update(dt);
     Foods.update(dt);
     G.world.tick(dt, playing ? Player.b : null);
     G.world.updateView(camera.position, focus.x, focus.z, scene.fog.far, playing ? Player.m.length : 1.2);
@@ -1016,7 +1029,7 @@ function start(data) {
   if (snap && data.playing && S.started) play();
   if (API && cloud.token && !(snap && data.playing)) pullCloud().then(() => { if (R.mode === 'title') renderTitle(); }).catch((err) => { if (err.status === 401) { setSession(null, null); if (R.mode === 'title') renderTitle(); } });
   window.claude?.hot?.snapshot?.(() => ({ S: JSON.parse(JSON.stringify(S)), playing: R.mode === 'play' }));
-  if (/test|assets/.test(location.hash)) window.__aa = { SPECIES, manual(on) { manual = on; if (!on) requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); }); }, step(n, dt = 1 / 30, draw = true) { for (let i = 0; i < n; i++) tick(dt, 1, draw && i === n - 1); }, S, G, R, Player, Wild, Folk, Foods, Homes, World, Cam, inp, keys, press, travel, switchAnimal, loadWorld, play, pickStarter, animalIcon, renderer, camera, scene, dayInfo, timeOfDay, findAction, doAction, Sound, setBodyAge, goHome, buyAnimal, Env, Animals, People, THREE };
+  if (/test|assets/.test(location.hash)) window.__aa = { SPECIES, manual(on) { manual = on; if (!on) requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); }); }, step(n, dt = 1 / 30, draw = true) { for (let i = 0; i < n; i++) tick(dt, 1, draw && i === n - 1); }, S, G, R, Player, Wild, Folk, Foods, Homes, World, Cam, inp, keys, press, travel, switchAnimal, loadWorld, play, pickStarter, animalIcon, renderer, camera, scene, dayInfo, timeOfDay, findAction, doAction, Sound, setBodyAge, goHome, buyAnimal, Env, Animals, People, THREE, Net };
   requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); });
 }
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
