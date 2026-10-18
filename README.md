@@ -22,6 +22,7 @@ A game by Rosemary. Pick an animal, eat food, earn leaves, and explore six world
 - **Homes:** when someone adopts you, you get a home in the village. Like real pets, the lizard, frog, snake and turtle live in a glass tank, the parrot in a big bird cage, and the bunny and hedgehog in an indoor pen. Other small animals are indoor pets with a bed. Farm animals (duck, swan, chicken, pig, goat, deer, horse, moose) live in a pen in the back yard. Every home has a food bowl. The Home button takes you there, and you can sleep at home to skip the night.
 - **Houses, barns and the animal pound:** doors swing open and you walk through. You can go into the houses during the day and into barns any time (horse stalls, hay, a loft ladder). Big animals don't fit through house doors, but they fit in barns. At the end of Maple Street is the animal pound, with animals in cages, kennels and a vet who makes sick animals better. Go into a kennel and wait, and a visitor may come and kneel at the door; walk out to them to go home with them.
 - **Holidays:** in the fall the leaves change color and drift down. From October 1 to November 2 there are pumpkins and jack-o'-lanterns, and at night you can go trick or treating at the houses for candy.
+- **Playing together:** when you're signed in, the game is always online. Everyone else who is signed in and in the same world shows up as their animal, walking, swimming and flying around with you, and you hear their Call. Their label only says what animal they are (never a name), nothing anyone types is shared, and there is no chat. The paw pill at the top shows how many other players are in your world.
 - **Sound:** animal calls, footsteps, wind, birds, crickets, frogs and a little music, all made by the game itself. Both can be turned off in Settings.
 
 ## Controls
@@ -34,7 +35,7 @@ On a computer: WASD or the arrow keys to walk, Shift to walk slowly, Space to ju
 
 The game saves on the device by itself, and a small "Saved" sign shows when it does. If you make an account (a name and a password, no email), your game also saves online so you can keep playing on another device. The newest save wins.
 
-The backend is a tiny [Cloudflare Worker](worker/src/index.js) with a [D1](https://developers.cloudflare.com/d1/) (SQLite) database, the same setup as [Emberblood](https://github.com/muellercodes/emberblood). It fits in Cloudflare's free tier and doesn't get paused or deleted when nobody plays for a while. Passwords are hashed with PBKDF2-SHA256, sessions are random tokens stored only as hashes, and nothing personal is collected.
+The backend is a tiny [Cloudflare Worker](worker/src/index.js) with a [D1](https://developers.cloudflare.com/d1/) (SQLite) database and one [Durable Object](https://developers.cloudflare.com/durable-objects/) per world that relays where everyone's animal is over WebSockets, the same setup as [Emberblood](https://github.com/muellercodes/emberblood). It fits in Cloudflare's free tier and doesn't get paused or deleted when nobody plays for a while. Passwords are hashed with PBKDF2-SHA256, sessions are random tokens stored only as hashes, and nothing personal is collected.
 
 ## Project layout
 
@@ -48,6 +49,7 @@ game/src/45_people.js   the people
 game/src/50_world.js    the six endless worlds: terrain tiles, water, where things grow, landmarks, the village, pens and gates
 game/src/60_actors.js   movement, wild animal and people behavior, homes, food
 game/src/65_audio.js    all the sounds and music (Web Audio, made in code)
+game/src/68_net.js      playing together: sends your animal to the server and draws everyone else
 game/src/70_game.js     rendering, camera, controls, day and night, menus, saves
 game/vendor/            three.js r149
 game/assets/            pre-rendered menu pictures (made by tools/assets.py)

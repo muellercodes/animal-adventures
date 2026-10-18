@@ -71,6 +71,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--berry);outline-
 button.pill{cursor:pointer}
 .pill svg{width:24px;height:24px;flex:none}
 .where{font-size:16px}
+.tag.net{font-size:13px;color:#F3E8FF;text-shadow:0 1px 0 #3A1F57,0 0 4px #3A1F57}
 .gear{padding:6px 9px}
 .saved{position:absolute;right:16px;top:74px;display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--paper);border:3px solid var(--ink);border-radius:999px;box-shadow:0 3px 0 var(--ink);font:900 15px/1 var(--display);pointer-events:none;animation:fade .25s ease-out}
 .saved svg{width:18px;height:18px}
@@ -282,6 +283,7 @@ button.pill{cursor:pointer}
         <span id="moonIco" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 3.2A8.8 8.8 0 1 0 20.8 15 7 7 0 0 1 15.5 3.2Z" fill="#F4EBC0" stroke="#1D3124" stroke-width="2" stroke-linejoin="round"/></svg></span>
         <span class="clock-word" id="clockWord">Day</span><span id="clockText">12:00</span>
       </span>
+      <span class="pill online" id="netPill" hidden title="Other players in this world"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="#8B4CC4" stroke="#1D3124" stroke-width="1.6"><ellipse cx="12" cy="16" rx="4.6" ry="3.8"/><circle cx="6" cy="11" r="2.1"/><circle cx="9.6" cy="7" r="2.1"/><circle cx="14.4" cy="7" r="2.1"/><circle cx="18" cy="11" r="2.1"/></g></svg><span id="netCount">0</span></span>
       <button class="pill gear" type="button" data-action="settings" aria-label="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 2.5h3.4l.5 2.6 1.7.8 2.3-1.4 2.4 2.4-1.4 2.3.8 1.7 2.6.5v3.4l-2.6.5-.8 1.7 1.4 2.3-2.4 2.4-2.3-1.4-1.7.8-.5 2.6h-3.4l-.5-2.6-1.7-.8-2.3 1.4-2.4-2.4 1.4-2.3-.8-1.7-2.6-.5v-3.4l2.6-.5.8-1.7-1.4-2.3 2.4-2.4 2.3 1.4 1.7-.8Z" fill="#FFFFFF" stroke="#1D3124" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.4" fill="#FFC83A" stroke="#1D3124" stroke-width="1.8"/></svg></button>
     </div>
   </div>
@@ -11601,11 +11603,12 @@ const Animals = (() => {
     // some babies have different eye colors (chicks: dark eyes)
     const e0 = A.spec.eyes && A.spec.eyes[0];
     if (R.eyeMat && e0 && e0.babyIris != null) R.eyeMat.map = baby ? eyeTexture(Object.assign({}, e0, { iris: e0.babyIris })) : eyeTexture(e0);
-    syncShells(R, A);
-    if (A.spec.shell && A.spec.shell.babyOnly) setDetail(R, A, R.detail);
     R.ageDrop = AG.drop * t;
     R.eat = a >= 1 ? A.eat0 : computeEat(A, R.rest, R.ageDrop);
     R.age = a;
+    syncShells(R, A);
+    // baby down only shows on babies: decide after the new age is set
+    if (A.spec.shell && A.spec.shell.babyOnly) setDetail(R, A, R.detail);
     for (const f of R.hooks) f();
   }
 
@@ -15098,6 +15101,105 @@ const Sound = (() => {
   return api;
 })();
 
+/* ---------- multiplayer: everyone signed in walks around together ----------
+   One WebSocket per world to the game server. Only numbers and the animal kind are shared:
+   other players show up as their animal with a label like "Bunny", never a name. */
+const Net = {
+  ws: null, world: null, token: null, you: null, open: false, others: new Map(),
+  sendT: 0, beatT: 0, last: '', retry: 0, retryT: 0, blocked: false,
+  wanted() { return !!(API && cloud.token && R.mode === 'play' && G.world && S.started); },
+  update(dt) {
+    if (!this.wanted() || this.blocked) { if (this.ws) this.close(); this.retryT = 0; return; }
+    if (this.ws && (this.world !== S.world || this.token !== cloud.token)) this.close();
+    if (!this.ws) { this.retryT -= dt; if (this.retryT <= 0) this.connect(); }
+    if (this.open) this.sendState(dt);
+    this.drawOthers(dt);
+  },
+  connect() {
+    this.world = S.world; this.token = cloud.token;
+    let ws;
+    try { ws = new WebSocket(API.replace(/^http/, 'ws') + '/api/play?w=' + encodeURIComponent(this.world), ['aa', cloud.token]); }
+    catch (e) { this.retryT = 10; return; }
+    this.ws = ws;
+    ws.onopen = () => { if (ws !== this.ws) return; this.open = true; this.retry = 0; this.last = ''; this.sendT = 0; };
+    ws.onmessage = (e) => { if (ws === this.ws) this.receive(e.data); };
+    ws.onclose = (e) => {
+      if (ws !== this.ws) return;
+      this.ws = null; this.open = false; this.clearOthers();
+      // replaced by another tab: stay off in this one; otherwise try again, waiting longer each time
+      if (e.code === 4000) { this.blocked = true; UI.toast('You are playing online in another window.'); return; }
+      this.retry++; this.retryT = Math.min(30, 2 * Math.pow(1.6, this.retry));
+    };
+    ws.onerror = () => {};
+  },
+  close() { const ws = this.ws; this.ws = null; this.open = false; this.clearOthers(); if (ws) { try { ws.close(1000); } catch (e) {} } },
+  // where am I: outdoors, or which room (rooms out in the wilds are named after their landmark)
+  roomKey(rm) { if (!rm) return ''; const h = rm.house; return h ? (h.own ? h.own.key + ':' + h.kind : 'h' + h.id) : 'r'; },
+  state() {
+    const b = Player.b; if (!b) return null;
+    const r = (v) => Math.round(v * 100) / 100;
+    return { sp: b.sp, age: r(b.age), x: r(b.pos.x), y: Math.round(b.pos.y * 10) / 10, z: r(b.pos.z), yaw: r(b.yaw), speed: r(b.speed), vy: r(b.vy), eat: r(b.eat), mode: b.mode, room: this.roomKey(b.room) };
+  },
+  sendState(dt) {
+    this.sendT -= dt; this.beatT -= dt;
+    const st = this.state(); if (!st) return;
+    const key = JSON.stringify(st);
+    if (this.sendT > 0) return;                       // at most about 8 a second
+    if (key === this.last && this.beatT > 0) return;  // nothing new: just a hello every 5 seconds
+    this.last = key; this.sendT = 0.12; this.beatT = 5;
+    this.raw({ type: 'st', st });
+  },
+  sendCall() { if (this.open) this.raw({ type: 'call' }); },
+  raw(m) { try { this.ws.send(JSON.stringify(m)); } catch (e) {} },
+  receive(text) {
+    let m; try { m = JSON.parse(text); } catch (e) { return; }
+    if (m.type === 'hello') { this.you = m.you; for (const o of m.others || []) this.setState(o.id, o.st); }
+    else if (m.type === 'st') this.setState(m.id, m.st);
+    else if (m.type === 'bye') this.drop(m.id);
+    else if (m.type === 'call') { const o = this.others.get(m.id); if (o && o.b.rig.root.visible) Sound.wildCall(o.b, camera.position, Cam.yaw); }
+  },
+  setState(id, st) {
+    if (!st || !SPECIES[st.sp]) return;
+    let o = this.others.get(id);
+    if (o && (o.sp !== st.sp || Math.abs(o.age - st.age) > 0.05)) { this.drop(id); o = null; }
+    if (!o) {
+      const b = newBody(st.sp, st.age);
+      b.remote = true; if (b.rig.setDetail) b.rig.setDetail(1);
+      b.pos.set(st.x, st.y, st.z); b.yaw = st.yaw;
+      G.scene.add(b.rig.root);
+      o = { id, b, sp: st.sp, age: st.age, st, t: 0, tag: null };
+      this.others.set(id, o);
+    }
+    o.st = st; o.t = 0;
+  },
+  drop(id) { const o = this.others.get(id); if (!o) return; G.scene.remove(o.b.rig.root); if (o.tag) o.tag.remove(); this.others.delete(id); },
+  clearOthers() { for (const id of [...this.others.keys()]) this.drop(id); },
+  // glide each animal toward where its player said it is (and a little ahead, so it doesn't stutter)
+  drawOthers(dt) {
+    const P = Player.b, here = this.roomKey(P && P.room), w = G.world;
+    for (const o of this.others.values()) {
+      const b = o.b, st = o.st;
+      o.t += dt;
+      if (o.t > 25) { this.drop(o.id); continue; }
+      const show = st.room === here && Math.hypot(st.x - camera.position.x, st.z - camera.position.z) < 170;
+      b.rig.root.visible = show;
+      if (!show) { b.pos.set(st.x, st.y, st.z); continue; }
+      const ahead = Math.min(o.t, 0.3) * st.speed, tx = st.x + Math.sin(st.yaw) * ahead, tz = st.z + Math.cos(st.yaw) * ahead;
+      const far = Math.hypot(tx - b.pos.x, tz - b.pos.z) > 12;
+      const k = far ? 1 : 1 - Math.exp(-10 * dt);
+      b.pos.x += (tx - b.pos.x) * k; b.pos.z += (tz - b.pos.z) * k;
+      const ground = st.mode === 'ground' || st.mode === 'sleep' ? w.H(b.pos.x, b.pos.z) : null;
+      b.pos.y = ground !== null && ground > -100 ? ground : b.pos.y + (st.y - b.pos.y) * k;
+      const turn = angDiff(b.yaw, st.yaw); b.yaw += far ? turn : turn * (1 - Math.exp(-10 * dt));
+      b.turn = damp(b.turn, turn / Math.max(dt, 0.001) * 0.1, 6, dt);
+      b.speed = st.speed; b.mode = st.mode; b.vy = st.vy; b.eat = st.eat;
+      b.idle = b.speed < 0.06 ? b.idle + dt : 0;
+      poseBody(b, dt, true);
+    }
+  },
+  count() { let n = 0; for (const o of this.others.values()) n++; return n; },
+};
+
 /* ---------- game: renderer, camera, input, time of day, UI, saves ---------- */
 const ASSETS = window.AA_ASSETS || { icons: {}, worlds: {} };
 const cv = $('world');
@@ -15597,6 +15699,15 @@ function updateLabels(dt) {
     else tag.style.display = 'none';
   }
   for (const [p, el] of tagEls) if (!Folk.list.includes(p)) { el.remove(); tagEls.delete(p); }
+  // other players: just their animal kind
+  for (const o of Net.others.values()) {
+    if (!o.tag) { o.tag = document.createElement('div'); o.tag.className = 'tag net'; labelsEl.appendChild(o.tag); o.tagText = ''; }
+    const b = o.b, d = b.pos.distanceTo(camera.position);
+    if (!b.rig.root.visible || d > 35) { o.tag.style.display = 'none'; continue; }
+    const t = b.age < 1 ? stageName(o.sp) : SPECIES[o.sp].name;
+    if (o.tagText !== t) { o.tagText = t; o.tag.textContent = t; }
+    place(o.tag, proj.set(b.pos.x, b.pos.y + b.m.height + 0.18, b.pos.z));
+  }
   if (Player.bub) {
     if (Player.bub.until < G.t) UI.dropBubble(Player);
     else place(Player.bub.el, proj.set(Player.pos.x, Player.pos.y + Player.m.height + 0.15, Player.pos.z));
@@ -15624,6 +15735,8 @@ function updateHud() {
     $('sunIco').hidden = di.night; $('moonIco').hidden = !di.night;
     $('clockPill').setAttribute('aria-label', (di.night ? 'Night, ' : 'Day, ') + ct + (di.night ? ' until morning' : ' until night'));
   }
+  const online = Net.open ? Net.count() : -1;
+  if (h.online !== online) { h.online = online; const np = $('netPill'); np.hidden = online < 0; $('netCount').textContent = online; np.setAttribute('aria-label', online === 1 ? '1 other player here' : `${online} other players here`); }
   const hasHome = !!S.homes[S.animal];
   if (h.hasHome !== hasHome) { h.hasHome = hasHome; $('homeBtn').hidden = !hasHome; }
   // action buttons
@@ -15757,7 +15870,8 @@ function gcView() {
 function sheetSettings() {
   const sw = (id, label, val) => `<button class="switch" type="button" role="switch" aria-checked="${val}" data-action="${id}"><span class="knob"></span>${label}</button>`;
   return `<div class="settings">${sw('toggle-sound', 'Sound', S.sound !== false)}${sw('toggle-music', 'Music', S.music !== false)}
-    <div class="setline">${API ? (cloud.user ? `Saving online as <b>${esc(cloud.user)}</b>. Your animals and leaves are saved on every device you sign in on. <button class="linkish" type="button" data-action="signout">Sign out</button>` : 'Your game saves on this device. <button class="linkish" type="button" data-action="cloud-here">Save online to play on other devices</button>') : 'Your game saves on this device by itself.'}</div>
+    <div class="setline">${API ? (cloud.user ? `Saving online as <b>${esc(cloud.user)}</b>. Your animals and leaves are saved on every device you sign in on. <button class="linkish" type="button" data-action="signout">Sign out</button>` : 'Your game saves on this device. <button class="linkish" type="button" data-action="cloud-here">Sign in to save online and play with other people</button>') : 'Your game saves on this device by itself.'}</div>
+    ${API && cloud.user ? `<div class="setline">${Net.open ? `You're playing online. Other players show up as their animal (${Net.count() === 1 ? '1 other player' : Net.count() + ' other players'} in this world right now).` : 'Connecting to other players...'}</div>` : ''}
     ${R.cloudForm ? cloudFormHtml() : ''}
     <div class="setline"><button class="linkish" type="button" data-action="quit">Back to the title screen</button></div></div>`;
 }
@@ -15928,7 +16042,7 @@ function esc(t) { return String(t).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', 
 function cloudBlock() {
   if (!API) return '';
   if (cloud.user) return `<p class="cloud-line">Saving online as <b>${esc(cloud.user)}</b>. <button class="linkish" type="button" data-action="signout">Sign out</button></p>`;
-  return '<button class="linkish" type="button" data-action="cloud">Save online to play on other devices</button>';
+  return '<button class="linkish" type="button" data-action="cloud">Sign in to save online and play with other people</button>';
 }
 function cloudFormHtml() {
   return `<form id="cloudForm" class="gcform cloudform">
@@ -16056,7 +16170,7 @@ function tick(dt, raw, draw) {
       readInput();
       R.action = findAction();
       if (press.act) { press.act = false; doAction(R.action); }
-      if (press.call) { press.call = false; Sound.call(Player.b); Player.b.happy = 1; for (const w of Wild.list) if (w.sp === Player.sp && !w.caged && w.pos.distanceTo(Player.pos) < 25) setTimeout(() => Sound.wildCall(w, camera.position, Cam.yaw), 500 + Math.random() * 900); }
+      if (press.call) { press.call = false; Net.sendCall(); Sound.call(Player.b); Player.b.happy = 1; for (const w of Wild.list) if (w.sp === Player.sp && !w.caged && w.pos.distanceTo(Player.pos) < 25) setTimeout(() => Sound.wildCall(w, camera.position, Cam.yaw), 500 + Math.random() * 900); }
       Player.update(dt, inp);
       Homes.update(dt);
       updateDoorSeq(dt);
@@ -16080,6 +16194,7 @@ function tick(dt, raw, draw) {
   if (G.world) {
     Wild.update(dt, camera.position);
     Folk.update(dt, camera.position);
+    Net.update(dt);
     Foods.update(dt);
     G.world.tick(dt, playing ? Player.b : null);
     G.world.updateView(camera.position, focus.x, focus.z, scene.fog.far, playing ? Player.m.length : 1.2);
@@ -16116,7 +16231,7 @@ function start(data) {
   if (snap && data.playing && S.started) play();
   if (API && cloud.token && !(snap && data.playing)) pullCloud().then(() => { if (R.mode === 'title') renderTitle(); }).catch((err) => { if (err.status === 401) { setSession(null, null); if (R.mode === 'title') renderTitle(); } });
   window.claude?.hot?.snapshot?.(() => ({ S: JSON.parse(JSON.stringify(S)), playing: R.mode === 'play' }));
-  if (/test|assets/.test(location.hash)) window.__aa = { SPECIES, manual(on) { manual = on; if (!on) requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); }); }, step(n, dt = 1 / 30, draw = true) { for (let i = 0; i < n; i++) tick(dt, 1, draw && i === n - 1); }, S, G, R, Player, Wild, Folk, Foods, Homes, World, Cam, inp, keys, press, travel, switchAnimal, loadWorld, play, pickStarter, animalIcon, renderer, camera, scene, dayInfo, timeOfDay, findAction, doAction, Sound, setBodyAge, goHome, buyAnimal, Env, Animals, People, THREE };
+  if (/test|assets/.test(location.hash)) window.__aa = { SPECIES, manual(on) { manual = on; if (!on) requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); }); }, step(n, dt = 1 / 30, draw = true) { for (let i = 0; i < n; i++) tick(dt, 1, draw && i === n - 1); }, S, G, R, Player, Wild, Folk, Foods, Homes, World, Cam, inp, keys, press, travel, switchAnimal, loadWorld, play, pickStarter, animalIcon, renderer, camera, scene, dayInfo, timeOfDay, findAction, doAction, Sound, setBodyAge, goHome, buyAnimal, Env, Animals, People, THREE, Net };
   requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); });
 }
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
