@@ -13,18 +13,20 @@ A game by Rosemary. Pick an animal, eat food, earn leaves, and explore six world
 - **Food:** apples fall under apple trees, acorns under oaks, pine cones under pines, berries by bushes, carrots grow in the garden and fish swim in the ponds. Food your animal can eat glows. Walk up to it and tap Eat. Every animal has a favorite food that's worth more. Food your animal can't eat does nothing to you.
 - **Leaves:** leaves are the money in the game. You earn them by eating (1 leaf, or 2 for a favorite) and by finding a new world for the first time (10 leaves).
 - **Shop:** spend leaves on 13 more animals, from a squirrel (150 leaves) up to a horse and a moose. The others are a hedgehog, turtle, pig, goat, fox, otter, raccoon, owl, deer and parrot. There's also a pretend leaf store where you can "buy" leaf packs. A grown-up has to answer a times-table question first, and no real money is involved.
-- **Worlds:** Land (a farm with a barn, garden, orchard, pond and lake, plus a village on Maple Street), Sky Lands (floating islands, only for grown-up animals that fly), Forest, Swamp, Jungle and Meadow. The worlds are bigger now, with lakes, ponds, giant trees and more kinds of trees (oak, maple, birch, willow, pine, palm).
-- **Wild animals:** each world has wild animals that wander, graze, rest at night and run (or fly) away if something big comes at them too fast. Play as the same kind of animal and some of them will tag along with you.
+- **Worlds:** Land (a farm with a barn, fenced pens, a garden, orchard, pond and lake, plus a village on Maple Street), Sky Lands (floating islands, only for grown-up animals that fly), Forest, Swamp, Jungle and Meadow.
+- **Endless worlds:** every world keeps going in every direction. The hand-made part is in the middle, and past it the game makes new woods, fields, lakes, ponds, giant trees, orchards and farms (with a barn, a farmhouse and penned animals) as you go. In the Map, tapping the world you're in takes you back to its start.
+- **Wild animals:** each world has wild animals that wander, graze, rest at night and run (or fly) away if something big comes at them too fast. Out in the wilds new ones turn up around you. Play as the same kind of animal and some of them will tag along with you.
+- **Farm animals and fences:** horses live in a paddock, pigs in a muddy pen, goats in a pen with a climbing platform and chickens in a coop run. Fences stop animals (fliers go over), and gates swing open when you walk up to them.
 - **Day and night:** a day lasts 12 minutes and a night lasts 10. The sun moves across the sky, sunsets glow, and at night the stars and fireflies come out. Owls can see better in the dark.
-- **People:** friendly people walk around the Land and the Meadow. They crouch down and ask if your animal will be their pet. Say yes and your person follows you around, pets you and brings you snacks.
-- **Homes:** when someone adopts you, you get a home in the village. Small animals become indoor pets with a bed and a food bowl inside the house. Farm animals (duck, swan, chicken, pig, goat, deer, horse, moose) are outdoor pets with a pen in the back yard. The Home button takes you there, and you can sleep in your bed to skip the night.
-- **Houses and the animal pound:** you can walk into the houses during the day. At the end of Maple Street is the animal pound, with animals in cages, a vet who makes sick animals better, and pens. Wait in a pen and a visitor may come to adopt you.
+- **People:** friendly people walk around the Land and the Meadow. Animals can't talk to people, so nobody asks you anything. Someone who likes your animal kneels down and holds out a hand. Walk up to them and they pet you, then they head home: follow them and they adopt you. Walking away means no. Your person follows you around, pets you and brings you snacks.
+- **Homes:** when someone adopts you, you get a home in the village. Like real pets, the lizard, frog, snake and turtle live in a glass tank, the parrot in a big bird cage, and the bunny and hedgehog in an indoor pen. Other small animals are indoor pets with a bed. Farm animals (duck, swan, chicken, pig, goat, deer, horse, moose) live in a pen in the back yard. Every home has a food bowl. The Home button takes you there, and you can sleep at home to skip the night.
+- **Houses, barns and the animal pound:** doors swing open and you walk through. You can go into the houses during the day and into barns any time (horse stalls, hay, a loft ladder). Big animals don't fit through house doors, but they fit in barns. At the end of Maple Street is the animal pound, with animals in cages, kennels and a vet who makes sick animals better. Go into a kennel and wait, and a visitor may come and kneel at the door; walk out to them to go home with them.
 - **Holidays:** in the fall the leaves change color and drift down. From October 1 to November 2 there are pumpkins and jack-o'-lanterns, and at night you can go trick or treating at the houses for candy.
 - **Sound:** animal calls, footsteps, wind, birds, crickets, frogs and a little music, all made by the game itself. Both can be turned off in Settings.
 
 ## Controls
 
-On a phone or tablet: drag on the left side to walk (push farther to run), drag on the right side to look around, pinch to zoom. Tap Jump, and tap it again in the air to fly. While flying, hold Flap to go up and Land to come down. A purple button shows up when there's something to do right where you are (Go in, Go home, Sleep, Climb, Trick or treat, See the vet). Call makes your animal's sound.
+On a phone or tablet: drag on the left side to walk (push farther to run), drag on the right side to look around, pinch to zoom. Tap Jump, and tap it again in the air to fly. While flying, hold Flap to go up and Land to come down. A purple button shows up when there's something to do right where you are (Go in, Go out, Go home, Sleep, Climb, Let go, Let me out, Trick or treat, See the vet). Call makes your animal's sound.
 
 On a computer: WASD or the arrow keys to walk, Shift to walk slowly, Space to jump (press again in the air to fly, hold to flap up), E to eat, F to do the purple-button thing, V to call, C to land, drag with the mouse to look around and scroll to zoom.
 
@@ -43,7 +45,7 @@ game/src/35_envkit.js   3D scenery: trees, plants, barn, grass, water, sky, clou
 game/src/35_envkit.js   (also houses and rooms, the pound, pens, pumpkins, nests and eggs)
 game/src/40_animals.js  the 20 animals as 3D models (grown-up and baby) with walk, hop, swim, fly, climb and eat animation
 game/src/45_people.js   the people
-game/src/50_world.js    the six worlds: terrain, water, where things grow, the village
+game/src/50_world.js    the six endless worlds: terrain tiles, water, where things grow, landmarks, the village, pens and gates
 game/src/60_actors.js   movement, wild animal and people behavior, homes, food
 game/src/65_audio.js    all the sounds and music (Web Audio, made in code)
 game/src/70_game.js     rendering, camera, controls, day and night, menus, saves

@@ -622,7 +622,8 @@ function sheetMap() {
 function homeLine(id) {
   const hm = S.homes[id]; if (!hm) return '';
   const color = ['white', 'yellow', 'blue', 'brick', 'gray', 'white'][hm.house] || 'white';
-  return `<span class="need">${SPECIES[id].outdoor ? `Lives in ${hm.name}'s yard behind the ${color} house` : `${hm.name}'s indoor pet in the ${color} house`}</span>`;
+  const cage = CAGED[id];
+  return `<span class="need">${SPECIES[id].outdoor ? `Lives in ${hm.name}'s yard behind the ${color} house` : cage ? `Lives in ${CAGE_WORDS[cage]} at ${hm.name}'s ${color} house` : `${hm.name}'s indoor pet in the ${color} house`}</span>`;
 }
 function sheetAnimals() {
   const ids = STARTERS.concat(SHOP).filter((i) => S.owned.includes(i));

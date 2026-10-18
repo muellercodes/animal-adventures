@@ -683,7 +683,8 @@ const World = (() => {
       ig.position.set(ox, 0, 0); ig.visible = false; group.add(shade(ig));
       const room = { ox, oz: 0, w: iu.w, d: iu.d, wallH: iu.wallH, group: ig, ud: iu, pound: rec.kind === 'pound', barn: rec.kind === 'barn', house: rec, cols: [] };
       const L = (p) => p && { x: ox + p.x, z: p.z, y: p.y, yaw: p.yaw };
-      room.spawn = { x: ox + iu.spawn.x, z: iu.spawn.z, yaw: iu.spawn.yaw };
+      const k = rec.kind === 'house' ? 0.6 : 1;   // a bit further into small rooms so the camera has space
+      room.spawn = { x: ox + iu.spawn.x * (k === 1 ? 1 : 0.8), z: iu.spawn.z * k, yaw: iu.spawn.yaw };
       room.exit = { x: ox + iu.exit.x, z: iu.exit.z, r: iu.exit.r };
       room.petBed = L(iu.petBed); room.bowl = L(iu.bowl); room.water = L(iu.water); room.vet = L(iu.vet); room.desk = L(iu.desk); room.cageSpot = L(iu.cageSpot);
       room.cages = (iu.cages || []).map((c) => ({ x: ox + c.x, z: c.z, yaw: c.yaw, y: c.y || 0 }));
