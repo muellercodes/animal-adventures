@@ -1993,8 +1993,8 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
   function barn() {
     if (!barnGroup) barnGroup = buildBarn();
     const g = barnGroup.clone();
-    g.userData = Object.assign({}, barnGroup.userData);
-    return g;
+    g.userData = JSON.parse(JSON.stringify(barnGroup.userData));
+    return resolveDoors(g);
   }
   function buildBarn() {
     const W = 10, D = 14, wallH = 4.2, H = 8.2;
@@ -2011,6 +2011,13 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     walls.push(boxG(wallT, wallH - found, D, W / 2 - wallT / 2, found + (wallH - found) / 2, 0, red, 0.5));
     for (const s of [-1, 1]) {
       const S = soup(), z = s * D / 2;
+      if (s > 0) {
+        // front end: wall around the big door opening, gable above the eaves
+        const dw = 3.6, dh = 3.4;
+        walls.push(wallQuadZ(-W / 2, -dw / 2, found, wallH, z, 1, red), wallQuadZ(dw / 2, W / 2, found, wallH, z, 1, red), wallQuadZ(-dw / 2, dw / 2, found + dh, wallH, z, 1, red));
+        walls.push(polyZ(prof, z, 1, red));
+        continue;
+      }
       const pts = [[-W / 2, found], [W / 2, found], ...prof.slice().reverse()];
       // fan triangulate the convex end wall polygon from its center
       const cx = 0, cy = (found + H) / 2;
@@ -2034,24 +2041,32 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
         g.translate((a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + 0.05, z);
         trim.push(paint(g, white));
       }
-      // big sliding doors (two leaves), white X bracing, white frame
+      // big sliding doors (two leaves), white X bracing, white frame. The back pair is fixed;
+      // the front (+Z) pair are real leaves on an outside track (built below)
       const dw = 3.6, dh = 3.4, dz = s * (D / 2 + 0.06);
-      walls.push(boxG(dw, dh, 0.08, 0, found + dh / 2, dz, mulc(red, 0.92), 0.5));
       trim.push(boxG(dw + 0.3, 0.2, 0.12, 0, found + dh + 0.1, dz + s * 0.01, white));
       for (const side of [-1, 1]) trim.push(boxG(0.18, dh, 0.12, side * (dw / 2 + 0.05), found + dh / 2, dz + s * 0.01, white));
-      trim.push(boxG(0.1, dh, 0.12, 0, found + dh / 2, dz + s * 0.02, white));
-      for (const half of [-1, 1]) {
-        const cx = half * dw / 4, diag = Math.hypot(dw / 2, dh) - 0.1, ang = Math.atan2(dh, dw / 2);
-        for (const k of [-1, 1]) {
-          const g = prep(new THREE.BoxGeometry(diag, 0.14, 0.1));
-          g.rotateZ(ang * k);
-          g.translate(cx, found + dh / 2, dz + s * 0.03);
-          trim.push(paint(g, white));
+      if (s < 0) {
+        walls.push(boxG(dw, dh, 0.08, 0, found + dh / 2, dz, mulc(red, 0.92), 0.5));
+        trim.push(boxG(0.1, dh, 0.12, 0, found + dh / 2, dz + s * 0.02, white));
+        for (const half of [-1, 1]) {
+          const cx = half * dw / 4, diag = Math.hypot(dw / 2, dh) - 0.1, ang = Math.atan2(dh, dw / 2);
+          for (const k of [-1, 1]) {
+            const g = prep(new THREE.BoxGeometry(diag, 0.14, 0.1));
+            g.rotateZ(ang * k);
+            g.translate(cx, found + dh / 2, dz + s * 0.03);
+            trim.push(paint(g, white));
+          }
+          trim.push(boxG(dw / 2 - 0.1, 0.14, 0.1, cx, found + dh / 2, dz + s * 0.04, white));
         }
-        trim.push(boxG(dw / 2 - 0.1, 0.14, 0.1, cx, found + dh / 2, dz + s * 0.04, white));
+        // track rail above the door
+        dark.push(boxG(dw * 2, 0.1, 0.12, 0, found + dh + 0.32, dz + s * 0.04, L(0x2a2a2a)));
+      } else {
+        // track rail the front leaves hang from, with wall brackets
+        const ry = found + 0.01 + (dh + 0.1) + 0.115, rk = L(0x2a2a2a);
+        dark.push(boxG(dw * 2 + 0.5, 0.1, 0.1, 0, ry, D / 2 + 0.2, rk));
+        for (const bx of [-dw - 0.1, -dw / 2 - 0.3, dw / 2 + 0.3, dw + 0.1]) dark.push(boxG(0.06, 0.08, 0.15, bx, ry - 0.01, D / 2 + 0.075, rk));
       }
-      // track rail above the door
-      dark.push(boxG(dw * 2, 0.1, 0.12, 0, found + dh + 0.32, dz + s * 0.04, L(0x2a2a2a)));
       // hayloft door with frame, and the hay hood beam
       const hy = wallH + 1.45, hw = 1.5, hh = 1.6;
       walls.push(boxG(hw, hh, 0.08, 0, hy, dz, mulc(red, 0.9), 0.5));
@@ -2123,6 +2138,10 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     capRoof.rotateY(Math.PI / 4); capRoof.translate(0, H + 1.12, 0);
     roof.push(paint(capRoof, mulc(roofC, 0.9)));
     dark.push(...weathervane(0, H + 1.38, 0));
+    // the big doors sit on the stone foundation: a short ramp up to them and a timber sill
+    const rampW = 4.4, land = 0.35, rampL = 1.3, rz0 = D / 2 + 0.12;
+    stone.push(boxUV(paint(rampGeo(rampW, found, rz0, land, rampL), (x, y, z) => mixc(L(0x7a756e), L(0x9a958c), fbm(x * 2, y * 2, z * 2, 2) + 0.5)), 1.1));
+    trim.push(boxG(3.9, 0.06, 0.3, 0, found + 0.005, D / 2 + 0.15, L(0x8a7a66)));
     const grp = new THREE.Group();
     grp.name = 'barn';
     const barnRed = mat('barnBoards', { map: TX.boards() });
@@ -2131,17 +2150,48 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     grp.add(meshOf(merge(stone), mat('stoneWall', { map: TX.stone() })));
     grp.add(meshOf(merge([roofG, ...roof]), mat('shingle', { map: TX.shingle() })));
     grp.add(meshOf(merge(dark), mat('plain', {})));
+    // dim barn aisle seen through the open doors (posts, a beam, stall walls); warm at night
+    const dwB = 3.6, dhB = 3.4;
+    const hall = hallGeo(-dwB / 2 - 0.05, dwB / 2 + 0.05, found, found + dhB + 0.02, D / 2 - 0.01, 3.4, {
+      wall: 0x4a3a2a, floor: 0x7a6440, rug: false, inner: false, glow: 0.45,
+      extra: (S, P, zb) => {
+        const pc = L(0x1c140c), sc = L(0x4a3a26), n = new V3(0, 0, 1);
+        for (const x of [-1.2, 1.2]) quadTo(S, P(x - 0.1, found, zb + 1.0), P(x + 0.1, found, zb + 1.0), P(x + 0.1, found + dhB, zb + 1.0), P(x - 0.1, found + dhB, zb + 1.0), n, pc);
+        quadTo(S, P(-1.85, found + dhB - 0.5, zb + 1.0), P(1.85, found + dhB - 0.5, zb + 1.0), P(1.85, found + dhB - 0.25, zb + 1.0), P(-1.85, found + dhB - 0.25, zb + 1.0), n, pc);
+        for (const s of [-1, 1]) {
+          const x = s * 1.84, nn = new V3(-s, 0, 0);
+          quadTo(S, P(x, found, D / 2 - 0.3), P(x, found + 1.2, D / 2 - 0.3), P(x, found + 1.2, zb + 0.2), P(x, found, zb + 0.2), nn, sc, sc, mulc(sc, 0.5), mulc(sc, 0.5));
+        }
+        quadTo(S, P(-0.12, found + dhB - 0.95, zb + 0.6), P(0.12, found + dhB - 0.95, zb + 0.6), P(0.12, found + dhB - 0.65, zb + 0.6), P(-0.12, found + dhB - 0.65, zb + 0.6), n, L(0xa07a40));
+      },
+    });
+    grp.add(meshOf(hall, mat('windowGlow', { emissive: 0xffbb66, glow: 'night' }), false, false));
+    // the front leaves slide apart along x on the track
+    const leafW = dwB / 2 + 0.02, leafH = dhB + 0.1, doorDefs = [];
+    for (const side of [-1, 1]) {
+      const lf = barnLeaf(leafW, leafH, mulc(red, 0.92), white, 1, -side * (leafW / 2 - 0.12));
+      const pv = pivot(side < 0 ? 'barnDoorL' : 'barnDoorR', side * leafW / 2, found + 0.01, D / 2 + 0.2);
+      pv.add(meshOf(lf.boards, barnRed), meshOf(lf.trim, mat('paint', { map: TX.wood() })), meshOf(lf.dark, mat('plain', {})));
+      grp.add(pv);
+      doorDefs.push(doorRec(pv.name, 'slide', side * (leafW + 0.02), pv.position.x));
+    }
     grp.userData.radius = Math.hypot(W, D) / 2;
     grp.userData.size = { w: W, d: D, h: H };
+    grp.userData.outside = { x: 0, z: rz0 + land + rampL + 0.6 };
+    grp.userData.ramp = { x: 0, z: rz0 + (land + rampL) / 2, hw: rampW / 2, hd: (land + rampL) / 2, h: found };
+    grp.userData.doors = doorDefs;
     return grp;
   }
 
-  /* split-rail fence along +X starting at x = 0 (geometry cached per length) */
+  /* fence along +X starting at x = 0 (geometry cached per length and style).
+     style: 'split' (default split rail), 'rail' (white 3-board), 'wire' (chicken wire), 'stone' (dry stone wall).
+     userData = { len, h, thick } */
   const fenceCache = {}, gardenCache = {};
-  function fence(len) {
+  function fence(len, style) {
     len = Math.max(0.5, Math.round(len * 100) / 100);
-    const key = len.toFixed(2);
-    if (!fenceCache[key]) fenceCache[key] = buildFence(len);
+    const st = FENCE_STYLES[style] ? style : '';
+    const key = (st ? st + ':' : '') + len.toFixed(2);
+    if (!fenceCache[key]) fenceCache[key] = st ? FENCE_STYLES[st](len) : buildFence(len);
     return fenceCache[key].clone();
   }
   function buildFence(len) {
@@ -2166,6 +2216,7 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     const grp = new THREE.Group();
     grp.name = 'fence';
     grp.add(meshOf(g, mat('fenceWood', { map: TX.wood() })));
+    grp.userData = { len, h: 1.3, thick: 0.25 };
     return grp;
   }
 
@@ -2402,13 +2453,8 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     const yFront = eave;
     const dl = doorX - dw / 2 - 0.02, dr = doorX + dw / 2 + 0.02, dt = F + dh + 0.02;
     out.siding.push(wallQuadZ(-W / 2, dl, F, yFront, D / 2, 1, wallC), wallQuadZ(dr, W / 2, F, yFront, D / 2, 1, wallC), wallQuadZ(dl, dr, dt, yFront, D / 2, 1, wallC));
-    // doorway recess: dark by day, warm light at night when the door is opened
-    const rec = prep(new THREE.BoxGeometry(dw + 0.04, dh + 0.02, 0.5)).translate(doorX, F + dh / 2, D / 2 - 0.26);
-    rec.scale(1, 1, 1);
-    const rn = rec.attributes.normal.array, rp2 = rec.attributes.position.array;
-    for (let i = 0; i < rn.length; i++) rn[i] = -rn[i]; // seen from inside the box
-    for (let t = 0; t < rp2.length; t += 9) { for (let k = 0; k < 3; k++) { const a = rp2[t + 3 + k]; rp2[t + 3 + k] = rp2[t + 6 + k]; rp2[t + 6 + k] = a; } }
-    out.glass.push(setGlow(paint(rec, L(0x2a2018)), 0.8));
+    // dim hallway behind the front door: dark by day, warm light at night when the door is opened
+    out.glass.push(hallGeo(doorX - dw / 2 - 0.1, doorX + dw / 2 + 0.03, F, F + dh + 0.02, D / 2 - 0.005, 1.3, { glow: 0.8 }));
     // door casing and cap
     out.trim.push(boxG(0.14, dh + 0.1, 0.1, dl - 0.07, F + dh / 2, D / 2 + 0.05, trimC), boxG(0.14, dh + 0.1, 0.1, dr + 0.07, F + dh / 2, D / 2 + 0.05, trimC));
     out.trim.push(boxG(dw + 0.5, 0.16, 0.14, doorX, dt + 0.08, D / 2 + 0.06, trimC));
@@ -2529,7 +2575,7 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     door.position.set(doorX - dw / 2, F, D / 2 + 0.01);
     door.castShadow = true; door.receiveShadow = true;
     grp.add(door);
-    grp.userData = { w: W, d: D, h: yr + 0.9, hw: W / 2 + 0.1, hd: D / 2 + 0.1, outside: { x: doorX, z: D / 2 + porchD + 1.2 }, floorY: F, variant: v, name: S.name, porchD };
+    grp.userData = { w: W, d: D, h: yr + 0.9, hw: W / 2 + 0.1, hd: D / 2 + 0.1, outside: { x: doorX, z: D / 2 + porchD + 1.2 }, floorY: F, variant: v, name: S.name, porchD, doors: [doorRec('door', 'swing', 1.45)] };
     return grp;
   }
   function house(variant = 0) {
@@ -2538,7 +2584,7 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     const src = houseCache[v], g = src.clone();
     g.userData = JSON.parse(JSON.stringify(src.userData));
     g.userData.door = g.getObjectByName('door');
-    return g;
+    return resolveDoors(g);
   }
 
   /* ============================================================
@@ -2886,8 +2932,8 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
       B.plant.push(paint(place(new THREE.IcosahedronGeometry(0.045, 0), tip.x, tip.y, tip.z), fc));
     }
     for (const [x, z] of [[2.95, 0.75], [3.35, 1.55]]) B.ceramic.push(lathe([[0, 0], [0.12, 0], [0.13, 0.015], [0, 0.015]], 12, L(0xf6f2ea)).translate(x, 0.765, z));
-    // house plants
-    sub(B, (t) => plantGeo(t, 1.5, r, L(0x3a7a32)), -0.5, -hd + 0.35);
+    // house plants (the one that stood on the back wall made room for the cage spot; still built so the random sequence stays the same)
+    plantGeo({ ceramic: [], plant: [] }, 1.5, r, L(0x3a7a32));
     sub(B, (t) => plantGeo(t, 1.2, r, L(0x4a8a3a)), hw - 0.35, hd - 0.35);
     sub(B, (t) => plantGeo(t, 1.0, r, L(0x5a9a42)), -hw + 0.35, -hd + 0.35);
     // windows
@@ -2951,7 +2997,7 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
       { box: true, x: bx, z: bz, hw: bw2 / 2 + 0.12, hd: bl / 2 + 0.05 },
       { x: bx - bw2 / 2 - 0.42, z: -hd + 0.3, r: 0.3 },
       { box: true, x: 3.0, z: 1.15, hw: 0.75, hd: 1.0 },
-      { x: -0.5, z: -hd + 0.35, r: 0.32 }, { x: hw - 0.35, z: hd - 0.35, r: 0.3 }, { x: -hw + 0.35, z: -hd + 0.35, r: 0.28 },
+      { x: hw - 0.35, z: hd - 0.35, r: 0.3 }, { x: -hw + 0.35, z: -hd + 0.35, r: 0.28 },
     ];
     for (const c of colliders) { if (c.box && c.rot === undefined) c.rot = 0; c.x *= mir; if (c.rot) c.rot = -c.rot; }
     const mp = (p) => Object.assign({}, p, { x: p.x * mir });
@@ -2962,7 +3008,10 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
       petBed: mp(pet), bowl: mp(bowl), water: mp(water),
       light: { x: -0.4 * mir, y: 2.3, z: -0.4 },
       fire: { x: -1.8 * mir, y: 0.4, z: -hd + 0.25 },
+      // clear 1.6 x 1.2 m floor area on the back wall (between the hearth and the nightstand) for a cage; its +Z faces the room
+      cageSpot: { x: 0.25 * mir, z: -hd + 0.62, yaw: 0 },
       colliders,
+      doors: [doorRec('door', 'swing', 1.45)],
     };
     return grp;
   }
@@ -2973,7 +3022,7 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     g.userData = JSON.parse(JSON.stringify(src.userData));
     g.userData.door = g.getObjectByName('door');
     g.userData.ball = g.getObjectByName('ball');
-    return g;
+    return resolveDoors(g);
   }
 
   /* ============================================================
@@ -3045,11 +3094,7 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     out.siding.push(wallQuadZ(-W / 2, W / 2, F, eave, -D / 2, -1, wallC));
     const dl = doorX - dw / 2 - 0.02, dr = doorX + dw / 2 + 0.02, dt = F + dh + 0.02;
     out.siding.push(wallQuadZ(-W / 2, dl, F, eave, D / 2, 1, wallC), wallQuadZ(dr, W / 2, F, eave, D / 2, 1, wallC), wallQuadZ(dl, dr, dt, eave, D / 2, 1, wallC));
-    const rec = prep(new THREE.BoxGeometry(dw + 0.04, dh + 0.02, 0.5)).translate(doorX, F + dh / 2, D / 2 - 0.26);
-    const rn = rec.attributes.normal.array, rp2 = rec.attributes.position.array;
-    for (let i = 0; i < rn.length; i++) rn[i] = -rn[i];
-    for (let t = 0; t < rp2.length; t += 9) for (let k = 0; k < 3; k++) { const a = rp2[t + 3 + k]; rp2[t + 3 + k] = rp2[t + 6 + k]; rp2[t + 6 + k] = a; }
-    out.glass.push(setGlow(paint(rec, L(0x2a2018)), 0.8));
+    out.glass.push(hallGeo(doorX - dw / 2 - 0.1, doorX + dw / 2 + 0.03, F, F + dh + 0.02, D / 2 - 0.005, 1.55, { glow: 0.8, wall: 0x2c3632, floor: 0x4a3a2a, rug: 0x2f5a5a }));
     out.trim.push(boxG(0.16, dh + 0.1, 0.1, dl - 0.08, F + dh / 2, D / 2 + 0.05, trimC), boxG(0.16, dh + 0.1, 0.1, dr + 0.08, F + dh / 2, D / 2 + 0.05, trimC));
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) out.trim.push(boxG(0.18, eave - F, 0.18, sx * (W / 2 + 0.02), (F + eave) / 2, sz * (D / 2 + 0.02), trimC));
     out.trim.push(boxG(W + 0.1, 0.14, 0.06, 0, F + 0.07, D / 2 + 0.03, trimC), boxG(W + 0.1, 0.2, 0.06, 0, eave - 0.1, D / 2 + 0.03, trimC));
@@ -3097,7 +3142,7 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     door.position.set(doorX - dw / 2, F, D / 2 + 0.01);
     door.castShadow = true; door.receiveShadow = true;
     grp.add(door);
-    grp.userData = { w: W, d: D, h: yr + 1.9, hw: W / 2 + 0.1, hd: D / 2 + 0.1, outside: { x: doorX, z: D / 2 + 2.6 + 1.2 }, floorY: F, name: 'pound' };
+    grp.userData = { w: W, d: D, h: yr + 1.9, hw: W / 2 + 0.1, hd: D / 2 + 0.1, outside: { x: doorX, z: D / 2 + 2.6 + 1.2 }, floorY: F, name: 'pound', doors: [doorRec('door', 'swing', 1.45)] };
     return grp;
   }
   function pound() {
@@ -3105,7 +3150,7 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     const g = poundGrp.clone();
     g.userData = JSON.parse(JSON.stringify(poundGrp.userData));
     g.userData.door = g.getObjectByName('door');
-    return g;
+    return resolveDoors(g);
   }
 
   /* ---------- pound interior ---------- */
@@ -3113,7 +3158,7 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
   function buildPoundInterior() {
     const W = 12, D = 8, H = 3.0, T = 0.16, hw = W / 2, hd = D / 2;
     const r = rng(8484);
-    const B = { wood: [], fabric: [], masonry: [], ceramic: [], plant: [], glass: [], lamp: [], fire: [], pic: [], floor: [], wall: [], metal: [], wire: [], bags: [] };
+    const B = { wood: [], fabric: [], masonry: [], ceramic: [], plant: [], glass: [], lamp: [], fire: [], pic: [], floor: [], wall: [], metal: [], wire: [], bags: [], chain: [] };
     const trimC = L(0xfbfaf4), wood = L(0xb07a44), wallC = L(0xd6e8d0), wains = L(0xf6f2e6);
     const doorX = 0, dw = 1.3, dh = 2.25;
     B.floor.push(boxUV(paint(prep(new THREE.BoxGeometry(W + T * 2, 0.1, D + T * 2)).translate(0, -0.05, 0), L(0xd0a066)), 0.75));
@@ -3136,7 +3181,7 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     for (const z of [-0.2, 2.5]) { inWindow(B, -hw, 1.75, z, Math.PI / 2, 1.0, 1.3, trimC, null); inWindow(B, hw, 1.75, z, -Math.PI / 2, 1.0, 1.3, trimC, null); }
     // ----- cages along the back wall -----
     const cw = 1.2, ch = 1.0, cd = 1.0, nC = 6, cx0 = -hw + 0.35;
-    const cages = [];
+    const cages = [], cageDoorAt = [];
     const steel = L(0xb8bec4), steelDark = L(0x7a8288);
     B.wood.push(boxG(nC * cw + 0.1, 0.12, cd + 0.1, cx0 + nC * cw / 2, 0.06, -hd + cd / 2 + 0.02, L(0x7a8a8e)));
     for (let i = 0; i < nC; i++) {
@@ -3152,12 +3197,9 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
       for (const x of [x0, x1]) for (const z of [z1]) B.metal.push(boxG(0.035, ch, 0.035, x, (y0 + y1) / 2, z, steel));
       B.metal.push(boxG(cw, 0.035, 0.035, xc, y1, z1, steel), boxG(cw, 0.035, 0.035, xc, y0 + 0.02, z1, steel));
       B.metal.push(boxG(0.035, 0.035, cd, x1, y1, (z0 + z1) / 2, steel));
-      // open door: a wire panel hinged at the left front edge, swung out
-      const open = 1.9 + r() * 0.3;
-      const dpan = prep(new THREE.PlaneGeometry(cw - 0.06, ch - 0.06)).translate((cw - 0.06) / 2, 0, 0).rotateY(open).translate(x0 + 0.03, (y0 + y1) / 2, z1 + 0.02);
-      B.wire.push(paint(dpan, [1, 1, 1]));
-      const edges = [boxG(cw - 0.06, 0.03, 0.03, (cw - 0.06) / 2, (ch - 0.06) / 2, 0, steelDark), boxG(cw - 0.06, 0.03, 0.03, (cw - 0.06) / 2, -(ch - 0.06) / 2, 0, steelDark), boxG(0.03, ch - 0.06, 0.03, cw - 0.06, 0, 0, steelDark), boxG(0.03, ch - 0.06, 0.03, 0, 0, 0, steelDark)];
-      for (const e of edges) B.metal.push(e.rotateY(open).translate(x0 + 0.03, (y0 + y1) / 2, z1 + 0.02));
+      // front door: a wire panel hinged at the left front edge (a real door, built below)
+      r(); // keeps the random sequence of the rest of the room
+      cageDoorAt.push([x0 + 0.03, (y0 + y1) / 2, z1 + 0.02]);
       // cushion and a name plate
       const cush = roundBox(0.8, 0.1, 0.7, 0.04, L([0xe8a2aa, 0x8ac6c4, 0xf2d070, 0xb8a0d0, 0xa8d08a, 0xf0b080][i]));
       B.fabric.push(cush.translate(xc, y0 + 0.05, z0 + cd * 0.5));
@@ -3165,21 +3207,34 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
       B.wood.push(boxG(0.06, 0.06, 0.012, xc - 0.18, y1 + 0.14, z1 - 0.005, L(0xc8643a)));
       cages.push({ x: xc, z: z0 + cd * 0.45, yaw: 0, y: y0 + 0.08 });
     }
-    // ----- two low open pens on the floor -----
+    // ----- two kennel runs on the floor: chain link panels on pipe frames, a door that swings in, a raised bed and a bowl -----
     const pens = [{ x: -3.4, z: -0.6, w: 2.8, d: 2.0 }, { x: 0.3, z: -0.6, w: 2.8, d: 2.0 }];
-    const penCol = [L(0xa8d08a), L(0xf2d070)];
+    const penCol = [L(0xa8d08a), L(0xf2d070)], cotCol = [L(0x2f6a6a), L(0xc8643a)], blanketCol = [L(0xf2d070), L(0x8ac6c4)];
+    const RH = 1.3, gap = 1.0, runDoorAt = [];
     pens.forEach((p, k) => {
-      const ph = 0.55, gap = 1.0, x0 = p.x - p.w / 2, x1 = p.x + p.w / 2, z0 = p.z - p.d / 2, z1 = p.z + p.d / 2;
-      const rail = (ax, az, bx, bz) => {
-        const len = Math.hypot(bx - ax, bz - az), ang = Math.atan2(bz - az, bx - ax);
-        for (const y of [0.18, ph]) { const g = prep(new THREE.BoxGeometry(len, 0.06, 0.05)); g.rotateY(-ang); g.translate((ax + bx) / 2, y, (az + bz) / 2); B.wood.push(paint(g, trimC)); }
-        const n = Math.max(1, Math.round(len / 0.16));
-        for (let i = 0; i <= n; i++) { const t = i / n; B.wood.push(boxG(0.04, ph, 0.04, lerp(ax, bx, t), ph / 2, lerp(az, bz, t), trimC)); }
-      };
-      rail(x0, z0, x1, z0); rail(x0, z0, x0, z1); rail(x1, z0, x1, z1);
-      rail(x0, z1, p.x - gap / 2, z1); rail(p.x + gap / 2, z1, x1, z1);
-      // soft mat and a toy inside
+      const x0 = p.x - p.w / 2, x1 = p.x + p.w / 2, z0 = p.z - p.d / 2, z1 = p.z + p.d / 2, gl = p.x - gap / 2, gr = p.x + gap / 2;
+      for (const [x, z] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1], [p.x, z0], [x0, p.z], [x1, p.z], [gl, z1], [gr, z1]]) B.metal.push(pipeGeo(x, 0, z, x, RH + 0.03, z, 0.026, steel));
+      for (const y of [RH, 0.06]) {
+        B.metal.push(pipeGeo(x0, y, z0, x1, y, z0, 0.02, steel), pipeGeo(x0, y, z0, x0, y, z1, 0.02, steel), pipeGeo(x1, y, z0, x1, y, z1, 0.02, steel));
+        B.metal.push(pipeGeo(x0, y, z1, gl, y, z1, 0.02, steel), pipeGeo(gr, y, z1, x1, y, z1, 0.02, steel));
+      }
+      B.metal.push(pipeGeo(gl, RH, z1, gr, RH, z1, 0.02, steel));
+      for (const [ax, az, bx, bz] of [[x0, z0, x1, z0], [x0, z0, x0, z1], [x1, z0, x1, z1], [x0, z1, gl, z1], [gr, z1, x1, z1]]) B.chain.push(vPanel(ax, az, bx, bz, 0.05, RH));
+      // soft mat, a raised dog cot with a blanket, a steel bowl and a toy
       B.fabric.push(roundBox(p.w - 0.2, 0.03, p.d - 0.2, 0.012, penCol[k]).translate(p.x, 0.015, p.z));
+      const bx = p.x + 0.35, bz = z0 + 0.5, cy = 0.17;
+      for (const s of [-1, 1]) B.metal.push(pipeGeo(bx - 0.5, cy, bz + s * 0.31, bx + 0.5, cy, bz + s * 0.31, 0.018, steelDark), pipeGeo(bx + s * 0.5, cy, bz - 0.31, bx + s * 0.5, cy, bz + 0.31, 0.018, steelDark));
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) B.metal.push(pipeGeo(bx + sx * 0.44, 0.03, bz + sz * 0.27, bx + sx * 0.46, cy, bz + sz * 0.29, 0.016, steelDark));
+      B.fabric.push(roundBox(0.98, 0.03, 0.6, 0.012, cotCol[k]).translate(bx, cy + 0.005, bz));
+      const bl = roundBox(0.46, 0.06, 0.52, 0.025, blanketCol[k]);
+      eachVertex(bl, (q) => { q.y += Math.sin(q.x * 9) * 0.012; });
+      B.fabric.push(smoothNormals(bl).rotateY(0.15).translate(bx + 0.18, cy + 0.05, bz));
+      const bwl = { x: x1 - 0.35, z: z1 - 0.4 };
+      B.metal.push(lathe([[0, 0], [0.1, 0], [0.13, 0.01], [0.15, 0.065], [0.16, 0.07], [0.15, 0.072], [0.12, 0.026], [0, 0.026]], 14, L(0xd8dde2)).translate(bwl.x, 0, bwl.z));
+      const kr = rng(77 + k);
+      for (let i = 0; i < 10; i++) { const a = kr() * TAU, d = kr() * 0.08; B.ceramic.push(paint(place(new THREE.IcosahedronGeometry(0.016, 0), bwl.x + Math.cos(a) * d, 0.04, bwl.z + Math.sin(a) * d), L(0x8a5a2a))); }
+      runDoorAt.push([gl + 0.03, z1]);
+      Object.assign(p, { bed: { x: bx, z: bz }, bowl: bwl });
       const bone = merge([boxG(0.18, 0.04, 0.04, 0, 0, 0, L(0xf6ecd2)), paint(place(new THREE.IcosahedronGeometry(0.035, 0), -0.1, 0, 0.02), L(0xf6ecd2)), paint(place(new THREE.IcosahedronGeometry(0.035, 0), -0.1, 0, -0.02), L(0xf6ecd2)), paint(place(new THREE.IcosahedronGeometry(0.035, 0), 0.1, 0, 0.02), L(0xf6ecd2)), paint(place(new THREE.IcosahedronGeometry(0.035, 0), 0.1, 0, -0.02), L(0xf6ecd2))]);
       B.ceramic.push(bone.rotateY(0.6 + k).translate(p.x + 0.5, 0.06, p.z + 0.3));
     });
@@ -3268,6 +3323,7 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     add(B.ceramic, mat('ceramic', { std: true, roughness: 0.35 }));
     add(B.metal, mat('metal', { std: true, roughness: 0.35, metalness: 0.6 }));
     add([boxUV(merge(B.wire), 1 / 0.6)], mat('wire', { map: TX.wire(), alphaTest: 0.5, side: THREE.DoubleSide, color: 0xc8ccd0, std: true, metalness: 0.5, roughness: 0.4 }));
+    add([boxUV(merge(B.chain), CHAIN_UV)], chainMat());
     add(B.plant, mat('plantIn', { side: THREE.DoubleSide }));
     add(B.glass, mat('windowDay', { emissive: 0xcfe6ff, glow: 'day' }), false);
     add(B.lamp, mat('lampGlow', { emissive: 0xffc070, glow: 'night' }), false);
@@ -3284,6 +3340,33 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     const ball = new THREE.Mesh(ballGeo(), mat('toyBall', { std: true, roughness: 0.45 }));
     ball.name = 'ball'; ball.position.set(3.4, 0.09, 1.6); ball.castShadow = true;
     grp.add(ball);
+    const doors = [doorRec('door', 'swing', 1.45)];
+    // kennel run doors: pipe frame with chain link, hinged on the left, swing into the run
+    const metalM = mat('metal', { std: true, roughness: 0.35, metalness: 0.6 }), dW = gap - 0.06, dH = RH - 0.08;
+    const rdFrame = merge([pipeGeo(0, 0.07, 0, dW, 0.07, 0, 0.018, steel), pipeGeo(0, dH, 0, dW, dH, 0, 0.018, steel), pipeGeo(0.012, 0.07, 0, 0.012, dH, 0, 0.018, steel), pipeGeo(dW, 0.07, 0, dW, dH, 0, 0.018, steel),
+      pipeGeo(0, dH * 0.55, 0, dW, dH * 0.55, 0, 0.012, steel), boxG(0.12, 0.04, 0.05, dW - 0.02, dH * 0.6, 0.03, steelDark), boxG(0.05, 0.06, 0.06, 0, 0.3, 0, steelDark), boxG(0.05, 0.06, 0.06, 0, dH - 0.2, 0, steelDark)]);
+    const rdLink = boxUV(vPanel(0, 0, dW, 0, 0.08, dH), CHAIN_UV);
+    runDoorAt.forEach(([x, z], k) => {
+      const pv = pivot('runDoor' + k, x, 0, z);
+      pv.add(meshOf(rdFrame, metalM), meshOf(rdLink, chainMat()));
+      grp.add(pv);
+      pens[k].door = doors.length;
+      doors.push(doorRec(pv.name, 'swing', 1.5));
+    });
+    // small doors on the wall cages (wire panel, hinged at the left; they swing out, the cages are too shallow to swing in)
+    const cdW = cw - 0.06, cdH = ch - 0.06;
+    const cdPanel = boxUV(paint(prep(new THREE.PlaneGeometry(cdW, cdH)).translate(cdW / 2, 0, 0), [1, 1, 1]), 1 / 0.6);
+    const cdEdge = merge([boxG(cdW, 0.03, 0.03, cdW / 2, cdH / 2, 0, steelDark), boxG(cdW, 0.03, 0.03, cdW / 2, -cdH / 2, 0, steelDark), boxG(0.03, cdH, 0.03, cdW, 0, 0, steelDark), boxG(0.03, cdH, 0.03, 0, 0, 0, steelDark), boxG(0.03, 0.12, 0.05, cdW - 0.02, 0, 0.03, steel)]);
+    const wireM = mat('wire', { map: TX.wire(), alphaTest: 0.5, side: THREE.DoubleSide, color: 0xc8ccd0, std: true, metalness: 0.5, roughness: 0.4 });
+    const cageDoors = [];
+    cageDoorAt.forEach(([x, y, z], i) => {
+      const pv = pivot('cageDoor' + i, x, y, z);
+      pv.add(meshOf(cdPanel, wireM), meshOf(cdEdge, metalM));
+      grp.add(pv);
+      cages[i].door = doors.length;
+      cageDoors.push(doors.length);
+      doors.push(doorRec(pv.name, 'swing', -1.75));
+    });
     const colliders = [
       { box: true, x: 0, z: -hd - T / 2, hw: hw + T, hd: T / 2 + 0.05 }, { box: true, x: -hw - T / 2, z: 0, hw: T / 2 + 0.05, hd: hd + T },
       { box: true, x: hw + T / 2, z: 0, hw: T / 2 + 0.05, hd: hd + T },
@@ -3297,9 +3380,11 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     // cage side walls (thin) so animals enter from the front only
     for (let i = 0; i <= nC; i++) colliders.push({ box: true, x: cx0 + i * cw, z: -hd + 0.52, hw: 0.04, hd: 0.5 });
     for (const p of pens) {
-      const x0 = p.x - p.w / 2, x1 = p.x + p.w / 2, z0 = p.z - p.d / 2, z1 = p.z + p.d / 2;
+      const x0 = p.x - p.w / 2, x1 = p.x + p.w / 2, z0 = p.z - p.d / 2, z1 = p.z + p.d / 2, gl = p.x - gap / 2, gr = p.x + gap / 2;
       colliders.push({ box: true, x: p.x, z: z0, hw: p.w / 2, hd: 0.05 }, { box: true, x: x0, z: p.z, hw: 0.05, hd: p.d / 2 }, { box: true, x: x1, z: p.z, hw: 0.05, hd: p.d / 2 });
-      colliders.push({ box: true, x: (x0 + p.x - 0.5) / 2, z: z1, hw: (p.x - 0.5 - x0) / 2, hd: 0.05 }, { box: true, x: (x1 + p.x + 0.5) / 2, z: z1, hw: (x1 - p.x - 0.5) / 2, hd: 0.05 });
+      colliders.push({ box: true, x: (x0 + gl) / 2, z: z1, hw: (gl - x0) / 2, hd: 0.05 }, { box: true, x: (x1 + gr) / 2, z: z1, hw: (x1 - gr) / 2, hd: 0.05 });
+      p.entry = { x: p.x, z: z1 + 0.5 };
+      p.doorCollider = { box: true, x: p.x, z: z1, hw: gap / 2, hd: 0.05, rot: 0 };
     }
     for (const c of colliders) if (c.box && c.rot === undefined) c.rot = 0;
     grp.userData = {
@@ -3308,9 +3393,10 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
       exit: { x: doorX, z: hd - 0.3, r: 0.7 },
       petBed: pet, bowl, water,
       light: { x: 0, y: 2.5, z: 0.2 },
-      colliders, cages, pens: pens.map((p) => Object.assign({}, p)),
+      colliders, cages, pens: pens.map((p) => JSON.parse(JSON.stringify(p))),
       vet: { x: vet.x, z: vet.z, y: vet.y },
       desk: { x: desk.x, z: desk.z },
+      doors, cageDoors,
     };
     return grp;
   }
@@ -3320,7 +3406,7 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     g.userData = JSON.parse(JSON.stringify(poundInGrp.userData));
     g.userData.door = g.getObjectByName('door');
     g.userData.ball = g.getObjectByName('ball');
-    return g;
+    return resolveDoors(g);
   }
 
   /* ============================================================
@@ -4950,6 +5036,1101 @@ void main() {`);
   }
 
   /* ============================================================
+     Doors that open. A group with doors has userData.doors = [{ name, kind, open, closed, obj }]:
+     'swing' sets obj.rotation.y = closed + open * t (positive opens away from someone coming in from +Z),
+     'slide' sets obj.position.x = closed + open * t (meters).
+     Cached source groups keep plain data only; every clone looks its door objects up by name.
+     ============================================================ */
+  const doorRec = (name, kind, open, closed = 0) => ({ name, kind, open, closed });
+  function resolveDoors(g) {
+    const ds = g.userData && g.userData.doors;
+    if (Array.isArray(ds)) g.userData.doors = ds.map((d) => Object.assign({}, d, { obj: g.getObjectByName(d.name) || null }));
+    return g;
+  }
+  // t: 0 closed .. 1 open (no easing); which: only that door index
+  function setDoors(group, t, which) {
+    const ds = group && group.userData && group.userData.doors;
+    if (!Array.isArray(ds)) return;
+    t = clamp(+t || 0, 0, 1);
+    for (let i = 0; i < ds.length; i++) {
+      if (which != null && i !== which) continue;
+      const d = ds[i], o = d && d.obj;
+      if (!o) continue;
+      if (d.kind === 'slide') o.position.x = (d.closed || 0) + d.open * t;
+      else o.rotation.y = (d.closed || 0) + d.open * t;
+    }
+  }
+  const cachedDoors = (key, build) => resolveDoors(cachedGroup(key, build));
+  // a named pivot group for a door (hinge or slide origin)
+  function pivot(name, x, y, z, ry = 0) {
+    const p = new THREE.Group();
+    p.name = name; p.position.set(x, y, z); p.rotation.y = ry;
+    return p;
+  }
+
+  /* ---------- shared bits: textures, materials, small geometry helpers ---------- */
+  // chain link (alpha): diagonal wires, 2 x 2 diamonds per tile
+  TX.chain = () => canvasTex('chain', 64, 64, (c) => {
+    c.clearRect(0, 0, 64, 64);
+    c.lineWidth = 4.5;
+    for (let k = -2; k <= 2; k++) {
+      c.strokeStyle = gray(0.95); c.beginPath(); c.moveTo(k * 32 - 4, -4); c.lineTo(k * 32 + 68, 68); c.stroke();
+      c.strokeStyle = gray(0.8); c.beginPath(); c.moveTo(k * 32 - 4, 68); c.lineTo(k * 32 + 68, -4); c.stroke();
+    }
+  });
+  // chicken wire (alpha): pointy hexagons, twisted (thicker) vertical pairs
+  TX.hexwire = () => canvasTex('hexwire', 64, 64, (c) => {
+    c.clearRect(0, 0, 64, 64);
+    c.strokeStyle = gray(0.92); c.lineJoin = 'round';
+    const hh = 64 / 3;
+    for (let row = -1; row <= 4; row++) for (let col = -1; col <= 4; col++) {
+      const cx = col * 16 + (row % 2 ? 8 : 0), cy = row * 16;
+      c.lineWidth = 2.6; c.beginPath(); c.moveTo(cx - 8, cy - hh / 4); c.lineTo(cx, cy - hh / 2); c.lineTo(cx + 8, cy - hh / 4); c.stroke();
+      c.lineWidth = 3.6; c.beginPath(); c.moveTo(cx - 8, cy - hh / 4); c.lineTo(cx - 8, cy + hh / 4); c.stroke();
+    }
+  });
+  // glass: faint everywhere, a few soft diagonal reflection streaks
+  TX.glass = () => canvasTex('glassStreak', 128, 128, (c, w, h) => {
+    c.clearRect(0, 0, w, h);
+    c.fillStyle = 'rgba(255,255,255,0.13)'; c.fillRect(0, 0, w, h);
+    c.save(); c.translate(w / 2, h / 2); c.rotate(-0.7);
+    for (const [x, wd, a] of [[-40, 18, 0.34], [-16, 6, 0.24], [24, 30, 0.16]]) {
+      const g = c.createLinearGradient(x, 0, x + wd, 0);
+      g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.5, `rgba(255,255,255,${a})`); g.addColorStop(1, 'rgba(255,255,255,0)');
+      c.fillStyle = g; c.fillRect(x, -h, wd, h * 2);
+    }
+    c.restore();
+  }, { clamp: true });
+  // galvanized steel: mottled crystal spangle
+  TX.galv = () => canvasTex('galv', 128, 128, (c, w, h, r) => {
+    c.fillStyle = gray(0.84); c.fillRect(0, 0, w, h);
+    for (let i = 0; i < 120; i++) {
+      const x = r() * w, y = r() * h, s = 5 + r() * 14, n = 5 + Math.floor(r() * 3), rot = r() * TAU;
+      c.fillStyle = gray(0.72 + r() * 0.28, 0.55);
+      wrapDraw(w, h, x, y, s + 2, (X, Y) => {
+        c.beginPath();
+        for (let k = 0; k < n; k++) { const a = rot + (k / n) * TAU, rr = s * (0.6 + 0.1 * (k % 4)); if (k) c.lineTo(X + Math.cos(a) * rr, Y + Math.sin(a) * rr); else c.moveTo(X + Math.cos(a) * rr, Y + Math.sin(a) * rr); }
+        c.closePath(); c.fill();
+      });
+    }
+    for (let i = 0; i < 400; i++) { c.fillStyle = gray(0.6 + r() * 0.4, 0.3); c.fillRect(r() * w, r() * h, 1, 1); }
+  });
+  const CHAIN_UV = 1 / 0.16;
+  const chainMat = () => mat('chainLink', { map: TX.chain(), alphaTest: 0.5, side: THREE.DoubleSide, color: 0xd4d8dc, std: true, metalness: 0.45, roughness: 0.4 });
+  const hexMat = () => mat('chickenWire', { map: TX.hexwire(), alphaTest: 0.5, side: THREE.DoubleSide, color: 0xd0d4d8, std: true, metalness: 0.35, roughness: 0.45 });
+  const wireMat = () => mat('wire', { map: TX.wire(), alphaTest: 0.5, side: THREE.DoubleSide, color: 0xc8ccd0, std: true, metalness: 0.5, roughness: 0.4 });
+  const galvMat = () => mat('galv', { map: TX.galv(), std: true, roughness: 0.42, metalness: 0.35 });
+  const waterMat = () => mat('stillWater', { std: true, roughness: 0.06, metalness: 0.1 });
+  const glowMat = () => mat('bulbGlow', { basic: true });
+  const metalMat = () => mat('metal', { std: true, roughness: 0.35, metalness: 0.6 });
+  const darkMat = () => mat('plainStd', { std: true, roughness: 0.7 });
+  const ceramicMat = () => mat('ceramic', { std: true, roughness: 0.35 });
+  function glassMat() {
+    if (!matCache.glassPane) matCache.glassPane = new THREE.MeshStandardMaterial({ map: TX.glass(), color: lcol(0xe6f2f0), transparent: true, depthWrite: false, roughness: 0.05, metalness: 0, side: THREE.DoubleSide });
+    return matCache.glassPane;
+  }
+  // depth material that draws nothing: glass casts no shadow even when the game turns castShadow on
+  function noShadowDepth() {
+    if (!matCache.noShadowDepth) {
+      const m = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
+      m.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace('void main() {', 'void main() {\n  discard;'); };
+      m.customProgramCacheKey = () => 'env-noshadow';
+      matCache.noShadowDepth = m;
+    }
+    return matCache.noShadowDepth;
+  }
+  function glassMesh(geo) {
+    const m = meshOf(geo, glassMat(), false, false);
+    m.customDepthMaterial = noShadowDepth();
+    m.renderOrder = 2;
+    return m;
+  }
+  // quad with its front face turned toward n (per vertex colors)
+  function quadTo(S, a, b, c, d, n, ca, cb = ca, cc = cb, cd = cc) {
+    const f = new V3().subVectors(b, a).cross(new V3().subVectors(c, a));
+    if (f.dot(n) >= 0) S.quad(a, b, c, d, ca, cb, cc, cd);
+    else S.quad(a, d, c, b, ca, cd, cc, cb);
+  }
+  // round pipe from a to b
+  function pipeGeo(ax, ay, az, bx, by, bz, rad = 0.02, col = [1, 1, 1], radial = 6) {
+    const a = new V3(ax, ay, az), b = new V3(bx, by, bz), len = Math.max(1e-4, a.distanceTo(b));
+    const g = prep(new THREE.CylinderGeometry(rad, rad, len, radial, 1));
+    g.applyMatrix4(mat4().compose(a.clone().add(b).multiplyScalar(0.5), new THREE.Quaternion().setFromUnitVectors(new V3(0, 1, 0), b.clone().sub(a).normalize()), new V3(1, 1, 1)));
+    return paint(g, col);
+  }
+  // vertical panel between two floor points, uv 0..1 (wire, chain link, glass)
+  function vPanel(ax, az, bx, bz, y0, y1, col = [1, 1, 1]) {
+    const len = Math.hypot(bx - ax, bz - az), g = prep(new THREE.PlaneGeometry(len, y1 - y0));
+    g.rotateY(-Math.atan2(bz - az, bx - ax));
+    g.translate((ax + bx) / 2, (y0 + y1) / 2, (az + bz) / 2);
+    return paint(g, col);
+  }
+  // lumpy straw bedding over a floor rectangle (thin at the edges)
+  function strawBed(x0, x1, z0, z1, seed, hgt = 0.05) {
+    const S = soup(), xa = Math.min(x0, x1), xb = Math.max(x0, x1), za = Math.min(z0, z1), zb = Math.max(z0, z1), off = seed * 1.7;
+    const nx = Math.max(3, Math.round((xb - xa) / 0.35)), nz = Math.max(3, Math.round((zb - za) / 0.35)), up = new V3(0, 1, 0);
+    const P = (i, j) => {
+      const x = lerp(xa, xb, i / nx), z = lerp(za, zb, j / nz), e = Math.min(i, nx - i, j, nz - j) === 0 ? 0.2 : 1;
+      return new V3(x, 0.008 + hgt * e * (0.55 + 0.45 * fbm(x * 1.7 + off, 0, z * 1.7, 2)), z);
+    };
+    const col = (p) => mixc(L(0xa88a4a), L(0xe0c47a), clamp(0.5 + fbm(p.x * 3 + off, 1, p.z * 3, 2) * 1.2, 0, 1));
+    for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
+      const a = P(i, j), b = P(i + 1, j), c = P(i + 1, j + 1), d = P(i, j + 1);
+      quadTo(S, a, b, c, d, up, col(a), col(b), col(c), col(d));
+    }
+    return boxUV(S.geo(true), 1.4);
+  }
+  // loose hay scattered on the ground: an irregular low patch around (cx, cz)
+  function strawPatch(cx, cz, rad, seed) {
+    const S = soup(), rings = 3, seg = 14, up = new V3(0, 1, 0);
+    const P = (k, i) => {
+      const a = (i / seg) * TAU, t = k / rings, e = rad * (0.6 + 0.55 * fbm(Math.cos(a) * 1.4 + seed, Math.sin(a) * 1.4, seed, 2)) * t;
+      const x = cx + Math.cos(a) * e * 1.3, z = cz + Math.sin(a) * e;
+      return new V3(x, 0.004 + (1 - t) * 0.04 * (0.5 + 0.5 * fbm(x * 9 + seed, 0, z * 9, 2)) + (k === rings ? 0 : 0.006), z);
+    };
+    for (let k = 0; k < rings; k++) for (let i = 0; i < seg; i++) {
+      const a = P(k, i), b = P(k + 1, i), c = P(k + 1, i + 1), d = P(k, i + 1);
+      if (k === 0) quadTo(S, a, b, c, c, up); else quadTo(S, a, b, c, d, up);
+    }
+    return S.geo(true);
+  }
+  // small leafy plant (no pot) at (x, y, z)
+  function tuftGeo(x, y, z, size, r, leafC, n = 7, o = {}) {
+    const S = soup();
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TAU + r() * 0.6;
+      leafStrip(S, new V3(x, y, z), new V3(Math.cos(a), 0, Math.sin(a)), (0.6 + r() * 0.5) * size, (t) => Math.pow(Math.sin(Math.min(1, t * 1.05) * Math.PI), 0.7) * (o.wide || 0.2), r, {
+        seg: 4, lift: o.lift == null ? 1.7 : o.lift, droop: o.droop == null ? 2.4 : o.droop, fold: 0.3,
+        color: (t, e) => (e === 0 ? mixc(mulc(leafC, 0.55), leafC, 0.4 + t * 0.6) : mixc(leafC, mulc(leafC, 0.65), e === 1 ? 0.6 : 0.2)),
+      });
+    }
+    return upNormals(S.geo(false), 0.35);
+  }
+
+  /* dim hallway behind an exterior door, seen through the doorway: floor, side walls, ceiling and back facing inward
+     (no front), darker deeper in, an inner doorway and a runner. Uses the 'glow' attribute: warm at night (windowGlow). */
+  function hallGeo(x0, x1, y0, y1, zf, depth, o = {}) {
+    const S = soup(), zb = zf - depth, P = (x, y, z) => new V3(x, y, z);
+    const wc = L(o.wall || 0x3a2c22), fc = L(o.floor || 0x4e3a28), cc = mulc(wc, 0.7), bc = mulc(wc, 0.62), dk = (c) => mulc(c, 0.45);
+    // floor sits a hair above y0 so it never fights with a foundation top at the same height
+    const yf = y0 + 0.006;
+    quadTo(S, P(x0, yf, zf), P(x1, yf, zf), P(x1, yf, zb), P(x0, yf, zb), new V3(0, 1, 0), fc, fc, dk(fc), dk(fc));
+    quadTo(S, P(x0, y1, zf), P(x1, y1, zf), P(x1, y1, zb), P(x0, y1, zb), new V3(0, -1, 0), cc, cc, dk(cc), dk(cc));
+    quadTo(S, P(x0, y0, zf), P(x0, y1, zf), P(x0, y1, zb), P(x0, y0, zb), new V3(1, 0, 0), wc, wc, dk(wc), dk(wc));
+    quadTo(S, P(x1, y0, zf), P(x1, y1, zf), P(x1, y1, zb), P(x1, y0, zb), new V3(-1, 0, 0), wc, wc, dk(wc), dk(wc));
+    quadTo(S, P(x0, y0, zb), P(x1, y0, zb), P(x1, y1, zb), P(x0, y1, zb), new V3(0, 0, 1), dk(bc));
+    const xm = (x0 + x1) / 2;
+    if (o.inner !== false) {
+      const iw = Math.min(0.85, (x1 - x0) * 0.5) / 2, ih = Math.min(2.0, (y1 - y0) * 0.9);
+      quadTo(S, P(xm - iw, y0, zb + 0.01), P(xm + iw, y0, zb + 0.01), P(xm + iw, y0 + ih, zb + 0.01), P(xm - iw, y0 + ih, zb + 0.01), new V3(0, 0, 1), L(0x0e0a08));
+    }
+    if (o.rug !== false) {
+      const rc = L(o.rug || 0x5a2a20), rw = Math.min(0.32, (x1 - x0) * 0.3);
+      quadTo(S, P(xm - rw, yf + 0.005, zf - 0.08), P(xm + rw, yf + 0.005, zf - 0.08), P(xm + rw, yf + 0.005, zb + 0.15), P(xm - rw, yf + 0.005, zb + 0.15), new V3(0, 1, 0), rc, rc, dk(rc), dk(rc));
+    }
+    if (o.extra) o.extra(S, P, zb);
+    const g = S.geo(false);
+    const p = g.attributes.position.array, n = p.length / 3, gl = new Float32Array(n), g0 = o.glow == null ? 0.8 : o.glow;
+    for (let i = 0; i < n; i++) gl[i] = g0 * (1 - 0.6 * clamp((zf - p[i * 3 + 2]) / depth, 0, 1));
+    g.setAttribute('glow', new THREE.BufferAttribute(gl, 1));
+    return g;
+  }
+  // wedge ramp along +z: flat landing of length land at height h from z0, then a slope of length len down to the ground
+  function rampGeo(w, h, z0, land, len) {
+    const S = soup(), x0 = -w / 2, x1 = w / 2, z1 = z0 + land, z2 = z1 + len, yb = -0.35, c = [1, 1, 1], P = (x, y, z) => new V3(x, y, z);
+    quadTo(S, P(x0, h, z0), P(x1, h, z0), P(x1, h, z1), P(x0, h, z1), new V3(0, 1, 0), c);
+    quadTo(S, P(x0, h, z1), P(x1, h, z1), P(x1, -0.04, z2), P(x0, -0.04, z2), new V3(0, len, h).normalize(), c);
+    const side = [[z0, yb], [z0, h], [z1, h], [z2, -0.04], [z2, yb]];
+    return merge([S.geo(false), polyX(side, x0, -1, c), polyX(side, x1, 1, c)]);
+  }
+  /* one sliding barn door leaf, lw x lh, base at y = 0, centered on x. Frame, mid rail and an X in each half on the
+     face side (face 1 = +z, -1 = -z), handle at handleX, hanger straps and rollers above the top edge. */
+  function barnLeaf(lw, lh, boardC, trimC, face, handleX) {
+    const boards = boxG(lw, lh, 0.07, 0, lh / 2, 0, boardC, 0.5);
+    const t = [], fz = face * 0.06, m = 0.17;
+    t.push(boxG(lw, m, 0.05, 0, lh - m / 2, fz, trimC), boxG(lw, m, 0.05, 0, m / 2, fz, trimC), boxG(lw - 2 * m, 0.14, 0.05, 0, lh / 2, fz, trimC));
+    for (const s of [-1, 1]) t.push(boxG(m, lh, 0.05, s * (lw / 2 - m / 2), lh / 2, fz, trimC));
+    for (const half of [0, 1]) {
+      const yb = half ? lh / 2 + 0.07 : m, yt = half ? lh - m : lh / 2 - 0.07, iw = lw - 2 * m, ih = yt - yb;
+      const len = Math.hypot(iw, ih) - 0.05, ang = Math.atan2(ih, iw);
+      for (const k of [-1, 1]) {
+        const g = prep(new THREE.BoxGeometry(len, 0.13, 0.04));
+        g.rotateZ(ang * k); g.translate(0, (yb + yt) / 2, face * 0.055);
+        t.push(paint(g, trimC));
+      }
+    }
+    const d = [], dk = L(0x26241f);
+    d.push(boxG(0.045, 0.45, 0.05, handleX, lh * 0.45, face * 0.1, dk));
+    for (const s of [-1, 1]) {
+      d.push(boxG(0.08, 0.32, 0.02, s * lw * 0.3, lh + 0.1, face * 0.045, dk));
+      d.push(paint(prep(new THREE.CylinderGeometry(0.075, 0.075, 0.05, 8)).rotateX(Math.PI / 2).translate(s * lw * 0.3, lh + 0.24, 0), dk));
+    }
+    return { boards, trim: merge(t), dark: merge(d) };
+  }
+
+  /* ============================================================
+     Barn interior: open-top room (no ceiling), big doors on the +Z wall, a center aisle along z,
+     two horse stalls on each side, hay, tack, feed, lanterns, a loft ledge and a chicken corner
+     ============================================================ */
+  let barnInGrp = null;
+  function buildBarnInterior() {
+    const W = 9.6, D = 13.6, H = 4.4, T = 0.2, hw = W / 2, hd = D / 2, dw = 3.6, dh = 3.4, AX = 1.6;
+    const r = rng(9191);
+    const B = { wall: [], wood: [], straw: [], soil: [], metal: [], dark: [], glass: [], lamp: [], fabric: [], ceramic: [], galv: [], water: [], twine: [] };
+    const plank = L(0x8a7660), plankDk = L(0x5a4838), beamC = L(0x6a5642), trimW = L(0xd8d2c4), iron = L(0x2a2826);
+    const weather = (x, y, z) => mulc(mixc(plankDk, plank, clamp(0.55 + fbm(x * 0.7, y * 1.8, z * 0.7, 2) * 0.9, 0, 1)), 0.75 + 0.25 * smooth(0, 1.4, y));
+    const wbox = (w, h, d, x, y, z) => boxUV(paint(prep(new THREE.BoxGeometry(w, h, d)).translate(x, y, z), weather), 0.5);
+    const barnB = mat('barnBoards', { map: TX.boards() }), woodM = mat('fenceWood', { map: TX.wood() });
+    const colliders = [], doors = [], doorObjs = [], stalls = [];
+    // walls (boxes outside the room), dirt floor
+    B.wall.push(wbox(W + T * 2, H, T, 0, H / 2, -hd - T / 2), wbox(T, H, D, -hw - T / 2, H / 2, 0), wbox(T, H, D, hw + T / 2, H / 2, 0));
+    B.wall.push(wbox(hw - dw / 2 + T, H, T, -(hw + T + dw / 2) / 2, H / 2, hd + T / 2), wbox(hw - dw / 2 + T, H, T, (hw + T + dw / 2) / 2, H / 2, hd + T / 2));
+    B.wall.push(wbox(dw, H - dh, T, 0, dh + (H - dh) / 2, hd + T / 2));
+    B.soil.push(boxUV(paint(prep(new THREE.BoxGeometry(W + T * 2, 0.1, D + T * 2)).translate(0, -0.05, 0), (x, y, z) => mixc(L(0x6a5440), L(0x9a8262), clamp(0.5 + fbm(x * 0.8, 0, z * 0.8, 3) * 1.2 - (Math.abs(x) < AX ? 0 : 0.12), 0, 1))), 0.8));
+    colliders.push(
+      { box: true, x: 0, z: -hd - T / 2, hw: hw + T, hd: T / 2 + 0.05 }, { box: true, x: -hw - T / 2, z: 0, hw: T / 2 + 0.05, hd: hd + T },
+      { box: true, x: hw + T / 2, z: 0, hw: T / 2 + 0.05, hd: hd + T },
+      { box: true, x: -(hw + T + dw / 2) / 2, z: hd + T / 2, hw: (hw + T - dw / 2) / 2, hd: T / 2 + 0.05 },
+      { box: true, x: (hw + T + dw / 2) / 2, z: hd + T / 2, hw: (hw + T - dw / 2) / 2, hd: T / 2 + 0.05 },
+    );
+    // timber frame: wall posts, girts, top plates, door posts and header, tie beams on the aisle posts, knee braces
+    const PZ = [-4.0, -0.8, 2.4];
+    const post = (x, z, s = 0.2, h = H) => B.wood.push(boxG(s, h, s, x, h / 2, z, beamC, 1.2));
+    for (const z of [...PZ, -hd + 0.1, hd - 0.1]) for (const sx of [-1, 1]) post(sx * (hw - 0.1), z);
+    for (const sx of [-1, 1]) { post(sx * (dw / 2 + 0.12), hd - 0.11, 0.22); post(sx * AX, -hd + 0.1); }
+    B.wood.push(boxG(dw + 0.7, 0.3, 0.22, 0, dh + 0.15, hd - 0.11, beamC, 1.2));
+    B.wood.push(boxG(W, 0.2, 0.2, 0, H - 0.1, -hd + 0.1, beamC, 1.2));
+    for (const sx of [-1, 1]) {
+      B.wood.push(boxG(0.2, 0.2, D, sx * (hw - 0.1), H - 0.1, 0, beamC, 1.2));
+      for (const y of [1.7, 3.0]) B.wood.push(boxG(0.08, 0.14, D, sx * (hw - 0.04), y, 0, beamC, 1.2));
+    }
+    for (const z of PZ) {
+      B.wood.push(boxG(W, 0.24, 0.2, 0, H - 0.32, z, beamC, 1.2));
+      for (const sx of [-1, 1]) {
+        post(sx * AX, z, 0.18);
+        for (const [ax, bx] of [[AX, AX - 0.8], [AX, AX + 0.8], [hw - 0.2, hw - 1.0]]) B.wood.push(boxUV(beam(sx * ax, H - 1.25, sx * bx, H - 0.44, z, 0.12, 0.12, beamC), 1.2));
+      }
+    }
+    // daylight beyond the big doors
+    const outP = prep(new THREE.PlaneGeometry(dw, dh, 1, 6)).rotateY(Math.PI).translate(0, dh / 2, hd + T + 0.32);
+    B.glass.push(setGlow(paint(outP, (x, y) => (y > 1.0 ? mixc(L(0x8aa4b4), L(0x5a7ca0), smooth(1.0, dh, y)) : mixc(L(0x3a5a2a), L(0x6a8a4a), smooth(0, 1.0, y)))), 0.35));
+    // the big doors: two leaves on the outside of the front wall, sliding apart behind it
+    const leafW = dw / 2 + 0.06, leafH = dh + 0.08;
+    for (const side of [-1, 1]) {
+      const lf = barnLeaf(leafW, leafH, mulc(plank, 0.95), mulc(plank, 0.78), -1, -side * (leafW / 2 - 0.12));
+      const pv = pivot(side < 0 ? 'barnDoorL' : 'barnDoorR', side * leafW / 2, 0, hd + T + 0.1);
+      pv.add(meshOf(lf.boards, barnB), meshOf(lf.trim, woodM), meshOf(lf.dark, darkMat()));
+      doorObjs.push(pv);
+      doors.push(doorRec(pv.name, 'slide', side * (leafW + 0.08), pv.position.x));
+    }
+    // ----- stalls: plank kick wall, two rails, a door each that swings into the stall -----
+    const KICK = 0.62, RAIL = [[0.86, 1.0], [1.2, 1.34]], SZ = [[-0.8, 2.4], [-4.0, -0.8]];
+    const stallWall = (ax, az, bx, bz) => {
+      const alongX = Math.abs(bz - az) < 1e-3, len = alongX ? Math.abs(bx - ax) : Math.abs(bz - az), cx = (ax + bx) / 2, cz = (az + bz) / 2;
+      B.wall.push(alongX ? wbox(len, KICK, 0.06, cx, KICK / 2, cz) : wbox(0.06, KICK, len, cx, KICK / 2, cz));
+      for (const [y0, y1] of RAIL) B.wood.push(alongX ? boxG(len, y1 - y0, 0.06, cx, (y0 + y1) / 2, cz, plank, 1.2) : boxG(0.06, y1 - y0, len, cx, (y0 + y1) / 2, cz, plank, 1.2));
+    };
+    // stall door, hinge at local x = 0, panel along +x (rotated to run along z)
+    const sdW = 1.22, sdT = [];
+    const sdBoards = boxUV(paint(prep(new THREE.BoxGeometry(sdW, KICK - 0.05, 0.05)).translate(0.04 + sdW / 2, 0.05 + (KICK - 0.05) / 2, 0), (x) => mulc(plank, 0.88 + 0.08 * Math.sin(x * 7))), 0.5);
+    for (const [y0, y1] of RAIL) sdT.push(boxG(sdW, y1 - y0, 0.05, 0.04 + sdW / 2, (y0 + y1) / 2, 0, plank, 1.2));
+    for (const x of [0.075, sdW + 0.005]) sdT.push(boxG(0.07, RAIL[1][1] - 0.05, 0.06, x, 0.05 + (RAIL[1][1] - 0.05) / 2, 0, mulc(plank, 0.85), 1.2));
+    const kb = Math.hypot(sdW - 0.18, KICK - 0.22), ka = Math.atan2(KICK - 0.22, sdW - 0.18);
+    for (const fz of [-0.04, 0.04]) sdT.push(paint(prep(new THREE.BoxGeometry(kb, 0.1, 0.03)).rotateZ(ka).translate(0.04 + sdW / 2, 0.05 + (KICK - 0.05) / 2, fz), mulc(plank, 0.78)));
+    for (const fz of [-1, 1]) sdT.push(boxG(0.16, 0.04, 0.02, sdW - 0.05, 1.1, fz * 0.04, iron), boxG(0.22, 0.05, 0.02, 0.13, 0.3, fz * 0.035, iron), boxG(0.22, 0.05, 0.02, 0.13, 1.1, fz * 0.035, iron));
+    const sdTrim = boxUV(merge(sdT), 1.2);
+    let si = 0;
+    for (const s of [1, -1]) for (const [za, zb] of SZ) {
+      const zc = (za + zb) / 2, x = s * AX, d0 = zc - 0.65, d1 = zc + 0.65;
+      stallWall(x, za, x, d0); stallWall(x, d1, x, zb);
+      for (const z of [d0, d1]) B.wood.push(boxG(0.1, 1.45, 0.1, x, 0.725, z, beamC, 1.2));
+      colliders.push({ box: true, x, z: (za + d0) / 2, hw: 0.07, hd: (d0 - za) / 2 }, { box: true, x, z: (d1 + zb) / 2, hw: 0.07, hd: (zb - d1) / 2 });
+      B.straw.push(strawBed(s * (AX + 0.05), s * (hw - 0.06), za + 0.05, zb - 0.05, 900 + si));
+      const pv = pivot('stallDoor' + si, x, 0, d0, -Math.PI / 2);
+      pv.add(meshOf(sdBoards, barnB), meshOf(sdTrim, woodM));
+      doorObjs.push(pv);
+      const rd = (v) => Math.round(v * 1000) / 1000;
+      stalls.push({ x: rd(s * (AX + hw) / 2), z: rd(zc), w: rd(hw - AX), d: rd(zb - za), yaw: s > 0 ? -Math.PI / 2 : Math.PI / 2, door: doors.length, entry: { x: rd(s * (AX - 0.7)), z: rd(zc) } });
+      doors.push(doorRec(pv.name, 'swing', s > 0 ? 1.45 : -1.45, -Math.PI / 2));
+      si++;
+    }
+    for (const s of [1, -1]) for (const z of PZ) {
+      stallWall(s * AX, z, s * (hw - 0.02), z);
+      colliders.push({ box: true, x: s * (AX + hw) / 2, z, hw: (hw - AX) / 2, hd: 0.07 });
+    }
+    // straw nest (pet bed) and a rubber feed pan in the front right stall
+    const pet = { x: 3.5, z: 1.5 }, bowl = { x: 2.3, z: -0.4 };
+    const nest = prep(new THREE.TorusGeometry(0.42, 0.15, 6, 14));
+    nest.rotateX(Math.PI / 2); nest.scale(1, 0.55, 1); nest.translate(pet.x, 0.075, pet.z);
+    eachVertex(nest, (p) => { p.y += fbm(p.x * 6, p.y * 6, p.z * 6, 2) * 0.03; });
+    smoothNormals(nest);
+    B.straw.push(boxUV(paint(nest, (x, y, z) => mixc(L(0xb8964e), L(0xeacc86), clamp(0.5 + fbm(x * 5, y * 5, z * 5, 2), 0, 1))), 1.6));
+    B.straw.push(boxUV(paint(prep(new THREE.CircleGeometry(0.4, 12)).rotateX(-Math.PI / 2).translate(pet.x, 0.07, pet.z), L(0xd2b26a)), 1.6));
+    B.dark.push(lathe([[0, 0], [0.2, 0], [0.24, 0.075], [0.26, 0.08], [0.25, 0.085], [0.215, 0.022], [0, 0.022]], 16, L(0x262626)).translate(bowl.x, 0, bowl.z));
+    // water trough in the front right corner
+    const water = { x: 3.6, z: 3.15 }, tp = troughParts(1.8);
+    B.galv.push(tp.galv.translate(water.x, 0, water.z)); B.water.push(tp.water.translate(water.x, 0, water.z));
+    colliders.push({ box: true, x: water.x, z: water.z, hw: 0.93, hd: 0.34 });
+    // saddle on a wall rack, blanket under it, stirrups, and two bridles on pegs (right wall)
+    const sz0 = 4.65, sy = 1.15, sx = hw - 0.42;
+    B.wood.push(boxG(0.7, 0.1, 0.1, hw - 0.35, sy, sz0, beamC, 1.2), boxUV(beam(hw - 0.02, sy - 0.5, hw - 0.52, sy - 0.04, sz0, 0.08, 0.08, beamC), 1.2));
+    const blanket = prep(new THREE.BoxGeometry(0.74, 0.025, 0.66, 6, 1, 6));
+    eachVertex(blanket, (p) => { const v = p.z / 0.33; p.y -= v * v * 0.28; });
+    paintTris(blanket, (x) => (Math.floor((x + 1) * 9) % 3 === 0 ? L(0xc8463a) : L(0x2e4a72)));
+    B.fabric.push(smoothNormals(blanket).translate(sx, sy + 0.07, sz0));
+    const sad = prep(new THREE.BoxGeometry(0.6, 0.08, 0.5, 8, 1, 6));
+    eachVertex(sad, (p) => { const u = p.x / 0.3, v = p.z / 0.25; p.y += -v * v * 0.2 + Math.pow(Math.abs(u), 3) * 0.06 + (u > 0.55 ? (u - 0.55) * 0.3 : 0); p.z *= 1 - 0.18 * (1 - Math.abs(u)); });
+    smoothNormals(sad);
+    B.ceramic.push(paint(sad, (x, y) => mixc(L(0x5a3014), L(0x9a5a2a), clamp(0.4 + y * 4, 0, 1))).translate(sx, sy + 0.13, sz0));
+    B.ceramic.push(pipeGeo(sx - 0.25, sy + 0.18, sz0, sx - 0.25, sy + 0.3, sz0, 0.025, L(0x6a3a1a), 8), paint(prep(new THREE.CylinderGeometry(0.05, 0.04, 0.025, 10)).translate(sx - 0.25, sy + 0.31, sz0), L(0x6a3a1a)));
+    for (const s of [-1, 1]) {
+      B.ceramic.push(boxG(0.05, 0.42, 0.012, sx + 0.02, sy - 0.2, sz0 + s * 0.29, L(0x5a3014)));
+      const st = prep(new THREE.TorusGeometry(0.06, 0.012, 4, 10)); st.translate(sx + 0.02, sy - 0.45, sz0 + s * 0.29);
+      B.metal.push(paint(st, L(0xa8a8a0)));
+    }
+    for (const [pz, lc] of [[5.35, L(0x6a3a1a)], [5.85, L(0xb8322a)]]) {
+      B.wood.push(boxG(0.18, 0.04, 0.04, hw - 0.09, 1.55, pz, beamC));
+      const loop = prep(new THREE.TorusGeometry(0.13, 0.012, 4, 14)); loop.rotateY(Math.PI / 2); loop.scale(1, 1.6, 1); loop.translate(hw - 0.12, 1.55 - 0.2, pz);
+      const rein = prep(new THREE.TorusGeometry(0.19, 0.009, 4, 16)); rein.rotateY(Math.PI / 2); rein.scale(1, 2.0, 1); rein.translate(hw - 0.1, 1.55 - 0.37, pz + 0.03);
+      B.ceramic.push(paint(loop, lc), paint(rein, mulc(lc, 0.85)));
+      const bit = prep(new THREE.TorusGeometry(0.03, 0.006, 4, 8)); bit.rotateY(Math.PI / 2); bit.translate(hw - 0.12, 1.55 - 0.41, pz);
+      B.metal.push(paint(bit, L(0xc0c0b8)));
+    }
+    // hay bales stacked in the front left corner, one more by the ladder
+    const bale = (x, y, z, ry = 0) => {
+      const g = roundBox(0.9, 0.4, 0.46, 0.05, null), tw = r() * 0.15 - 0.05;
+      paint(g, (px, py, pz) => mixc(L(0xb0904a), L(0xe2c67e), clamp(0.55 + fbm(px * 4 + x * 3, py * 4, pz * 4 + z, 2) * 1.1 + tw, 0, 1)));
+      B.straw.push(boxUV(g, 1.6).rotateY(ry).translate(x, y + 0.2, z));
+      for (const s of [-1, 1]) B.twine.push(boxG(0.02, 0.408, 0.468, s * 0.24, 0, 0, L(0x9a6a3a)).rotateY(ry).translate(x, y + 0.2, z));
+    };
+    for (let j = 0; j < 4; j++) for (let i = 0; i < 2; i++) bale(-4.32 + i * 0.93 + (r() - 0.5) * 0.04, 0, 4.95 + j * 0.47, (r() - 0.5) * 0.05);
+    for (let j = 0; j < 3; j++) for (let i = 0; i < 2; i++) bale(-4.3 + i * 0.93, 0.4, 5.2 + j * 0.47 + (r() - 0.5) * 0.04, (r() - 0.5) * 0.08);
+    bale(-4.3, 0.8, 5.7, Math.PI / 2 + 0.06); bale(-3.82, 0.8, 5.95, 0.1);
+    colliders.push({ box: true, x: -3.85, z: 5.8, hw: 0.97, hd: 1.0 });
+    // pitchfork leaning on the hay
+    const pf = [pipeGeo(0, 0, 0, 0, 1.25, 0, 0.017, L(0xa07a4a), 5), boxG(0.26, 0.03, 0.03, 0, 1.27, 0, L(0x8a8a86)), boxG(0.04, 0.08, 0.04, 0, 1.22, 0, L(0x8a8a86))];
+    for (let i = 0; i < 4; i++) pf.push(boxG(0.012, 0.32, 0.012, -0.11 + i * 0.073, 1.44, 0.01, L(0x9a9a96)));
+    for (const g of pf) B.metal.push(g.rotateZ(0.2).rotateY(0.3).translate(-2.7, 0, 4.85));
+    // feed bins on the left wall, one lid propped open with grain and a scoop
+    for (const [bz, open] of [[3.05, false], [3.8, true]]) {
+      const bx = -hw + 0.36, bc = L(0x4a6a50);
+      B.wood.push(boxG(0.62, 0.7, 0.68, bx, 0.35, bz, bc, 1.2), boxG(0.64, 0.05, 0.7, bx, 0.03, bz, mulc(bc, 0.7), 1.2));
+      for (const s of [-1, 1]) B.dark.push(boxG(0.03, 0.06, 0.12, bx + s * 0.31, 0.6, bz + 0.2, iron));
+      if (!open) B.wood.push(boxG(0.68, 0.05, 0.74, bx, 0.725, bz, mulc(bc, 1.1), 1.2));
+      else {
+        B.wood.push(boxG(0.05, 0.74, 0.74, -hw + 0.06, 0.72 + 0.37, bz, mulc(bc, 1.1), 1.2));
+        B.straw.push(boxUV(paint(prep(new THREE.BoxGeometry(0.56, 0.02, 0.62)).translate(bx, 0.62, bz), (x, y, z) => mixc(L(0x9a7a3a), L(0xd8b868), clamp(0.5 + fbm(x * 30, 0, z * 30, 1), 0, 1))), 3));
+        B.metal.push(lathe([[0, 0], [0.06, 0], [0.065, 0.08], [0.06, 0.08], [0.055, 0.005], [0, 0.005]], 10, L(0xc0c4c8)).rotateZ(1.2).translate(bx + 0.1, 0.66, bz - 0.1));
+      }
+    }
+    colliders.push({ box: true, x: -hw + 0.36, z: 3.42, hw: 0.36, hd: 0.76 });
+    // barn cat's wicker bed with a cushion, front right corner
+    const cat = { x: 4.2, z: 6.15 };
+    B.straw.push(boxUV(lathe([[0.27, 0], [0.31, 0.02], [0.33, 0.15], [0.31, 0.18], [0.28, 0.16], [0.26, 0.05], [0, 0.05]], 14, L(0xb88a4a)).translate(cat.x, 0, cat.z), 2.5));
+    const cush = roundBox(0.48, 0.07, 0.48, 0.03, L(0xa83a32));
+    eachVertex(cush, (p) => { const dd = Math.hypot(p.x, p.z); if (dd > 0.24) { p.x *= 0.24 / dd; p.z *= 0.24 / dd; } });
+    B.fabric.push(smoothNormals(cush).translate(cat.x, 0.08, cat.z));
+    // loft ledge across the back wall with hay on it, and a ladder up to it
+    const ly = 2.8, lz0 = -hd, lz1 = -hd + 1.2;
+    B.wood.push(boxG(W, 0.08, 1.2, 0, ly + 0.04, (lz0 + lz1) / 2, mulc(beamC, 1.12), 1.2), boxG(W, 0.24, 0.16, 0, ly - 0.12, lz1 - 0.08, beamC, 1.2));
+    for (let x = -hw + 0.6; x < hw; x += 1.2) B.wood.push(boxG(0.08, 0.16, 1.1, x, ly - 0.08, (lz0 + lz1) / 2, beamC, 1.2));
+    for (const sx of [-1, 1]) post(sx * 2.0, lz1 - 0.08, 0.16, ly - 0.24);
+    colliders.push({ x: -2.0, z: lz1 - 0.08, r: 0.13 }, { x: 2.0, z: lz1 - 0.08, r: 0.13 });
+    for (const x of [-3.7, -2.75, 1.0, 2.9, 3.85]) bale(x, ly + 0.08, -hd + 0.4 + r() * 0.2, (r() - 0.5) * 0.2);
+    bale(3.4, ly + 0.48, -hd + 0.45, 0.05);
+    const lx = -0.9, lzb = -4.85, ltop = ly + 0.55;
+    for (const s of [-1, 1]) B.wood.push(boxUV(beam(lzb, 0, lz1 - 0.02 - 0.12, ltop, 0, 0.07, 0.05, beamC, 'z').translate(lx + s * 0.22, 0, 0), 1.2));
+    for (let k = 1; k * 0.3 < ltop - 0.1; k++) { const t = (k * 0.3) / ltop; B.wood.push(boxG(0.44, 0.04, 0.05, lx, k * 0.3, lerp(lzb, lz1 - 0.14, t), beamC, 1.2)); }
+    colliders.push({ box: true, x: lx, z: lzb - 0.1, hw: 0.3, hd: 0.14 });
+    // chicken corner, back left: shavings, a roost ladder, nest boxes with eggs, a feeder and a waterer
+    B.straw.push(strawBed(-hw + 0.03, -2.3, -hd + 0.03, -4.1, 77, 0.03));
+    for (const x of [-4.35, -3.15]) B.wood.push(boxUV(beam(-5.25, 0, -hd + 0.05, 1.5, 0, 0.06, 0.05, beamC, 'z').translate(x, 0, 0), 1.2));
+    for (const t of [0.22, 0.45, 0.68, 0.9]) B.wood.push(pipeGeo(-4.45, 1.5 * t, lerp(-5.25, -hd + 0.05, t), -3.05, 1.5 * t, lerp(-5.25, -hd + 0.05, t), 0.026, L(0x8a6a48), 6));
+    colliders.push({ box: true, x: -3.75, z: -6.05, hw: 0.72, hd: 0.78 });
+    const nx0 = -hw, nx1 = -hw + 0.42, ny0 = 0.5, ny1 = 0.95, nz0 = -6.45, nz1 = -5.25;
+    B.wood.push(boxG(0.44, 0.04, nz1 - nz0, (nx0 + nx1) / 2, ny0, (nz0 + nz1) / 2, plank, 1.2), boxG(0.5, 0.04, nz1 - nz0 + 0.06, (nx0 + nx1) / 2 + 0.03, ny1 + 0.02, (nz0 + nz1) / 2, plank, 1.2));
+    for (let k = 0; k <= 3; k++) B.wood.push(boxG(0.42, ny1 - ny0, 0.03, (nx0 + nx1) / 2, (ny0 + ny1) / 2, lerp(nz0, nz1, k / 3), plank, 1.2));
+    B.wood.push(boxG(0.03, 0.09, nz1 - nz0, nx1, ny0 + 0.045, (nz0 + nz1) / 2, plank, 1.2));
+    for (const z of [nz0 + 0.03, nz1 - 0.03]) B.wood.push(boxG(0.05, ny0, 0.05, nx1 - 0.03, ny0 / 2, z, beamC, 1.2));
+    for (let k = 0; k < 3; k++) {
+      const cz = lerp(nz0, nz1, (k + 0.5) / 3);
+      B.straw.push(boxUV(paint(blob({ x: (nx0 + nx1) / 2, y: ny0 + 0.02, z: cz, r: 0.15, sx: 1.2, sy: 0.4, sz: 1.1, detail: 1, amp: 0.3, fq: 3, off: k }), L(0xd8b86e)), 2));
+      if (k !== 1) for (const [ex, ec] of [[-0.04, 0xf4efe2], [0.05, 0xc89a6a]]) B.ceramic.push(paint(place(new THREE.IcosahedronGeometry(0.03, 1), (nx0 + nx1) / 2 + ex, ny0 + 0.07, cz + ex, 0, 0, 0, new V3(1, 1.3, 1)), L(ec)));
+    }
+    colliders.push({ box: true, x: (nx0 + nx1) / 2, z: (nz0 + nz1) / 2, hw: 0.24, hd: 0.64 });
+    const fx = -2.75, fz = -4.75, wx = -2.65, wz = -6.3;
+    B.galv.push(lathe([[0, 0], [0.2, 0], [0.22, 0.05], [0.2, 0.06], [0.12, 0.03], [0.12, 0.38], [0.14, 0.4], [0.02, 0.48], [0, 0.48]], 14, L(0xb8bcc0)).translate(fx, 0, fz));
+    B.galv.push(lathe([[0, 0], [0.19, 0], [0.2, 0.04], [0.18, 0.05], [0.15, 0.04], [0.15, 0.3], [0.1, 0.4], [0.02, 0.42], [0, 0.42]], 14, L(0xc0c4c8)).translate(wx, 0, wz));
+    B.water.push(paint(prep(new THREE.RingGeometry(0.15, 0.18, 14)).rotateX(-Math.PI / 2).translate(wx, 0.03, wz), L(0x4a7a88)));
+    colliders.push({ x: fx, z: fz, r: 0.22 }, { x: wx, z: wz, r: 0.21 });
+    // lanterns hanging from the tie beams over the aisle
+    for (const z of PZ) {
+      const top = H - 0.44, ly0 = 2.62;
+      B.dark.push(boxG(0.015, top - (ly0 + 0.42), 0.015, 0, (top + ly0 + 0.42) / 2, z, iron));
+      B.dark.push(paint(prep(new THREE.CylinderGeometry(0.1, 0.11, 0.035, 10)).translate(0, ly0 + 0.017, z), iron));
+      B.dark.push(paint(prep(new THREE.ConeGeometry(0.115, 0.12, 10)).translate(0, ly0 + 0.36, z), iron));
+      const ring = prep(new THREE.TorusGeometry(0.04, 0.008, 4, 10)); ring.translate(0, ly0 + 0.45, z); B.dark.push(paint(ring, iron));
+      for (let k = 0; k < 4; k++) { const a = (k / 4) * TAU + 0.4; B.dark.push(boxG(0.012, 0.27, 0.012, Math.cos(a) * 0.082, ly0 + 0.165, z + Math.sin(a) * 0.082, iron)); }
+      B.lamp.push(setGlow(lathe([[0, 0], [0.07, 0], [0.078, 0.06], [0.078, 0.2], [0.06, 0.27], [0, 0.27]], 10, L(0xf2dca0)).translate(0, ly0 + 0.03, z), 1));
+    }
+    // windows high on the side walls and one in the back gable over the loft
+    for (const sx of [-1, 1]) for (const z of [-2.4, 0.8, 4.6]) inWindow(B, sx * hw, 2.55, z, sx < 0 ? Math.PI / 2 : -Math.PI / 2, 0.9, 0.7, trimW, null);
+    inWindow(B, 0, 3.75, -hd, 0, 1.0, 0.55, trimW, null);
+    // assemble, one mesh per material
+    const grp = new THREE.Group();
+    grp.name = 'barn-interior';
+    const add = (list, m, cast = true) => { if (list.length) grp.add(meshOf(merge(list), m, cast, true)); };
+    add(B.soil, mat('soil', { map: TX.soil() }), false);
+    add(B.wall, barnB);
+    add(B.wood, woodM);
+    add(B.straw, mat('straw', { map: TX.straw() }));
+    add(B.twine, darkMat());
+    add(B.dark, darkMat());
+    add(B.metal, metalMat());
+    add(B.ceramic, ceramicMat());
+    add(B.fabric, mat('fabric', { map: TX.fabric() }));
+    add([boxUV(merge(B.galv), 2)], galvMat());
+    add(B.water, waterMat(), false);
+    add(B.glass, mat('windowDay', { emissive: 0xcfe6ff, glow: 'day' }), false);
+    add(B.lamp, mat('lampGlow', { emissive: 0xffc070, glow: 'night' }), false);
+    for (const o of doorObjs) grp.add(o);
+    for (const c of colliders) if (c.box && c.rot === undefined) c.rot = 0;
+    grp.userData = {
+      w: W, d: D, wallH: H, name: 'barn',
+      spawn: { x: 0, z: hd - 1.4, yaw: Math.PI },
+      exit: { x: 0, z: hd - 0.35, r: 1.4 },
+      light: { x: 0, y: 3.0, z: -0.8 },
+      colliders, stalls,
+      petBed: pet, bowl, water, cat,
+      // clear floor in the back right corner (under the loft) for a cage; its +Z faces the room
+      cageSpot: { x: 3.5, z: -hd + 0.65, yaw: 0 },
+      doors,
+    };
+    return grp;
+  }
+  function barnInterior() {
+    if (!barnInGrp) barnInGrp = buildBarnInterior();
+    const g = barnInGrp.clone();
+    g.userData = JSON.parse(JSON.stringify(barnInGrp.userData));
+    return resolveDoors(g);
+  }
+
+  /* ============================================================
+     Cages for indoor pets: they stand on the room floor (y = 0), door on the +Z side.
+     userData = { w, d, h, floorY, inside: { x, z, hw, hd }, entry: { x, z }, doors, colliders, doorCollider }
+     colliders are the walls with a gap at the door; doorCollider fills that gap.
+     ============================================================ */
+  const cageWalls = (hw, hd, gx0, gx1, t) => ({
+    colliders: [
+      { box: true, x: 0, z: -hd, hw, hd: t, rot: 0 }, { box: true, x: -hw, z: 0, hw: t, hd, rot: 0 }, { box: true, x: hw, z: 0, hw: t, hd, rot: 0 },
+      { box: true, x: (-hw + gx0) / 2, z: hd, hw: (gx0 + hw) / 2, hd: t, rot: 0 }, { box: true, x: (gx1 + hw) / 2, z: hd, hw: (hw - gx1) / 2, hd: t, rot: 0 },
+    ].filter((c) => c.hw > 0.005),
+    doorCollider: { box: true, x: (gx0 + gx1) / 2, z: hd, hw: (gx1 - gx0) / 2, hd: t, rot: 0 },
+  });
+  /* floor-standing glass terrarium 1.4 x 0.8 x 0.75 m: black frame, glass, mesh lid with a heat lamp and a light,
+     bark and sand floor, a climbing branch, a hide rock, a water dish and plants. The front left glass is a door. */
+  function terrarium() {
+    return cachedDoors('terrarium', () => {
+      const W = 1.4, Dd = 0.8, H = 0.75, hw = W / 2, hd = Dd / 2, fr = 0.025, base = 0.035, gin = 0.012, r = rng(5150);
+      const blk = L(0x1c1d20), frame = [], glass = [], ground = [], bark = [], rocks = [], plants = [], cer = [], glow = [], wire = [], metal = [];
+      frame.push(boxG(W + 0.01, base, Dd + 0.01, 0, base / 2, 0, blk));
+      for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) frame.push(boxG(fr, H - base, fr, sx * (hw - fr / 2), base + (H - base) / 2, sz * (hd - fr / 2), blk));
+      frame.push(boxG(fr, H - base, fr, 0, base + (H - base) / 2, hd - fr / 2, blk));
+      for (const s of [-1, 1]) frame.push(boxG(W, fr, fr, 0, H - fr / 2, s * (hd - fr / 2), blk), boxG(fr, fr, Dd, s * (hw - fr / 2), H - fr / 2, 0, blk));
+      const gy0 = base, gy1 = H - fr;
+      glass.push(vPanel(-hw + fr, -hd + gin, hw - fr, -hd + gin, gy0, gy1), vPanel(-hw + gin, hd - fr, -hw + gin, -hd + fr, gy0, gy1), vPanel(hw - gin, -hd + fr, hw - gin, hd - fr, gy0, gy1), vPanel(fr / 2, hd - gin, hw - fr, hd - gin, gy0, gy1));
+      // rocky background panel inside the back glass
+      const bg = prep(new THREE.PlaneGeometry(W - 2 * fr - 0.01, gy1 - gy0 - 0.03, 12, 6));
+      eachVertex(bg, (p) => { p.z = 0.022 + 0.02 * fbm(p.x * 6, p.y * 6, 3.3, 2); });
+      bg.translate(0, (gy0 + gy1) / 2, -hd + gin + 0.004);
+      rocks.push(boxUV(paint(smoothNormals(bg), (x, y, z) => mixc(L(0x4a3a2e), L(0x8a7a66), clamp(0.5 + (z + hd - 0.03) * 22 + fbm(x * 9, y * 9, 1, 2) * 0.5, 0, 1))), 3));
+      // substrate: bark chips with sandy patches, higher at the back
+      const S = soup(), nx = 14, nz = 8, x0 = -hw + fr, x1 = hw - fr, z0 = -hd + fr, z1 = hd - fr, up = new V3(0, 1, 0);
+      const sh = (x, z) => base + 0.01 + 0.035 * smooth(z1, z0, z) + 0.012 * fbm(x * 5, 0, z * 5, 2);
+      const sc = (x, z) => mixc(L(0x5a3a22), L(0xc8a46a), smooth(0.05, 0.4, fbm(x * 3 + 7, 0, z * 3, 2) + (x > 0.15 ? 0.18 : 0)));
+      const SP = (i, j) => { const x = lerp(x0, x1, i / nx), z = lerp(z0, z1, j / nz); return new V3(x, sh(x, z), z); };
+      for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) { const a = SP(i, j), b = SP(i + 1, j), c = SP(i + 1, j + 1), d = SP(i, j + 1); quadTo(S, a, b, c, d, up, sc(a.x, a.z), sc(b.x, b.z), sc(c.x, c.z), sc(d.x, d.z)); }
+      ground.push(boxUV(S.geo(true), 5));
+      // climbing branch from the back left up to the right, with a twig
+      const bcol = barkColor(L(0x6a5440), L(0x3a2c20), L(0x8a7458), 3);
+      bark.push(tube(path([new V3(-0.36, sh(-0.36, -0.27) - 0.01, -0.27), new V3(-0.1, 0.24, -0.26), new V3(0.2, 0.42, -0.2), new V3(0.55, 0.56, -0.13)], 10), (i, t) => 0.032 - t * 0.014, { radial: 6, cap: 'both', vLen: 0.4, color: bcol }));
+      bark.push(tube(path([new V3(0.05, 0.33, -0.235), new V3(0.08, 0.5, -0.28), new V3(0.02, 0.62, -0.3)], 5), (i, t) => 0.016 - t * 0.008, { radial: 5, cap: 'end', vLen: 0.4, color: bcol }));
+      // hide rock with a dark opening
+      const rk = blob({ x: 0.4, y: base, z: 0.1, r: 0.15, sx: 1.25, sy: 0.75, sz: 1.0, detail: 1, amp: 0.18, fq: 2.2, off: 4 });
+      eachVertex(rk, (p) => { if (p.y < base) p.y = base; });
+      rocks.push(boxUV(paint(rk, (x, y, z, nx2, ny) => mixc(L(0x6a625a), L(0xa49a8a), clamp(0.5 + fbm(x * 12, y * 12, z * 12, 2) + ny * 0.2, 0, 1))), 4));
+      const hole = prep(new THREE.IcosahedronGeometry(1, 1));
+      hole.scale(0.06, 0.05, 0.035); hole.rotateY(-0.61); hole.translate(0.4 - 0.55 * 0.19, base + 0.035, 0.1 + 0.78 * 0.15);
+      cer.push(paint(hole, L(0x140e0a)));
+      // water dish
+      const wy = sh(0.05, 0.2) - 0.006;
+      cer.push(lathe([[0, 0], [0.1, 0], [0.12, 0.028], [0.11, 0.032], [0.092, 0.01], [0, 0.01]], 14, L(0x7a746a)).translate(0.05, wy, 0.2));
+      cer.push(paint(prep(new THREE.CircleGeometry(0.095, 14)).rotateX(-Math.PI / 2).translate(0.05, wy + 0.024, 0.2), L(0x4a7a8a)));
+      // plants, kept inside the glass
+      plants.push(tuftGeo(-0.52, sh(-0.52, -0.3), -0.3, 0.22, r, L(0x3a8a3a), 8), tuftGeo(0.6, sh(0.6, -0.3), -0.3, 0.26, r, L(0x5a9a2a), 9), tuftGeo(0.62, sh(0.62, 0.3), 0.28, 0.16, r, L(0x2e7a4a), 6, { wide: 0.3, lift: 1.0 }));
+      for (const g of plants) eachVertex(g, (p) => { p.x = clamp(p.x, -hw + 0.03, hw - 0.03); p.z = clamp(p.z, -hd + 0.05, hd - 0.03); p.y = Math.min(p.y, H - 0.04); });
+      // mesh lid, heat lamp dome with a glowing bulb, light bar with a glowing strip
+      wire.push(paint(prep(new THREE.PlaneGeometry(W - 2 * fr, Dd - 2 * fr)).rotateX(-Math.PI / 2).translate(0, H - 0.004, 0), L(0x3a3a3a)));
+      metal.push(lathe([[0.13, 0], [0.126, 0.03], [0.11, 0.08], [0.08, 0.12], [0.04, 0.14], [0, 0.145]], 14, L(0xb8bcc0)).translate(0.38, H, -0.1));
+      metal.push(paint(prep(new THREE.CylinderGeometry(0.03, 0.03, 0.05, 8)).translate(0.38, H + 0.16, -0.1), L(0x2a2a2a)));
+      glow.push(paint(prep(new THREE.CircleGeometry(0.1, 14)).rotateX(Math.PI / 2).translate(0.38, H + 0.004, -0.1), L(0xffa850)));
+      cer.push(boxG(0.8, 0.03, 0.08, -0.2, H + 0.015, -hd + 0.12, L(0xe8e8e4)));
+      glow.push(paint(prep(new THREE.PlaneGeometry(0.72, 0.035)).rotateX(Math.PI / 2).translate(-0.2, H + 0.0015, -hd + 0.12), L(0xe8f2ff)));
+      // the glass door (front left), hinged at the left post, swings in
+      const dW = hw - fr - fr / 2 - 0.004;
+      const dGlass = vPanel(0.004, 0, dW, 0, gy0 + 0.004, gy1 - 0.004);
+      const dFrame = merge([boxG(dW, 0.016, 0.018, dW / 2, gy0 + 0.008, 0, blk), boxG(dW, 0.016, 0.018, dW / 2, gy1 - 0.008, 0, blk), boxG(0.016, gy1 - gy0, 0.018, dW - 0.008, (gy0 + gy1) / 2, 0, blk), boxG(0.016, gy1 - gy0, 0.018, 0.008, (gy0 + gy1) / 2, 0, blk), boxG(0.02, 0.09, 0.03, dW - 0.035, 0.4, 0.02, L(0x9a9a9a))]);
+      const grp = new THREE.Group();
+      grp.name = 'terrarium';
+      const add = (list, m, cast = true) => { if (list.length) grp.add(meshOf(merge(list), m, cast, true)); };
+      add(frame, ceramicMat()); add(ground, mat('soil', { map: TX.soil() }), false); add(bark, mat('bark', { map: TX.bark() }));
+      add(rocks, mat('rock', { map: TX.rock() })); add(plants, mat('plantIn', { side: THREE.DoubleSide })); add(cer, ceramicMat()); add(metal, metalMat());
+      grp.add(meshOf(boxUV(merge(wire), 1 / 0.1), wireMat()));
+      grp.add(meshOf(merge(glow), glowMat(), false, false));
+      grp.add(glassMesh(merge(glass)));
+      const pv = pivot('terrDoor', -hw + fr, 0, hd - gin);
+      pv.add(glassMesh(dGlass), meshOf(dFrame, ceramicMat()));
+      grp.add(pv);
+      const cw = cageWalls(hw, hd, -hw + fr, 0, 0.03);
+      cw.colliders.push({ x: 0.4, z: 0.1, r: 0.17 });
+      grp.userData = { w: W, d: Dd, h: H + 0.2, floorY: 0.05, inside: { x: 0, z: 0, hw: hw - 0.05, hd: hd - 0.05 }, entry: { x: -hw / 2, z: hd + 0.35 }, doors: [doorRec('terrDoor', 'swing', 1.4)], colliders: cw.colliders, doorCollider: cw.doorCollider };
+      return grp;
+    });
+  }
+  /* tall floor-standing parrot cage 0.9 x 0.75 x 1.7 m on a base tray (inside floor at y = 0.05): thin bars, perches,
+     a natural branch, a swing, food and water cups and a hanging toy. The front door swings in. */
+  function birdCage() {
+    return cachedDoors('birdCage', () => {
+      const W = 0.9, Dd = 0.75, hw = W / 2, hd = Dd / 2, yb = 0.12, yt = 1.55, dx0 = -0.225, dx1 = 0.225, dTop = 0.84;
+      const barC = L(0x2c2c30), bars = [], tray = [], fab = [], wood = [], metal = [], toy = [], seed = [], water = [];
+      tray.push(boxG(W + 0.06, 0.04, Dd + 0.06, 0, 0.02, 0, barC));
+      for (const s of [-1, 1]) tray.push(boxG(W + 0.06, yb - 0.04, 0.02, 0, 0.04 + (yb - 0.04) / 2, s * (hd + 0.02), barC), boxG(0.02, yb - 0.04, Dd + 0.06, s * (hw + 0.02), 0.04 + (yb - 0.04) / 2, 0, barC));
+      fab.push(boxG(W + 0.02, 0.012, Dd + 0.02, 0, 0.046, 0, L(0xe8dcc0)));
+      const bar = (x, z, y0, y1) => bars.push(boxG(0.009, y1 - y0, 0.009, x, (y0 + y1) / 2, z, barC));
+      const nF = 20, nS = 16;
+      for (let i = 0; i <= nF; i++) {
+        const x = -hw + (i / nF) * W;
+        bar(x, -hd, yb, yt);
+        bar(x, hd, x > dx0 + 0.01 && x < dx1 - 0.01 ? dTop : yb, yt);
+      }
+      for (let i = 1; i < nS; i++) { const z = -hd + (i / nS) * Dd; bar(-hw, z, yb, yt); bar(hw, z, yb, yt); }
+      for (const y of [yb, dTop, 1.22, yt]) for (const s of [-1, 1]) bars.push(boxG(W + 0.012, 0.018, 0.012, 0, y, s * hd, barC), boxG(0.012, 0.018, Dd + 0.012, s * hw, y, 0, barC));
+      for (let i = 1; i < nF; i++) bars.push(boxG(0.009, 0.009, Dd, -hw + (i / nF) * W, yt, 0, barC));
+      bars.push(boxG(0.03, 0.08, 0.03, 0, yt + 0.04, 0, barC));
+      const ring = prep(new THREE.TorusGeometry(0.045, 0.008, 4, 12)); ring.translate(0, yt + 0.125, 0); bars.push(paint(ring, barC));
+      // perches: two dowels and a natural branch
+      const dowel = L(0xb08a5a);
+      wood.push(pipeGeo(0.28, 0.92, -hd + 0.01, 0.28, 0.92, hd - 0.01, 0.014, dowel), pipeGeo(-hw + 0.01, 1.2, -0.24, hw - 0.01, 1.2, -0.24, 0.014, dowel));
+      wood.push(tube(path([new V3(-hw + 0.005, 1.36, 0.25), new V3(0.0, 1.42, 0.15), new V3(hw - 0.005, 1.34, 0.28)], 8), 0.018, { radial: 6, cap: 'both', vLen: 0.4, color: barkColor(L(0x7a6046), L(0x4a3a2a), L(0x9a8064), 5) }));
+      // swing
+      for (const s of [-1, 1]) {
+        bars.push(boxG(0.006, yt - 1.26, 0.006, -0.12 + s * 0.1, (yt + 1.26) / 2, -0.02, L(0x8a8a86)));
+        for (let k = 0; k < 3; k++) toy.push(paint(place(new THREE.IcosahedronGeometry(0.016, 0), -0.12 + s * 0.1, 1.33 + k * 0.05, -0.02), L([0xe0405a, 0xf2c83a, 0x3a8ad0][k])));
+      }
+      wood.push(pipeGeo(-0.23, 1.26, -0.02, -0.01, 1.26, -0.02, 0.011, dowel));
+      // food and water cups in rings on the side walls
+      for (const s of [-1, 1]) {
+        const cx = s * (hw - 0.07);
+        metal.push(lathe([[0, 0], [0.04, 0], [0.055, 0.05], [0.06, 0.06], [0.055, 0.062], [0.05, 0.012], [0, 0.012]], 12, L(0xd0d4d8)).translate(cx, 0.6, 0.05));
+        const hr = prep(new THREE.TorusGeometry(0.062, 0.006, 4, 12)); hr.rotateX(Math.PI / 2); hr.translate(cx, 0.655, 0.05); bars.push(paint(hr, barC));
+        if (s < 0) { const sr = rng(77); for (let i = 0; i < 16; i++) { const a = sr() * TAU, dd = sr() * 0.04; seed.push(paint(place(new THREE.IcosahedronGeometry(0.009, 0), cx + Math.cos(a) * dd, 0.645, 0.05 + Math.sin(a) * dd), L([0xd8b860, 0x6a4a2a, 0xe8e0c8, 0xc86a3a][i % 4]))); } }
+        else water.push(paint(prep(new THREE.CircleGeometry(0.05, 12)).rotateX(-Math.PI / 2).translate(cx, 0.645, 0.05), L(0x6aa8d8)));
+      }
+      // hanging toy: chain, wooden blocks, beads and a bell
+      bars.push(boxG(0.005, yt - 1.25, 0.005, 0.25, (yt + 1.25) / 2, -0.05, L(0x8a8a86)));
+      [[0xd8443a, 1.22], [0xf2c83a, 1.15], [0x3a8ad0, 1.08]].forEach(([c, y], k) => toy.push(boxG(0.05, 0.05, 0.05, 0.25, y, -0.05, L(c), 1, k * 0.5)));
+      toy.push(paint(place(new THREE.IcosahedronGeometry(0.02, 0), 0.25, 1.03, -0.05), L(0x5ac06a)));
+      metal.push(lathe([[0, 0], [0.022, 0], [0.02, 0.025], [0.008, 0.04], [0, 0.04]], 8, L(0xd8b040)).translate(0.25, 0.97, -0.05));
+      // the door
+      const dWd = dx1 - dx0, dd = [];
+      dd.push(boxG(dWd, 0.016, 0.012, dWd / 2, yb + 0.01, 0, barC), boxG(dWd, 0.016, 0.012, dWd / 2, dTop - 0.02, 0, barC), boxG(0.012, dTop - yb, 0.012, 0.006, (yb + dTop) / 2 - 0.01, 0, barC), boxG(0.012, dTop - yb, 0.012, dWd - 0.006, (yb + dTop) / 2 - 0.01, 0, barC));
+      for (let x = 0.045; x < dWd - 0.02; x += 0.045) dd.push(boxG(0.008, dTop - yb - 0.02, 0.008, x, (yb + dTop) / 2 - 0.01, 0, barC));
+      dd.push(boxG(0.012, 0.07, 0.035, dWd - 0.012, 0.48, 0.015, L(0xc8a040)));
+      const grp = new THREE.Group();
+      grp.name = 'birdCage';
+      const barM = mat('cageBars', { std: true, roughness: 0.45, metalness: 0.15 });
+      const add = (list, m, cast = true) => { if (list.length) grp.add(meshOf(merge(list), m, cast, true)); };
+      add([...bars, ...tray], barM); add(fab, mat('fabric', { map: TX.fabric() })); add(wood, mat('fenceWood', { map: TX.wood() }));
+      add(metal, metalMat()); add([...toy, ...seed], mat('toyBall', { std: true, roughness: 0.45 })); add(water, waterMat(), false);
+      const pv = pivot('birdDoor', dx0, 0, hd);
+      pv.add(meshOf(merge(dd), barM));
+      grp.add(pv);
+      const cw = cageWalls(hw, hd, dx0, dx1, 0.02);
+      grp.userData = { w: W, d: Dd, h: 1.72, floorY: 0.05, inside: { x: 0, z: 0, hw: hw - 0.04, hd: hd - 0.04 }, entry: { x: 0, z: hd + 0.35 }, doors: [doorRec('birdDoor', 'swing', 1.5)], colliders: cw.colliders, doorCollider: cw.doorCollider };
+      return grp;
+    });
+  }
+  /* indoor rabbit / hedgehog play pen 1.5 x 1.1 x 0.6 m: wire panels on a dark frame, fleece liner, a wooden hide house,
+     a hay pile, a water bottle, a food dish and a willow chew ball. The front gate panel swings in. */
+  function hutch() {
+    return cachedDoors('hutch', () => {
+      const W = 1.5, Dd = 1.1, H = 0.6, hw = W / 2, hd = Dd / 2, gx0 = -0.25, gx1 = 0.25, r = rng(6262);
+      const fc = L(0x34343a), wcl = L(0xa4a8ae), metal = [], wire = [], wood = [], roofs = [], fab = [], straw = [], cer = [], dark = [];
+      fab.push(roundBox(W - 0.04, 0.012, Dd - 0.04, 0.005, L(0x8ab0c8)).translate(0, 0.006, 0));
+      for (const [x, z] of [[-hw, -hd], [hw, -hd], [-hw, hd], [hw, hd], [gx0, hd], [gx1, hd], [0, -hd], [-hw, 0], [hw, 0]]) metal.push(pipeGeo(x, 0, z, x, H, z, 0.012, fc));
+      for (const y of [0.015, H]) {
+        metal.push(pipeGeo(-hw, y, -hd, hw, y, -hd, 0.01, fc), pipeGeo(-hw, y, -hd, -hw, y, hd, 0.01, fc), pipeGeo(hw, y, -hd, hw, y, hd, 0.01, fc));
+        metal.push(pipeGeo(-hw, y, hd, gx0, y, hd, 0.01, fc), pipeGeo(gx1, y, hd, hw, y, hd, 0.01, fc));
+      }
+      for (const [ax, az, bx, bz] of [[-hw, -hd, hw, -hd], [-hw, -hd, -hw, hd], [hw, -hd, hw, hd], [-hw, hd, gx0, hd], [gx1, hd, hw, hd]]) wire.push(vPanel(ax, az, bx, bz, 0.015, H, wcl));
+      // wooden hide house (back left) with an arched door and a little roof
+      const hx = -0.42, hz = -0.27, hW = 0.44, hD = 0.34, hH = 0.26, ow = 0.15, oh = 0.13, wc = L(0xc89a62);
+      wood.push(boxG(hW, hH, 0.02, hx, hH / 2, hz - hD / 2 + 0.01, wc, 3), boxG(0.02, hH, hD, hx - hW / 2 + 0.01, hH / 2, hz, wc, 3), boxG(0.02, hH, hD, hx + hW / 2 - 0.01, hH / 2, hz, wc, 3));
+      wood.push(boxG((hW - ow) / 2, hH, 0.02, hx - (hW + ow) / 4, hH / 2, hz + hD / 2 - 0.01, wc, 3), boxG((hW - ow) / 2, hH, 0.02, hx + (hW + ow) / 4, hH / 2, hz + hD / 2 - 0.01, wc, 3), boxG(ow, hH - oh, 0.02, hx, oh + (hH - oh) / 2, hz + hD / 2 - 0.01, wc, 3));
+      for (const s of [-1, 1]) wood.push(polyZ([[hx - hW / 2, hH], [hx + hW / 2, hH], [hx, hH + 0.12]], hz + s * (hD / 2 - 0.01), s, wc));
+      dark.push(boxG(hW - 0.05, hH - 0.02, hD - 0.05, hx, hH / 2, hz, L(0x1a1410)));
+      dark.push(paint(prep(new THREE.CircleGeometry(ow / 2, 8, 0, Math.PI)).translate(hx, oh, hz + hD / 2 + 0.001), L(0x1a1410)));
+      const ra = Math.atan2(0.13, hD / 2 + 0.04), rl = Math.hypot(hD / 2 + 0.04, 0.13);
+      for (const s of [-1, 1]) { const g = prep(new THREE.BoxGeometry(hW + 0.08, 0.018, rl)); g.rotateX(s * ra); g.translate(hx, hH + 0.065 + 0.01, hz + s * rl / 2 * Math.cos(ra)); roofs.push(paint(g, L(0x4a7a5a))); }
+      // hay pile with loose strands (back right)
+      const hay = blob({ x: 0.45, y: 0, z: -0.28, r: 0.2, sx: 1.3, sy: 0.55, sz: 1.0, detail: 1, amp: 0.3, fq: 3, off: 2 });
+      eachVertex(hay, (p) => { if (p.y < 0.012) p.y = 0.012; });
+      straw.push(boxUV(paint(hay, (x, y, z) => mixc(L(0x9a9a48), L(0xd8c070), clamp(0.5 + fbm(x * 9, y * 9, z * 9, 2), 0, 1))), 2.5));
+      for (let i = 0; i < 26; i++) {
+        const a = r() * TAU, d = 0.12 + r() * 0.2, y = 0.02 + r() * 0.08;
+        straw.push(paint(prep(new THREE.BoxGeometry(0.004, 0.004, 0.13 + r() * 0.08)).rotateX((r() - 0.5) * 0.6).rotateY(r() * TAU).translate(0.45 + Math.cos(a) * d * 1.3, y, -0.28 + Math.sin(a) * d), mixc(L(0xb0a050), L(0xe0cc80), r())));
+      }
+      // water bottle on the right panel, spout inside
+      const bxw = hw + 0.035, bzw = 0.1;
+      cer.push(lathe([[0, 0], [0.032, 0.005], [0.035, 0.03], [0.035, 0.17], [0.025, 0.2], [0.012, 0.21], [0, 0.21]], 10, L(0xb8d8e8)).rotateX(Math.PI).translate(bxw, 0.47, bzw));
+      cer.push(paint(prep(new THREE.CylinderGeometry(0.022, 0.022, 0.03, 8)).translate(bxw, 0.25, bzw), L(0x3a8a5a)));
+      metal.push(pipeGeo(bxw, 0.24, bzw, hw - 0.06, 0.19, bzw, 0.005, L(0xd0d4d8)));
+      const holder = prep(new THREE.TorusGeometry(0.038, 0.004, 4, 12)); holder.rotateX(Math.PI / 2); holder.translate(bxw, 0.4, bzw); metal.push(paint(holder, fc));
+      // food dish with pellets (front right) and a willow chew ball
+      cer.push(lathe([[0, 0], [0.08, 0], [0.09, 0.05], [0.085, 0.055], [0.07, 0.02], [0, 0.02]], 12, L(0xc8643a)).translate(0.5, 0.012, 0.28));
+      for (let i = 0; i < 14; i++) { const a = r() * TAU, d = r() * 0.05; cer.push(paint(place(new THREE.IcosahedronGeometry(0.011, 0), 0.5 + Math.cos(a) * d, 0.045, 0.28 + Math.sin(a) * d, 0, 0, 0, new V3(1, 0.6, 1.6)), L([0x7a8a3a, 0x8a6a3a][i % 2]))); }
+      const ball = prep(new THREE.IcosahedronGeometry(0.06, 1)); ball.translate(-0.05, 0.072, -0.08);
+      straw.push(boxUV(paint(ball, (x, y, z) => mixc(L(0x9a7040), L(0xd0a868), clamp(0.5 + Math.sin(x * 120 + z * 60) * 0.5, 0, 1))), 6));
+      // the gate panel
+      const gw = gx1 - gx0, gd = [pipeGeo(0.005, 0.02, 0, 0.005, H - 0.01, 0, 0.01, fc), pipeGeo(gw - 0.005, 0.02, 0, gw - 0.005, H - 0.01, 0, 0.01, fc), pipeGeo(0, 0.025, 0, gw, 0.025, 0, 0.009, fc), pipeGeo(0, H - 0.015, 0, gw, H - 0.015, 0, 0.009, fc), boxG(0.03, 0.05, 0.03, gw - 0.01, H * 0.6, 0.015, L(0x9a9a9a))];
+      const gWire = boxUV(vPanel(0.005, 0, gw - 0.005, 0, 0.025, H - 0.015, wcl), 1 / 0.3);
+      const grp = new THREE.Group();
+      grp.name = 'hutch';
+      const add = (list, m, cast = true) => { if (list.length) grp.add(meshOf(merge(list), m, cast, true)); };
+      add(metal, mat('cageBars', { std: true, roughness: 0.45, metalness: 0.15 })); add(fab, mat('fabric', { map: TX.fabric() }), false);
+      add(wood, mat('barnBoards', { map: TX.boards() })); add(roofs, mat('paint', { map: TX.wood() })); add(dark, darkMat());
+      add(straw, mat('straw', { map: TX.straw() })); add(cer, ceramicMat());
+      grp.add(meshOf(boxUV(merge(wire), 1 / 0.3), wireMat()));
+      const pv = pivot('hutchGate', gx0, 0, hd);
+      pv.add(meshOf(merge(gd), mat('cageBars', { std: true, roughness: 0.45, metalness: 0.15 })), meshOf(gWire, wireMat()));
+      grp.add(pv);
+      const cw = cageWalls(hw, hd, gx0, gx1, 0.02);
+      cw.colliders.push({ x: hx, z: hz, r: 0.24 });
+      grp.userData = { w: W, d: Dd, h: H, floorY: 0.01, inside: { x: 0, z: 0, hw: hw - 0.04, hd: hd - 0.04 }, entry: { x: 0, z: hd + 0.35 }, doors: [doorRec('hutchGate', 'swing', 1.5)], colliders: cw.colliders, doorCollider: cw.doorCollider };
+      return grp;
+    });
+  }
+
+  /* ============================================================
+     More fence styles (see fence()) and farm gates. All run along +X from x = 0.
+     ============================================================ */
+  const fenceWoodC = (r) => mixc(L(0x6e5c48), L(0x9a8a74), r());
+  function fenceGroup(name, meshes, ud) {
+    const grp = new THREE.Group();
+    grp.name = name;
+    for (const m of meshes) grp.add(m);
+    grp.userData = ud;
+    return grp;
+  }
+  // white painted 3-board horse paddock fence, about 1.35 m
+  function buildRailFence(len) {
+    const r = rng(strSeed('rail' + len.toFixed(2))), white = L(0xf2f0ea), gs = [];
+    const posts = Math.max(2, Math.round(len / 2.4) + 1), step = len / (posts - 1);
+    for (let i = 0; i < posts; i++) {
+      const x = i * step, c = mulc(white, 0.94 + r() * 0.06);
+      gs.push(boxG(0.12, 1.45, 0.12, x, 0.625, 0, c, 1));
+      gs.push(paint(place(new THREE.ConeGeometry(0.1, 0.07, 4), x, 1.385, 0, 0, Math.PI / 4, 0), c));
+    }
+    for (const y of [0.38, 0.78, 1.18]) gs.push(boxG(len, 0.15, 0.035, len / 2, y, 0.078, mulc(white, 0.97 + r() * 0.03), 1));
+    return fenceGroup('fence-rail', [meshOf(merge(gs), mat('paint', { map: TX.wood() }))], { len, h: 1.42, thick: 0.2 });
+  }
+  // wooden posts with chicken wire, a top rail and a kick board, about 1.25 m
+  function buildWireFence(len) {
+    const r = rng(strSeed('wire' + len.toFixed(2))), gs = [];
+    const posts = Math.max(2, Math.round(len / 2.0) + 1), step = len / (posts - 1);
+    for (let i = 0; i < posts; i++) {
+      const x = i * step, c = fenceWoodC(r), g = prep(new THREE.CylinderGeometry(0.06, 0.07, 1.4, 6, 1));
+      place(g, x, 0.6, 0, 0, r() * 3, 0);
+      gs.push(paint(g, (px, py, pz) => mulc(c, 0.75 + 0.25 * smooth(0, 0.4, py) + fbm(px * 4, py * 4, pz * 4, 1) * 0.15)));
+    }
+    gs.push(boxG(len, 0.08, 0.05, len / 2, 1.22, 0.09, fenceWoodC(r), 1), boxG(len, 0.16, 0.035, len / 2, 0.08, 0.085, fenceWoodC(r), 1));
+    const wire = paint(prep(new THREE.PlaneGeometry(len, 1.06)).translate(len / 2, 0.68, 0.072), L(0xb8bcc0));
+    return fenceGroup('fence-wire', [meshOf(boxUV(merge(gs), 1), mat('fenceWood', { map: TX.wood() })), meshOf(boxUV(wire, 1 / 0.18), hexMat())], { len, h: 1.3, thick: 0.18 });
+  }
+  // one irregular stone (dodecahedron pushed toward a block, lumpy), centered at the origin
+  function stoneGeo(sx, sy, sz, off) {
+    const g = prep(new THREE.DodecahedronGeometry(1, 0));
+    eachVertex(g, (p) => {
+      const k = 1 + 0.2 * noise3(p.x * 1.7 + off, p.y * 1.7, p.z * 1.7 - off), f = Math.max(Math.abs(p.x), Math.abs(p.y), Math.abs(p.z));
+      p.multiplyScalar(k * lerp(1, 0.9 / f, 0.5));
+      p.set(p.x * sx, p.y * sy, p.z * sz);
+    });
+    g.computeVertexNormals();
+    return g;
+  }
+  // New England dry stone wall: three courses of irregular stones over a dark core, about 0.8 m tall and 0.6 m thick
+  function buildStoneWall(len) {
+    const r = rng(strSeed('stone' + len.toFixed(2))), gs = [];
+    const tints = [0x7c7870, 0x6a665e, 0x8c867c, 0x786e62, 0x827e76, 0x6e6a62, 0x8a7e6e].map(L), lichen = L(0xa8a466), moss = L(0x5a6a32);
+    const courses = [{ y: 0.15, h: 0.34, t: 0.64, l: [0.4, 0.66] }, { y: 0.44, h: 0.27, t: 0.58, l: [0.32, 0.56] }, { y: 0.67, h: 0.21, t: 0.52, l: [0.42, 0.74] }];
+    courses.forEach((c, ci) => {
+      const lens = [];
+      let rem = len;
+      while (rem > 1e-3) {
+        let l = lens.length === 0 && ci === 1 ? c.l[0] * (0.5 + r() * 0.4) : c.l[0] + r() * (c.l[1] - c.l[0]);
+        if (rem - l < c.l[0] * 0.6) l = rem;
+        lens.push(l); rem -= l;
+      }
+      let x = 0;
+      for (const l of lens) {
+        const off = r() * 60, tint = tints[Math.floor(r() * tints.length)];
+        const g = stoneGeo(l / 2 * 1.06, c.h / 2 * (0.92 + r() * 0.22), c.t / 2 * (0.9 + r() * 0.14), off);
+        g.rotateZ((r() - 0.5) * (ci === 2 ? 0.16 : 0.08)); g.rotateY((r() - 0.5) * 0.12);
+        g.translate(x + l / 2, c.y + (r() - 0.5) * 0.04, (r() - 0.5) * 0.05);
+        paint(g, (px, py, pz, nx, ny) => {
+          const n = fbm(px * 5 + off, py * 5, pz * 5, 2);
+          let col = mulc(tint, 0.82 + 0.3 * n);
+          col = mixc(col, lichen, smooth(0.15, 0.4, fbm(px * 7, py * 7 + off, pz * 7, 2)) * 0.55);
+          col = mixc(col, moss, smooth(0.5, 0.95, ny) * smooth(-0.1, 0.3, n) * 0.5);
+          return mulc(col, 0.72 + 0.28 * smooth(0, 0.35, py));
+        });
+        gs.push(g);
+        x += l;
+      }
+    });
+    gs.push(boxG(Math.max(0.1, len - 0.08), 0.62, 0.36, len / 2, 0.3, 0, L(0x3a3834)));
+    return fenceGroup('fence-stone', [meshOf(boxUV(merge(gs), 1.4), mat('rock', { map: TX.rock() }))], { len, h: 0.82, thick: 0.62 });
+  }
+  const FENCE_STYLES = { rail: buildRailFence, wire: buildWireFence, stone: buildStoneWall };
+
+  // pentagon picket (pointed board) between z0 and z1, from y = 0.04 to h + tip
+  function picketPrism(S, x, w, h, tip, z0, z1, c) {
+    const pts = [[x - w, 0.04], [x + w, 0.04], [x + w, h], [x, h + tip], [x - w, h]];
+    for (let k = 0; k < 5; k++) {
+      const p = pts[k], q = pts[(k + 1) % 5];
+      S.quad(new V3(p[0], p[1], z1), new V3(p[0], p[1], z0), new V3(q[0], q[1], z0), new V3(q[0], q[1], z1), c);
+    }
+    const P = (i, z) => new V3(pts[i][0], pts[i][1], z);
+    S.tri(P(0, z1), P(1, z1), P(2, z1), c); S.tri(P(0, z1), P(2, z1), P(4, z1), c); S.tri(P(4, z1), P(2, z1), P(3, z1), c);
+    S.tri(P(0, z0), P(2, z0), P(1, z0), c); S.tri(P(0, z0), P(4, z0), P(2, z0), c); S.tri(P(4, z0), P(3, z0), P(2, z0), c);
+  }
+  /* swinging farm gate, hinge post at x = 0, latch post at x = len. style 'split', 'rail', 'wire' or 'picket'.
+     The leaf (named 'gate') swings toward -Z with a positive angle (away from someone coming from +Z).
+     userData = { len, h, thick, doors } */
+  function gate(len = 1.6, style = 'split') {
+    len = Math.max(0.8, Math.round(len * 100) / 100);
+    const st = ['split', 'rail', 'wire', 'picket'].includes(style) ? style : 'split';
+    return cachedDoors('gate:' + st + ':' + len.toFixed(2), () => buildGate(len, st));
+  }
+  function buildGate(len, st) {
+    const r = rng(strSeed('gate' + st + len.toFixed(2))), posts = [], leaf = [], dark = [], wire = [];
+    const white = L(0xf2f0ea), painted = st === 'rail' || st === 'picket', dk = L(0x2a2826);
+    const H = st === 'picket' ? 1.0 : st === 'rail' ? 1.3 : 1.2, PW = painted ? 0.06 : 0.075;
+    for (const x of [0, len]) {
+      if (painted) {
+        posts.push(boxG(PW * 2, H + 0.25, PW * 2, x, (H + 0.25) / 2 - 0.1, 0, white, 1));
+        posts.push(paint(place(new THREE.ConeGeometry(PW * 1.25, 0.08, 4), x, H + 0.19, 0, 0, Math.PI / 4, 0), white));
+      } else {
+        const c = fenceWoodC(r), g = prep(new THREE.CylinderGeometry(0.075, 0.09, H + 0.3, 7, 1));
+        place(g, x, (H + 0.3) / 2 - 0.1, 0, 0, r() * 3, 0);
+        posts.push(paint(g, (px, py, pz) => mulc(c, 0.75 + 0.25 * smooth(0, 0.4, py) + fbm(px * 4, py * 4, pz * 4, 1) * 0.15)));
+      }
+    }
+    // the leaf in pivot space: hinge at local x = 0, latch end at lw
+    const lw = len - 2 * PW - 0.05;
+    if (st === 'split') {
+      const c = fenceWoodC(r);
+      const pole = (ax, ay, bx, by, rad) => tube([new V3(ax, ay, 0), new V3(bx, by, 0)], rad, { radial: 5, cap: 'both', vLen: 1.5, color: (t, a, p) => mulc(c, 0.8 + 0.2 * Math.sin(a) + fbm(p.x * 3, p.y * 3, 0, 1) * 0.15) });
+      for (const y of [0.3, 0.7, 1.1]) leaf.push(pole(0.0, y, lw, y, 0.04));
+      for (const x of [0.05, lw - 0.05]) leaf.push(pole(x, 0.18, x, H, 0.045));
+      leaf.push(pole(0.1, 0.3, lw - 0.1, 1.1, 0.035));
+    } else if (st === 'rail') {
+      for (const y of [0.38, 0.78, 1.18]) leaf.push(boxG(lw, 0.15, 0.03, lw / 2, y, 0.02, white, 1));
+      for (const x of [0.05, lw - 0.05]) leaf.push(boxG(0.1, H - 0.25, 0.035, x, 0.25 + (H - 0.25) / 2, -0.01, white, 1));
+      leaf.push(beam(0.1, 0.38, lw - 0.1, 1.18, -0.01, 0.12, 0.03, white));
+    } else if (st === 'wire') {
+      const c = fenceWoodC(r);
+      for (const x of [0.04, lw - 0.04]) leaf.push(boxG(0.08, H - 0.12, 0.06, x, 0.12 + (H - 0.12) / 2, 0, c, 1));
+      for (const y of [0.16, H - 0.04]) leaf.push(boxG(lw, 0.08, 0.06, lw / 2, y, 0, c, 1));
+      leaf.push(beam(0.08, 0.2, lw - 0.08, H - 0.08, 0.035, 0.07, 0.03, c));
+      wire.push(paint(prep(new THREE.PlaneGeometry(lw - 0.16, H - 0.28)).translate(lw / 2, 0.16 + (H - 0.12) / 2 - 0.06, -0.035), L(0xb8bcc0)));
+    } else {
+      leaf.push(boxG(lw, 0.07, 0.04, lw / 2, 0.25, -0.04, white, 1), boxG(lw, 0.07, 0.04, lw / 2, 0.7, -0.04, white, 1));
+      leaf.push(beam(0.06, 0.28, lw - 0.06, 0.67, -0.04, 0.06, 0.035, white));
+      const S = soup();
+      for (let x = 0.045; x < lw - 0.02; x += 0.13) picketPrism(S, x, 0.042, 0.88, 0.08, -0.02, 0.0, mulc(white, 0.95 + 0.05 * Math.sin(x * 37)));
+      leaf.push(boxUV(S.geo(false), 1));
+    }
+    // hinges on the hinge side and a latch at the far end
+    for (const y of [0.3, H - 0.2]) dark.push(boxG(0.24, 0.035, 0.012, 0.1, y, 0.045, dk), boxG(0.04, 0.08, 0.06, -0.01, y, 0, dk));
+    dark.push(boxG(0.14, 0.04, 0.04, lw + 0.02, H * 0.72, 0.045, dk), boxG(0.03, 0.12, 0.05, lw - 0.03, H * 0.72, 0.04, dk));
+    const woodM = painted ? mat('paint', { map: TX.wood() }) : mat('fenceWood', { map: TX.wood() });
+    const pv = pivot('gate', PW + 0.01, 0, 0);
+    pv.add(meshOf(boxUV(merge(leaf), 1), woodM), meshOf(merge(dark), darkMat()));
+    if (wire.length) pv.add(meshOf(boxUV(merge(wire), 1 / 0.18), hexMat()));
+    const grp = fenceGroup('gate-' + st, [meshOf(merge(posts), woodM), pv], { len, h: H, thick: 0.18, doors: [doorRec('gate', 'swing', 1.5)] });
+    return grp;
+  }
+
+  /* ============================================================
+     Farm pieces: chicken coop, run-in shelter, water trough, hay rack, goat platform, mud patch
+     ============================================================ */
+  /* raised red henhouse on legs (about 2.4 x 1.5 m with ramp and nest boxes): shed roof, a screened window,
+     nest boxes with a lid on the -X side, a pop door on the +X side (swings in) with a cleated ramp.
+     userData = { w, d, h, colliders, doors, door: point at the foot of the ramp } */
+  function coop() {
+    return cachedDoors('coop', () => {
+      const LH = 0.45, bx0 = -0.85, bx1 = 0.65, bz0 = -0.6, bz1 = 0.6, yF = 1.45, yB = 1.22;
+      const red = L(0xa8382c), white = L(0xf2efe6), walls = [], trim = [], roof = [], dark = [], wire = [];
+      const yTop = (z) => lerp(yB, yF, (z - bz0) / (bz1 - bz0));
+      for (const x of [bx0 + 0.05, bx1 - 0.05]) for (const z of [bz0 + 0.05, bz1 - 0.05]) trim.push(boxG(0.08, LH, 0.08, x, LH / 2, z, L(0x8a7a66)));
+      walls.push(boxG(bx1 - bx0, 0.06, bz1 - bz0, (bx0 + bx1) / 2, LH - 0.03, 0, mulc(red, 0.75), 0.5));
+      walls.push(wallQuadZ(bx0, bx1, LH, yF, bz1, 1, red), wallQuadZ(bx0, bx1, LH, yB, bz0, -1, red));
+      walls.push(polyX([[bz1, LH], [bz0, LH], [bz0, yB], [bz1, yF]], bx0, -1, red));
+      // +X wall around the pop door
+      const pz0 = -0.16, pz1 = 0.16, ph = LH + 0.38;
+      walls.push(polyX([[bz1, LH], [pz1, LH], [pz1, yTop(pz1)], [bz1, yF]], bx1, 1, red));
+      walls.push(polyX([[pz0, LH], [bz0, LH], [bz0, yB], [pz0, yTop(pz0)]], bx1, 1, red));
+      walls.push(polyX([[pz1, ph], [pz0, ph], [pz0, yTop(pz0)], [pz1, yTop(pz1)]], bx1, 1, red));
+      for (const x of [bx0, bx1]) for (const z of [bz0, bz1]) trim.push(boxG(0.07, yTop(z) - LH, 0.07, x, (LH + yTop(z)) / 2, z, white));
+      trim.push(boxG(0.05, 0.05, pz1 - pz0 + 0.1, bx1 + 0.02, ph + 0.025, 0, white));
+      for (const z of [pz0 - 0.025, pz1 + 0.025]) trim.push(boxG(0.05, ph - LH, 0.05, bx1 + 0.02, (LH + ph) / 2, z, white));
+      // screened window on the front
+      dark.push(boxG(0.36, 0.26, 0.01, -0.3, 1.0, bz1 + 0.002, L(0x1e1a16)));
+      wire.push(paint(prep(new THREE.PlaneGeometry(0.36, 0.26)).translate(-0.3, 1.0, bz1 + 0.012), L(0x9a9ea2)));
+      trim.push(boxG(0.44, 0.04, 0.04, -0.3, 1.15, bz1 + 0.02, white), boxG(0.44, 0.04, 0.04, -0.3, 0.85, bz1 + 0.02, white), boxG(0.04, 0.3, 0.04, -0.5, 1.0, bz1 + 0.02, white), boxG(0.04, 0.3, 0.04, -0.1, 1.0, bz1 + 0.02, white));
+      // shed roof sloping to the back
+      const ra = Math.atan2(yF - yB, bz1 - bz0), rl = Math.hypot(yF - yB, bz1 - bz0) + 0.32;
+      const rg = prep(new THREE.BoxGeometry(bx1 - bx0 + 0.26, 0.05, rl)); rg.rotateX(-ra); rg.translate((bx0 + bx1) / 2, (yF + yB) / 2 + 0.05, 0);
+      roof.push(paint(rg, L(0x4a4a4e)));
+      // nest boxes on the -X side with a sloped lid and hinges
+      walls.push(boxG(0.36, 0.43, 0.84, bx0 - 0.18, LH + 0.335, 0, red, 0.5));
+      const lid = prep(new THREE.BoxGeometry(0.44, 0.04, 0.92)); lid.rotateZ(0.28); lid.translate(bx0 - 0.17, LH + 0.6, 0);
+      roof.push(paint(lid, L(0x4a4a4e)));
+      for (const z of [-0.25, 0.25]) dark.push(boxG(0.1, 0.02, 0.06, bx0 - 0.02, LH + 0.66, z, L(0x2a2826)));
+      for (const z of [-0.36, 0.36]) trim.push(boxUV(beam(bx0, LH + 0.02, bx0 - 0.3, LH + 0.12, z, 0.05, 0.05, L(0x8a7a66)), 1));
+      // ramp with cleats down from the pop door
+      const rL = Math.hypot(0.62, LH), rA = Math.atan2(LH, 0.62);
+      const rp = prep(new THREE.BoxGeometry(rL, 0.03, 0.26)); rp.rotateZ(-rA); rp.translate(bx1 + 0.31, LH / 2 + 0.005, 0);
+      trim.push(boxUV(paint(rp, L(0x9a8064)), 1));
+      for (let k = 1; k <= 5; k++) { const t = k / 6, g = boxG(0.025, 0.02, 0.24, 0, 0, 0, L(0x8a7058)); g.rotateZ(-rA); trim.push(g.translate(bx1 + 0.62 * t, LH * (1 - t) + 0.03, 0)); }
+      // dark inside behind the pop door
+      const hall = hallGeo(-(pz1 - pz0) / 2 - 0.06, (pz1 - pz0) / 2 + 0.02, LH, ph, 0, 0.45, { glow: 0, rug: false, inner: false, wall: 0x2a1e16, floor: 0x5a4a2a });
+      hall.rotateY(Math.PI / 2); hall.translate(bx1 - 0.003, 0, 0);
+      const grp = new THREE.Group();
+      grp.name = 'coop';
+      grp.add(meshOf(boxUV(merge(walls), 0.5), mat('barnBoards', { map: TX.boards() })));
+      grp.add(meshOf(merge(trim), mat('paint', { map: TX.wood() })));
+      grp.add(meshOf(boxUV(merge(roof), 1), mat('shingle', { map: TX.shingle() })));
+      grp.add(meshOf(merge(dark), darkMat()));
+      grp.add(meshOf(boxUV(merge(wire), 1 / 0.2), wireMat()));
+      grp.add(meshOf(hall, mat('windowGlow', { emissive: 0xffbb66, glow: 'night' }), false, false));
+      // pop door: hinged at its back edge (pz0), panel along +z, swings in (toward -x)
+      const pd = [boxG(0.3, 0.37, 0.025, 0.155, 0.185, 0, mulc(red, 0.9), 0.5), beam(0.03, 0.04, 0.28, 0.33, -0.02, 0.04, 0.015, white), boxG(0.3, 0.035, 0.015, 0.155, 0.03, -0.02, white), boxG(0.3, 0.035, 0.015, 0.155, 0.345, -0.02, white), boxG(0.03, 0.03, 0.03, 0.27, 0.19, -0.03, L(0x2a2826))];
+      const pv = pivot('coopDoor', bx1 + 0.012, LH + 0.005, pz0, -Math.PI / 2);
+      pv.add(meshOf(boxUV(merge(pd), 0.5), mat('barnBoards', { map: TX.boards() })));
+      grp.add(pv);
+      grp.userData = {
+        w: 2.4, d: 1.5, h: yF + 0.1,
+        colliders: [{ box: true, x: (bx0 - 0.38 + bx1 + 0.03) / 2, z: 0, hw: (bx1 + 0.03 - bx0 + 0.38) / 2, hd: (bz1 - bz0) / 2 + 0.05, rot: 0 }],
+        doors: [doorRec('coopDoor', 'swing', -1.4, -Math.PI / 2)],
+        door: { x: bx1 + 0.9, z: 0 },
+      };
+      return grp;
+    });
+  }
+  /* three-sided run-in shelter for horses, goats or pigs, open on +Z: 4 x 3 m, 2.6 m at the front,
+     plank walls, a corrugated metal roof sloping to the back and straw bedding. userData = { w, d, h, colliders, inside } */
+  function shelter() {
+    return cachedGroup('shelter', () => {
+      const W = 4, D = 3, hw = W / 2, hd = D / 2, yF = 2.6, yB = 2.1, t = 0.08;
+      const wc = L(0x8a5a3a), kick = L(0x5e4430), post = L(0x6a5442), walls = [], wood = [], top = soup(), under = soup();
+      const yAt = (z) => lerp(yB, yF, (z + hd) / D);
+      walls.push(boxG(W, yB, t, 0, yB / 2, -hd + t / 2, wc, 0.5));
+      for (const s of [-1, 1]) {
+        walls.push(boxG(t, yB, D - t, s * (hw - t / 2), yB / 2, t / 2, wc, 0.5));
+        for (const o of [1, -1]) walls.push(polyX([[hd, yB], [-hd + t, yB], [-hd + t, yAt(-hd + t)], [hd, yF]], s * (hw - t / 2) + o * t / 2, o, wc));
+        // darker kick boards inside
+        walls.push(boxG(0.03, 1.0, D - t - 0.2, s * (hw - t - 0.015), 0.5, t / 2 - 0.1, kick, 0.5));
+        wood.push(boxG(0.14, yF, 0.14, s * (hw - 0.07), yF / 2, hd - 0.07, post, 1.2));
+      }
+      walls.push(boxG(W - 2 * t, 1.0, 0.03, 0, 0.5, -hd + t + 0.015, kick, 0.5));
+      wood.push(boxG(W, 0.18, 0.12, 0, yF - 0.12, hd - 0.07, post, 1.2), boxG(W, 0.14, 0.1, 0, yB - 0.08, -hd + t + 0.05, post, 1.2));
+      for (const s of [-1, 1]) wood.push(boxUV(beam(s * (hw - 0.07), yF - 0.75, s * (hw - 0.6), yF - 0.2, hd - 0.07, 0.1, 0.1, post), 1.2));
+      // corrugated roof: zigzag ridges running down the slope
+      const rz0 = -hd - 0.3, rz1 = hd + 0.4, ry0 = yAt(rz0) + 0.08, ry1 = yAt(rz1) + 0.08, rx0 = -hw - 0.25, rx1 = hw + 0.25;
+      const n = Math.round((rx1 - rx0) / 0.038), dkU = L(0x4a4440);
+      for (let i = 0; i < n; i++) {
+        const xa = lerp(rx0, rx1, i / n), xb = lerp(rx0, rx1, (i + 1) / n), oa = (i % 2) * 0.025, ob = ((i + 1) % 2) * 0.025;
+        const c = (x, z) => mixc(L(0xb0b4b8), L(0x8a5a3a), smooth(0.25, 0.75, fbm(x * 1.5, 0, z * 3, 2) + 0.2) * 0.45);
+        const a = new V3(xa, ry1 + oa, rz1), b = new V3(xb, ry1 + ob, rz1), cc = new V3(xb, ry0 + ob, rz0), d = new V3(xa, ry0 + oa, rz0);
+        quadTo(top, a, b, cc, d, new V3(0, 1, 0), c(xa, rz1), c(xb, rz1), c(xb, rz0), c(xa, rz0));
+        quadTo(under, a, b, cc, d, new V3(0, -1, 0), dkU);
+      }
+      const grp = new THREE.Group();
+      grp.name = 'shelter';
+      grp.add(meshOf(boxUV(merge(walls), 0.5), mat('barnBoards', { map: TX.boards() })));
+      grp.add(meshOf(merge(wood), mat('fenceWood', { map: TX.wood() })));
+      grp.add(meshOf(boxUV(top.geo(true), 1.5), galvMat()));
+      grp.add(meshOf(under.geo(false), darkMat()));
+      grp.add(meshOf(strawBed(-hw + t + 0.05, hw - t - 0.05, -hd + t + 0.05, hd - 0.25, 33, 0.04), mat('straw', { map: TX.straw() }), true, true));
+      grp.userData = {
+        w: W, d: D, h: yF + 0.15,
+        colliders: [{ box: true, x: 0, z: -hd + t / 2, hw, hd: t / 2 + 0.05, rot: 0 }, { box: true, x: -hw + t / 2, z: 0, hw: t / 2 + 0.05, hd, rot: 0 }, { box: true, x: hw - t / 2, z: 0, hw: t / 2 + 0.05, hd, rot: 0 }],
+        inside: { x: 0, z: 0, hw: hw - 0.2, hd: hd - 0.2 },
+      };
+      return grp;
+    });
+  }
+  /* galvanized oval stock tank, len long (x), 0.62 wide, 0.55 tall, with ribs, a rolled rim and water at y = 0.45.
+     Returns fresh geometries { galv, water } (used by trough() and the barn interior). */
+  function troughParts(len) {
+    const R = 0.31, a = Math.max(0, len / 2 - R), Ht = 0.55, wy = 0.45, seg = 9, inset = 0.014;
+    const per = [];
+    for (let i = 0; i <= seg; i++) { const t = -Math.PI / 2 + (i / seg) * Math.PI; per.push({ x: a + Math.cos(t) * R, z: Math.sin(t) * R, nx: Math.cos(t), nz: Math.sin(t) }); }
+    for (let i = 0; i <= seg; i++) { const t = Math.PI / 2 + (i / seg) * Math.PI; per.push({ x: -a + Math.cos(t) * R, z: Math.sin(t) * R, nx: Math.cos(t), nz: Math.sin(t) }); }
+    const rows = [[0, 0], [0.08, 0], [0.1, 0.012], [0.12, 0], [0.26, 0], [0.28, 0.012], [0.3, 0], [0.44, 0], [0.46, 0.01], [0.48, 0], [Ht, 0]];
+    const outer = soup(), inner = soup(), N = per.length;
+    const col = (x, y, z) => mulc(L(0xc0c4c8), 0.85 + 0.15 * fbm(x * 4, y * 4, z * 4, 2));
+    for (let i = 0; i < N; i++) {
+      const p = per[i], q = per[(i + 1) % N], nrm = new V3(p.nx + q.nx, 0, p.nz + q.nz).normalize();
+      for (let j = 0; j < rows.length - 1; j++) {
+        const [y0, b0] = rows[j], [y1, b1] = rows[j + 1];
+        const A = new V3(p.x + p.nx * b0, y0, p.z + p.nz * b0), Bv = new V3(q.x + q.nx * b0, y0, q.z + q.nz * b0), Cv = new V3(q.x + q.nx * b1, y1, q.z + q.nz * b1), Dv = new V3(p.x + p.nx * b1, y1, p.z + p.nz * b1);
+        quadTo(outer, A, Bv, Cv, Dv, nrm, col(A.x, A.y, A.z), col(Bv.x, Bv.y, Bv.z), col(Cv.x, Cv.y, Cv.z), col(Dv.x, Dv.y, Dv.z));
+      }
+      const ic = mulc(L(0x8a8e92), 0.9), A = new V3(p.x - p.nx * inset, 0.03, p.z - p.nz * inset), Bv = new V3(q.x - q.nx * inset, 0.03, q.z - q.nz * inset);
+      quadTo(inner, A, Bv, new V3(Bv.x, Ht, Bv.z), new V3(A.x, Ht, A.z), nrm.clone().negate(), ic, ic, mulc(ic, 1.15), mulc(ic, 1.15));
+    }
+    const rimPts = per.map((p) => new V3(p.x - p.nx * inset * 0.5, Ht, p.z - p.nz * inset * 0.5));
+    rimPts.push(rimPts[0].clone());
+    const rim = tube(rimPts, 0.016, { radial: 5, color: () => L(0xccd0d4) });
+    const plug = paint(prep(new THREE.CylinderGeometry(0.03, 0.03, 0.03, 8)).rotateZ(Math.PI / 2).translate(len / 2 + 0.01, 0.06, 0), L(0x6a6a66));
+    const galv = boxUV(merge([outer.geo(true), inner.geo(true), rim, plug]), 2);
+    const W = soup(), up = new V3(0, 1, 0), wc = L(0x40707e), ctr = new V3(0, wy, 0);
+    for (let i = 0; i < N; i++) {
+      const p = per[i], q = per[(i + 1) % N];
+      const A = new V3(p.x - p.nx * inset, wy, p.z - p.nz * inset), Bv = new V3(q.x - q.nx * inset, wy, q.z - q.nz * inset);
+      const f = new V3().subVectors(A, ctr).cross(new V3().subVectors(Bv, ctr));
+      if (f.dot(up) >= 0) W.tri(ctr, A, Bv, mulc(wc, 0.8), wc, wc); else W.tri(ctr, Bv, A, mulc(wc, 0.8), wc, wc);
+    }
+    const waterG = W.geo(false);
+    const wn = waterG.attributes.normal.array;
+    for (let i = 0; i < wn.length; i += 3) { wn[i] = 0; wn[i + 1] = 1; wn[i + 2] = 0; }
+    return { galv, water: waterG };
+  }
+  function trough(len = 1.8) {
+    len = Math.max(0.8, Math.round(len * 10) / 10);
+    return cachedGroup('trough' + len.toFixed(1), () => {
+      const p = troughParts(len), grp = new THREE.Group();
+      grp.name = 'trough';
+      grp.add(meshOf(p.galv, galvMat()), meshOf(p.water, waterMat(), false, true));
+      grp.userData = { len, w: 0.64, h: 0.56, water: { x: 0, z: 0, y: 0.45 }, colliders: [{ box: true, x: 0, z: 0, hw: len / 2 + 0.02, hd: 0.33, rot: 0 }] };
+      return grp;
+    });
+  }
+  /* standing wooden V hay feeder (1.7 x 0.9 m) full of hay, with some spilled under it */
+  function hayRack() {
+    return cachedGroup('hayRack', () => {
+      const L2 = 0.8, yb = 0.45, yt = 1.12, zt = 0.42, r = rng(4747), wood = [], hay = [];
+      const wc = () => fenceWoodC(r);
+      for (const x of [-L2, L2]) for (const z of [-zt, zt]) wood.push(boxG(0.09, yt + 0.08, 0.09, x, (yt + 0.08) / 2, z, wc(), 1.5));
+      for (const z of [-zt, zt]) wood.push(boxG(2 * L2, 0.08, 0.06, 0, yt, z, wc(), 1.5), boxG(2 * L2, 0.08, 0.06, 0, 0.22, z, wc(), 1.5));
+      for (const x of [-L2, L2]) {
+        wood.push(boxG(0.06, 0.08, 2 * zt, x, 0.22, 0, wc(), 1.5));
+        const c = wc();
+        for (const o of [1, -1]) wood.push(polyX([[-zt, yt], [zt, yt], [0, yb]], x + o * 0.02, o, c));
+      }
+      wood.push(boxG(2 * L2, 0.06, 0.06, 0, yb, 0, wc(), 1.5));
+      for (let x = -L2 + 0.13; x < L2 - 0.06; x += 0.13) for (const s of [-1, 1]) wood.push(beam(0, yb, s * zt, yt, 0, 0.035, 0.03, wc(), 'z').translate(x, 0, 0));
+      const hc = (x, y, z) => mixc(L(0xa08a40), L(0xdcc47a), clamp(0.5 + fbm(x * 6, y * 6, z * 6, 2) * 1.2, 0, 1));
+      const mound = blob({ x: 0, y: yt - 0.12, z: 0, r: 0.5, sx: 1.55, sy: 0.42, sz: 0.72, detail: 2, amp: 0.25, fq: 2.5, off: 3 });
+      hay.push(boxUV(paint(mound, hc), 1.6));
+      for (const [x, z, rr] of [[-0.3, 0.6, 0.4], [0.45, -0.6, 0.32]]) hay.push(boxUV(paint(strawPatch(x, z, rr, x * 7 + z), hc), 1.6));
+      for (let i = 0; i < 30; i++) {
+        const x = (r() - 0.5) * 1.5, s = r() < 0.5 ? -1 : 1, y = yb + 0.15 + r() * (yt - yb), z = s * zt * (y - yb) / (yt - yb);
+        hay.push(paint(prep(new THREE.BoxGeometry(0.006, 0.006, 0.12 + r() * 0.1)).rotateX(s * (0.3 + r() * 0.9)).rotateY((r() - 0.5) * 0.8).translate(x, y, z), mixc(L(0xb09a50), L(0xe6d08a), r())));
+      }
+      const grp = new THREE.Group();
+      grp.name = 'hayRack';
+      grp.add(meshOf(boxUV(merge(wood), 1.5), mat('fenceWood', { map: TX.wood() })));
+      grp.add(meshOf(merge(hay), mat('straw', { map: TX.straw() })));
+      grp.userData = { w: 1.7, d: 0.95, h: 1.3, colliders: [{ box: true, x: 0, z: 0, hw: 0.86, hd: 0.47, rot: 0 }] };
+      return grp;
+    });
+  }
+  /* goat climbing toy: a big wooden cable spool on end (top at 0.7 m) with a cleated ramp, and a crate step.
+     userData = { w, d, h, top: { x, z, y, r }, step: { x, z, y, hw, hd }, ramp: { x0, x1, z, w }, colliders } */
+  function goatPlatform() {
+    return cachedGroup('goatPlatform', () => {
+      const R = 0.62, Hh = 0.7, wood = [], dark = [], ply = L(0xc8a878);
+      const disc = (y, h) => boxUV(paint(prep(new THREE.CylinderGeometry(R, R, h, 20, 1)).translate(0, y + h / 2, 0), (x, yy, z) => mulc(ply, 0.85 + 0.15 * fbm(x * 3, yy * 3, z * 3, 2) + 0.05 * Math.sin(Math.hypot(x, z) * 40))), 1.5);
+      wood.push(disc(0, 0.07), disc(Hh - 0.07, 0.07));
+      wood.push(boxUV(paint(prep(new THREE.CylinderGeometry(0.3, 0.3, Hh - 0.14, 14, 1, true)).translate(0, Hh / 2, 0), mulc(ply, 0.72)), 1.5));
+      for (let i = 0; i < 6; i++) { const a = (i / 6) * TAU; dark.push(paint(prep(new THREE.CylinderGeometry(0.022, 0.022, 0.015, 6)).translate(Math.cos(a) * 0.45, Hh + 0.007, Math.sin(a) * 0.45), L(0x3a3a3a))); }
+      // ramp plank from the top edge down to the ground, with cleats
+      const xa = R - 0.15, xb = R + 0.72, rl = Math.hypot(xb - xa, Hh + 0.02), ra = Math.atan2(Hh + 0.02, xb - xa);
+      const pl = prep(new THREE.BoxGeometry(rl, 0.04, 0.34)); pl.rotateZ(-ra); pl.translate((xa + xb) / 2, (Hh + 0.02) / 2 + 0.02, 0);
+      wood.push(boxUV(paint(pl, L(0x9a7a56)), 1.5));
+      for (let k = 1; k <= 5; k++) { const t = k / 6, g = boxG(0.03, 0.025, 0.32, 0, 0, 0, L(0x7a6046)); g.rotateZ(-ra); wood.push(g.translate(lerp(xa, xb, t), (Hh + 0.02) * (1 - t) + 0.05, 0)); }
+      // crate step
+      const sx = -0.75, sz = 0.45, sh = 0.35;
+      wood.push(boxG(0.45, sh, 0.45, sx, sh / 2, sz, L(0xa88a62), 1.5));
+      for (let k = 0; k < 3; k++) wood.push(boxG(0.46, 0.012, 0.46, sx, 0.06 + k * 0.12, sz, L(0x7a6046)));
+      const grp = new THREE.Group();
+      grp.name = 'goatPlatform';
+      grp.add(meshOf(merge(wood), mat('fenceWood', { map: TX.wood() })), meshOf(merge(dark), darkMat()));
+      grp.userData = {
+        w: 2.1, d: 1.3, h: Hh, top: { x: 0, z: 0, y: Hh, r: R - 0.05 }, step: { x: sx, z: sz, y: sh, hw: 0.22, hd: 0.22 },
+        ramp: { x0: xb, x1: xa, z: 0, w: 0.34 },
+        colliders: [{ x: 0, z: 0, r: R }, { box: true, x: sx, z: sz, hw: 0.23, hd: 0.23, rot: 0 }],
+      };
+      return grp;
+    });
+  }
+  /* flat muddy patch about r in radius for a pig pen: irregular edge, slight lumps, wet glossy puddles, 1 to 3 cm high */
+  function mudPatch(r = 1.5) {
+    r = Math.max(0.3, Math.round(r * 10) / 10);
+    return cachedGroup('mud' + r.toFixed(1), () => {
+      const R = rng(strSeed('mud' + r.toFixed(1))), off = R() * 50, rings = 6, seg = 30, S = soup(), Wp = soup(), up = new V3(0, 1, 0);
+      const edge = (a) => r * (0.84 + 0.26 * fbm(Math.cos(a) * 1.3 + off, Math.sin(a) * 1.3, off * 0.3, 2) + 0.05 * Math.sin(a * 3 + off));
+      const P = (k, i) => {
+        const a = (i / seg) * TAU, t = k / rings, rr = edge(a) * t, x = Math.cos(a) * rr, z = Math.sin(a) * rr;
+        const lump = fbm(x * 2.5 + off, 0.5, z * 2.5, 2);
+        return new V3(x, 0.004 + (1 - t * t) * (0.012 + 0.012 * lump), z);
+      };
+      const col = (p) => {
+        const d = Math.hypot(p.x, p.z) / r, n = fbm(p.x * 3 + off, 1.5, p.z * 3, 2);
+        let c = mixc(L(0x3a2818), L(0x6e5234), smooth(0.45, 1.0, d + n * 0.35));
+        return mixc(c, L(0x8a7050), smooth(0.25, 0.45, n) * smooth(0.5, 1.0, d) * 0.6);
+      };
+      for (let k = 0; k < rings; k++) for (let i = 0; i < seg; i++) {
+        const a = P(k, i), b = P(k + 1, i), c = P(k + 1, i + 1), d = P(k, i + 1);
+        if (k === 0) quadTo(S, a, b, c, c, up, col(a), col(b), col(c), col(c));
+        else quadTo(S, a, b, c, d, up, col(a), col(b), col(c), col(d));
+      }
+      // wet puddles
+      const np = 2 + Math.floor(r * 1.5);
+      for (let j = 0; j < np; j++) {
+        const ang = R() * TAU, dist = R() * r * 0.45, cx = Math.cos(ang) * dist, cz = Math.sin(ang) * dist, pr = r * (0.16 + R() * 0.14), po = R() * 20, ps = 14;
+        const ctr = new V3(cx, 0.021, cz), wc = L(0x2a221c);
+        for (let i = 0; i < ps; i++) {
+          const a0 = (i / ps) * TAU, a1 = ((i + 1) / ps) * TAU, rr0 = pr * (0.75 + 0.4 * fbm(Math.cos(a0) + po, Math.sin(a0), 0, 2)), rr1 = pr * (0.75 + 0.4 * fbm(Math.cos(a1) + po, Math.sin(a1), 0, 2));
+          Wp.tri(ctr, new V3(cx + Math.cos(a1) * rr1, 0.021, cz + Math.sin(a1) * rr1), new V3(cx + Math.cos(a0) * rr0, 0.021, cz + Math.sin(a0) * rr0), wc, wc, wc);
+        }
+      }
+      const mudG = boxUV(S.geo(true), 1.2), pud = Wp.geo(false);
+      const pn = pud.attributes.normal.array;
+      for (let i = 0; i < pn.length; i += 3) { pn[i] = 0; pn[i + 1] = 1; pn[i + 2] = 0; }
+      const grp = new THREE.Group();
+      grp.name = 'mud';
+      grp.add(meshOf(mudG, mat('mud', { map: TX.soil(), std: true, roughness: 0.5 }), false, true), meshOf(pud, mat('puddle', { std: true, roughness: 0.05, metalness: 0.1 }), false, true));
+      grp.userData = { r };
+      return grp;
+    });
+  }
+
+  /* ============================================================
      Public API
      ============================================================ */
   return {
@@ -4965,5 +6146,7 @@ void main() {`);
     picket, pen, kennel, sign,
     jackolantern, scarecrow, fallingLeaves,
     nest, egg,
+    setDoors, barnInterior, terrarium, birdCage, hutch,
+    gate, coop, shelter, trough, hayRack, goatPlatform, mudPatch,
   };
 })();

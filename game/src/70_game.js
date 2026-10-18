@@ -103,7 +103,7 @@ function followCamera(dt) {
   const moving = b.mode === 'climb' ? Math.abs(b.speed) > 0.05 : b.speed > 0.25;
   if (!talker && Cam.userT <= 0 && moving && b.eat <= 0) Cam.yaw += angDiff(Cam.yaw, b.yaw) * (1 - Math.exp(-(b.mode === 'fly' ? 1.6 : 1.1) * dt));
   dist = Math.max(dist, Cam.frame || 0);
-  if (room) dist = Math.min(dist, 3.2);
+  if (room) dist = Math.min(dist, room.barn ? 6 : 3.2);
   let pitch = Cam.pitch;
   if (b.mode === 'fly') pitch = clamp(pitch + b.vy * 0.03, 0.05, 1.2);
   if (b.mode === 'climb') pitch = clamp(pitch - 0.25, -0.1, 1.0);
@@ -516,7 +516,7 @@ function updateHud() {
   if (h.name !== nameKey) { h.name = nameKey; $('meImg').src = meIcon(S.animal); $('meName').textContent = S.names[S.animal] ? S.names[S.animal] : (stage || sp.name); }
   const status = S.sick > 0 ? 'Has a cold' : S.hunger <= 0 ? 'Hungry!' : (S.names[S.animal] && stage) ? stage : '';
   if (h.status !== status) { h.status = status; $('meStatus').textContent = status; $('meStatus').hidden = !status; }
-  const where = b.room ? (b.room.pound ? 'Animal pound' : (Homes.homeOf(b.sp) && Homes.homeOf(b.sp).room === b.room ? 'Home' : 'A house')) : World.META[S.world].name;
+  const where = b.room ? (b.room.pound ? 'Animal pound' : b.room.barn ? 'Barn' : (Homes.homeOf(b.sp) && Homes.homeOf(b.sp).room === b.room ? 'Home' : 'A house')) : World.META[S.world].name;
   if (h.where !== where) { h.where = where; $('wherePill').textContent = where; }
   const ct = fmt(di.left);
   if (h.clock !== ct || h.night !== di.night) {
