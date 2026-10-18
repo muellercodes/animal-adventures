@@ -9,10 +9,11 @@ const ORDER = ['00_core', '35_envkit', '40_animals', '45_people', '50_world', '6
 const cfg = JSON.parse(readFileSync('game/config.json', 'utf8'));
 const api = process.env.API_BASE ?? cfg.apiBase ?? '';
 
+const OUT = process.env.OUT || 'docs', DIST = process.env.DIST || 'dist';   // OUT/DIST let test builds go somewhere else
 const js = `(() => {\n'use strict';\n${ORDER.map((f) => readFileSync(`game/src/${f}.js`, 'utf8')).join('\n')}\n})();\n`;
-mkdirSync('dist', { recursive: true });
-writeFileSync('dist/game.js', js);
-execFileSync(process.execPath, ['--check', 'dist/game.js'], { stdio: 'inherit' });
+mkdirSync(DIST, { recursive: true });
+writeFileSync(`${DIST}/game.js`, js);
+execFileSync(process.execPath, ['--check', `${DIST}/game.js`], { stdio: 'inherit' });
 if (/—/.test(js)) { console.error('em dash found in game code'); process.exit(1); }
 
 // pre-rendered animal icons and world pictures (made by tools/assets.py)
@@ -53,9 +54,9 @@ ${shell.slice(cut)}
 ${scripts}</body>
 </html>
 `;
-mkdirSync('docs', { recursive: true });
-writeFileSync('docs/index.html', page);
+mkdirSync(OUT, { recursive: true });
+writeFileSync(`${OUT}/index.html`, page);
 // artifact flavor: no document wrapper (the host adds one) and no cloud saves
-writeFileSync('dist/artifact.html', shell + '\n' + scripts);
+writeFileSync(`${DIST}/artifact.html`, shell + '\n' + scripts);
 const n = Object.keys(assets.icons).length + Object.keys(assets.worlds).length;
-console.log(`built docs/index.html (${(page.length / 1024).toFixed(0)} KB, ${n} pictures), cloud saves: ${api || 'off'}`);
+console.log(`built ${OUT}/index.html (${(page.length / 1024).toFixed(0)} KB, ${n} pictures), cloud saves: ${api || 'off'}`);
