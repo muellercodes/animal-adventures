@@ -33,8 +33,7 @@ with sync_playwright() as p:
           a.camera.position.set(s[0] + cam[0], cam[1], s[1] + cam[2]);
           a.camera.near = 0.5; a.camera.aspect = 16 / 9; a.camera.updateProjectionMatrix();
           a.camera.lookAt(s[0] + look[0], look[1], s[1] + look[2]);
-          a.G.world.updateView(a.camera.position, s[0], s[1], 400, 3);
-          for (const ch of a.G.world.chunks) ch.mesh.visible = true;
+          a.G.world.updateView(a.camera.position, s[0] + look[0], s[1] + look[2], 400, 3);
           a.timeOfDay(0.016, a.camera.position.clone().setY(0));
           a.renderer.setPixelRatio(1); a.renderer.setSize(640, 360, false);
           a.renderer.render(a.scene, a.camera);

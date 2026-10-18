@@ -849,9 +849,9 @@ function renderTitle(mode) {
   } else if (mode === 'cloud') {
     b.innerHTML = `<h2>Save online</h2><p>Make an account to keep your animals and leaves on any phone, tablet or computer. A grown-up can help.</p>${cloudFormHtml()}<button class="linkish" type="button" data-action="reset-no">Back</button>`;
   } else if (S.started) {
-    b.innerHTML = `<p>Eat food, grow up, earn leaves, and explore six worlds.${HOLIDAY === 'halloween' ? ' Happy Halloween!' : ''}</p><div class="row"><button class="btn green" type="button" data-action="play">Keep playing</button></div>${cloudBlock()}<button class="linkish" type="button" data-action="reset">Start over</button>`;
+    b.innerHTML = `<p>Eat food, grow up, earn leaves, and explore six worlds that never end.${HOLIDAY === 'halloween' ? ' Happy Halloween!' : ''}</p><div class="row"><button class="btn green" type="button" data-action="play">Keep playing</button></div>${cloudBlock()}<button class="linkish" type="button" data-action="reset">Start over</button>`;
   } else {
-    b.innerHTML = `<p>Eat food, grow up, earn leaves, and explore six worlds.${HOLIDAY === 'halloween' ? ' Happy Halloween!' : ''}</p><div class="row"><button class="btn green" type="button" data-action="new">Play</button></div>${cloudBlock()}`;
+    b.innerHTML = `<p>Eat food, grow up, earn leaves, and explore six worlds that never end.${HOLIDAY === 'halloween' ? ' Happy Halloween!' : ''}</p><div class="row"><button class="btn green" type="button" data-action="new">Play</button></div>${cloudBlock()}`;
   }
 }
 function play(after) {
