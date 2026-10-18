@@ -51,7 +51,7 @@ function resize() {
 window.addEventListener('resize', resize);
 
 /* ---------- worlds ---------- */
-const R = { mode: 'title', paused: false, sheet: null, shopTab: 'animals', pack: null, gc: [7, 8], saveT: 5, wasNight: null, loading: false, hatch: null, sleeping: 0, naming: null, action: null };
+const R = { mode: 'title', paused: false, sheet: null, shopTab: 'animals', pack: null, gc: [7, 8], saveT: 5, wasNight: null, loading: false, hatch: null, sleeping: 0, naming: null, action: null, doorSeq: null };
 function loadWorld(id) {
   if (G.world) { scene.remove(G.world.group); Wild.clear(); Folk.clear(); Foods.clear(); G.world.dispose(); }
   const w = World.build(id); G.world = w; scene.add(w.group);
@@ -91,7 +91,7 @@ function followCamera(dt) {
   if (Cam.snap) { Cam.target.set(b.pos.x, ty, b.pos.z); Cam.yaw = b.yaw; Cam.snap = false; }
   // when a person is talking to us, pull back so both fit on screen
   let fx0 = b.pos.x, fz0 = b.pos.z, fy0 = ty, minD = 0;
-  const talker = Folk.list.find((p) => (p === Folk.asking || p.state === 'offer' || p.state === 'pet') && p.room === room && p.pos.distanceTo(b.pos) < 4);
+  const talker = Folk.list.find((p) => (p.state === 'kneel' || p.state === 'greet' || p.state === 'offer' || p.state === 'pet') && p.room === room && p.pos.distanceTo(b.pos) < 4);
   if (talker) {
     fx0 = lerp(b.pos.x, talker.pos.x, 0.45); fz0 = lerp(b.pos.z, talker.pos.z, 0.45); fy0 = lerp(ty, talker.pos.y + talker.rig.height * 0.5, 0.5); minD = talker.rig.height * 1.7;
     if (Cam.userT <= 0) Cam.yaw += angDiff(Cam.yaw, Math.atan2(talker.pos.x - b.pos.x, talker.pos.z - b.pos.z) + 0.35) * (1 - Math.exp(-2.5 * dt));
@@ -211,7 +211,7 @@ function readInput() {
   if (stick.id !== null) { ix = stick.dx / STICK_R; iy = -stick.dy / STICK_R; const m = Math.hypot(ix, iy); if (m < 0.12) { ix = 0; iy = 0; } }
   const kx = (keys.r ? 1 : 0) - (keys.l ? 1 : 0), ky = (keys.f ? 1 : 0) - (keys.b ? 1 : 0);
   if (kx || ky) { const m = Math.hypot(kx, ky); ix = kx / m; iy = ky / m; }
-  if (R.hatch || R.sleeping > 0) { ix = 0; iy = 0; }
+  if (R.hatch || R.sleeping > 0 || R.doorSeq) { ix = 0; iy = 0; }
   const fx = Math.sin(Cam.yaw), fz = Math.cos(Cam.yaw), rx = -Math.cos(Cam.yaw), rz = Math.sin(Cam.yaw);
   inp.mx = fx * iy + rx * ix; inp.mz = fz * iy + rz * ix; inp.ix = ix; inp.iy = iy;
   inp.walk = !!keys.walk;
@@ -226,22 +226,29 @@ function readInput() {
 function findAction() {
   const b = Player.b, w = G.world; if (!b) return null;
   if (R.hatch) return R.hatch.done ? null : { id: 'hatch', label: 'Tap to hatch!' };
-  if (R.sleeping > 0) return null;
+  if (R.sleeping > 0 || R.doorSeq) return null;
   if (b.mode === 'climb' || b.mode === 'perch') return { id: 'letgo', label: 'Let go' };
   const sp = SPECIES[b.sp], home = Homes.homeOf(b.sp), reach = 0.9 + b.m.radius;
   if (b.room) {
     const rm = b.room;
     if (Math.hypot(b.pos.x - rm.exit.x, b.pos.z - rm.exit.z) < rm.exit.r + 0.45 + b.m.radius) return { id: 'out', label: 'Go out' };
-    if (home && home.room === rm && rm.petBed && Math.hypot(b.pos.x - rm.petBed.x, b.pos.z - rm.petBed.z) < reach + 0.2) return { id: 'sleep', label: 'Sleep' };
+    if (home && home.room === rm) {
+      if (rm.cage) { if (Homes.inCage(rm, b.pos)) return { id: 'sleep', label: 'Sleep' }; }
+      else if (rm.petBed && Math.hypot(b.pos.x - rm.petBed.x, b.pos.z - rm.petBed.z) < reach + 0.2) return { id: 'sleep', label: 'Sleep' };
+    }
+    if (rm.barn && rm.petBed && Math.hypot(b.pos.x - rm.petBed.x, b.pos.z - rm.petBed.z) < reach + 0.4) return { id: 'sleep', label: 'Sleep' };
+    if (rm.pound) { const pen = Homes.penAt(rm, b.pos); if (pen && pen.open === false) return { id: 'letout', label: 'Let me out' }; }
     if (rm.pound && rm.vet && S.sick > 0 && Math.hypot(b.pos.x - rm.vet.x, b.pos.z - rm.vet.z) < 2) return { id: 'vet', label: 'See the vet' };
     return null;
   }
   if (b.mode !== 'ground' && b.mode !== 'swim') return null;
   for (const h of w.houses) {
-    if (Math.hypot(b.pos.x - h.door.x, b.pos.z - h.door.z) > 1.7 + b.m.radius) continue;
-    if (b.m.height > 1.15) return { id: 'big', label: 'Too big!' };
+    const barn = h.kind === 'barn';
+    if (Math.hypot(b.pos.x - h.door.x, b.pos.z - h.door.z) > (barn ? 2.6 : 1.7) + b.m.radius) continue;
+    if (!barn && b.m.height > 1.15) return { id: 'big', label: 'Too big!' };
+    if (barn && !h.room && !h.lazy) continue;
     if (home === h && !sp.outdoor) return { id: 'in', label: 'Go home', house: h };
-    if (h.pound) return { id: 'in', label: 'Go in', house: h };
+    if (h.pound || barn) return { id: 'in', label: 'Go in', house: h };
     if (G.night >= 0.5) {
       if (HOLIDAY === 'halloween' && h.treat && S.treats[h.id] !== nightNo()) return { id: 'treat', label: 'Trick or treat!', house: h };
       return null;
@@ -259,8 +266,9 @@ function doAction(a) {
   if (!a) return;
   Sound.click();
   switch (a.id) {
-    case 'in': Homes.enter(a.house); Cam.snap = true; break;
-    case 'out': Homes.exit(); Cam.snap = true; break;
+    case 'in': startDoor(a.house, 1); break;
+    case 'out': startDoor(Player.b.room.house, -1); break;
+    case 'letout': Homes.letOut(); break;
     case 'sleep': startSleep(); break;
     case 'vet': Homes.vet(); break;
     case 'treat': Homes.trickOrTreat(a.house); break;
@@ -271,10 +279,41 @@ function doAction(a) {
   }
 }
 
+/* ---------- doors: the door swings open, you step through, a quick fade, and you're on the other side ---------- */
+function startDoor(house, dir) {
+  if (R.doorSeq || !house) return;
+  const w = G.world;
+  if (dir > 0 && !w.ensureRoom(house)) { UI.toast('This door is locked.'); return; }
+  if (dir > 0) w.openDoor(house.group, 1.7); else w.openDoor(Player.b.room.group, 1.4);
+  if (G.sound) Sound.door();
+  R.doorSeq = { t: 0, house, dir, faded: false, done: false };
+}
+function updateDoorSeq(dt) {
+  const q = R.doorSeq; if (!q) return;
+  q.t += dt;
+  const b = Player.b, h = q.house;
+  if (!q.done && q.t > 0.25) {
+    // step toward the doorway
+    const tx = q.dir > 0 ? h.x : b.room ? b.room.exit.x : b.pos.x, tz = q.dir > 0 ? h.z : b.room ? b.room.exit.z + 1 : b.pos.z;
+    const dx = tx - b.pos.x, dz = tz - b.pos.z, d = Math.hypot(dx, dz) || 1, v = Math.min(b.m.walk, 1.6) * dt;
+    b.yaw += angDiff(b.yaw, Math.atan2(dx, dz)) * Math.min(1, dt * 8);
+    b.pos.x += (dx / d) * v; b.pos.z += (dz / d) * v; b.speed = Math.min(b.m.walk, 1.6);
+  }
+  if (!q.faded && q.t > 0.5) { q.faded = true; $('fade').classList.add('quick', 'on'); }
+  if (!q.done && q.t > 0.75) {
+    q.done = true; b.speed = 0;
+    if (q.dir > 0) Homes.enter(h); else Homes.exit();
+    Cam.snap = true;
+  }
+  if (q.t > 0.85) $('fade').classList.remove('on');
+  if (q.t > 1.15) { $('fade').classList.remove('quick'); R.doorSeq = null; }
+}
+
 /* ---------- sleeping ---------- */
 function startSleep() {
   const b = Player.b, rm = b.room;
-  if (rm && rm.petBed) { b.pos.set(rm.petBed.x, 0.06, rm.petBed.z); }
+  if (rm && rm.cage && Homes.inCage(rm, b.pos)) Homes.cageDoor(rm, false);
+  else if (rm && rm.petBed) { b.pos.set(rm.petBed.x, 0.06, rm.petBed.z); }
   b.mode = 'sleep'; b.speed = 0; R.sleeping = 2.8;
   $('fade').classList.add('on');
   UI.say('Zzz...', 2.4);
@@ -426,13 +465,7 @@ const UI = {
   bubble(p, text, secs) { this.dropBubble(p); const el = document.createElement('div'); el.className = 'bub'; el.textContent = text; labelsEl.appendChild(el); p.bub = { el, until: G.t + secs }; },
   dropBubble(p) { if (p.bub) { p.bub.el.remove(); p.bub = null; } },
   say(text, secs) { this.bubble(Player, text, secs); },
-  ask(p, animal, sp) {
-    const kind = sp ? stageName(sp).toLowerCase() : animal.toLowerCase(), named = sp && S.names[sp];
-    const art = /^[aeiou]/.test(kind) ? 'an' : 'a';
-    $('promptText').textContent = named ? `${p.name}: "Aww, ${art} ${kind} named ${S.names[sp]}! Will you be my pet?"` : `${p.name}: "Aww, ${art} ${kind}! Will you be my pet?"`;
-    $('prompt').hidden = false;
-  },
-  hideAsk() { $('prompt').hidden = true; },
+  hideAsk() {},
   enteredRoom(rm) { hudState.where = null; },
 };
 G.ui = UI;
@@ -562,7 +595,7 @@ function tags(id) {
 }
 function foodChips(id) { const A = SPECIES[id]; return `<span class="eats">${A.eats.map((f) => `<span class="food${f === A.fav ? ' fav' : ''}">${FOODS[f].name}</span>`).join('')}</span>`; }
 function openSheet(kind) { R.sheet = kind; UI.hideAsk(); for (const k in keys) keys[k] = false; renderSheet(); $('sheetWrap').hidden = false; R.paused = true; }
-function closeSheet() { R.sheet = null; R.naming = null; $('sheetWrap').hidden = true; if (R.mode === 'play') R.paused = false; if (Folk.asking) UI.ask(Folk.asking, SPECIES[Player.sp].name, Player.sp); save(); }
+function closeSheet() { R.sheet = null; R.naming = null; $('sheetWrap').hidden = true; if (R.mode === 'play') R.paused = false; save(); }
 function renderSheet() {
   const t = $('sheetTitle'), b = $('sheetBody');
   if (R.sheet === 'map') { t.textContent = 'Where do you want to go?'; b.innerHTML = sheetMap(); }
@@ -582,7 +615,7 @@ function sheetMap() {
     return `<button class="card${here ? ' here' : ''}" type="button" data-action="go" data-v="${id}"${locked ? ' disabled' : ''}>
       <span class="pv" style="${style}"></span>
       <span class="t">${w.name}</span><span class="d">${w.blurb}</span>
-      <span class="tags">${here ? '<span class="tg">You are here</span>' : ''}${locked ? `<span class="tg lock">${A.fly ? 'Grow up to fly here' : A.many + " can't fly"}</span>` : ''}${!here && !locked && isNew ? '<span class="tg new">New! +10 leaves</span>' : ''}</span>
+      <span class="tags">${here ? `<span class="tg">You are here</span>${b && !b.room && Math.hypot(b.pos.x - G.world.def.spawn[0], b.pos.z - G.world.def.spawn[1]) > 150 ? '<span class="tg new">Tap to go back to the start</span>' : ''}` : ''}${locked ? `<span class="tg lock">${A.fly ? 'Grow up to fly here' : A.many + " can't fly"}</span>` : ''}${!here && !locked && isNew ? '<span class="tg new">New! +10 leaves</span>' : ''}</span>
     </button>`;
   }).join('')}</div>`;
 }
@@ -630,7 +663,14 @@ function sheetSettings() {
 function travel(id, after) {
   if (!World.META[id]) return;
   if (World.META[id].needsFly && !canFlyNow(Player.b)) return;
-  if (id === S.world) { closeSheet(); if (after) after(); return; }
+  if (id === S.world) {
+    closeSheet();
+    // far out in the wilds, tapping the world you're in takes you back to its start
+    const sp0 = G.world.def.spawn, b = Player.b;
+    if (b && !b.room && Math.hypot(b.pos.x - sp0[0], b.pos.z - sp0[1]) > 150) { b.yaw = 0; Player.place(sp0[0], sp0[1]); Cam.snap = true; Foods.fill(60); UI.toast(`Back to the start of the ${World.META[id].name}`); }
+    if (after) after();
+    return;
+  }
   closeSheet(); R.paused = true;
   showLoading(`Going to the ${World.META[id].name}...`, () => {
     loadWorld(id);
@@ -658,7 +698,7 @@ function switchAnimal(id) {
   if (!S.owned.includes(id)) return;
   S.animal = id; hudState.name = null;
   closeSheet();
-  if (Folk.asking) Folk.cancel(Folk.asking);
+  for (const p of Folk.list) Folk.cancel(p);
   const born = S.ages[id] === 0 && !S.hatched.includes(id);
   if (World.META[S.world].needsFly && !(SPECIES[id].fly && ageOf(id) >= FLY_AGE)) {
     R.paused = true;
@@ -819,7 +859,7 @@ function play(after) {
     if (!G.world || G.world.id !== S.world) loadWorld(S.world);
     Player.set(S.animal);
     const s = G.world.def.spawn;
-    if (S.x !== null && S.z !== null && Math.abs(S.x) < World.HALF && Math.abs(S.z) < World.HALF) Player.place(S.x, S.z); else Player.place(s[0], s[1]);
+    if (S.x !== null && S.z !== null && Math.abs(S.x) < World.ROOM_X / 2 && Math.abs(S.z) < World.ROOM_X / 2) Player.place(S.x, S.z); else Player.place(s[0], s[1]);
     Cam.snap = true; Foods.fill(60);
     R.mode = 'play'; R.paused = false; R.wasNight = dayInfo().night;
     for (const k in hudState) delete hudState[k];
@@ -873,8 +913,6 @@ document.addEventListener('click', (e) => {
     case 'name': R.naming = v; renderSheet(); break;
     case 'name-cancel': R.naming = null; renderSheet(); break;
     case 'close': closeSheet(); break;
-    case 'yes': UI.hideAsk(); Folk.answer(true); break;
-    case 'no': UI.hideAsk(); Folk.answer(false); break;
     case 'cloud': renderTitle('cloud'); setTimeout(() => { const i = $('cName'); if (i) i.focus(); }, 50); break;
     case 'cloud-here': R.cloudForm = true; renderSheet(); setTimeout(() => { const i = $('cName'); if (i) i.focus(); }, 50); break;
     case 'signout': signOut(); break;
@@ -920,6 +958,7 @@ function tick(dt, raw, draw) {
       if (press.call) { press.call = false; Sound.call(Player.b); Player.b.happy = 1; for (const w of Wild.list) if (w.sp === Player.sp && !w.caged && w.pos.distanceTo(Player.pos) < 25) setTimeout(() => Sound.wildCall(w, camera.position, Cam.yaw), 500 + Math.random() * 900); }
       Player.update(dt, inp);
       Homes.update(dt);
+      updateDoorSeq(dt);
       updateHatch(dt);
       updateBall(dt);
       if (R.sleeping > 0) { R.sleeping -= dt; if (R.sleeping <= 0) wakeUp(); }
@@ -941,6 +980,7 @@ function tick(dt, raw, draw) {
     Wild.update(dt, camera.position);
     Folk.update(dt, camera.position);
     Foods.update(dt);
+    G.world.tick(dt, playing ? Player.b : null);
     G.world.updateView(camera.position, focus.x, focus.z, scene.fog.far, playing ? Player.m.length : 1.2);
     Env.wind.time.value = G.t; Env.waterUniforms.time.value = G.t;
     timeOfDay(dt, focus);

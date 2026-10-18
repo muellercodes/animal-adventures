@@ -66,7 +66,7 @@ function moveBody(b, dt, c) {
   }
   if (b.mode !== 'fly' || p.y - H(nx, nz) < 6) {
     tmpV.set(nx, 0, nz);
-    if (w.collide(tmpV, m.radius * 0.8)) b.blocked = true;
+    if (w.collide(tmpV, m.radius * 0.8, p.y, !b.player)) b.blocked = true;
     nx = tmpV.x; nz = tmpV.z;
   }
   p.x = nx; p.z = nz;
@@ -191,6 +191,8 @@ const Player = {
     let keep = null;
     if (this.b) { keep = { x: this.b.pos.x, z: this.b.pos.z, yaw: this.b.yaw, room: this.b.room }; G.scene.remove(this.b.rig.root); }
     this.b = newBody(sp, ageOf(sp));
+    this.b.player = true;
+    if (this.b.rig.setDetail) this.b.rig.setDetail(2);
     this.b.rig.onSneeze = () => { if (G.sound) G.sound.sneeze(this.b); G.ui.say('Achoo!', 1.1); };
     this.b.onLand = (bb) => { if (G.sound) G.sound.land(bb); };
     G.scene.add(this.b.rig.root);
@@ -247,7 +249,7 @@ const Player = {
       }
     }
     moveBody(b, dt, c);
-    if (b.pos.y < -30) { G.ui.toast('Whoosh! Back to the island.'); this.place(G.world.def.spawn[0], G.world.def.spawn[1]); }
+    if (b.pos.y < -30) { G.ui.toast('Whoosh! Back to an island.'); const I = G.world.ringPoint(b.pos.x, b.pos.z, 0, 120, false); if (I) this.place(I.x, I.z); else this.place(G.world.def.spawn[0], G.world.def.spawn[1]); }
     poseBody(b, dt, true);
     // tummy: it slowly empties; an empty tummy makes you tired, and staying empty gives you a cold
     S.hunger = Math.max(0, S.hunger - dt * (100 / 420));
@@ -301,18 +303,58 @@ const Wild = {
     return b;
   },
   spawn(w) {
-    this.clear();
-    for (const spec of w.def.wildlife || []) for (let i = 0; i < spec.n; i++) {
-      const sp = SPECIES[spec.sp];
-      const pt = (spec.water && sp.swim ? w.ringPoint(spec.home[0], spec.home[1], 0, spec.range, true) : null) || w.ringPoint(spec.home[0], spec.home[1], 0, spec.range, false) || w.ringPoint(0, 0, 0, 60, false);
+    this.clear(); this.ambT = 0;
+    for (const spec of w.def.wildlife || []) this.group(w, spec, null);
+  },
+  // a group of one species: around a home spot, or inside a pen; the first one may have little ones
+  group(w, spec, own) {
+    const sp = SPECIES[spec.sp];
+    for (let i = 0; i < spec.n; i++) {
+      let pt, extra;
+      if (spec.pen) { pt = w.penPoint(spec.pen, 1); extra = { pen: spec.pen, home: { x: spec.pen.x, z: spec.pen.z }, range: Math.min(spec.pen.hw, spec.pen.hd) }; }
+      else {
+        pt = (spec.water && sp.swim ? w.ringPoint(spec.home[0], spec.home[1], 0, spec.range, true) : null) || w.ringPoint(spec.home[0], spec.home[1], 0, spec.range, false);
+        extra = { home: { x: spec.home[0], z: spec.home[1] }, range: spec.range, water: !!spec.water };
+      }
       if (!pt) continue;
-      const a = this.make(spec.sp, 1, pt.x, pt.z, { home: { x: spec.home[0], z: spec.home[1] }, range: spec.range, water: !!spec.water });
+      extra.own = own; extra.amb = !!spec.amb;
+      const a = this.make(spec.sp, 1, pt.x, pt.z, extra);
       // families: little ones stay close to a parent
       if (spec.kids && i === 0) for (let k = 0; k < spec.kids; k++) {
-        const kid = this.make(spec.sp, 0.12 + Math.random() * 0.25, pt.x + (Math.random() - 0.5) * 1.5, pt.z + (Math.random() - 0.5) * 1.5, { parent: a, state: 'kid', slot: (k + 1) * 1.7 });
+        const kx = spec.pen ? w.penPoint(spec.pen, 1) : { x: pt.x + (Math.random() - 0.5) * 1.5, z: pt.z + (Math.random() - 0.5) * 1.5 };
+        const kid = this.make(spec.sp, 0.12 + Math.random() * 0.25, kx.x, kx.z, { parent: a, state: 'kid', slot: (k + 1) * 1.7, own, amb: a.amb, pen: a.pen });
         a.hasKids = true; kid.home = a.home; kid.range = a.range;
       }
     }
+  },
+  remove(b) { G.scene.remove(b.rig.root); const i = this.list.indexOf(b); if (i >= 0) this.list.splice(i, 1); },
+  // out in the wilds, animals turn up around you and wander off again
+  ambient(dt, P) {
+    const w = G.world, def = w.def;
+    for (const ev of w.events.splice(0)) {
+      if (ev.kind === 'pen') this.group(w, { sp: ev.sp, n: ev.n, kids: ev.kids, pen: ev.pen }, ev.own);
+      else if (ev.kind === 'gone') for (const b of this.list.filter((q) => q.own === ev.own && q.state !== 'follow')) this.remove(b);
+    }
+    if (!P || P.room || !def.ambient) return;
+    this.ambT = (this.ambT || 0) - dt;
+    if (this.ambT > 0) return;
+    this.ambT = 1.5;
+    let n = 0;
+    for (const b of this.list.slice()) {
+      if (!b.amb) continue;
+      const d = Math.hypot(b.pos.x - P.pos.x, b.pos.z - P.pos.z);
+      if (d > 160 && b.state !== 'follow') this.remove(b); else if (!b.parent) n++;
+    }
+    if (n >= 7) return;
+    const a = Math.random() * TAU, d = 60 + Math.random() * 35, x = P.pos.x + Math.sin(a) * d, z = P.pos.z + Math.cos(a) * d;
+    if (Math.max(Math.abs(x), Math.abs(z)) < World.CORE + 20) return;
+    let sum = 0; for (const q of def.ambient) sum += q.w;
+    let pick = Math.random() * sum, spec = def.ambient[0];
+    for (const q of def.ambient) { pick -= q.w; if (pick <= 0) { spec = q; break; } }
+    const water = !!spec.water && SPECIES[spec.sp].swim;
+    const pt = w.ringPoint(x, z, 0, 25, water) || (water ? null : w.ringPoint(x, z, 0, 25, false));
+    if (!pt) return;
+    this.group(w, { sp: spec.sp, n: water ? 1 + (Math.random() < 0.4 ? 1 : 0) : 1, kids: spec.kids && Math.random() < 0.5 ? Math.ceil(Math.random() * spec.kids) : 0, home: [pt.x, pt.z], range: 30, water, amb: true }, null);
   },
   // animals waiting in the pound's cages (made when you go inside)
   spawnPound(room) {
@@ -328,18 +370,31 @@ const Wild = {
       if (sz > 0.75) setBodyAge(b, clamp((0.75 / Math.max(b.rig.length, b.rig.height) - 0.42) / 0.58, 0, 1));
     });
   },
+  // horses, goats and pigs standing in their stalls when you walk into a barn
+  spawnBarn(room) {
+    for (const b of this.list.filter((q) => q.caged && q.room === room)) this.remove(b);
+    (room.stalls || []).forEach((st, i) => {
+      if (i % 3 === 2) return;
+      const sp = ['horse', 'horse', 'goat', 'pig'][(hash2(i, nightNo(), 5) * 4) | 0];
+      const b = this.make(sp, Math.random() < 0.3 ? 0.45 : 1, st.x, st.z, { caged: true, room, state: 'caged', timer: 3 + Math.random() * 5 });
+      b.pos.y = 0; b.yaw = Math.atan2(room.ox - st.x, 0) + (Math.random() - 0.5) * 0.6;
+    });
+  },
   pickTarget(b) {
     const w = G.world, sp = SPECIES[b.sp];
+    if (b.pen) return w.penPoint(b.pen, 0.7 + b.m.radius);
     const water = b.water && sp.swim && Math.random() < 0.75;
     return w.ringPoint(b.home.x, b.home.z, 0, b.range, water) || w.ringPoint(b.pos.x, b.pos.z, 1, 8, water);
   },
   update(dt, camPos) {
     const P = Player.b; let followers = 0;
     const night = G.night > 0.6;
+    this.ambient(dt, P);
     for (const b of this.list) {
       const dCam = Math.hypot(b.pos.x - camPos.x, b.pos.z - camPos.z);
       const near = dCam < 85;
       b.rig.root.visible = dCam < 170 && (!b.caged || (P && P.room === b.room));
+      if (b.rig.setDetail) { const lv = dCam < 22 ? 1 : 0; if (b.lod !== lv) { b.lod = lv; b.rig.setDetail(lv); } }
       if (!near || (b.caged && !b.rig.root.visible)) continue;
       const sp = SPECIES[b.sp], m = b.m;
       b.callT = (b.callT === undefined ? 5 + Math.random() * 40 : b.callT) - dt;
@@ -359,15 +414,15 @@ const Wild = {
         if (P.sp !== b.sp && !pAir && !P.room) fr = predator ? 7 : bigger ? (fast ? FEAR[b.sp] : FEAR[b.sp] * 0.45) : 0;
         if (b.mode === 'sleep' && d < fr * 0.6) b.mode = 'ground';
         if (d < fr && b.state !== 'flee' && b.state !== 'flyaway' && b.state !== 'tree' && b.mode !== 'sleep') {
-          const t = sp.climb ? G.world.treeNear(b.pos.x, b.pos.z, 7) : null;
+          const t = sp.climb && !b.pen ? G.world.treeNear(b.pos.x, b.pos.z, 7) : null;
           if (t) { b.state = 'tree'; b.target = t; b.timer = 10; b.perchT = 6 + Math.random() * 8; }
-          else if (canFlyNow(b) && b.sp !== 'chicken' && !b.hasKids && Math.random() < 0.65) {
+          else if (canFlyNow(b) && b.sp !== 'chicken' && !b.pen && !b.hasKids && Math.random() < 0.65) {
             b.state = 'flyaway'; b.flyH = 4 + Math.random() * 5;
             const a = Math.atan2(b.pos.x - P.pos.x, b.pos.z - P.pos.z) + (Math.random() - 0.5);
             b.target = G.world.ringPoint(b.pos.x + Math.sin(a) * 30, b.pos.z + Math.cos(a) * 30, 0, 12, b.water) || G.world.ringPoint(b.home.x, b.home.z, 0, b.range, false);
           } else { b.state = 'flee'; b.timer = 2 + Math.random() * 2; b.fleeA = Math.atan2(b.pos.x - P.pos.x, b.pos.z - P.pos.z); }
           b.eat = 0;
-        } else if (P.sp === b.sp && b.age >= 0.6 && b.state !== 'flee' && b.state !== 'flyaway' && b.state !== 'tree' && d < 14 && d > 1.2 && !b.hasKids) {
+        } else if (P.sp === b.sp && !b.pen && b.age >= 0.6 && b.state !== 'flee' && b.state !== 'flyaway' && b.state !== 'tree' && d < 14 && d > 1.2 && !b.hasKids) {
           if (b.state !== 'follow' && Math.random() < 0.5) { b.state = 'follow'; b.slot = Math.random() * TAU; if (b.mode === 'sleep') b.mode = 'ground'; }
         }
         if (b.state === 'follow') {
@@ -533,12 +588,21 @@ const Folk = {
     p.pos.x = tmpV.x; p.pos.z = tmpV.z;
     return d;
   },
+  // where to walk to reach a house door: through the gap in the front fence first
+  doorPath(p, house) {
+    const d = house.door, y = house.yard;
+    if (!y || !house.walk || Math.hypot(p.pos.x - d.x, p.pos.z - d.z) < 2.5) return d;
+    const dx = p.pos.x - y.x, dz = p.pos.z - y.z, c = Math.cos(y.rot), s2 = Math.sin(y.rot), lx = dx * c - dz * s2, lz = dx * s2 + dz * c;
+    const inYard = Math.abs(lx) < y.hw && lz > y.d0 - 0.5 && lz < y.d1;
+    return inYard ? d : house.walk;
+  },
   face(p, dt, x, z) { p.yaw += clamp(angDiff(p.yaw, Math.atan2(x - p.pos.x, z - p.pos.z)), -4 * dt, 4 * dt); },
   // move a person into or out of a room
   teleport(p, x, z, room) { p.room = room || null; p.pos.set(x, G.world.H(x, z), z); },
   update(dt, camPos) {
     const w = G.world, P = Player.b, ui = G.ui;
     const dayTime = G.night < 0.5;
+    let busy = this.list.some((q) => q.state === 'notice' || q.state === 'kneel' || q.state === 'greet' || q.state === 'lead');
     for (const p of this.list.slice()) {
       p.cool = Math.max(0, p.cool - dt);
       let crouch = 0, reach = 0;
@@ -549,7 +613,7 @@ const Folk = {
       if (p.visitor) { this.visitorStep(p, dt, P, dP, greet); continue; }
       if (p.staff) { this.staffStep(p, dt, P, dP); continue; }
       // evenings: people walk home and go inside (your person stays with you if you are at home together)
-      if (!dayTime && !p.away && p.state !== 'home' && !(p.friend && P && P.room && P.room === p.room)) { if (this.asking === p) this.cancel(p); p.state = 'home'; p.timer = 12; ui.bubble(p, 'Good night!', 2.5); }
+      if (!dayTime && !p.away && p.state !== 'home' && !(p.friend && P && P.room && P.room === p.room)) { p.state = 'home'; p.timer = 12; ui.bubble(p, 'Good night!', 2.5); }
       if (dayTime && p.away) {
         p.away = false; p.rig.setVisible(true); p.state = 'look'; p.timer = 1;
         if (p.house) { this.teleport(p, p.house.door.x, p.house.door.z); }
@@ -561,7 +625,7 @@ const Folk = {
           p.speed = damp(p.speed, 0, 6, dt); p.timer -= dt;
           if (p.timer <= 0) {
             if (p.room) { const rm = p.room; p.target = { x: rm.ox + (Math.random() - 0.5) * (rm.w - 2), z: rm.oz + (Math.random() - 0.5) * (rm.d - 2) }; }
-            else { const pts = w.def.villageWalk && Math.random() < 0.4 ? w.def.villageWalk : w.def.walk; const wp = pts[(Math.random() * pts.length) | 0]; p.target = w.ringPoint(wp[0], wp[1], 0, 9, false); }
+            else { const pts = w.def.villageWalk && Math.random() < 0.4 ? w.def.villageWalk : w.def.walk; const wp = pts[(Math.random() * pts.length) | 0]; p.target = wp ? w.ringPoint(wp[0], wp[1], 0, 9, false) : null; }
             p.state = p.target ? 'stroll' : 'look'; p.timer = 3; p.pace = 1.0 + Math.random() * 0.4; p.stuck = 0;
           }
           break;
@@ -571,16 +635,44 @@ const Folk = {
           if (d < 0.8 || p.stuck > 3) { p.state = 'look'; p.timer = 2 + Math.random() * 4; }
           break;
         }
-        case 'approach': {
-          const d = this.walkTo(p, dt, P.pos.x, P.pos.z, 1.3);
-          if (d < greet + 0.4) { p.state = 'ask'; this.asking = p; ui.ask(p, nameOf(P.sp), P.sp); }
-          if (dP > 9 || !playerReachable) { p.state = 'look'; p.timer = 1; p.cool = 12; }
+        // someone who likes your animal stops, kneels and holds out a hand. Animals can't talk:
+        // walking up to the hand means yes, walking away means no.
+        case 'notice':
+          p.speed = damp(p.speed, 0, 8, dt); this.face(p, dt, P.pos.x, P.pos.z); p.timer -= dt;
+          if (p.timer <= 0) { p.state = 'kneel'; p.timer = 16; }
+          if (!playerReachable || dP > 14) this.giveUp(p, false);
+          break;
+        case 'kneel':
+          p.speed = damp(p.speed, 0, 8, dt); this.face(p, dt, P.pos.x, P.pos.z); crouch = 1; reach = 1; p.timer -= dt;
+          if (playerReachable && dP < greet + 0.35) { p.state = 'greet'; p.timer = 2.8; ui.hearts(P.pos, 3); if (G.sound) G.sound.call(P); }
+          else if (p.timer <= 0 || dP > 13 || !playerReachable) this.giveUp(p, true);
+          break;
+        case 'greet':
+          p.speed = damp(p.speed, 0, 8, dt); this.face(p, dt, P.pos.x, P.pos.z); crouch = 1; reach = 0.8; p.timer -= dt;
+          if (p.timer > 1.3 && p.timer - dt <= 1.3) ui.hearts(P.pos, 3);
+          if (dP > greet + 2.5) this.giveUp(p, true);
+          else if (p.timer <= 0) { p.state = 'lead'; p.leadT = 0; p.lost = 0; p.target = null; ui.bubble(p, 'Come on, this way!', 2.6); }
+          break;
+        case 'lead': {
+          // walks home and looks back; if you follow, you get a home
+          p.leadT += dt;
+          p.lost = dP > 11 || !sameRoom ? p.lost + dt : Math.max(0, p.lost - dt * 2);
+          if (p.lost > 5) { this.giveUp(p, true); break; }
+          const door = p.house && !p.house.pound ? p.house.door : null;
+          if (dP > 6.5) { p.speed = damp(p.speed, 0, 6, dt); this.face(p, dt, P.pos.x, P.pos.z); reach = 0.5; }
+          else if (door) {
+            const via = this.doorPath(p, p.house);
+            this.walkTo(p, dt, via.x, via.z, 1.25);
+            const d = Math.hypot(door.x - p.pos.x, door.z - p.pos.z);
+            if (d < 1.7 && dP < 8) { if (p.house.group) w.openDoor(p.house.group, 1.6); Homes.adopt(p); break; }
+          } else {
+            if (!p.target || Math.hypot(p.target.x - p.pos.x, p.target.z - p.pos.z) < 1.2) { const a = p.yaw + (Math.random() - 0.5); p.target = w.ringPoint(p.pos.x + Math.sin(a) * 14, p.pos.z + Math.cos(a) * 14, 0, 5, false) || { x: p.pos.x + Math.sin(a) * 8, z: p.pos.z + Math.cos(a) * 8 }; }
+            this.walkTo(p, dt, p.target.x, p.target.z, 1.2);
+          }
+          // a long way from home: following for a while is enough
+          if (p.leadT > 22 && dP < 8) Homes.adopt(p);
           break;
         }
-        case 'ask':
-          p.speed = damp(p.speed, 0, 8, dt); this.face(p, dt, P.pos.x, P.pos.z); crouch = 1; reach = 1;
-          if (dP > greet + 4) this.cancel(p);
-          break;
         case 'friend': {
           p.offerT -= dt;
           if (!sameRoom) { p.speed = damp(p.speed, 0, 6, dt); break; }
@@ -602,7 +694,7 @@ const Folk = {
             const type = land.includes(sp.fav) ? sp.fav : land[(Math.random() * land.length) | 0];
             const fx = Math.sin(p.yaw), fz = Math.cos(p.yaw), x = p.pos.x + fx * 0.6, z = p.pos.z + fz * 0.6;
             Foods.add(type, x, z, w.H(x, z), true);
-            ui.bubble(p, "Here's a snack!", 2.4);
+            ui.bubble(p, 'Snack time!', 2.2);
           }
           if (p.timer <= 0) p.state = 'friend';
           break;
@@ -615,21 +707,26 @@ const Folk = {
         case 'home': {
           p.timer -= dt;
           const door = p.house ? p.house.door : (w.barn ? { x: w.barn.door[0], z: w.barn.door[1] } : { x: p.pos.x * 1.2, z: p.pos.z * 1.2 });
-          const d = this.walkTo(p, dt, door.x, door.z, 1.6);
-          if (p.timer <= 0 || d < 0.8) { p.away = true; p.friend = false; p.rig.setVisible(false); ui.dropBubble(p); }
+          const via = p.house ? this.doorPath(p, p.house) : door;
+          this.walkTo(p, dt, via.x, via.z, 1.6);
+          const d = Math.hypot(door.x - p.pos.x, door.z - p.pos.z);
+          if (p.timer <= 0 || d < 0.8) { p.away = true; p.friend = false; p.rig.setVisible(false); ui.dropBubble(p); if (d < 1.5 && p.house && p.house.group) w.openDoor(p.house.group, 1); }
           break;
         }
       }
       if (p.friend && p.state !== 'friend' && p.state !== 'offer' && p.state !== 'pet' && p.state !== 'home') p.state = 'friend';
       // notice the player's animal (only if it doesn't have a home yet)
-      if (P && dayTime && !p.friend && !p.owns && p.cool <= 0 && !this.asking && !S.homes[P.sp] && (p.state === 'look' || p.state === 'stroll') && dP < 7 && playerReachable && !this.list.some((q) => q.friend)) {
-        p.state = 'approach';
+      if (P && dayTime && !busy && !p.friend && !p.owns && p.cool <= 0 && !S.homes[P.sp] && (p.state === 'look' || p.state === 'stroll') && dP < 8 && playerReachable && !this.list.some((q) => q.friend)) {
+        p.state = 'notice'; p.timer = 1.3; busy = true;
+        const nm = stageName(P.sp).toLowerCase();
+        ui.bubble(p, Math.random() < 0.5 ? `Aww, ${/^[aeiou]/.test(nm) ? 'an' : 'a'} ${nm}!` : 'Oh, hello there!', 2.2);
       }
       // your own person comes to say hi
       if (P && dayTime && p.owns === P.sp && !p.friend && dP < 8 && playerReachable) { p.friend = true; p.state = 'friend'; ui.bubble(p, `There you are, ${nameOf(P.sp)}!`, 2.6); }
       this.pose(p, dt, crouch, reach, camPos);
     }
   },
+  giveUp(p, wave) { p.state = 'look'; p.timer = 1.5; p.cool = 45; if (wave) G.ui.bubble(p, 'Bye bye!', 1.8); },
   pose(p, dt, crouch, reach, camPos) {
     p.pos.y = G.world.H(p.pos.x, p.pos.z);
     p.crouch = damp(p.crouch, crouch, 5, dt); p.reach = damp(p.reach, reach, 5, dt);
@@ -638,12 +735,23 @@ const Folk = {
     r.visible = !p.away && dist < 160;
     if (dist < 80) { const st = p.st; st.t = G.t; st.speed = p.speed; st.crouch = p.crouch; st.reach = p.reach; p.rig.update(dt, st); }
   },
-  // a visitor at the pound walks over to you and asks to adopt you
+  // a visitor at the pound comes to your kennel, kneels and holds out a hand; walk out to them to go home with them
   visitorStep(p, dt, P, dP, greet) {
     let crouch = 0, reach = 0;
-    if (p.state === 'approach') { const d = this.walkTo(p, dt, P.pos.x, P.pos.z, 1.1); if (d < greet + 0.4) { p.state = 'ask'; this.asking = p; G.ui.ask(p, nameOf(P.sp), P.sp); } }
-    else if (p.state === 'ask') { p.speed = damp(p.speed, 0, 8, dt); this.face(p, dt, P.pos.x, P.pos.z); crouch = 1; reach = 1; if (dP > greet + 5) this.cancel(p); }
-    else if (p.state === 'leave') { const ex = p.room.exit; const d = this.walkTo(p, dt, ex.x, ex.z, 1.2); if (d < 0.7) { this.remove(p); return; } }
+    const pen = p.pen, front = pen && pen.entry;
+    if (p.state === 'approach') {
+      const d = this.walkTo(p, dt, front ? front.x : P.pos.x, front ? front.z : P.pos.z, 1.1);
+      if (d < (front ? 0.5 : greet + 0.4)) { p.state = 'kneel'; p.timer = 16; G.ui.bubble(p, 'Aww, look at you!', 2.4); if (pen) Homes.kennelDoor(pen, true); }
+    } else if (p.state === 'kneel') {
+      p.speed = damp(p.speed, 0, 8, dt); this.face(p, dt, P.pos.x, P.pos.z); crouch = 1; reach = 1; p.timer -= dt;
+      if (dP < greet + 0.35) { p.state = 'greet'; p.timer = 2.8; G.ui.hearts(P.pos, 3); if (G.sound) G.sound.call(P); }
+      else if (p.timer <= 0) { p.state = 'leave'; G.ui.bubble(p, 'Maybe next time.', 2); }
+    } else if (p.state === 'greet') {
+      p.speed = 0; this.face(p, dt, P.pos.x, P.pos.z); crouch = 1; reach = 0.8; p.timer -= dt;
+      if (p.timer > 1.3 && p.timer - dt <= 1.3) G.ui.hearts(P.pos, 3);
+      if (dP > greet + 3) { p.state = 'leave'; }
+      else if (p.timer <= 0) Homes.adopt(p);
+    } else if (p.state === 'leave') { const ex = p.room.exit; const d = this.walkTo(p, dt, ex.x, ex.z, 1.2); if (d < 0.7) { this.remove(p); return; } }
     this.pose(p, dt, crouch, reach, G.camera.position);
   },
   // the pound helper at the desk and the vet stay put and turn to watch you
@@ -652,52 +760,50 @@ const Folk = {
     if (P && dP < 6) this.face(p, dt, P.pos.x, P.pos.z);
     this.pose(p, dt, 0, 0, G.camera.position);
   },
-  answer(yes) {
-    const p = this.asking; if (!p) return;
-    this.asking = null;
-    if (yes) {
-      Homes.adopt(p);
-    } else {
-      p.state = p.visitor ? 'leave' : 'look'; p.timer = 2; p.cool = 45; G.ui.bubble(p, 'Okay, maybe later!', 2.2);
-    }
-  },
-  cancel(p) { if (this.asking === p) { this.asking = null; G.ui.hideAsk(); } p.state = p.visitor ? 'leave' : 'look'; p.timer = 1; p.cool = 15; },
+  cancel(p) { if (p.visitor) p.state = 'leave'; else if (p.state === 'notice' || p.state === 'kneel' || p.state === 'greet' || p.state === 'lead') this.giveUp(p, false); },
 };
 
-/* ---------- homes: adoption, going in and out, the pound and the vet ---------- */
+/* ---------- homes: adoption, going in and out, cages, the pound and the vet ---------- */
+// pets that live in a cage or tank at home, like real ones do
+const CAGED = { lizard: 'terrarium', snake: 'terrarium', frog: 'terrarium', turtle: 'terrarium', parrot: 'birdCage', bunny: 'hutch', hedgehog: 'hutch' };
+const CAGE_WORDS = { terrarium: 'a glass tank', birdCage: 'a big bird cage', hutch: 'a cozy pen' };
 const Homes = {
-  penT: 0,
+  penT: 0, kennel: null,
+  village() { return G.world.houses.filter((h) => h.village); },
   homeOf(sp) {
     const hm = S.homes[sp]; if (!hm || G.world.id !== 'land') return null;
-    const homes = G.world.houses.filter((h) => !h.pound);
-    return homes[hm.house] || null;
+    return this.village()[hm.house] || null;
   },
   adopt(p) {
     const P = Player.b, sp = P.sp, w = G.world;
     // pick a house in the village for this person
     let houseIdx = 0;
+    const homes = w.id === 'land' ? this.village() : [];
     const used = new Set(Object.values(S.homes).map((h) => h.house));
-    if (p.house && !p.house.pound && w.id === 'land') houseIdx = w.houses.filter((h) => !h.pound).indexOf(p.house);
+    if (p.house && homes.includes(p.house)) houseIdx = homes.indexOf(p.house);
     else { for (let i = 0; i < 6; i++) if (!used.has(i)) { houseIdx = i; break; } }
     S.homes[sp] = { name: p.name, look: p.look, house: Math.max(0, houseIdx) };
     S.leaves += 5;
-    const outdoor = SPECIES[sp].outdoor, color = ['white', 'yellow', 'blue', 'brick', 'gray'][[0, 1, 2, 3, 4, 0][Math.max(0, houseIdx)] || 0];
-    G.ui.bubble(p, `Yay! You're my pet now, ${nameOf(sp)}!`, 2.8);
+    const outdoor = SPECIES[sp].outdoor, color = HOUSE_COLOR_NAMES[Math.max(0, houseIdx)] || 'white', cage = CAGED[sp];
+    G.ui.bubble(p, `Welcome to the family, ${nameOf(sp)}!`, 2.8);
     G.ui.hearts(P.pos, 6); G.ui.leafPop(P.pos, 5);
-    G.ui.toast(outdoor ? `${p.name} adopted you! Your home is the pen behind the ${color} house on Maple Street.` : `${p.name} adopted you! You're an indoor pet now. Your home is the ${color} house on Maple Street.`, 5200);
+    G.ui.toast(outdoor ? `${p.name} took you home! Your home is the pen behind the ${color} house on Maple Street.`
+      : cage ? `${p.name} took you home! You live in ${CAGE_WORDS[cage]} in the ${color} house on Maple Street.`
+        : `${p.name} took you home! You're an indoor pet in the ${color} house on Maple Street.`, 5600);
     if (G.sound) G.sound.chime();
-    if (p.visitor) { p.visitor = false; p.house = w.houses.filter((h) => !h.pound)[S.homes[sp].house] || null; }
+    if (p.visitor) { p.visitor = false; p.house = homes[S.homes[sp].house] || null; if (p.pen) this.kennelDoor(p.pen, true); }
     p.owns = sp; p.friend = true; p.state = 'friend'; p.offerT = 10; p.petT = 6;
     G.save();
   },
   // walk through a door
   enter(house) {
-    const P = Player.b, w = G.world, rm = house.room;
+    const P = Player.b, w = G.world, rm = w.ensureRoom(house);
+    if (!rm) return false;
     P.room = rm; P.mode = 'ground'; P.tree = null;
     P.pos.set(rm.spawn.x, 0, rm.spawn.z); P.yaw = rm.spawn.yaw; P.speed = 0;
     w.setRoom(rm);
     G.ui.enteredRoom(rm);
-    if (house.doorMesh) { house.doorMesh.rotation.y = 1.3; setTimeout(() => { house.doorMesh.rotation.y = 0; }, 900); }
+    w.openDoor(rm.group, 0.5);
     // your person comes inside with you
     for (const p of Folk.list) if (p.friend && Math.hypot(p.pos.x - house.door.x, p.pos.z - house.door.z) < 25) {
       Folk.teleport(p, rm.spawn.x + 0.9, rm.spawn.z - 0.6, rm); p.state = 'friend';
@@ -706,11 +812,15 @@ const Homes = {
       Wild.spawnPound(rm);
       if (rm.desk) Folk.make('Pat', { skin: SKIN[2], hair: HAIR[4], hairStyle: 1, shirt: '#3E8E6E', pants: PANTS[0], shoes: SHOES[0], height: 1.68 }, rm.desk.x, rm.desk.z, { staff: true, room: rm });
       if (rm.vet) Folk.make('Dr. Rosa', { skin: SKIN[1], hair: HAIR[0], hairStyle: 2, shirt: '#E8E2D4', pants: '#55606B', shoes: SHOES[2], height: 1.64 }, rm.vet.x + 0.9, rm.vet.z + 0.4, { staff: true, room: rm, vetDoc: true });
+      for (const pn of rm.pens) this.kennelDoor(pn, true);
     }
-    const hm = S.homes[P.sp];
-    if (hm && this.homeOf(P.sp) === house && rm.bowl) this.fillBowl(rm);
+    if (rm.barn) Wild.spawnBarn(rm);
+    const home = this.homeOf(P.sp) === house;
+    if (home && rm.bowl) this.fillBowl(rm);
+    if (home) this.setupCage(rm, P.sp); else if (rm.cage) this.removeCage(rm);
     if (G.sound) G.sound.door();
     G.save();
+    return true;
   },
   exit() {
     const P = Player.b, w = G.world, rm = P.room; if (!rm) return;
@@ -724,8 +834,9 @@ const Homes = {
         else if (p.friend) Folk.teleport(p, d.x + Math.sin(d.yaw) * 1.5 + 0.8, d.z + Math.cos(d.yaw) * 1.5);
       }
     }
-    if (rm.pound) { for (const b of Wild.list.filter((q) => q.caged)) G.scene.remove(b.rig.root); Wild.list = Wild.list.filter((q) => !q.caged); }
-    if (house.doorMesh) { house.doorMesh.rotation.y = 1.3; setTimeout(() => { house.doorMesh.rotation.y = 0; }, 900); }
+    for (const b of Wild.list.filter((q) => q.caged && q.room === rm)) Wild.remove(b);
+    if (house.group) w.openDoor(house.group, 0.7);
+    this.kennel = null;
     if (G.sound) G.sound.door();
     G.save();
   },
@@ -738,20 +849,77 @@ const Homes = {
     const f = Foods.add(type, rm.bowl.x, rm.bowl.z, 0.06, true);
     f.bowl = rm;
   },
-  // wait in a pound pen and visitors come to adopt you
+  /* cages and tanks at home for pets that live in one */
+  setupCage(rm, sp) {
+    const kind = CAGED[sp];
+    if (rm.cage && rm.cage.kind === kind) return rm.cage;
+    if (rm.cage) this.removeCage(rm);
+    if (!kind || !Env[kind]) return null;
+    const w = G.world, obj = Env[kind](), ud = obj.userData;
+    const spot = rm.cageSpot || (rm.petBed ? { x: rm.petBed.x, z: rm.petBed.z + 1.2, yaw: 0 } : { x: rm.ox, z: 0, yaw: 0 });
+    const yaw = spot.yaw || 0, co = Math.cos(yaw), si = Math.sin(yaw);
+    const W = (lx, lz) => ({ x: spot.x + lx * co + lz * si, z: spot.z - lx * si + lz * co });
+    obj.position.set(spot.x - rm.ox, 0, spot.z - rm.oz); obj.rotation.y = yaw;
+    obj.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
+    rm.group.add(obj);
+    const colW = (c) => { const p = W(c.x, c.z); return c.box ? { box: true, x: p.x, z: p.z, hw: c.hw, hd: c.hd, rot: yaw + (c.rot || 0) } : { x: p.x, z: p.z, r: c.r }; };
+    const cols = (ud.colliders || []).map((c) => w.addCollider(colW(c), null));
+    const doorCol = ud.doorCollider ? w.addCollider(colW(ud.doorCollider), null) : null;
+    if (doorCol) doorCol.off = true;
+    const ins = ud.inside || { x: 0, z: 0, hw: 0.4, hd: 0.3 };
+    rm.cage = { kind, obj, cols, doorCol, yaw, center: W(ins.x, ins.z), hw: ins.hw, hd: ins.hd, entry: ud.entry ? W(ud.entry.x, ud.entry.z) : W(0, (ud.d || 1) / 2 + 0.5), open: true, floor: kind === 'birdCage' ? 0.05 : 0 };
+    w.doorTo(obj, undefined, true);
+    return rm.cage;
+  },
+  removeCage(rm) {
+    const c = rm.cage; if (!c) return;
+    for (const q of c.cols) G.world.removeCollider(q);
+    if (c.doorCol) G.world.removeCollider(c.doorCol);
+    rm.group.remove(c.obj);
+    rm.cage = null;
+  },
+  inCage(rm, pos) {
+    const c = rm && rm.cage; if (!c) return false;
+    const dx = pos.x - c.center.x, dz = pos.z - c.center.z, co = Math.cos(c.yaw), si = Math.sin(c.yaw);
+    const lx = dx * co - dz * si, lz = dx * si + dz * co;
+    return Math.abs(lx) < c.hw + 0.05 && Math.abs(lz) < c.hd + 0.05;
+  },
+  cageDoor(rm, open) {
+    const c = rm && rm.cage; if (!c || c.open === open) return;
+    c.open = open; if (c.doorCol) c.doorCol.off = open;
+    G.world.doorTo(c.obj, undefined, open);
+  },
+  /* kennels at the pound */
+  kennelDoor(pen, open) {
+    if (!pen || pen.door === undefined || pen.door === null) return;
+    const rm = Player.b && Player.b.room; if (!rm || !rm.pound) return;
+    pen.open = open; if (pen.doorCol) pen.doorCol.off = open;
+    G.world.doorTo(rm.group, pen.door, open);
+  },
+  penAt(rm, pos) { return rm && rm.pens ? rm.pens.find((pn) => Math.abs(pos.x - pn.x) < pn.w / 2 && Math.abs(pos.z - pn.z) < pn.d / 2) || null : null; },
+  // wait in a kennel at the pound and visitors come to meet you
   update(dt) {
-    const P = Player.b; if (!P || !P.room || !P.room.pound) { this.penT = 0; return; }
+    const P = Player.b; if (!P || !P.room) { this.penT = 0; return; }
     const rm = P.room;
-    const inPen = rm.pens.some((pn) => Math.abs(P.pos.x - pn.x) < pn.w / 2 && Math.abs(P.pos.z - pn.z) < pn.d / 2);
-    if (inPen && G.night < 0.5 && !S.homes[P.sp] && !Folk.list.some((p) => p.visitor)) {
+    if (rm.cage) {
+      // the cage door stands open while you're awake; it closes while you sleep in it
+      if (P.mode !== 'sleep') this.cageDoor(rm, true);
+    }
+    if (!rm.pound) { this.penT = 0; return; }
+    const pen = this.penAt(rm, P.pos);
+    if (pen && pen !== this.kennel) { this.kennel = pen; this.shutT = 2.2; }
+    if (!pen) this.kennel = null;
+    if (pen && pen.open !== false && this.shutT > 0) { this.shutT -= dt; if (this.shutT <= 0 && !Folk.list.some((p) => p.visitor)) { this.kennelDoor(pen, false); if (!this.toldKennel) { this.toldKennel = true; G.ui.toast('You are in a kennel. Visitors come here to meet animals who need a home.', 4200); } } }
+    if (pen && G.night < 0.5 && !S.homes[P.sp] && !Folk.list.some((p) => p.visitor)) {
       this.penT += dt;
       if (this.penT > 8) {
         this.penT = 0;
-        const v = Folk.make(PEOPLE_NAMES[(Math.random() * PEOPLE_NAMES.length) | 0], Folk.randomLook(Math.random() < 0.4), rm.exit.x, rm.exit.z, { visitor: true, room: rm, state: 'approach' });
-        G.ui.bubble(v, 'Hello! Who is this?', 2.4);
+        const v = Folk.make(PEOPLE_NAMES[(Math.random() * PEOPLE_NAMES.length) | 0], Folk.randomLook(Math.random() < 0.4), rm.exit.x, rm.exit.z, { visitor: true, room: rm, state: 'approach', pen });
+        G.ui.bubble(v, 'Hello!', 1.8);
       }
     } else this.penT = Math.max(0, this.penT - dt);
   },
+  letOut() { const P = Player.b, pen = P && this.penAt(P.room, P.pos); if (pen) { this.kennelDoor(pen, true); this.shutT = 0; const pat = Folk.list.find((p) => p.staff && !p.vetDoc); if (pat) G.ui.bubble(pat, 'There you go!', 1.8); } },
   vet() {
     S.sick = 0; Player.emptyT = 0;
     const doc = Folk.list.find((p) => p.vetDoc);
@@ -763,7 +931,7 @@ const Homes = {
   trickOrTreat(house) {
     S.treats[house.id] = nightNo();
     const d = house.door, w = G.world;
-    if (house.doorMesh) { house.doorMesh.rotation.y = 1.3; setTimeout(() => { house.doorMesh.rotation.y = 0; }, 2600); }
+    if (house.group) w.openDoor(house.group, 2.6);
     const p = Folk.make(PEOPLE_NAMES[(hash2(house.id, 3, 9) * PEOPLE_NAMES.length) | 0], Folk.randomLook(false), d.x - Math.sin(d.yaw) * 0.6, d.z - Math.cos(d.yaw) * 0.6, { staff: true, yaw: d.yaw });
     p.yaw = d.yaw;
     G.ui.bubble(p, 'Happy Halloween! Here is a treat!', 2.8);
@@ -774,6 +942,7 @@ const Homes = {
     G.save();
   },
 };
+const HOUSE_COLOR_NAMES = ['white', 'yellow', 'blue', 'brick', 'gray', 'white'];
 
 /* ---------- food ---------- */
 const Foods = {

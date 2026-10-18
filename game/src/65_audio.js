@@ -201,6 +201,15 @@ const Sound = (() => {
     leaf(n) { if (!ac || !on) return; const t = now(); tone({ t, f: 1046, dur: 0.18, vol: 0.18, type: 'triangle' }); tone({ t: t + 0.08, f: 1568, dur: 0.22, vol: 0.16, type: 'triangle' }); if (n > 1) tone({ t: t + 0.16, f: 2093, dur: 0.3, vol: 0.14, type: 'triangle' }); },
     chime() { if (!ac || !on) return; const t = now(); [523, 659, 784, 1046].forEach((f, i) => tone({ t: t + i * 0.12, f, dur: 0.5, vol: 0.18, type: 'triangle' })); },
     door() { if (!ac || !on) return; const t = now(); tone({ t, f: 140, f2: 90, dur: 0.5, type: 'sawtooth', bp: 600, q: 4, vol: 0.12 }); tone({ t: t + 0.5, f: 80, f2: 50, dur: 0.15, vol: 0.3 }); },
+    // a wooden gate swinging on its hinges, quieter the farther away it is
+    creak(g) {
+      if (!ac || !on) return;
+      const P = Player.b, d = P ? Math.hypot(P.pos.x - g.x, P.pos.z - g.z) : 3, v = clamp(1 - d / 14, 0, 1);
+      if (v <= 0) return;
+      const t = now();
+      tone({ t, f: 420, f2: 300, dur: 0.35, type: 'sawtooth', bp: 900, q: 9, vol: 0.05 * v, vib: 22, vibAmt: 40 });
+      tone({ t: t + 0.32, f: 120, f2: 90, dur: 0.08, vol: 0.12 * v });
+    },
     knock() { if (!ac || !on) return; const t = now(); for (let i = 0; i < 3; i++) { tone({ t: t + i * 0.22, f: 190, f2: 120, dur: 0.08, vol: 0.4 }); noise({ t: t + i * 0.22, f: 500, q: 2, dur: 0.05, vol: 0.2 }); } },
     crack() { if (!ac || !on) return; noise({ f: 3000, type: 'highpass', dur: 0.06, vol: 0.3 }); tone({ f: 900, f2: 600, dur: 0.05, vol: 0.12 }); },
     tummy() { if (ac && on) tone({ f: 70, f2: 55, dur: 0.9, vol: 0.25, vib: 6, vibAmt: 10 }); },
