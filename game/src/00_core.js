@@ -58,6 +58,7 @@ const SPECIES = {
   pig: { name: 'Pig', many: 'Pigs', eats: ['apple', 'carrot', 'acorn', 'grass', 'pumpkin', 'worm'], fav: 'pumpkin', price: 300, outdoor: true, baby: 'Piglet' },
   goat: { name: 'Goat', many: 'Goats', eats: ['grass', 'apple', 'carrot', 'berries', 'pumpkin'], fav: 'apple', price: 350, outdoor: true, baby: 'Kid goat' },
   fox: { name: 'Fox', many: 'Foxes', eats: ['worm', 'berries', 'apple', 'smallfish'], fav: 'berries', price: 400, hunter: true, baby: 'Fox kit' },
+  weasel: { name: 'Weasel', many: 'Weasels', eats: ['worm', 'carrot', 'smallfish', 'berries'], fav: 'carrot', price: 250, baby: 'Weasel kit' },
   otter: { name: 'Otter', many: 'Otters', eats: ['fish', 'smallfish', 'worm'], fav: 'fish', swim: true, swimSpeed: 4.2, price: 450, baby: 'Otter pup' },
   raccoon: { name: 'Raccoon', many: 'Raccoons', eats: ['berries', 'apple', 'worm', 'smallfish', 'acorn', 'pumpkin'], fav: 'apple', climb: true, price: 500, baby: 'Raccoon kit' },
   owl: { name: 'Owl', many: 'Owls', eats: ['worm', 'smallfish'], fav: 'worm', fly: true, nightEyes: true, flySpeed: 8, price: 600, hunter: true, egg: 0xf4f2ee, baby: 'Owlet' },
@@ -67,8 +68,8 @@ const SPECIES = {
   moose: { name: 'Moose', many: 'Moose', eats: ['grass', 'apple', 'carrot'], fav: 'grass', swim: true, swimSpeed: 2.2, price: 1500, outdoor: true, baby: 'Moose calf' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
-const SHOP = ['squirrel', 'hedgehog', 'turtle', 'pig', 'goat', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
-const SMALL_PREY = ['chicken', 'frog', 'lizard', 'bunny', 'squirrel', 'duck', 'hedgehog'];
+const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'goat', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
+const SMALL_PREY = ['chicken', 'frog', 'lizard', 'bunny', 'squirrel', 'duck', 'hedgehog', 'weasel'];
 const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow'];
 const PACKS = [{ id: 's', leaves: 100, price: '$0.99' }, { id: 'm', leaves: 300, price: '$1.99' }, { id: 'l', leaves: 1000, price: '$4.99' }];
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];

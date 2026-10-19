@@ -621,7 +621,7 @@ const People = (() => {
       d0: T.rest['fore' + s].clone().sub(T.rest['arm' + s]).normalize(), d1: T.rest['hand' + s].clone().sub(T.rest['fore' + s]).normalize(),
     }));
     const hip0 = B.hips.userData.p0.clone(), tail = B.hairT;
-    const S = { ph: rnd, spd: 0, move: 0, run: 0, crouch: 0, reach: 0, look: 0, lookP: 0, idle: 0 };
+    const S = { ph: rnd, spd: 0, move: 0, run: 0, crouch: 0, reach: 0, sit: 0, look: 0, lookP: 0, idle: 0 };
     const qFK1 = new THREE.Quaternion(), qFK2 = new THREE.Quaternion(), qFK3 = new THREE.Quaternion();
     const shP = new THREE.Vector3(), tgt = new THREE.Vector3(), elb = new THREE.Vector3(), pole = new THREE.Vector3(), qP = new THREE.Quaternion(), qA = new THREE.Quaternion(), qB = new THREE.Quaternion();
     const hipP = new THREE.Vector3(), knee = new THREE.Vector3(), ankT = new THREE.Vector3();
@@ -636,9 +636,12 @@ const People = (() => {
       S.run = damp(S.run, sstep(walkV * 1.5, walkV * 2.6, spdIn), 4, dt);
       S.crouch = damp(S.crouch, sat(st.crouch || 0), 4, dt);
       S.reach = damp(S.reach, sat(st.reach || 0), 4, dt);
+      // sitting on a chair, a swing or a bench: seatY is how high the seat is, in meters
+      S.sit = damp(S.sit, sat(st.sit || 0), 5, dt);
       S.idle = spdIn > 0.05 ? 0 : S.idle + dt;
-      const spd = S.spd, run = S.run, cr = S.crouch, rc = S.reach;
-      const mv = S.move * (1 - cr * 0.85);
+      const spd = S.spd, run = S.run, cr = S.crouch, rc = S.reach, sit = S.sit;
+      const seatH = (st.seatY !== undefined ? st.seatY : 0.42) / height + 0.035;
+      const mv = S.move * (1 - cr * 0.85) * (1 - sit);
       // stride: cycle length in meters grows with speed
       const L = 0.8 * height * clamp(Math.pow(Math.max(spd, 0.15) / walkV, 0.55), 0.55, 2.4) * (1 + run * 0.15);
       S.ph += (spd / L) * dt;
@@ -650,7 +653,7 @@ const People = (() => {
       const sway = Math.sin(t * 0.55 + rnd * 10) * 0.004 * (1 - S.move);
       const lean = run * 0.14 * mv + cr * 0.5 + rc * 0.16 * (1 - cr * 0.5);
       const crDrop = cr * (P.hipJ - P.knee) * 0.92, crBack = cr * 0.07;
-      B.hips.position.set(hip0.x + sway, hip0.y + bob - 0.012 * mv - crDrop, hip0.z - crBack);
+      B.hips.position.set(hip0.x + sway, lerp(hip0.y + bob - 0.012 * mv - crDrop, seatH, sit), hip0.z - crBack * (1 - sit));
       B.hips.rotation.set(lean * 0.45 + 0.02 * mv, 0.09 * Math.sin(w2) * mv * (1 - run * 0.4), 0.035 * Math.sin(w2) * mv * (1 - run));
       const breathe = Math.sin(t * 1.5 + rnd * 7) * 0.012;
       B.spine.rotation.set(lean * 0.3 + breathe * 0.4, -0.06 * Math.sin(w2) * mv, -0.02 * Math.sin(w2) * mv);
@@ -677,7 +680,7 @@ const People = (() => {
         const ay = dy + Math.max(0, fp) * 0.065 + Math.max(0, -fp) * 0.02;
         fp *= mv; toe *= mv;
         const cx = lg.ank.x + lg.sg * cr * 0.02, cy = lg.ank.y + ay * mv + cr * 0.016, cz = lg.ank.z + dz * mv;
-        ankT.set(cx, cy, cz);
+        ankT.set(lerp(cx, lg.ank.x + lg.sg * 0.015, sit), lerp(cy, lg.ank.y, sit), lerp(cz, lg.ank.z + lg.L1 * 0.9, sit));
         rootPos(lg.thigh, body, hipP);
         rootQuat(lg.thigh.parent, body, qP);
         lg.pole.set(lg.sg * cr * 0.45, 0, 1).normalize();
@@ -695,8 +698,8 @@ const People = (() => {
         const swing = lerp(0.28, 0.75, run) * mv * other.dz;
         const elbowF = 0.18 + run * 1.25 * mv + Math.max(0, swing) * 0.4;
         // the torso pitch is cancelled so arms hang vertically; crouching rests the forearms forward over the knees
-        a.arm.rotation.set(-swing - lean * 0.95 - cr * 0.35, 0, a.sg * (0.07 + run * 0.08 * mv + cr * 0.12));
-        a.fore.rotation.set(-elbowF - cr * 0.55, 0, 0);
+        a.arm.rotation.set(-swing - lean * 0.95 - cr * 0.35 - sit * 0.35, 0, a.sg * (0.07 + run * 0.08 * mv + cr * 0.12));
+        a.fore.rotation.set(-elbowF - cr * 0.55 - sit * 0.8, 0, 0);
         a.hand.rotation.set(-0.05, 0, a.sg * 0.05);
         a.fing.rotation.set(0, 0, -a.sg * (0.35 + run * 0.4));
       }
@@ -726,7 +729,7 @@ const People = (() => {
       // ----- head -----
       const lookOn = sstep(1.5, 3, S.idle) * (1 - rc);
       S.look = damp(S.look, (Math.sin(t * 0.37 + rnd * 20) * 0.5 + Math.sin(t * 0.13 + rnd * 7) * 0.3) * lookOn, 2, dt);
-      const down = cr * 0.25 + rc * 0.35;
+      const down = cr * 0.25 + rc * 0.35 + sit * 0.08;
       const comp = -(lean * 0.45 + lean * 0.3 + lean * 0.25) * 0.85;
       B.neck.rotation.set((comp + down) * 0.4 - breathe * 0.5, S.look * 0.4, 0);
       B.head.rotation.set((comp + down) * 0.6 + 0.04 * Math.sin(2 * w2) * mv, S.look * 0.6 + 0.08 * Math.sin(w2) * mv, 0);
@@ -745,6 +748,13 @@ const People = (() => {
       stride: 0.8 * height,
       update,
       setVisible(v) { root.visible = !!v; },
+      // hold something in the left hand (a pet carrier, a net, a basket, a book); null puts it away
+      hold(obj) {
+        if (this.held) B.handL.remove(this.held);
+        this.held = obj || null;
+        if (obj) { obj.scale.setScalar(1 / height); obj.position.set(0, -P.handLen * 0.55, 0); obj.rotation.z = (obj.userData && obj.userData.roll) || 0; obj.traverse((m) => { if (m.isMesh) m.castShadow = true; }); B.handL.add(obj); }
+      },
+      held: null,
     };
   }
 

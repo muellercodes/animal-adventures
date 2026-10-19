@@ -129,6 +129,7 @@ const Sound = (() => {
       case 'pig': for (let i = 0; i < 2; i++) T({ t: t + i * 0.28, f: 150 * k, f2: 120 * k, dur: 0.2, type: 'sawtooth', bp: 520, q: 3, vib: 25, vibAmt: 15 }); break;
       case 'goat': T({ t, f: 430 * k, f2: 380 * k, dur: 0.65, type: 'sawtooth', bp: 1100, q: 2, vib: 7.5, vibAmt: 35 }); break;
       case 'fox': for (let i = 0; i < 2; i++) T({ t: t + i * 0.3, f: 900 * k, f2: 1400 * k, glide: 0.08, dur: 0.22, type: 'triangle' }); break;
+      case 'weasel': for (let i = 0; i < 7; i++) T({ t: t + i * 0.05, f: (1700 + Math.random() * 700) * k, dur: 0.03, type: 'square', bp: 2200, q: 3, vol: vol * 0.45 }); break;
       case 'otter': for (let i = 0; i < 2; i++) T({ t: t + i * 0.16, f: 2100, f2: 2900, dur: 0.1, vol: vol * 0.6 }); break;
       case 'raccoon': for (let i = 0; i < 6; i++) T({ t: t + i * 0.07, f: 1100 + Math.random() * 400, dur: 0.05, type: 'triangle', vol: vol * 0.6 }); break;
       case 'owl': T({ t, f: 410 * k, f2: 380 * k, dur: 0.5, a: 0.08, vol: vol * 0.9 }); T({ t: t + 0.7, f: 400 * k, f2: 370 * k, dur: 0.25, a: 0.05, vol: vol * 0.8 }); T({ t: t + 1.0, f: 400 * k, f2: 360 * k, dur: 0.45, a: 0.06, vol: vol * 0.8 }); break;
@@ -210,6 +211,12 @@ const Sound = (() => {
       tone({ t, f: 420, f2: 300, dur: 0.35, type: 'sawtooth', bp: 900, q: 9, vol: 0.05 * v, vib: 22, vibAmt: 40 });
       tone({ t: t + 0.32, f: 120, f2: 90, dur: 0.08, vol: 0.12 * v });
     },
+    // a trap door snapping shut
+    snap() { if (!ac || !on) return; const t = now(); noise({ t, f: 2400, q: 1.2, dur: 0.05, vol: 0.4 }); tone({ t, f: 300, f2: 120, dur: 0.12, type: 'square', vol: 0.18 }); },
+    // the pound phone ringing
+    ring() { if (!ac || !on) return; const t = now(); for (let i = 0; i < 4; i++) { tone({ t: t + i * 0.42, f: 880, dur: 0.16, type: 'triangle', vol: 0.12, vib: 20, vibAmt: 30 }); tone({ t: t + i * 0.42 + 0.18, f: 880, dur: 0.16, type: 'triangle', vol: 0.12, vib: 20, vibAmt: 30 }); } },
+    // the school bell
+    bell(d) { if (!ac || !on) return; const v = clamp(1 - (d || 0) / 120, 0.08, 1), t = now(); for (let i = 0; i < 5; i++) { tone({ t: t + i * 0.32, f: 1318, dur: 1.2, type: 'sine', vol: 0.16 * v }); tone({ t: t + i * 0.32, f: 2637, dur: 0.6, type: 'sine', vol: 0.05 * v }); } },
     knock() { if (!ac || !on) return; const t = now(); for (let i = 0; i < 3; i++) { tone({ t: t + i * 0.22, f: 190, f2: 120, dur: 0.08, vol: 0.4 }); noise({ t: t + i * 0.22, f: 500, q: 2, dur: 0.05, vol: 0.2 }); } },
     crack() { if (!ac || !on) return; noise({ f: 3000, type: 'highpass', dur: 0.06, vol: 0.3 }); tone({ f: 900, f2: 600, dur: 0.05, vol: 0.12 }); },
     tummy() { if (ac && on) tone({ f: 70, f2: 55, dur: 0.9, vol: 0.25, vib: 6, vibAmt: 10 }); },

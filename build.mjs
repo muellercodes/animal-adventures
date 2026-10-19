@@ -5,7 +5,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
-const ORDER = ['00_core', '35_envkit', '40_animals', '45_people', '50_world', '60_actors', '65_audio', '68_net', '70_game'];
+const ORDER = ['00_core', '35_envkit', '40_animals', '45_people', '50_world', '60_actors', '62_town', '65_audio', '68_net', '70_game'];
 const cfg = JSON.parse(readFileSync('game/config.json', 'utf8'));
 const api = process.env.API_BASE ?? cfg.apiBase ?? '';
 

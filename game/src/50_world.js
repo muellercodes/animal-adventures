@@ -56,6 +56,10 @@ const World = (() => {
       const PADDOCK = { x: -75, z: -33, hw: 8, hd: 11, rot: 0 }, PIGPEN = { x: -64, z: -61, hw: 5, hd: 4, rot: 0.15 };
       const GOATPEN = { x: -30, z: -41, hw: 6, hd: 5, rot: 0.4 }, COOP = { x: -46, z: -64, hw: 4.5, hd: 3.5, rot: 0.4 };
       const PENS = [PADDOCK, PIGPEN, GOATPEN, COOP];
+      // the school and its playground behind the north side of Maple Street, and the adoption fair near the meadow path
+      const SCHOOLYARD = { x: 98, z: -103, hw: 24, hd: 11, soft: 10 }, SCHOOL = { x: 86, z: -105, rot: 0 }, PLAY = { x: 110, z: -103, rot: 0 };
+      const FAIR = { x: 38, z: 4, hw: 12, hd: 9, rot: 0 };
+      const SCHOOLPATH = [[78, -57], [78, -93]];
       const STREET = [[48, -55], [134, -55]];
       const PATH = [[-48, -25], [-30, -12], [-8, -4], [18, 16], [42, 40]];
       const ROAD = [[-8, -4], [20, -28], [48, -55], [134, -55]];
@@ -65,11 +69,15 @@ const World = (() => {
       const inGarden = (x, z, pad) => { const dx = x - GARDEN.x, dz = z - GARDEN.z, lx = dx * gc - dz * gs, lz = dx * gs + dz * gc; return Math.abs(lx) < GARDEN.w / 2 + pad && Math.abs(lz) < GARDEN.d / 2 + pad; };
       const inVillage = (x, z, pad) => Math.abs(x - VILLAGE.x) < VILLAGE.hw + pad && Math.abs(z - VILLAGE.z) < VILLAGE.hd + pad;
       const inPen = (x, z, pad) => PENS.some((R) => inRect(R, x, z, pad));
-      const roadD = (x, z) => Math.min(pathDist(x, z, ROAD), pathDist(x, z, STREET));
+      const roadD = (x, z) => Math.min(pathDist(x, z, ROAD), pathDist(x, z, STREET), pathDist(x, z, SCHOOLPATH));
       const woods = (x, z) => outer(x, z, 110, 200) * smooth((fbm(n5, x * 0.006, z * 0.006, 3) + 0.05) / 0.3);
+      const baseH = (x, z) => 1.3 + 3.2 * (fbm(n1, x * 0.009, z * 0.009, 3) * 0.5 + 0.5) + 0.3 * n2(x * 0.06, z * 0.06);
+      const FAIR_Y = Math.max(1.4, baseH(FAIR.x, FAIR.z));
       function H(x, z) {
-        let h = 1.3 + 3.2 * (fbm(n1, x * 0.009, z * 0.009, 3) * 0.5 + 0.5) + 0.3 * n2(x * 0.06, z * 0.06);
+        let h = baseH(x, z);
         if (ring(x, z) < CORE + 20) {
+          h = flatRect(h, x, z, SCHOOLYARD, 2.4);
+          h = flatRect(h, x, z, { x: FAIR.x, z: FAIR.z, hw: FAIR.hw, hd: FAIR.hd, soft: 10 }, FAIR_Y);
           h = lerp(h, 2.3, smooth(1 - (Math.hypot(x - BARN.x, z - BARN.z) - 24) / 18));
           h = lerp(h, 2.3, smooth(1 - (Math.hypot(x - GARDEN.x, z - GARDEN.z) - 9) / 10));
           for (const R of PENS) h = flatRect(h, x, z, { x: R.x, z: R.z, hw: R.hw, hd: R.hd, rot: R.rot, soft: 8 }, 2.3);
@@ -79,10 +87,11 @@ const World = (() => {
         }
         return h;
       }
-      const away = (x, z, d = 3) => Math.hypot(x - BARN.x, z - BARN.z) > 28 && !inGarden(x, z, 4) && !inPen(x, z, 3) && pathDist(x, z, PATH) > d && roadD(x, z) > d + 1 && !inVillage(x, z, 3) && pathDist(x, z, LAKEPATH) > d;
+      const away = (x, z, d = 3) => Math.hypot(x - BARN.x, z - BARN.z) > 28 && !inGarden(x, z, 4) && !inPen(x, z, 3) && pathDist(x, z, PATH) > d && roadD(x, z) > d + 1 && !inVillage(x, z, 3) && pathDist(x, z, LAKEPATH) > d
+        && !inRect(SCHOOLYARD, x, z, 3) && !inRect(FAIR, x, z, 4);
       return {
         name: 'Land', blurb: 'A farm, a village with houses to visit, ponds and lakes, and it goes on and on.', spawn: [10, -2],
-        H, fog: [60, 260], water: {}, people: 5, village: true,
+        H, fog: [60, 260], water: {}, people: 3, village: true,
         grassH: [0.09, 0.22], grassTint: [0.2, 0.3, 0.55, 0.85], flowerColors: [0xffffff, 0xffe066, 0xc9a0ff, 0xff9ec4, 0xffffff],
         paint(o, x, z, h) {
           o.copy(c.g1); mix(o, c.g2, fbm(n4, x * 0.03, z * 0.03, 2) * 0.8 + 0.5); mix(o, c.dry, (n2(x * 0.012 + 9, z * 0.012) * 0.5 + 0.2) * 0.6);
@@ -118,6 +127,13 @@ const World = (() => {
           xs.forEach((x, i) => w.addHouse({ kind: 'house', variant: (i + 3) % 5, x: x + 4, z: -41, rot: Math.PI, village: true }));
           w.addHouse({ kind: 'pound', x: 142, z: -55, rot: -Math.PI / 2 });
           w.addSign('Maple Street', 50, -60, Math.PI / 2);
+          if (Env.school) w.addHouse({ kind: 'school', x: SCHOOL.x, z: SCHOOL.z, rot: SCHOOL.rot });
+          if (Env.playground) w.addPlayground(PLAY);
+          w.addFair(FAIR);
+          // box traps around the garden keep weasels and other pests off the farmer's carrots
+          for (const [lx, lz] of [[-7.3, -1.5], [7.3, 1.8], [1.5, -6.4]]) { const [x, z] = toWorld(GARDEN.x, GARDEN.z, GARDEN.rot, lx, lz); w.addBoxTrap(x, z, Math.atan2(x - GARDEN.x, z - GARDEN.z)); }
+          // fish traps in the pond and the lake
+          for (const [L, a, d] of [[POND, 0.6, 0.45], [POND, 3.4, 0.5], [LAKE, 1.2, 0.5], [LAKE, 4.3, 0.55]]) w.addFishTrap(L.x + Math.cos(a) * L.r * d, L.z + Math.sin(a) * L.r * d);
           w.scatter({ type: 'hay', n: 6, sample: (r) => { const a = r() * TAU, d = 11 + r() * 8; return [BARN.x + Math.cos(a) * d, BARN.z + Math.sin(a) * d]; }, test: (x, z) => pathDist(x, z, PATH) > 2.5 && !inGarden(x, z, 2) && !inPen(x, z, 1.5), gap: 3 });
           const orchard = []; for (let i = 0; i < 3; i++) for (let j = 0; j < 4; j++) orchard.push([22 + (i - 1) * 10, -92 + j * 10]);
           w.scatter({ type: 'apple', variants: [0, 1], n: orchard.length, sample: (r, k) => [orchard[k][0] + (r() - 0.5) * 2, orchard[k][1] + (r() - 0.5) * 2], gap: 3, spot: 'apple', spotR: 2.6, scale: [1.05, 1.3] });
@@ -160,11 +176,21 @@ const World = (() => {
           { sp: 'otter', n: 2, home: [LAKE.x, LAKE.z], range: 30, water: true },
           { sp: 'raccoon', n: 1, home: [80, 20], range: 30 },
           { sp: 'hedgehog', n: 2, home: [30, -40], range: 30 },
+          // pests that sneak into the farmer's garden for carrots
+          { sp: 'weasel', n: 2, home: [-8, -84], range: 22 },
+          { sp: 'bunny', n: 2, home: [-2, -66], range: 18 },
         ],
-        ambient: [{ sp: 'bunny', w: 3, kids: 1 }, { sp: 'deer', w: 2, kids: 1 }, { sp: 'squirrel', w: 2 }, { sp: 'fox', w: 1 }, { sp: 'raccoon', w: 1 }, { sp: 'hedgehog', w: 1 }, { sp: 'duck', w: 2, water: true, kids: 3 }, { sp: 'swan', w: 1, water: true }, { sp: 'otter', w: 1, water: true }],
+        ambient: [{ sp: 'bunny', w: 3, kids: 1 }, { sp: 'deer', w: 2, kids: 1 }, { sp: 'squirrel', w: 2 }, { sp: 'fox', w: 1 }, { sp: 'raccoon', w: 1 }, { sp: 'hedgehog', w: 1 }, { sp: 'weasel', w: 1 }, { sp: 'duck', w: 2, water: true, kids: 3 }, { sp: 'swan', w: 1, water: true }, { sp: 'otter', w: 1, water: true }],
         foods: { grass: 4, worm: 3, apple: 3, carrot: 3, berries: 3, acorn: 2, pinecone: 1, smallfish: 3, fish: 2, pumpkin: AUTUMN ? 2 : 0 },
         walk: [[10, -2], [-30, -12], [18, 16], [25, -70], [-50, -12], [70, -55], [100, -55], [126, -55], [40, 10], [-20, 30], [60, -30], [-60, 40]],
         villageWalk: [[60, -55], [80, -55], [100, -55], [120, -55], [130, -55]],
+        // places for town life (jobs, school, the fair)
+        town: {
+          schoolRoute: [[78, -57], [78, -92]], schoolyard: SCHOOLYARD, commute: [-48, -25], commuteFar: [-150, -12], barn: [BARN.x, BARN.z], garden: GARDEN,
+          pens: { horse: [PADDOCK, 'e'], pig: [PIGPEN, 'n'], goat: [GOATPEN, 'w'], chicken: [COOP, 'n'] }, pond: POND, lake: LAKE, fair: FAIR, village: VILLAGE,
+          fairFrom: [[20, -28], [-8, -4], [18, 16], [42, 40], [48, -55]],
+          scoutSpots: [[-110, -110], [-140, 20], [120, 90], [10, 120], [150, 20], [10, 50], [22, -76], [80, 20], [30, -40], [-8, -84]],
+        },
       };
     },
 
@@ -465,6 +491,7 @@ const World = (() => {
       id, def, group, out, grid: new Map(), spots: { apple: [], acorn: [], pinecone: [], berries: [], carrot: [], pumpkin: [] },
       placed: new Map(), disposables: [], cover: [], treeGrid: new Map(), houses: [], rooms: [], lanterns: [], blockers: [],
       gates: [], enclosures: [], anims: [], events: [], tiles: new Map(), feats: new Map(), own: null, stat: newOwner('static'), room: null,
+      traps: [], fishTraps: [], fair: null, playground: null, school: null,
     };
     const r = rng(seed * 7 + 1);
     const spawn = def.spawn;
@@ -692,6 +719,9 @@ const World = (() => {
       room.stalls = (iu.stalls || []).map((p) => ({ x: ox + p.x, z: p.z, w: p.w, d: p.d, yaw: p.yaw, door: p.door, entry: p.entry ? { x: ox + p.entry.x, z: p.entry.z } : null }));
       room.light = iu.light ? { x: ox + iu.light.x, y: iu.light.y, z: iu.light.z } : { x: ox, y: 2.2, z: 0 };
       room.ball = iu.ball || null;
+      room.school = rec.kind === 'school';
+      room.seats = (iu.seats || []).map((p) => ({ x: ox + p.x, z: p.z, yaw: p.yaw }));
+      room.teacher = iu.teacher ? { x: ox + iu.teacher.x, z: iu.teacher.z, yaw: iu.teacher.yaw } : null;
       const colOf = (c) => (c.box ? { box: true, x: ox + c.x, z: c.z, hw: c.hw, hd: c.hd, rot: c.rot || 0 } : { x: ox + c.x, z: c.z, r: c.r });
       for (const c of iu.colliders || []) room.cols.push(addCollider(colOf(c), null));
       for (const p of room.pens) if (p.rawCol) { p.doorCol = addCollider(colOf(p.rawCol), null); p.doorCol.off = true; room.cols.push(p.doorCol); }
@@ -809,8 +839,8 @@ const World = (() => {
     w.addSign = (text, x, z, rot) => w.addObj(Env.sign(text), x, z, rot);
     w.addScarecrow = (x, z, rot) => { w.addObj(Env.scarecrow(), x, z, rot); addCollider({ x, z, r: 0.25 }); };
     w.addHouse = (spec) => {
-      const pound = spec.kind === 'pound';
-      const g = pound ? Env.pound() : Env.house(spec.variant);
+      const pound = spec.kind === 'pound', school = spec.kind === 'school';
+      const g = pound ? Env.pound() : school ? Env.school() : Env.house(spec.variant);
       const ud = g.userData, y = H(spec.x, spec.z);
       g.position.set(spec.x, y - 0.03, spec.z); g.rotation.y = spec.rot; out.add(shade(g)); if (w.own) w.own.objs.push(g);
       addCollider({ box: true, x: spec.x, z: spec.z, hw: ud.hw, hd: ud.hd, co: Math.cos(spec.rot), si: Math.sin(spec.rot) });
@@ -819,12 +849,13 @@ const World = (() => {
       const [dx, dz] = toWorld(spec.x, spec.z, spec.rot, ud.outside.x, ud.outside.z);
       const rec = {
         id: w.houses.length, kind: spec.kind, pound, variant: spec.variant, village: !!spec.village, x: spec.x, z: spec.z, rot: spec.rot, group: g,
-        name: pound ? 'the animal pound' : `the ${HOUSE_COLORS[spec.variant]} house`,
+        name: pound ? 'the animal pound' : school ? 'the school' : `the ${HOUSE_COLORS[spec.variant]} house`,
         door: { x: dx, z: dz, yaw: spec.rot }, doorMesh: ud.door || null, room: null, own: w.own,
       };
       if (w.own) rec.lazy = 'house';
-      else makeRoom(rec, pound ? Env.poundInterior() : Env.interior(spec.variant), ROOM_X + (slot++) * 40);
+      else makeRoom(rec, pound ? Env.poundInterior() : school ? Env.schoolInterior() : Env.interior(spec.variant), ROOM_X + (slot++) * 40);
       w.houses.push(rec);
+      if (school) { w.school = rec; return rec; }
       if (!pound) {
         // front yard: picket fence with a gap at the walk; back yard: a pen with a gate for outdoor pets
         const fz = ud.d / 2 + 4.2, fw = ud.w / 2 + 2;
@@ -854,6 +885,77 @@ const World = (() => {
         w.addSign('Animal Pound and Vet', sx, sz, spec.rot);
       }
       return rec;
+    };
+
+    /* town things: playground, adoption fair, traps */
+    // things built with their doors open (traps, fair pens) start out held open, so they can swing shut later
+    const startOpen = (g) => { w.anims.push({ group: g, which: undefined, t: 1, hold: 1e9, speed: 2.2 }); Env.setDoors(g, 1); };
+    const colTo = (x0, z0, rot, c) => { const [x, z] = toWorld(x0, z0, rot, c.x, c.z); return c.box ? { box: true, x, z, hw: c.hw, hd: c.hd, rot: rot + (c.rot || 0) } : { x, z, r: c.r }; };
+    w.addPlayground = (P0) => {
+      const g = Env.playground(), ud = g.userData;
+      w.addObj(g, P0.x, P0.z, P0.rot || 0);
+      for (const c of ud.colliders || []) addCollider(colTo(P0.x, P0.z, P0.rot || 0, c));
+      if (!w.own) markPlaced(P0.x, P0.z, Math.max(ud.w || 14, ud.d || 10) + 2);
+      const spots = (ud.spots || []).map((q) => { const [x, z] = toWorld(P0.x, P0.z, P0.rot || 0, q.x, q.z); return { x, z, yaw: (q.yaw || 0) + (P0.rot || 0), kind: q.kind, busy: null }; });
+      w.playground = { x: P0.x, z: P0.z, rot: P0.rot || 0, obj: g, spots, swings: ud.swings || [], seesaw: ud.seesaw || null };
+      return w.playground;
+    };
+    // the adoption fair: a banner, tents, a table, balloons and pens for animals who need a home
+    w.addFair = (F) => {
+      const rot = F.rot || 0, Pt = (lx, lz) => toWorld(F.x, F.z, rot, lx, lz), y0 = H(F.x, F.z);
+      const put = (obj, lx, lz, r2, keepCols = true) => { if (!obj) return null; const [x, z] = Pt(lx, lz); w.addObj(obj, x, z, rot + (r2 || 0)); if (keepCols) for (const c of obj.userData.colliders || []) addCollider(colTo(x, z, rot + (r2 || 0), c)); return obj; };
+      const fair = { x: F.x, z: F.z, rot, pens: [], table: null, y: y0 };
+      if (Env.fairBanner) put(Env.fairBanner('ADOPTION FAIR'), -F.hw + 0.5, 0, -Math.PI / 2);
+      if (Env.fairTent) { put(Env.fairTent(0xd94c5c), 4, -4); put(Env.fairTent(0x3f7fd0), 4, 4); put(Env.fairTent(0xe9a93b), -3.5, -6); }
+      if (Env.fairTable) { put(Env.fairTable(), -3.5, -6, Math.PI / 2); const [tx, tz] = Pt(-2.6, -6); fair.table = { x: tx, z: tz }; const [hx, hz] = Pt(-4.6, -6); fair.helper = { x: hx, z: hz, yaw: rot + Math.PI / 2 }; }
+      if (Env.balloons) { put(Env.balloons(), -F.hw + 0.4, -2.6, 0, false); put(Env.balloons(), -F.hw + 0.4, 2.6, 0.7, false); put(Env.balloons(), -1.6, -7.4, 1.4, false); }
+      if (Env.playPen) {
+        const pr = rot - Math.PI / 2;   // the pen gates face the visitors (toward -x of the fair)
+        for (const lz of [-5.2, -2.4, 2.4, 5.2]) {
+          const g = Env.playPen(2.2, 1.8), ud = g.userData, [x, z] = Pt(4, lz);
+          w.addObj(g, x, z, pr);
+          for (const c of ud.colliders || []) addCollider(colTo(x, z, pr, c));
+          const dc = ud.doorCollider ? addCollider(colTo(x, z, pr, ud.doorCollider)) : null;
+          if (dc) dc.off = true;
+          startOpen(g);
+          const [ex, ez] = toWorld(x, z, pr, ud.entry ? ud.entry.x : 0, ud.entry ? ud.entry.z : 1.4);
+          const ins = ud.inside || { x: 0, z: 0, hw: 0.9, hd: 0.7 };
+          fair.pens.push({ x, z, rot: pr, obj: g, doorCol: dc, entry: { x: ex, z: ez }, hw: ins.hw, hd: ins.hd, open: true, animal: null, player: false });
+        }
+      }
+      if (!w.own) markPlaced(F.x, F.z, Math.hypot(F.hw, F.hd) * 2);
+      w.fair = fair;
+      return fair;
+    };
+    // a humane box trap; set means the door is up and the bait is waiting
+    w.addBoxTrap = (x, z, yaw) => {
+      if (!Env.boxTrap) return null;
+      const g = Env.boxTrap(), ud = g.userData;
+      w.addObj(g, x, z, yaw, H(x, z) - 0.01);
+      const cols = (ud.colliders || []).map((c) => addCollider(Object.assign(colTo(x, z, yaw, c), { h: (ud.h || 0.38) + 0.05, y0: H(x, z) })));
+      const doorCol = ud.doorCollider ? addCollider(Object.assign(colTo(x, z, yaw, ud.doorCollider), { h: (ud.h || 0.38) + 0.05, y0: H(x, z) })) : null;
+      if (doorCol) doorCol.off = true;
+      startOpen(g);
+      const ins = ud.inside || { x: 0, z: 0, hw: 0.14, hd: 0.42 };
+      const [cx, cz] = toWorld(x, z, yaw, ins.x, ins.z), [ex, ez] = toWorld(x, z, yaw, ud.entry ? ud.entry.x : 0, ud.entry ? ud.entry.z : 0.7);
+      const t = { kind: 'box', obj: g, x, z, yaw, cx, cz, hw: ins.hw, hd: ins.hd, entry: { x: ex, z: ez }, set: true, caught: null, cols, doorCol, own: w.own, h: ud.h || 0.38 };
+      w.traps.push(t);
+      return t;
+    };
+    // a wire fish trap on the bottom, with a float on the surface
+    w.addFishTrap = (x, z) => {
+      if (!Env.fishTrap || !def.water) return null;
+      const g = Env.fishTrap(), ud = g.userData, hb = H(x, z);
+      if (hb > -0.7) return null;
+      const y = hb + (ud.r || 0.18) + 0.02;
+      g.position.set(x, y, z); g.rotation.y = hash2(Math.round(x), Math.round(z), 3) * TAU; out.add(shade(g)); if (w.own) w.own.objs.push(g);
+      const buoy = ud.buoy || g.getObjectByName('buoy'), rope = ud.rope || g.getObjectByName('rope');
+      if (buoy) { buoy.position.set(0, WATER - y + 0.02, 0); buoy.castShadow = false; }
+      const ry = ud.ropeTop ? ud.ropeTop.y : (ud.r || 0.18);
+      if (rope) { rope.position.y = ry; rope.scale.y = Math.max(0.1, WATER - y + 0.02 - ry); }
+      const ft = { obj: g, x, z, y, slots: ud.slots || [], fish: 1, fishObjs: [], own: w.own };
+      w.fishTraps.push(ft);
+      return ft;
     };
 
     /* the hand-made middle */
@@ -1014,6 +1116,9 @@ const World = (() => {
       const [cx, cz] = Pt(-12, 15);
       const coop = w.addEnclosure({ x: cx, z: cz, hw: 4, hd: 3.2, rot: f.rot, style: 'wire', gate: 'e', coop: true });
       for (let i = 0; i < 4; i++) { const [x, z] = Pt(-2 + i * 2.2, -16 - (i % 2)); placeProp(w.own, { sink: 0.05 }, 'hay', 0, x, z, H(x, z), 1, i); addCollider({ x, z, r: 0.7 }); }
+      // the farmer's carrot garden, with traps to keep the pests out
+      const [gx, gz] = Pt(1, 6); w.addGarden({ x: gx, z: gz, w: 6, d: 4.5, rot: f.rot });
+      for (const lx of [-4.6, 4.6]) { const [x, z] = Pt(1 + lx, 6.5); w.addBoxTrap(x, z, Math.atan2(x - gx, z - gz)); }
       w.events.push({ kind: 'pen', own: w.own.key, pen, sp: pigs ? 'pig' : goats ? 'goat' : 'horse', n: pigs ? 2 : goats ? 3 : 2, kids: pigs ? 2 : 1 });
       w.events.push({ kind: 'pen', own: w.own.key, pen: coop, sp: 'chicken', n: 3, kids: 1 });
     }
@@ -1022,6 +1127,10 @@ const World = (() => {
       w.blockers = w.blockers.filter((b) => b.own !== own);
       w.gates = w.gates.filter((g) => g.own !== own);
       w.enclosures = w.enclosures.filter((e) => e.own !== own);
+      const gone = new Set(w.traps.filter((t) => t.own === own).map((t) => t.obj));
+      if (gone.size) w.anims = w.anims.filter((a) => !gone.has(a.group));
+      w.traps = w.traps.filter((t) => t.own !== own);
+      w.fishTraps = w.fishTraps.filter((t) => t.own !== own);
       for (const h of w.houses.filter((q) => q.own === own)) { if (h.room && h.room === w.dynRoom) { dropRoom(h.room); w.dynRoom = null; } }
       w.houses = w.houses.filter((h) => h.own !== own);
       w.lanterns = w.lanterns.filter((l) => !own.objs.includes(l));
@@ -1199,11 +1308,13 @@ const World = (() => {
       }
     };
     // hold a door open (open = true) or let it close
-    w.doorTo = (group, which, open) => {
+    w.doorTo = (group, which, open, speed) => {
       if (!group) return;
       let a = w.anims.find((q) => q.group === group && q.which === which);
       if (!a) { if (!open) return; w.anims.push((a = { group, which, t: 0, hold: 0, speed: 2.2 })); }
       a.hold = open ? 1e9 : 0;
+      if (speed) a.speed = speed;
+      return a;
     };
     // open a building's door for a while (which = door index, or all of them)
     w.openDoor = (group, hold = 1.2, which, speed = 2.6) => {

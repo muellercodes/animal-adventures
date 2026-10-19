@@ -177,7 +177,7 @@ const Animals = (() => {
 
   // ---------- skin weights for a loft part ----------
   // bones: ordered names along the path. Each bone after the first takes over at the projection of its pivot onto the path.
-  function skinLoft(L, names, rest, blend) {
+  function skinStarts(L, names, rest) {
     const R = L.rings.length, starts = [];
     for (let k = 0; k < names.length; k++) {
       if (k === 0) { starts.push(-1e9); continue; }
@@ -186,18 +186,21 @@ const Animals = (() => {
       for (let i = 0; i < R; i++) { const d = L.rings[i].C.distanceToSquared(p); if (d < best) { best = d; bi = i; } }
       starts.push(L.rings[bi].arc);
     }
-    const ringW = [];
-    for (let i = 0; i < R; i++) {
-      const s = L.rings[i].arc;
-      let k = 0;
-      while (k < names.length - 1 && s >= starts[k + 1]) k++;
-      const w = new Map();
-      w.set(k, 1);
-      if (k + 1 < names.length) { const f = 1 - sstep(starts[k + 1] - blend, starts[k + 1] + blend, s); const g = 1 - f; if (g > 0.001) { w.set(k + 1, g); w.set(k, f); } }
-      if (k > 0) { const g = 1 - sstep(starts[k] - blend, starts[k] + blend, s); if (g > 0.001) { const cur = w.get(k); w.set(k - 1, g * cur); w.set(k, cur * (1 - g)); } }
-      ringW.push(Array.from(w.entries()).map(([kk, ww]) => [names[kk], ww]));
-    }
-    return ringW;
+    return starts;
+  }
+  // bone weights at arc length s along the path
+  function skinAt(starts, names, s, blend) {
+    let k = 0;
+    while (k < names.length - 1 && s >= starts[k + 1]) k++;
+    const w = new Map();
+    w.set(k, 1);
+    if (k + 1 < names.length) { const f = 1 - sstep(starts[k + 1] - blend, starts[k + 1] + blend, s); const g = 1 - f; if (g > 0.001) { w.set(k + 1, g); w.set(k, f); } }
+    if (k > 0) { const g = 1 - sstep(starts[k] - blend, starts[k] + blend, s); if (g > 0.001) { const cur = w.get(k); w.set(k - 1, g * cur); w.set(k, cur * (1 - g)); } }
+    return Array.from(w.entries()).map(([kk, ww]) => [names[kk], ww]);
+  }
+  function skinLoft(L, names, rest, blend) {
+    const starts = skinStarts(L, names, rest);
+    return L.rings.map((r) => skinAt(starts, names, r.arc, blend));
   }
 
   // ---------- geometry assembly ----------
@@ -3761,6 +3764,177 @@ const Animals = (() => {
     };
   };
 
+  // ===== WEASEL (long-tailed weasel) =====
+  ids.push('weasel');
+  SPEC.weasel = () => {
+    const xF = 0.0125, xH = 0.0135;
+    const K = {
+      back: hex(0x40240F), brown: hex(0x593216), warm: hex(0x70411D), cream: hex(0xEEDCA6), throat: hex(0xF3E7C2),
+      tip: hex(0x15110F), foot: hex(0x46280F), ear: hex(0x52301A), earRim: hex(0xB89A72),
+    };
+    // whiskers: three a side from the muzzle
+    const wh = [[0.0, 0.0, 0.024], [0.002, -0.0015, 0.022], [0.004, -0.003, 0.018]].map((w) => ({
+      kind: 'tube', bone: 'head', mirror: true, segs: 3, col: 0x2A2019,
+      pts: [[0.0057, 0.0825 + w[1], 0.157], [0.0057 + w[2] * 0.5, 0.0835 + w[1] + w[0], 0.155 - w[2] * 0.15], [0.0057 + w[2], 0.0825 + w[1] + w[0] * 2, 0.151 - w[2] * 0.35]],
+      radii: [0.0004, 0.0003, 0.00015],
+    }));
+    return {
+      size: { length: 0.38, height: 0.13, radius: 0.06, eyeHeight: 0.11 },
+      tex: [256, 256], rough: 0.8,
+      detail: { kind: 'fur', tile: 0.008, amt: 0.14, bump: 0.25, sheen: 0.3 },
+      shell: { parts: ['body', 'head', 'tail'], len: 0.0042, n: 3, lean: 0.45, babyLen: 1.9 },
+      bones: [
+        ['hips', null, 0, 0.0485, -0.018],
+        ['rump', 'hips', 0, 0.045, -0.062],
+        ['chest', 'hips', 0, 0.046, 0.03],
+        ['neck', 'chest', 0, 0.05, 0.064],
+        ['neck2', 'neck', 0, 0.064, 0.085],
+        ['head', 'neck2', 0, 0.084, 0.104],
+        ['tail1', 'rump', 0, 0.043, -0.092],
+        ['tail2', 'tail1', 0, 0.044, -0.13],
+        ['tail3', 'tail2', 0, 0.047, -0.168],
+        ['thighL', 'rump', xH, 0.038, -0.066, 1],
+        ['shinL', 'thighL', xH + 0.0015, 0.0225, -0.054, 1],
+        ['hmetaL', 'shinL', xH + 0.0015, 0.009, -0.0725, 1],
+        ['hpawL', 'hmetaL', xH + 0.001, 0.0033, -0.06, 1],
+        ['armL', 'chest', xF, 0.036, 0.04, 1],
+        ['foreL', 'armL', xF + 0.001, 0.021, 0.033, 1],
+        ['fmetaL', 'foreL', xF + 0.001, 0.007, 0.041, 1],
+        ['fpawL', 'fmetaL', xF + 0.001, 0.0032, 0.049, 1],
+        ['earL', 'head', 0.0118, 0.0958, 0.106, 1],
+      ],
+      fur: [
+        // long slim tube: rounded rump, a hump over the loins, long neck rising to the head
+        { name: 'body', bones: ['rump', 'hips', 'chest', 'neck', 'neck2', 'head'], blend: 0.022, segs: 14, cap0: 3, capLen0: 0.8, keys: [
+          [0, 0.042, -0.096, 0.0095, 0.009, 0.0095],
+          [0, 0.0438, -0.085, 0.0155, 0.0155, 0.0155],
+          [0, 0.047, -0.066, 0.0182, 0.0178, 0.0182],
+          [0, 0.0515, -0.04, 0.0178, 0.0178, 0.0182],
+          [0, 0.0525, -0.014, 0.0172, 0.0174, 0.0178],
+          [0, 0.0505, 0.012, 0.0168, 0.0168, 0.0174],
+          [0, 0.047, 0.036, 0.0166, 0.0164, 0.0178],
+          [0, 0.0505, 0.057, 0.0154, 0.0152, 0.0164],
+          [0, 0.0595, 0.074, 0.015, 0.0148, 0.0154],
+          [0, 0.0715, 0.089, 0.0146, 0.0142, 0.0144],
+          [0, 0.0835, 0.101, 0.0142, 0.0136, 0.0136],
+        ] },
+        // small flat head: broad cheeks, flat crown, short tapering muzzle held a little low
+        { name: 'head', bones: ['head'], segs: 14, cap0: 2, cap1: 3, capLen1: 0.75, keys: [
+          [0, 0.0875, 0.099, 0.0138, 0.0118, 0.012, 2.2],
+          [0, 0.0898, 0.112, 0.0172, 0.013, 0.0122, 2.4],
+          [0, 0.0893, 0.124, 0.0164, 0.0124, 0.0113, 2.5],
+          [0, 0.0871, 0.137, 0.0132, 0.0101, 0.0095, 2.4],
+          [0, 0.0846, 0.149, 0.009, 0.0077, 0.0073, 2.2],
+          [0, 0.0824, 0.158, 0.0062, 0.0055, 0.0051, 2.1],
+        ] },
+        // tail about half the body length, carried low and straight, the black tip a little bushier
+        { name: 'tail', bones: ['rump', 'tail1', 'tail2', 'tail3'], blend: 0.01, segs: 10, cap1: 3, capLen1: 1.1, fuzz: 0.06, keys: [
+          [0, 0.0425, -0.084, 0.0085, 0.0085, 0.0085],
+          [0, 0.043, -0.1, 0.0066, 0.0066, 0.0066],
+          [0, 0.044, -0.128, 0.006, 0.006, 0.006],
+          [0, 0.0455, -0.156, 0.0062, 0.0062, 0.0062],
+          [0, 0.0475, -0.182, 0.0074, 0.0074, 0.0074],
+          [0, 0.049, -0.203, 0.0068, 0.0068, 0.0068],
+        ] },
+        { name: 'hleg', mirror: true, bones: ['rump', 'thighL', 'shinL', 'hmetaL', 'hpawL'], blend: 0.004, segs: 10, cap1: 2, keys: [
+          [xH - 0.004, 0.044, -0.069, 0.0105, 0.0125, 0.0125],
+          [xH, 0.035, -0.064, 0.009, 0.0102, 0.0098],
+          [xH + 0.0015, 0.0235, -0.0555, 0.0066, 0.007, 0.007],
+          [xH + 0.0015, 0.0155, -0.064, 0.0053, 0.0053, 0.0053],
+          [xH + 0.0015, 0.009, -0.072, 0.0047, 0.0045, 0.0045],
+          [xH + 0.0015, 0.0042, -0.066, 0.0053, 0.0032, 0.003],
+          [xH + 0.001, 0.0034, -0.055, 0.005, 0.003, 0.0028],
+        ] },
+        { name: 'fleg', mirror: true, bones: ['chest', 'armL', 'foreL', 'fmetaL', 'fpawL'], blend: 0.004, segs: 10, cap1: 2, keys: [
+          [xF - 0.003, 0.042, 0.042, 0.0088, 0.0105, 0.0105],
+          [xF, 0.034, 0.039, 0.007, 0.0075, 0.0075],
+          [xF + 0.001, 0.0215, 0.0335, 0.0055, 0.0057, 0.0057],
+          [xF + 0.001, 0.0135, 0.0365, 0.0047, 0.0047, 0.0047],
+          [xF + 0.001, 0.0068, 0.041, 0.0045, 0.0043, 0.0043],
+          [xF + 0.001, 0.0035, 0.048, 0.0051, 0.0031, 0.0029],
+          [xF + 0.001, 0.003, 0.0545, 0.0042, 0.0026, 0.0024],
+        ] },
+        // short broad rounded ears set low on the back corners of the head
+        { name: 'ear', mirror: true, bones: ['earL'], segs: 8, sub: 2, cap1: 2, capLen1: 0.8, keys: [
+          [0.0111, 0.0938, 0.1065, 0.0064, 0.0029, 0.0022],
+          [0.0134, 0.0985, 0.1052, 0.0062, 0.0027, 0.002],
+          [0.0152, 0.1021, 0.104, 0.0046, 0.0021, 0.0016],
+        ] },
+      ],
+      accent: [
+        // pink nose leather
+        { kind: 'sphere', bone: 'head', c: [0, 0.0836, 0.1625], r: 0.0032, s: [1.3, 0.9, 0.75], col: 0xC98584 },
+        ...wh,
+      ],
+      accentRough: 0.35,
+      eyes: [{ bone: 'head', p: [0.0112, 0.0946, 0.1325], r: 0.0034, dir: [0.72, 0.36, 0.6], iris: 0x120B07, irisR: 0.95, pupilR: 0.55, lid: [0.78, -0.78, 0.15] }],
+      mouth: [0, 0.0785, 0.157],
+      paint(P, C) {
+        const fine = noise(P.x * 900, P.y * 900, P.z * 900);
+        // ragged but crisp edge between the brown back and the cream underside
+        const wob = (noise(P.x * 260 + 3, P.y * 260, P.z * 260) - 0.5) * 0.12;
+        cset(C, K.brown);
+        cmix(C, K.back, sstep(0.35, 0.95, P.up) * 0.7);
+        cmix(C, K.warm, sstep(0.55, 0.2, Math.abs(P.up - 0.05)) * 0.35);
+        switch (P.part) {
+          case 'body': {
+            // the cream runs up the throat and the underside of the neck, then narrows to the belly
+            const line = lerp(-0.5, -0.02, sstep(0.0, 0.07, P.z)) + wob;
+            cmix(C, mixc(K.cream, K.throat, sstep(0.04, 0.09, P.z)), sstep(line + 0.035, line - 0.035, P.up));
+            break;
+          }
+          case 'head': {
+            // chin, lower jaw and upper lip cream; dark muzzle top and crown
+            const line = lerp(-0.08, -0.32, sstep(0.119, 0.154, P.z)) + wob;
+            cmix(C, K.throat, sstep(line + 0.04, line - 0.04, P.up));
+            cmix(C, K.back, sstep(0.3, 0.8, P.up) * sstep(0.124, 0.149, P.z) * 0.5);
+            break;
+          }
+          case 'tail':
+            cmix(C, K.back, sstep(0.0, 0.8, P.up) * 0.4);
+            cmix(C, K.tip, sstep(P.len - 0.05, P.len - 0.04, P.arc + wob * 0.05));
+            break;
+          case 'hleg': case 'fleg':
+            cmix(C, K.foot, sstep(0.02, 0.008, P.y) * 0.7);
+            if (P.part === 'fleg') cmix(C, K.cream, sstep(0.032, 0.042, P.y) * sstep(0.0, -0.6, P.nz) * 0.6);
+            break;
+          case 'ear':
+            cset(C, K.ear);
+            cmix(C, K.earRim, sstep(0.006, 0.01, P.arc) * 0.6);
+            break;
+        }
+        cmul(C, 0.92 + 0.14 * grain(P, 300, 90) + 0.05 * (fine - 0.5));
+        C.ro = 0.72 + 0.12 * fine;
+        C.fl = P.part === 'tail' ? lerp(0.55, 1, sstep(P.len - 0.06, P.len - 0.03, P.arc)) : P.part === 'body' ? 0.7 : P.part === 'head' ? 0.35 : 0.25;
+      },
+      // kits: softer, grayer fuzz with a paler belly and a gray tail tip
+      babyPaint(P, C) {
+        const kit = hex(0x76604F), kitHi = hex(0x968070);
+        const g = grain(P, 200, 60);
+        const under = P.part === 'body' || P.part === 'head' ? sstep(-0.1, -0.5, P.up) : 0;
+        cmix(C, mixc(kit, kitHi, g), 0.5 * (1 - under));
+        cmix(C, hex(0xEDE3CC), under * 0.5);
+        C.fl = Math.min(1, C.fl * 1.4 + 0.1);
+      },
+      baby: { head: 1.45, muzzle: 0.7, eye: 1.12, ear: 1.05, neck: [0.7, 1.15], body: [1.12, 1.12, 0.78], leg: [0.78, 1.18], tail: 0.6, fluff: 0.0012 },
+      anim: {
+        type: 'legged', walk: 1.1, trot: 2.0, run: 4.2, stride: 0.12, strideMax: 2.4, maxRate: 10,
+        duty: [0.52, 0.42, 0.3], lift: [0.01, 0.012], flexF: 1.3, flexH: 0.8,
+        // a low quick trot when walking; a bounding gallop with the front and hind feet in pairs
+        gaits: { w: [0.5, 1.0, 0.0, 0.5], g: [0.5, 0.53, 0.0, 0.03] },
+        bob: [0.0015, 0.0025, 0.013], pitchRun: 0.24, flexRun: 0.55, rumpFlex: 1.0, roll: 0.02, breathe: 0.0012,
+        neck: ['neck', 'neck2', 'head'], neckDist: [0.45, 0.35, 0.2], nod: 0.03, runNeck: 0.25, trotNeck: 0.12,
+        eatY: 0.008, eatElev: [-35, -65, -80], chew: 0.06, chewRate: 14,
+        tail: ['tail1', 'tail2', 'tail3'], tailRun: [0.05, 0.06, 0.06], tailFlex: 0.8, tailIdle: [-0.12, 0.06, 0.08], tailSway: 0.1, tailWalk: 0.1, tailFlick: 0.2,
+        ears: ['earL', 'earR'], earBack: 0.4, lookAmp: 0.9,
+        floatDepth: 0.06, swimHead: -0.5,
+        // stands up on the hind legs now and then to look around
+        sitUp: 1.15, sitDrop: 0.026, sitNeckD: [-0.8, 0.3, 0.42], sitPaws: [0.45, 0.3, 1.7], sitSome: 9, sitRump: 0.45,
+        sleep: { style: 'curl', neck: [2.7, 0.45], tail: [2.6, -0.05], bend: 1.35, roll: 0.3, rumpBend: 0.55 }, wag: 0.2,
+      },
+    };
+  };
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -4072,7 +4246,9 @@ const Animals = (() => {
       // hop pitch, sit-up, eat pitch, swim pitch
       let hp = 0;
       if (hop) hp = (S.up > 0 ? lerp(0, hop.up.pitch, S.up) : lerp(0, hop.down.pitch, -S.up)) * air + S.hopW * (hop.gatherPitch || 0);
-      const sitUp = (P.sitUp || 0) * still * ground * (1 - S.eat) * (1 - sl) * (1 - sick) * (0.7 + 0.3 * sstep(-0.3, 0.6, Math.sin(it * 0.21 + R.rnd * 40)));
+      let sitUp = (P.sitUp || 0) * still * ground * (1 - S.eat) * (1 - sl) * (1 - sick) * (0.7 + 0.3 * sstep(-0.3, 0.6, Math.sin(it * 0.21 + R.rnd * 40)));
+      // sitSome (s): only stands up now and then while idle, once every s seconds or so
+      if (P.sitSome) { const f = fract(it / P.sitSome + R.rnd * 5); sitUp *= sstep(1.0, 2.0, st.idle || 0) * sstep(0.0, 0.07, f) * (1 - sstep(0.38, 0.46, f)); }
       const eatP = S.eat * (P.eatPitch || 0) * ground;
       pitch += hp - sitUp + eatP + swim * (P.swimPitch == null ? -0.08 : P.swimPitch) * (1 - back);
       // swimming otter: vertical undulation travels down the body
@@ -4098,7 +4274,7 @@ const Animals = (() => {
       if (chest) chest.rotation.set(
         lerp(flex + breathe * 0.6 + (P.chestEat || 0) * S.eat, sp1 ? sp1[1] : 0, sl) + sw * Math.sin(S.sph * TAU - 1.2) * 0.8 + breathe * 2 * sl,
         S.lean * 0.06 + (SL.bend || 0) * sleepSide * sl, -roll * 0.6 * (1 - sl));
-      if (rump) rump.rotation.set(lerp(-flex * 0.5, sp1 ? sp1[4] || 0 : 0, sl), 0, 0);
+      if (rump) rump.rotation.set(lerp(-flex * (P.rumpFlex == null ? 0.5 : P.rumpFlex) + sitUp * (P.sitRump || 0), sp1 ? sp1[4] || 0 : 0, sl), -(SL.rumpBend || 0) * sleepSide * sl * (1 - swim), 0);
       // lateral body wave (sprawlers): spine bones yaw with a traveling wave
       S.wave = damp(S.wave, (P.wave || 0) * (S.move * (1 - air) + swim * 0.8) * (1 - sl), 4, dt);
       for (let i = 0; i < spine.length; i++) {
@@ -4252,7 +4428,7 @@ const Animals = (() => {
         const eatRot = E.eatPose ? lerp(E.eatPose[i], E.drinkPose ? E.drinkPose[i] : d * eatA, swim) : d * eatA;
         let px = eatRot * S.eat + (runLow + nod + hopNeck) * d - (pitch + flex) * (i === 0 ? 1 : 0) * (1 - S.eat);
         px += swim * (P.swimHead == null ? -0.3 : P.swimHead) * d * (1 - S.eat) * (1 - back);
-        px += S.lookP * d + sitUp * (P.sitNeck || 0.5) * d;
+        px += S.lookP * d + sitUp * (P.sitNeckD ? P.sitNeckD[i] : (P.sitNeck || 0.5) * d);
         px += (sick * 0.38 + sn * (last ? 0.7 : 0.3) / Math.max(d, 0.2)) * d;
         px += clb * (CL && CL.neck != null ? CL.neck : -0.3) * d;
         px += back * (BF ? BF.neck : 0.5) * d;
@@ -4284,6 +4460,8 @@ const Animals = (() => {
         lift += swim * (P.tailSwim || 0.25) * (i === 0 ? 1 : 0) + sw * Math.sin(S.sph * TAU - 2 - i * 0.9) * 1.6;
         lift -= sick * (P.tailSick == null ? 0.25 : P.tailSick) * (i === 0 ? 1 : 0.3);
         lift += (P.tailHappy || 0) * hap2 * (i === 0 ? 1 : 0);
+        // tailFlex: the tail base keeps level while the rump arches (bounding gait)
+        if (P.tailFlex && i === 0) lift += P.tailFlex * flex;
         let tx2 = lift + bob * 2 * (1 + k), ty2 = sway - S.lean * 0.05;
         if (clb > 0.001) { tx2 = lerp(tx2, CL.tail ? CL.tail[i] || 0 : 0.1, clb); ty2 *= 1 - clb * 0.7; }
         if (sl > 0.001) { const ss = sl * (1 - swim); tx2 = lerp(tx2, SL.tail[1], ss); ty2 = lerp(ty2, -SL.tail[0] * sleepSide / nT + Math.sin(it * 0.7) * 0.02, ss); }
@@ -4665,10 +4843,14 @@ const Animals = (() => {
       if (b[5]) defs.push({ name: b[0].slice(0, -1) + 'R', parent: b[1] && b[1].endsWith('L') ? b[1].slice(0, -1) + 'R' : b[1], p: new THREE.Vector3(-b[2], b[3], b[4]) });
     }
     if (spec.extraBones) for (const b of spec.extraBones(defs)) defs.push(b);
+    // collar tag bone (always there, so any rig can wear a collar later)
+    const cplan = collarPlan(spec, id, defs);
+    if (cplan) defs.push({ name: 'ctag', parent: cplan.parent, p: cplan.hang.clone() });
     const boneIndex = {}, rest = {};
     defs.forEach((d, i) => { boneIndex[d.name] = i; rest[d.name] = d.p; });
     const ag = babyMaps(spec, defs, rest, boneIndex);
     ag.fluff = ag.B.fluff || 0;
+    if (cplan) collarBaby(ag, cplan);
     // fur parts
     const furBatch = newBatch(ag), lofts = [];
     for (const fp of spec.fur || []) {
@@ -4759,7 +4941,7 @@ const Animals = (() => {
       eyeDefs.push(e);
       eyeDefs.push(Object.assign({}, e, { p: [-e.p[0], e.p[1], e.p[2]], dir: [-e.dir[0], e.dir[1], e.dir[2]], bone: mirrorBoneName(e.bone, boneIndex) }));
     }
-    const A = { id, spec, defs, boneIndex, rest, geos, eyeDefs, det, furParts: furBatch.parts, extras: spec.extras ? spec.extras(rest) : [] };
+    const A = { id, spec, defs, boneIndex, rest, geos, eyeDefs, det, furParts: furBatch.parts, extras: spec.extras ? spec.extras(rest) : [], cplan, ag };
     // eyelid colors (adult, baby): the painted coat right at the eye, unless the spec names one
     if (spec.eyes && spec.eyes[0]) {
       const e = spec.eyes[0], ep = new THREE.Vector3().fromArray(e.p).addScaledVector(new THREE.Vector3().fromArray(e.dir).normalize(), e.r * 1.2);
@@ -5014,6 +5196,7 @@ const Animals = (() => {
     syncShells(R, A);
     // baby down only shows on babies: decide after the new age is set
     if (A.spec.shell && A.spec.shell.babyOnly) setDetail(R, A, R.detail);
+    syncCollar(R, A);
     for (const f of R.hooks) f();
   }
 
@@ -5089,6 +5272,401 @@ const Animals = (() => {
       }
       if (R.shellM[lv]) R.shellM[lv].visible = want;
     }
+    syncCollar(R, A);
+  }
+
+  // ---------- collars for pets ----------
+  // A smooth band around the neck plus a round metal ID tag on a little split ring. The band is a slice of the neck
+  // loft pushed out to its surface and skinned with the same bone weights as the coat under it, so it follows every
+  // pose and the baby proportions (morph 0). Morph 1 lifts it onto the fur shells at detail 2. The tag rides on its own
+  // bone ('ctag', added to every skeleton) that hangs it under gravity with a little swing.
+  // Per species: part (loft), at [boneA, boneB, f] (a point near the loft path), tag (angle around the neck seen from
+  // behind: 0 top, PI throat, PI / 2 side), w (band width), r (tag size), fit (extra gap) relative to the neck radius.
+  const COLLAR = {
+    fox: { at: ['neck2', 'head', 0.0] }, deer: { at: ['neck2', 'head', 0.5] }, moose: { at: ['neck2', 'head', -0.15], r: 0.8 },
+    bunny: { at: ['neck', 'head', 0.5] }, squirrel: { at: ['neck', 'head', 0.45] },
+    horse: { at: ['neck2', 'head', 0.4], r: 0.8 }, pig: { at: ['neck', 'head', 0.5], r: 0.7 }, goat: { at: ['neck2', 'head', 0.4] },
+    otter: { at: ['neck', 'head', 0.3] }, hedgehog: { part: 'head', at: ['neck', 'head', 1.0], r: 0.8, w: 0.75 }, raccoon: { at: ['neck', 'head', 0.3] },
+    weasel: { at: ['neck2', 'head', 0.55] },
+    duck: { at: ['neck', 'neck2', 0.6] }, swan: { at: ['neck', 'neck2', 0.5] }, chicken: { at: ['neck', 'neck2', 0.5] },
+    owl: { at: ['hips', 'neck', 0.97], w: 0.6, r: 0.55 }, parrot: { at: ['neck', 'head', 0.4] },
+    frog: { at: ['chest', 'head', 0.7], tag: PI * 0.62, w: 0.6, r: 0.75 }, lizard: { at: ['neck', 'head', 0.3], tag: PI * 0.6 },
+    turtle: { part: 'neck', at: ['neck', 'head', 0.95] }, snake: { at: ['s0', 's1', 0.5], tag: PI * 0.55 },
+  };
+  // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
+  const COLLAR_N = 20, COLLAR_LIFT = 0.8;
+  // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)
+  function loftFuzz(fp, L, s, th) {
+    const fz = fp.fuzz || 0;
+    if (!fz) return 1;
+    const rs = L.rings, segs = L.segs, fzf = fp.fuzzFreq || 9, len = Math.max(L.len, 1e-6);
+    let i = 0;
+    while (i < rs.length - 2 && rs[i + 1].arc < s) i++;
+    const f = clamp((s - rs[i].arc) / Math.max(1e-9, rs[i + 1].arc - rs[i].arc), 0, 1);
+    const jf = (fract(th / TAU) * segs), j0 = Math.floor(jf), jt = jf - j0;
+    const k = (ii, jj) => { const r = rs[ii], ends = sstep(0, 0.12, r.arc / len) * sstep(1, 0.88, r.arc / len); return 1 + fz * ends * (noise(ii * 0.9 + 0.5, ((jj % segs) / segs) * fzf, 3.7) - 0.45) * 2; };
+    return lerp(lerp(k(i, j0), k(i, j0 + 1), jt), lerp(k(i + 1, j0), k(i + 1, j0 + 1), jt), f);
+  }
+  // surface point and outward normal of a loft at arc s, angle th (rest root space)
+  const _cr = { C: new THREE.Vector3(), S: new THREE.Vector3(), N: new THREE.Vector3(), w: 0, t: 0, b: 0, e: 2 }, _cs = [0, 0], _cs2 = [0, 0];
+  function loftSurf(fp, L, s, th, P, Nrm) {
+    ringAt(L, s, _cr);
+    const k = loftFuzz(fp, L, s, th);
+    sectionPoint(_cr.w, _cr.t, _cr.b, _cr.e, th, _cs);
+    P.copy(_cr.C).addScaledVector(_cr.S, _cs[0] * k).addScaledVector(_cr.N, _cs[1] * k);
+    sectionPoint(_cr.w, _cr.t, _cr.b, _cr.e, th + 0.01, _cs);
+    sectionPoint(_cr.w, _cr.t, _cr.b, _cr.e, th - 0.01, _cs2);
+    const tx = _cs[0] - _cs2[0], ty = _cs[1] - _cs2[1];
+    Nrm.copy(_cr.S).multiplyScalar(-ty).addScaledVector(_cr.N, tx).normalize();
+    return P;
+  }
+  function loftArcNear(L, p) {
+    let best = 1e9, s = 0;
+    const rs = L.rings;
+    for (let i = 0; i < rs.length - 1; i++) {
+      const a = rs[i].C, b = rs[i + 1].C;
+      _v1.subVectors(b, a);
+      const l2 = _v1.lengthSq(), t = l2 > 1e-12 ? clamp(_v2.subVectors(p, a).dot(_v1) / l2, 0, 1) : 0;
+      const d = _v3.copy(a).addScaledVector(_v1, t).distanceToSquared(p);
+      if (d < best) { best = d; s = lerp(rs[i].arc, rs[i + 1].arc, t); }
+    }
+    return s;
+  }
+  // How far other parts (the back of the head, jowls) bulge past the band surface in the plane at arc s, for each
+  // angle in ths. With ag it measures the baby shape: every point goes through its bones' baby maps, and the band
+  // surface is the adult one (pushed out by adultClear) carried along by the neck.
+  const COLLAR_CLEAR = ['head', 'jowl', 'body', 'neck'];
+  const _cb = new THREE.Vector3();
+  function collarClear(pl, others, s, ths, ag, adultClear) {
+    const out = ths.map(() => 0);
+    if (!others.length) return out;
+    const map = (p, w, mir, o) => {
+      if (!ag) return o.copy(p);
+      o.set(0, 0, 0);
+      for (const [nm, ww] of w) {
+        const n2 = mir && nm.endsWith('L') && ag.byName[nm.slice(0, -1) + 'R'] ? nm.slice(0, -1) + 'R' : nm;
+        babyApply(ag.byName[n2], p, _cb);
+        o.addScaledVector(_cb, ww);
+      }
+      return o;
+    };
+    const RG = { C: new THREE.Vector3(), S: new THREE.Vector3(), N: new THREE.Vector3(), w: 0, t: 0, b: 0, e: 2 };
+    ringAt(pl.L, s, RG);
+    const w0 = pl.wAt(s), C = map(RG.C, w0, false, new THREE.Vector3());
+    const S = map(_v1.copy(RG.C).addScaledVector(RG.S, 0.01), w0, false, new THREE.Vector3()).sub(C).normalize();
+    let Nv = map(_v1.copy(RG.C).addScaledVector(RG.N, 0.01), w0, false, new THREE.Vector3()).sub(C);
+    const T = new THREE.Vector3().crossVectors(S, Nv).normalize();
+    Nv = new THREE.Vector3().crossVectors(T, S);
+    const P = new THREE.Vector3(), Nn = new THREE.Vector3(), q = new THREE.Vector3(), Q = new THREE.Vector3(), Qm = new THREE.Vector3(), tmp = [0, 0];
+    const base = [], ang = [];
+    for (let j = 0; j < ths.length; j++) {
+      loftSurf(pl.fp, pl.L, s, ths[j], P, Nn);
+      if (adultClear) P.addScaledVector(Nn, adultClear[j]);
+      q.subVectors(map(P, w0, false, Qm), C);
+      base.push(Math.hypot(q.dot(S), q.dot(Nv))); ang.push(Math.atan2(q.dot(S), q.dot(Nv)));
+    }
+    const bin = (TAU / COLLAR_N) * 0.75;
+    for (const o of others) {
+      const rs = o.L.rings, wo = (a) => (o.starts ? skinAt(o.starts, o.fp.bones, a, o.fp.blend || 0.03) : [[o.fp.bones[0], 1]]);
+      for (let m = 0; m < (o.fp.mirror ? 2 : 1); m++) {
+        const side = (v) => { if (m) v.x = -v.x; return v; };
+        for (let i = 0; i < rs.length - 1; i++) {
+          const d0 = map(side(Q.copy(rs[i].C)), wo(rs[i].arc), m, Qm).sub(C).dot(T);
+          const d1 = map(side(Q.copy(rs[i + 1].C)), wo(rs[i + 1].arc), m, Qm).sub(C).dot(T);
+          if ((d0 > 0) === (d1 > 0)) continue;
+          const sa = lerp(rs[i].arc, rs[i + 1].arc, d0 / (d0 - d1)), wa = wo(sa);
+          ringAt(o.L, sa, RG);
+          for (let k = 0; k < 48; k++) {
+            const ph = (k / 48) * TAU, fz = loftFuzz(o.fp, o.L, sa, ph);
+            sectionPoint(RG.w, RG.t, RG.b, RG.e, ph, tmp);
+            side(Q.copy(RG.C).addScaledVector(RG.S, tmp[0] * fz).addScaledVector(RG.N, tmp[1] * fz));
+            q.subVectors(map(Q, wa, m, Qm), C);
+            const x = q.dot(S), y = q.dot(Nv), rho = Math.hypot(x, y), a = Math.atan2(x, y);
+            for (let j = 0; j < ths.length; j++) {
+              let da = Math.abs(a - ang[j]) % TAU; if (da > PI) da = TAU - da;
+              if (da < bin && rho < base[j] * 1.8) out[j] = Math.max(out[j], rho - base[j]);
+            }
+          }
+        }
+      }
+    }
+    return out;
+  }
+  // collar layout for a species (before the skeleton is final: it decides where the tag bone goes)
+  function collarPlan(spec, id, defs) {
+    const cfg = Object.assign({ part: 'body', tag: PI, w: 1, r: 1, fit: 0 }, COLLAR[id] || spec.collar || {});
+    const fp = (spec.fur || []).find((f) => f.name === cfg.part);
+    if (!fp || !cfg.at) return null;
+    const rest = {};
+    for (const d of defs) rest[d.name] = d.p;
+    const L = buildLoft(fp);
+    const at = rest[cfg.at[0]].clone().lerp(rest[cfg.at[1]], cfg.at[2]);
+    const s = loftArcNear(L, at);
+    ringAt(L, s, _cr);
+    const rN = (_cr.w + (_cr.t + _cr.b) * 0.5) * 0.5;
+    const starts = fp.bones.length > 1 ? skinStarts(L, fp.bones, rest) : null;
+    const wAt = (ss) => (starts ? skinAt(starts, fp.bones, ss, fp.blend || 0.03) : [[fp.bones[0], 1]]);
+    const pl = {
+      cfg, fp, L, s, rN, wAt,
+      hw: Math.min(0.2 * rN * cfg.w, L.len * 0.1), thick: Math.max(0.055 * rN, 0.0005), gap: (0.025 + cfg.fit) * rN,
+      tagR: 0.3 * rN * cfg.r, hang: new THREE.Vector3(), nOut: new THREE.Vector3(),
+    };
+    // pivot to the bottom of the tag (split ring plus the disc)
+    pl.tagLen = pl.tagR * 0.34 * 1.45 + pl.tagR * 2;
+    // clear other parts that bulge past the neck there (the back of the head, jowls)
+    const others = (spec.fur || []).filter((f) => f !== fp && COLLAR_CLEAR.includes(f.name)).map((f) => {
+      const Lo = buildLoft(f);
+      return { fp: f, L: Lo, starts: f.bones.length > 1 ? skinStarts(Lo, f.bones, rest) : null };
+    });
+    const ths = [];
+    for (let j = 0; j <= COLLAR_N; j++) ths.push((j / COLLAR_N) * TAU);
+    pl.others = others; pl.ths = ths;
+    pl.clear = [collarClear(pl, others, s - pl.hw, ths), collarClear(pl, others, s + pl.hw, ths)];
+    pl.tagClear = [collarClear(pl, others, s - pl.hw, [cfg.tag]), collarClear(pl, others, s + pl.hw, [cfg.tag])];
+    const ct = (pl.tagClear[0][0] + pl.tagClear[1][0]) * 0.5;
+    loftSurf(fp, L, s, cfg.tag, pl.hang, pl.nOut);
+    pl.hang.addScaledVector(pl.nOut, pl.gap + pl.thick + ct);
+    // the tag bone hangs from the bone that carries most of the neck there
+    const w = wAt(s);
+    let bi = 0;
+    for (let k = 1; k < w.length; k++) if (w[k][1] > w[bi][1]) bi = k;
+    pl.parent = w[bi][0];
+    return pl;
+  }
+  // baby pivot of the tag: where the neck surface under it goes; the tag itself stays round (a little larger)
+  function collarBaby(ag, pl) {
+    const mp = ag.byName.ctag, out = new THREE.Vector3(), tmp = new THREE.Vector3();
+    for (const [nm, w] of pl.wAt(pl.s)) { babyApply(ag.byName[nm], pl.hang, tmp); out.addScaledVector(tmp, w); }
+    if (ag.fluff) out.addScaledVector(pl.nOut, ag.fluff * 1.3);
+    // a baby's bigger head can reach back over the neck: push the band (and the tag) out of it
+    const e0 = pl.s - pl.hw, e1 = pl.s + pl.hw;
+    pl.clearB = [collarClear(pl, pl.others, e0, pl.ths, ag, pl.clear[0]), collarClear(pl, pl.others, e1, pl.ths, ag, pl.clear[1])];
+    const tb = (collarClear(pl, pl.others, e0, [pl.cfg.tag], ag, pl.tagClear[0])[0] + collarClear(pl, pl.others, e1, [pl.cfg.tag], ag, pl.tagClear[1])[0]) * 0.5;
+    out.addScaledVector(pl.nOut, tb);
+    mp.M = m3.scale(1.25);
+    mp.c1.copy(out);
+  }
+  // fur length (paint C.fl) at a loft point, for sitting the band on the shells
+  function collarFl(spec, pl, th) {
+    const L = pl.L, P = { part: pl.fp.name, baby: false, len: L.len, arc: pl.s, v: pl.s / L.len, u: fract(th / TAU), up: Math.cos(th), sd: Math.sin(th) };
+    const p = new THREE.Vector3(), n = new THREE.Vector3();
+    loftSurf(pl.fp, L, pl.s, th, p, n);
+    P.x = p.x; P.y = p.y; P.z = p.z; P.nx = n.x; P.ny = n.y; P.nz = n.z;
+    const rr = (_cr.w + _cr.t) * 0.5 + 0.004;
+    P.cx = Math.cos(th) * rr; P.cy = Math.sin(th) * rr;
+    const C = { r: 0.5, g: 0.5, b: 0.5, ro: 0.8, me: 0, fl: pl.fp.fl == null ? 1 : pl.fp.fl };
+    spec.paint(P, C);
+    return clamp(C.fl, 0, 1.5);
+  }
+  // small parts in the tag's frame (pivot at the origin, hanging along -Y, face toward +Z)
+  function discPart(c, r, th, n) {
+    const pos = [], nrm = [], idx = [];
+    for (const sg of [1, -1]) {
+      const b = pos.length / 3;
+      pos.push(c[0], c[1], c[2] + sg * th * 0.5); nrm.push(0, 0, sg);
+      // faces shaded a little domed, like a stamped coin, so the metal catches the light
+      for (let i = 0; i < n; i++) { const a = (i / n) * TAU; pos.push(c[0] + Math.cos(a) * r, c[1] + Math.sin(a) * r, c[2] + sg * th * 0.5); nrm.push(Math.cos(a) * 0.45, Math.sin(a) * 0.45, sg * 0.89); }
+      for (let i = 0; i < n; i++) { const a = b + 1 + i, d = b + 1 + ((i + 1) % n); if (sg > 0) idx.push(b, a, d); else idx.push(b, d, a); }
+    }
+    const b = pos.length / 3;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TAU, x = Math.cos(a), y = Math.sin(a);
+      pos.push(c[0] + x * r, c[1] + y * r, c[2] + th * 0.5, c[0] + x * r, c[1] + y * r, c[2] - th * 0.5); nrm.push(x, y, 0, x, y, 0);
+    }
+    for (let i = 0; i < n; i++) { const a = b + i * 2, d = b + ((i + 1) % n) * 2; idx.push(a, a + 1, d, d, a + 1, d + 1); }
+    return { pos, nrm, idx };
+  }
+  // ring in the Y-Z plane (axis X)
+  function torusPart(c, R0, r0, n1, n2) {
+    const pos = [], nrm = [], idx = [];
+    for (let i = 0; i < n1; i++) for (let j = 0; j < n2; j++) {
+      const u = (i / n1) * TAU, v = (j / n2) * TAU, dy = Math.cos(u), dz = Math.sin(u), cv = Math.cos(v), sv = Math.sin(v);
+      pos.push(c[0] + r0 * sv, c[1] + dy * (R0 + r0 * cv), c[2] + dz * (R0 + r0 * cv)); nrm.push(sv, dy * cv, dz * cv);
+    }
+    for (let i = 0; i < n1; i++) for (let j = 0; j < n2; j++) {
+      const a = i * n2 + j, b = ((i + 1) % n1) * n2 + j, c2 = i * n2 + ((j + 1) % n2), d = ((i + 1) % n1) * n2 + ((j + 1) % n2);
+      idx.push(a, b, c2, b, d, c2);
+    }
+    return { pos, nrm, idx };
+  }
+  // shared per species: band slice + tag, uv.x = 1 on metal; morph 0 baby, morph 1 lift onto the fur shells
+  function collarGeo(A) {
+    if (A.collarGeo) return A.collarGeo;
+    const pl = A.cplan, spec = A.spec, sp = spec.shell, N = COLLAR_N, bt = newBatch(A.ag);
+    const shellOn = !!(sp && sp.parts && sp.parts.includes(pl.fp.name));
+    const P = new THREE.Vector3(), Nn = new THREE.Vector3(), lift = [], outN = [];
+    const pos = [], nrm = [], col = [], wts = [], idx = [];
+    const edges = [pl.s - pl.hw, pl.s + pl.hw], dep = pl.thick * 0.8;
+    const T = [];
+    for (const s of edges) { ringAt(pl.L, s, _cr); _v4.subVectors(ringAt(pl.L, Math.min(pl.L.len, s + 0.002), { C: new THREE.Vector3(), S: new THREE.Vector3(), N: new THREE.Vector3() }).C, _cr.C); T.push(_v4.lengthSq() > 1e-14 ? _v4.clone().normalize() : new THREE.Vector3(0, 0, 1)); }
+    for (let j = 0; j <= N; j++) {
+      const th = (j / N) * TAU, fl = shellOn ? collarFl(spec, pl, th) : 0;
+      const up = shellOn ? sp.len * fl * COLLAR_LIFT : 0;
+      for (let e = 0; e < 2; e++) {
+        loftSurf(pl.fp, pl.L, edges[e], th, P, Nn);
+        P.addScaledVector(Nn, pl.clear[e][j]);
+        const w = pl.wAt(edges[e]), inner = P.clone().addScaledVector(Nn, pl.gap - dep), outer = P.clone().addScaledVector(Nn, pl.gap + pl.thick);
+        const tn = T[e].clone().multiplyScalar(e ? 1 : -1);
+        // side face (inner, outer) then the top edge
+        const v = e ? [[outer, tn, 0.72, 1], [inner, tn, 0.72, 0.4]] : [[inner, tn, 0.72, 0.4], [outer, tn, 0.72, 1]];
+        for (const q of v) { pos.push(q[0].x, q[0].y, q[0].z); nrm.push(q[1].x, q[1].y, q[1].z); col.push(q[2]); wts.push(w); lift.push(Nn.x * up * q[3], Nn.y * up * q[3], Nn.z * up * q[3]); outN.push(Nn.x, Nn.y, Nn.z); }
+        pos.push(outer.x, outer.y, outer.z); nrm.push(Nn.x, Nn.y, Nn.z); col.push(1); wts.push(w); lift.push(Nn.x * up, Nn.y * up, Nn.z * up); outN.push(Nn.x, Nn.y, Nn.z);
+      }
+    }
+    // per column: 0 back inner, 1 back outer, 2 back top, 3 front side outer, 4 front side inner, 5 front top
+    for (let j = 0; j < N; j++) {
+      const a = j * 6, b = a + 6;
+      idx.push(a, a + 1, b, a + 1, b + 1, b);
+      idx.push(a + 2, a + 5, b + 2, a + 5, b + 5, b + 2);
+      idx.push(a + 3, a + 4, b + 3, a + 4, b + 4, b + 3);
+    }
+    const band = { pos, nrm, idx, weights: (v) => wts[v], fluff: false };
+    const nb = pos.length / 3;
+    pushPart(bt, band, A.boneIndex, (v) => [0, 0], (v) => [col[v], col[v], col[v]], false);
+    // tag on a split ring, in rest root space at the hang point
+    const r = pl.tagR, rr = r * 0.34, H = pl.hang;
+    const parts = [torusPart([H.x, H.y - rr * 0.6, H.z], rr, rr * 0.24, 7, 3), discPart([H.x, H.y - rr * 1.45 - r, H.z], r, r * 0.16, 14)];
+    for (const q of parts) { q.weights = () => [['ctag', 1]]; q.fluff = false; pushPart(bt, q, A.boneIndex, () => [1, 0], () => [1, 1, 1], false); }
+    const g = batchGeometry(bt, true);
+    // babies: the band rides on top of the down (birds, kits) and clears a bigger head
+    {
+      const m = g.morphAttributes.position[0], f = A.ag.fluff * 1.3;
+      for (let v = 0; v < nb; v++) {
+        const j = Math.floor(v / 6), e = Math.floor((v % 6) / 3), k = f + pl.clearB[e][j];
+        m.setXYZ(v, m.getX(v) + outN[v * 3] * k, m.getY(v) + outN[v * 3 + 1] * k, m.getZ(v) + outN[v * 3 + 2] * k);
+      }
+    }
+    const lf = new Float32Array(g.attributes.position.count * 3);
+    lf.set(lift);
+    g.morphAttributes.position.push(new THREE.Float32BufferAttribute(lf, 3));
+    g.boundingSphere = A.geos[0].geo.boundingSphere;
+    A.collarShellOn = shellOn;
+    return (A.collarGeo = g);
+  }
+  // band color from the caller; the tag is gold, or silver on yellow and orange bands
+  function collarCompile(sh) {
+    Object.assign(sh.uniforms, this.userData.aa);
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying float vAaMet;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvAaMet = uv.x;');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying float vAaMet;\nuniform vec3 aaBand;\nuniform vec3 aaTag;')
+      .replace('#include <color_fragment>', '#include <color_fragment>\n  diffuseColor.rgb *= mix(aaBand, aaTag, vAaMet);')
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n  roughnessFactor = mix(roughnessFactor, 0.3, vAaMet);')
+      .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\n  metalnessFactor = 0.55 * vAaMet;')
+      .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
+{
+  // no environment map in the game: a soft fake sky reflection keeps the metal bright
+  float aaF = pow(1.0 - saturate(dot(normal, geometry.viewDir)), 2.0);
+  reflectedLight.indirectSpecular += vAaMet * diffuseColor.rgb * (0.35 + 0.65 * aaF) * (irradiance * RECIPROCAL_PI + 0.15);
+}`);
+  }
+  const collarMats = {};
+  function collarMat(c) {
+    if (collarMats[c]) return collarMats[c];
+    const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6, metalness: 0, vertexColors: true });
+    const band = linColor(c), hsl = {};
+    new THREE.Color(c).getHSL(hsl);
+    const silver = hsl.h > 0.07 && hsl.h < 0.19 && hsl.s > 0.35 && hsl.l > 0.3;
+    m.userData.aa = { aaBand: { value: band }, aaTag: { value: linColor(silver ? 0xD4D8DE : 0xE9B740) } };
+    m.onBeforeCompile = collarCompile;
+    return (collarMats[c] = m);
+  }
+  // visibility and morphs (age, fur shells) for the rig's current state
+  function syncCollar(R, A) {
+    const m = R.collarM;
+    if (!m) return;
+    const on = R.collarC != null && R.detail > 0;
+    // coming back into view: the tag starts hanging still instead of swinging from stale motion
+    if (on && !m.visible) R.ct.init = false;
+    m.visible = on;
+    const sp = A.spec.shell, baby = R.age < 0.4;
+    const shells = R.detail === 2 && A.collarShellOn && !!shellGeo(A, 2) && !(sp.babyOnly && !baby);
+    m.morphTargetInfluences[0] = 1 - R.age;
+    m.morphTargetInfluences[1] = shells ? (baby ? sp.babyLen || 1.5 : 1) : 0;
+    R.collarLift = m.morphTargetInfluences[1] * (A.collarLiftAt || 0);
+  }
+  function setCollar(R, A, c) {
+    if (typeof c === 'string') c = new THREE.Color(c).getHex();
+    const on = typeof c === 'number' && isFinite(c) && !!A.cplan;
+    R.collarC = on ? (c & 0xffffff) : null;
+    if (on && !R.collarM) {
+      const m = new THREE.SkinnedMesh(collarGeo(A), collarMat(R.collarC));
+      m.castShadow = false; m.receiveShadow = false;
+      R.root.add(m);
+      m.bind(R.skel, R.meshes[0].bindMatrix);
+      R.collarM = m;
+      R.ct = { dir: new THREE.Vector3(0, -1, 0), vel: new THREE.Vector3(), pp: new THREE.Vector3(), pv: new THREE.Vector3(), spd: 0, init: false };
+      // fur lift of the tag pivot: the band's lift at the tag angle
+      const pl = A.cplan, sp = A.spec.shell;
+      A.collarLiftAt = A.collarShellOn ? sp.len * collarFl(A.spec, pl, pl.cfg.tag) * COLLAR_LIFT : 0;
+    }
+    if (R.collarM) { if (on) R.collarM.material = collarMat(R.collarC); syncCollar(R, A); }
+    if (on) { R.ct.init = false; collarUpdate(R, A, 0, null); }
+  }
+  // hang the tag: gravity (root space), kept on the outside of the neck, springing behind the pivot's motion
+  const _cq = new THREE.Quaternion(), _cq2 = new THREE.Quaternion(), _cg = new THREE.Vector3(), _cn = new THREE.Vector3(), _cp = new THREE.Vector3();
+  const _cx = new THREE.Vector3(), _cy = new THREE.Vector3(), _cz = new THREE.Vector3(), _ct = new THREE.Vector3(), _cm = new THREE.Matrix4();
+  function collarUpdate(R, A, dt, st) {
+    const C = R.ct, tag = R.bones.ctag, pl = A.cplan;
+    tag.position.copy(tag.userData.p0).addScaledVector(pl.nOut, R.collarLift || 0);
+    rootQuat(tag.parent, R.root, _cq);
+    _cn.copy(pl.nOut).applyQuaternion(_cq);
+    _cg.set(0, -1, 0).applyQuaternion(_cq2.copy(R.root.quaternion).invert());
+    rootPos(tag, R.root, _cp);
+    _ct.copy(_cg);
+    if (!C.init || !(dt > 0)) {
+      C.pp.copy(_cp); C.pv.set(0, 0, 0); C.vel.set(0, 0, 0); C.spd = st ? +st.speed || 0 : 0; C.init = true;
+      C.dir.copy(_cg);
+    } else {
+      // pivot acceleration in root space (animation) plus the body speeding up or slowing down
+      _cx.subVectors(_cp, C.pp).divideScalar(dt);
+      _cy.subVectors(_cx, C.pv).divideScalar(dt);
+      C.pp.copy(_cp); C.pv.copy(_cx);
+      const spd = st ? +st.speed || 0 : 0;
+      _cy.z += (spd - C.spd) / dt; C.spd = spd;
+      if (_cy.lengthSq() > 400) _cy.setLength(20);
+      _ct.multiplyScalar(9.8).addScaledVector(_cy, -0.3).normalize();
+    }
+    // never into the neck: clamp the direction to a cone around the outward normal (it lies along the fur instead)
+    const keep = (v) => {
+      const k = v.dot(_cn);
+      if (k >= 0.3) return;
+      v.addScaledVector(_cn, -k);
+      if (v.lengthSq() < 1e-8) v.set(0, -1, 0).addScaledVector(_cn, _cn.y);
+      if (v.lengthSq() < 1e-8) v.set(0, 0, -1).addScaledVector(_cn, _cn.z);
+      v.normalize().multiplyScalar(0.954).addScaledVector(_cn, 0.3);
+    };
+    keep(_ct);
+    if (dt > 0 && C.init) {
+      const n = Math.min(8, Math.ceil(dt / 0.016)), h = dt / n;
+      for (let i = 0; i < n; i++) {
+        _cz.subVectors(_ct, C.dir).multiplyScalar(110 * h);
+        C.vel.add(_cz).multiplyScalar(1 - Math.min(0.9, 5 * h));
+        C.dir.addScaledVector(C.vel, h).normalize();
+      }
+    } else C.dir.copy(_ct);
+    keep(C.dir);
+    // low animals (and babies, whose tags are a bit bigger): the tag swings forward instead of into the ground
+    if (_cg.y < -0.8) {
+      const len = pl.tagLen * lerp(1.25, 1, R.age), lim = clamp((_cp.y - 0.003) / len, -1, 1);
+      if (C.dir.y < -lim) {
+        _cz.set(C.dir.x, 0, C.dir.z);
+        if (_cz.lengthSq() < 1e-6) _cz.set(_cn.x, 0, _cn.z);
+        if (_cz.lengthSq() < 1e-6) _cz.set(0, 0, 1);
+        _cz.normalize().multiplyScalar(Math.sqrt(Math.max(0, 1 - lim * lim)));
+        C.dir.set(_cz.x, -lim, _cz.z);
+        C.vel.y = Math.max(0, C.vel.y);
+      }
+    }
+    // basis: hang along -Y, face (+Z) out from the neck
+    _cy.copy(C.dir).negate();
+    _cz.copy(_cn).addScaledVector(_cy, -_cn.dot(_cy));
+    if (_cz.lengthSq() < 1e-6) _cz.set(0, 0, 1).addScaledVector(_cy, -_cy.z);
+    _cz.normalize();
+    _cx.crossVectors(_cy, _cz);
+    _cm.makeBasis(_cx, _cy, _cz);
+    tag.quaternion.setFromRotationMatrix(_cm).premultiply(_cq.invert());
   }
 
   const ANIM = { legged: animLegged, bird: animBird, snake: animSnake };
@@ -5109,7 +5687,10 @@ const Animals = (() => {
       age: 1,
       autoSneeze: true, onSneeze: null,
       mouthWorld(out) { R.mouth.updateWorldMatrix(true, false); return out.setFromMatrixPosition(R.mouth.matrixWorld); },
-      update(dt, st) { R.autoSneeze = rig.autoSneeze; R.onSneeze = rig.onSneeze; upd(dt, st || {}); },
+      update(dt, st) {
+        R.autoSneeze = rig.autoSneeze; R.onSneeze = rig.onSneeze; upd(dt, st || {});
+        if (R.collarC != null && R.detail > 0) collarUpdate(R, A, clamp(dt || 0, 0, 0.1), st);
+      },
       setVisible(v) { R.root.visible = !!v; },
       setAge(a) {
         a = clamp(+a, 0, 1);
@@ -5125,6 +5706,8 @@ const Animals = (() => {
       sneeze() { R.sneezeReq = true; rig.autoSneeze = false; },
       // 0 far away, 1 normal, 2 close-up (the player's own animal): fur shells
       setDetail(l) { l = clamp(Math.round(+l || 0), 0, 2); if (l !== R.detail) setDetail(R, A, l); },
+      // pets with a home wear a collar with an ID tag: a hex color shows it in that color, null or false hides it
+      setCollar(c) { setCollar(R, A, c); },
     };
     R.rig = rig;
     setDetail(R, A, 1);

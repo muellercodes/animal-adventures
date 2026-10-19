@@ -5,7 +5,7 @@ const tmpV = new V3();
 const canEat = (sp, type) => type === 'candy' || SPECIES[sp].eats.includes(type);
 const UPRIGHT = { duck: 1, swan: 1, chicken: 1, owl: 1, parrot: 1 };
 const FEAR = { chicken: 3, duck: 4.5, swan: 3, frog: 2.5, lizard: 3, snake: 2, bunny: 5, squirrel: 4.5, turtle: 1.5, fox: 6, owl: 5, deer: 10, parrot: 4, moose: 0,
-  horse: 6, pig: 3, goat: 4, otter: 4, hedgehog: 2, raccoon: 4 };
+  horse: 6, pig: 3, goat: 4, otter: 4, hedgehog: 2, raccoon: 4, weasel: 4 };
 const NOCTURNAL = { owl: 1, frog: 1, fox: 1, raccoon: 1, hedgehog: 1 };
 const nightNo = () => Math.floor(S.time / CYCLE);
 
@@ -196,6 +196,7 @@ const Player = {
     this.b.rig.onSneeze = () => { if (G.sound) G.sound.sneeze(this.b); G.ui.say('Achoo!', 1.1); };
     this.b.onLand = (bb) => { if (G.sound) G.sound.land(bb); };
     G.scene.add(this.b.rig.root);
+    Town.collar(this.b);
     if (keep) { this.b.yaw = keep.yaw; this.b.room = keep.room; this.place(keep.x, keep.z); }
     this.eatFood = null;
   },
@@ -363,7 +364,8 @@ const Wild = {
     const pool = Object.keys(SPECIES).filter((s) => !['moose', 'horse', 'deer', 'swan'].includes(s));
     room.cages.forEach((cg, i) => {
       if (i % 3 === 2) return;
-      const sp = pool[(hash2(i, nightNo(), 7) * pool.length) | 0];
+      const caught = Town.poundList[(i - Math.floor(i / 3)) | 0];
+      const sp = caught && SPECIES[caught] ? caught : pool[(hash2(i, nightNo(), 7) * pool.length) | 0];
       const b = this.make(sp, Math.random() < 0.4 ? 0.3 : 0.8, cg.x, cg.z, { caged: true, room, state: 'caged', timer: 3 + Math.random() * 5 });
       b.pos.y = cg.y || 0; b.yaw = cg.yaw;
       const sz = Math.max(b.m.length, b.m.height);
@@ -403,7 +405,7 @@ const Wild = {
       const sleepy = night ? !NOCTURNAL[b.sp] : (b.sp === 'owl' || b.sp === 'raccoon');
       // think a few times a second
       b.think -= dt;
-      if (P && b.think <= 0 && !b.caged && b.state !== 'kid') {
+      if (P && b.think <= 0 && !b.caged && b.state !== 'kid' && b.state !== 'trapped') {
         b.think = 0.3;
         const d = Math.hypot(b.pos.x - P.pos.x, b.pos.z - P.pos.z);
         const psp = SPECIES[P.sp], pAir = P.mode === 'fly' && P.pos.y - G.world.H(P.pos.x, P.pos.z) > 3;
@@ -459,7 +461,9 @@ const Wild = {
             if (sleepy && b.mode !== 'fly') { b.timer = 8 + Math.random() * 12; if (b.mode === 'ground' || b.mode === 'swim') b.mode = b.mode === 'swim' && b.sp !== 'otter' ? 'swim' : 'sleep'; }
             else {
               if (b.mode === 'sleep') b.mode = 'ground';
-              if (r < 0.45) { b.target = this.pickTarget(b); b.state = b.target ? 'wander' : 'idle'; b.timer = 2; b.pace = 0.55 + Math.random() * 0.45; b.stuck = 0; }
+              const raid = r < 0.3 && PESTS[b.sp] ? Town.raidTarget(b) : null;
+              if (raid) { b.target = raid; b.state = 'raid'; b.timer = 30; b.stuck = 0; }
+              else if (r < 0.45) { b.target = this.pickTarget(b); b.state = b.target ? 'wander' : 'idle'; b.timer = 2; b.pace = 0.55 + Math.random() * 0.45; b.stuck = 0; }
               else if (r < 0.8 && b.mode !== 'fly') { b.state = 'graze'; b.timer = 3 + Math.random() * 5; }
               else b.timer = 2 + Math.random() * 4;
             }
@@ -474,6 +478,22 @@ const Wild = {
           if (d < 0.5 + m.radius || b.stuck > 2.5) { b.state = 'idle'; b.timer = 1 + Math.random() * 4; }
           break;
         }
+        case 'raid': {
+          // sneaking up to the garden for a carrot (or the bait in a trap)
+          const t = b.target; if (!t) { b.state = 'idle'; break; }
+          const dx = t.x - b.pos.x, dz = t.z - b.pos.z, d = Math.hypot(dx, dz);
+          c.dx = dx; c.dz = dz; c.want = m.walk * (t.trap && t.stage ? 0.6 : 0.95);
+          if (b.blocked) b.stuck += dt; else b.stuck = Math.max(0, b.stuck - dt);
+          b.timer -= dt;
+          if (t.trap && t.stage === 0 && d < 0.3 + m.radius) { t.stage = 1; t.x = t.trap.cx; t.z = t.trap.cz; }
+          else if (!t.trap && d < 0.3 + m.radius) { b.state = 'graze'; b.timer = 4 + Math.random() * 5; Town.nibble(b); }
+          if (b.state === 'raid' && (b.stuck > 3 || b.timer <= 0 || (t.trap && !t.trap.set))) { b.state = 'idle'; b.timer = 2 + Math.random() * 3; }
+          break;
+        }
+        case 'trapped':
+          c.want = 0; b.eat = 0;
+          if (b.trap) { b.pos.x = b.trap.cx; b.pos.z = b.trap.cz; }
+          break;
         case 'graze':
           b.timer -= dt;
           if (b.eatPause > 0) b.eatPause -= dt;
@@ -556,12 +576,12 @@ const Folk = {
     const n = w.def.people || 0;
     const taken = new Set(Object.values(S.homes).filter((h) => h && h.name).map((h) => h.name));
     const names = PEOPLE_NAMES.filter((x) => !taken.has(x)).sort(() => Math.random() - 0.5);
-    const homes = (w.houses || []).filter((h) => !h.pound);
+    const homes = (w.houses || []).filter((h) => !h.pound && h.kind !== 'school'), village = homes.filter((h) => h.village);
     // the people who adopted your animals live in the village
     if (w.def.village) {
       for (const [sp, hm] of Object.entries(S.homes)) {
         if (!hm || !hm.name || this.list.some((q) => q.name === hm.name)) continue;
-        const house = homes[hm.house] || homes[0];
+        const house = village[hm.house] || village[0];
         const pt = w.ringPoint(house.door.x, house.door.z, 1, 6, false) || { x: house.door.x, z: house.door.z };
         this.make(hm.name, hm.look, pt.x, pt.z, { house, owns: sp });
       }
@@ -612,6 +632,8 @@ const Folk = {
       const playerReachable = P && sameRoom && P.mode !== 'fly' && P.mode !== 'swim' && P.mode !== 'climb' && P.mode !== 'perch';
       if (p.visitor) { this.visitorStep(p, dt, P, dP, greet); continue; }
       if (p.staff) { this.staffStep(p, dt, P, dP); continue; }
+      if (p.fairgoer) { Town.fairgoerStep(p, dt, P, dP, greet, playerReachable); continue; }
+      if (p.role) { const r = Town.step(p, dt, P, dP, greet, playerReachable) || NO_POSE; p.sit = r.sit || 0; p.seatY = r.seatY; this.pose(p, dt, r.crouch, r.reach, camPos); continue; }
       // evenings: people walk home and go inside (your person stays with you if you are at home together)
       if (!dayTime && !p.away && p.state !== 'home' && !(p.friend && P && P.room && P.room === p.room)) { p.state = 'home'; p.timer = 12; ui.bubble(p, 'Good night!', 2.5); }
       if (dayTime && p.away) {
@@ -728,12 +750,12 @@ const Folk = {
   },
   giveUp(p, wave) { p.state = 'look'; p.timer = 1.5; p.cool = 45; if (wave) G.ui.bubble(p, 'Bye bye!', 1.8); },
   pose(p, dt, crouch, reach, camPos) {
-    p.pos.y = G.world.H(p.pos.x, p.pos.z);
+    p.pos.y = G.world.H(p.pos.x, p.pos.z) + (p.yOff || 0);
     p.crouch = damp(p.crouch, crouch, 5, dt); p.reach = damp(p.reach, reach, 5, dt);
     const r = p.rig.root; r.position.copy(p.pos); r.rotation.y = p.yaw;
     const dist = Math.hypot(p.pos.x - camPos.x, p.pos.z - camPos.z);
     r.visible = !p.away && dist < 160;
-    if (dist < 80) { const st = p.st; st.t = G.t; st.speed = p.speed; st.crouch = p.crouch; st.reach = p.reach; p.rig.update(dt, st); }
+    if (dist < 80) { const st = p.st; st.t = G.t; st.speed = p.speed; st.crouch = p.crouch; st.reach = p.reach; st.sit = p.sit || 0; st.seatY = p.seatY; p.rig.update(dt, st); }
   },
   // a visitor at the pound comes to your kennel, kneels and holds out a hand; walk out to them to go home with them
   visitorStep(p, dt, P, dP, greet) {
@@ -745,12 +767,13 @@ const Folk = {
     } else if (p.state === 'kneel') {
       p.speed = damp(p.speed, 0, 8, dt); this.face(p, dt, P.pos.x, P.pos.z); crouch = 1; reach = 1; p.timer -= dt;
       if (dP < greet + 0.35) { p.state = 'greet'; p.timer = 2.8; G.ui.hearts(P.pos, 3); if (G.sound) G.sound.call(P); }
+      else if (p.timer <= 0 && p.ownerCome) { p.timer = 10; G.ui.bubble(p, 'Come here! Let\'s go home.', 2.2); }
       else if (p.timer <= 0) { p.state = 'leave'; G.ui.bubble(p, 'Maybe next time.', 2); }
     } else if (p.state === 'greet') {
       p.speed = 0; this.face(p, dt, P.pos.x, P.pos.z); crouch = 1; reach = 0.8; p.timer -= dt;
       if (p.timer > 1.3 && p.timer - dt <= 1.3) G.ui.hearts(P.pos, 3);
-      if (dP > greet + 3) { p.state = 'leave'; }
-      else if (p.timer <= 0) Homes.adopt(p);
+      if (dP > greet + 3) { if (p.ownerCome) { p.state = 'kneel'; p.timer = 10; } else p.state = 'leave'; }
+      else if (p.timer <= 0) { if (p.ownerCome) { p.state = 'done'; Town.goHomeWith(p); } else Homes.adopt(p); }
     } else if (p.state === 'leave') { const ex = p.room.exit; const d = this.walkTo(p, dt, ex.x, ex.z, 1.2); if (d < 0.7) { this.remove(p); return; } }
     this.pose(p, dt, crouch, reach, G.camera.position);
   },
@@ -791,6 +814,7 @@ const Homes = {
       : cage ? `${p.name} took you home! You live in ${CAGE_WORDS[cage]} in the ${color} house on Maple Street.`
         : `${p.name} took you home! You're an indoor pet in the ${color} house on Maple Street.`, 5600);
     if (G.sound) G.sound.chime();
+    Town.collar(P);
     if (p.visitor) { p.visitor = false; p.house = homes[S.homes[sp].house] || null; if (p.pen) this.kennelDoor(p.pen, true); }
     p.owns = sp; p.friend = true; p.state = 'friend'; p.offerT = 10; p.petT = 6;
     G.save();
@@ -914,7 +938,7 @@ const Homes = {
       this.penT += dt;
       if (this.penT > 8) {
         this.penT = 0;
-        const v = Folk.make(PEOPLE_NAMES[(Math.random() * PEOPLE_NAMES.length) | 0], Folk.randomLook(Math.random() < 0.4), rm.exit.x, rm.exit.z, { visitor: true, room: rm, state: 'approach', pen });
+        const v = Folk.make(Town.freeName(), Folk.randomLook(Math.random() < 0.4), rm.exit.x, rm.exit.z, { visitor: true, room: rm, state: 'approach', pen });
         G.ui.bubble(v, 'Hello!', 1.8);
       }
     } else this.penT = Math.max(0, this.penT - dt);

@@ -65,7 +65,7 @@ function loadWorld(id) {
     scene.add(g);
     skyExtras = { group: g, sea, low };
   }
-  Wild.spawn(w); Folk.spawn(w);
+  Wild.spawn(w); Folk.spawn(w); Town.spawn(w);
   S.world = id;
 }
 
@@ -103,7 +103,7 @@ function followCamera(dt) {
   const moving = b.mode === 'climb' ? Math.abs(b.speed) > 0.05 : b.speed > 0.25;
   if (!talker && Cam.userT <= 0 && moving && b.eat <= 0) Cam.yaw += angDiff(Cam.yaw, b.yaw) * (1 - Math.exp(-(b.mode === 'fly' ? 1.6 : 1.1) * dt));
   dist = Math.max(dist, Cam.frame || 0);
-  if (room) dist = Math.min(dist, room.barn ? 6 : 3.2);
+  if (room) dist = Math.min(dist, room.barn ? 6 : room.school ? 4.5 : 3.2);
   let pitch = Cam.pitch;
   if (b.mode === 'fly') pitch = clamp(pitch + b.vy * 0.03, 0.05, 1.2);
   if (b.mode === 'climb') pitch = clamp(pitch - 0.25, -0.1, 1.0);
@@ -211,14 +211,15 @@ function readInput() {
   if (stick.id !== null) { ix = stick.dx / STICK_R; iy = -stick.dy / STICK_R; const m = Math.hypot(ix, iy); if (m < 0.12) { ix = 0; iy = 0; } }
   const kx = (keys.r ? 1 : 0) - (keys.l ? 1 : 0), ky = (keys.f ? 1 : 0) - (keys.b ? 1 : 0);
   if (kx || ky) { const m = Math.hypot(kx, ky); ix = kx / m; iy = ky / m; }
-  if (R.hatch || R.sleeping > 0 || R.doorSeq) { ix = 0; iy = 0; }
+  const held = Town.busy();
+  if (R.hatch || R.sleeping > 0 || R.doorSeq || held) { ix = 0; iy = 0; }
   const fx = Math.sin(Cam.yaw), fz = Math.cos(Cam.yaw), rx = -Math.cos(Cam.yaw), rz = Math.sin(Cam.yaw);
   inp.mx = fx * iy + rx * ix; inp.mz = fz * iy + rz * ix; inp.ix = ix; inp.iy = iy;
   inp.walk = !!keys.walk;
-  inp.jump = press.jump && !R.hatch; press.jump = false;
+  inp.jump = press.jump && !R.hatch && !held; press.jump = false;
   inp.up = press.jumpHeld || !!keys.jump;
   inp.down = press.landHeld || !!keys.land;
-  inp.eat = press.eat && !R.hatch; press.eat = false;
+  inp.eat = press.eat && !R.hatch && !held; press.eat = false;
   inp.climb = null; inp.letGo = false;
 }
 
@@ -226,7 +227,7 @@ function readInput() {
 function findAction() {
   const b = Player.b, w = G.world; if (!b) return null;
   if (R.hatch) return R.hatch.done ? null : { id: 'hatch', label: 'Tap to hatch!' };
-  if (R.sleeping > 0 || R.doorSeq) return null;
+  if (R.sleeping > 0 || R.doorSeq || Town.busy()) return null;
   if (b.mode === 'climb' || b.mode === 'perch') return { id: 'letgo', label: 'Let go' };
   const sp = SPECIES[b.sp], home = Homes.homeOf(b.sp), reach = 0.9 + b.m.radius;
   if (b.room) {
@@ -242,6 +243,8 @@ function findAction() {
     return null;
   }
   if (b.mode !== 'ground' && b.mode !== 'swim') return null;
+  const fairPen = Town.playerPen();
+  if (fairPen && !fairPen.open) return { id: 'letoutFair', label: 'Let me out' };
   for (const h of w.houses) {
     const barn = h.kind === 'barn';
     if (Math.hypot(b.pos.x - h.door.x, b.pos.z - h.door.z) > (barn ? 2.6 : 1.7) + b.m.radius) continue;
@@ -269,6 +272,7 @@ function doAction(a) {
     case 'in': startDoor(a.house, 1); break;
     case 'out': startDoor(Player.b.room.house, -1); break;
     case 'letout': Homes.letOut(); break;
+    case 'letoutFair': Town.letOutFair(); break;
     case 'sleep': startSleep(); break;
     case 'vet': Homes.vet(); break;
     case 'treat': Homes.trickOrTreat(a.house); break;
@@ -525,7 +529,7 @@ function updateHud() {
   if (h.name !== nameKey) { h.name = nameKey; $('meImg').src = meIcon(S.animal); $('meName').textContent = S.names[S.animal] ? S.names[S.animal] : (stage || sp.name); }
   const status = S.sick > 0 ? 'Has a cold' : S.hunger <= 0 ? 'Hungry!' : (S.names[S.animal] && stage) ? stage : '';
   if (h.status !== status) { h.status = status; $('meStatus').textContent = status; $('meStatus').hidden = !status; }
-  const where = b.room ? (b.room.pound ? 'Animal pound' : b.room.barn ? 'Barn' : (Homes.homeOf(b.sp) && Homes.homeOf(b.sp).room === b.room ? 'Home' : 'A house')) : World.META[S.world].name;
+  const where = b.room ? (b.room.pound ? 'Animal pound' : b.room.barn ? 'Barn' : b.room.school ? 'School' : (Homes.homeOf(b.sp) && Homes.homeOf(b.sp).room === b.room ? 'Home' : 'A house')) : World.META[S.world].name;
   if (h.where !== where) { h.where = where; $('wherePill').textContent = where; }
   const ct = fmt(di.left);
   if (h.clock !== ct || h.night !== di.night) {
@@ -992,6 +996,7 @@ function tick(dt, raw, draw) {
   if (G.world) {
     Wild.update(dt, camera.position);
     Folk.update(dt, camera.position);
+    if (playing && !R.paused) Town.update(dt); else Town.navN = 0;
     Net.update(dt);
     Foods.update(dt);
     G.world.tick(dt, playing ? Player.b : null);
@@ -1029,7 +1034,7 @@ function start(data) {
   if (snap && data.playing && S.started) play();
   if (API && cloud.token && !(snap && data.playing)) pullCloud().then(() => { if (R.mode === 'title') renderTitle(); }).catch((err) => { if (err.status === 401) { setSession(null, null); if (R.mode === 'title') renderTitle(); } });
   window.claude?.hot?.snapshot?.(() => ({ S: JSON.parse(JSON.stringify(S)), playing: R.mode === 'play' }));
-  if (/test|assets/.test(location.hash)) window.__aa = { SPECIES, manual(on) { manual = on; if (!on) requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); }); }, step(n, dt = 1 / 30, draw = true) { for (let i = 0; i < n; i++) tick(dt, 1, draw && i === n - 1); }, S, G, R, Player, Wild, Folk, Foods, Homes, World, Cam, inp, keys, press, travel, switchAnimal, loadWorld, play, pickStarter, animalIcon, renderer, camera, scene, dayInfo, timeOfDay, findAction, doAction, Sound, setBodyAge, goHome, buyAnimal, Env, Animals, People, THREE, Net };
+  if (/test|assets/.test(location.hash)) window.__aa = { SPECIES, manual(on) { manual = on; if (!on) requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); }); }, step(n, dt = 1 / 30, draw = true) { for (let i = 0; i < n; i++) tick(dt, 1, draw && i === n - 1); }, S, G, R, Player, Wild, Folk, Foods, Homes, World, Cam, inp, keys, press, travel, switchAnimal, loadWorld, play, pickStarter, animalIcon, renderer, camera, scene, dayInfo, timeOfDay, findAction, doAction, Sound, setBodyAge, goHome, buyAnimal, Env, Animals, People, THREE, Net, Town, Nav };
   requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); });
 }
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
