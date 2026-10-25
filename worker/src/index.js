@@ -173,6 +173,7 @@ function cleanState(m) {
     sp: m.sp, age: r(num(m.age, 0, 1, 1)), x: r(num(m.x, -1e6, 1e6)), y: r(num(m.y, -2000, 2000)), z: r(num(m.z, -1e6, 1e6)),
     yaw: r(num(m.yaw, -100, 100)), speed: r(num(m.speed, 0, 40)), vy: r(num(m.vy, -60, 60)), eat: r(num(m.eat, 0, 1)),
     mode: MODES.includes(m.mode) ? m.mode : 'ground', room: typeof m.room === 'string' && /^[A-Za-z0-9:_-]{0,40}$/.test(m.room) ? m.room : '',
+    col: Math.round(num(m.col, -1, 0xffffff, -1)),   // collar color, or -1 for no collar
   };
 }
 

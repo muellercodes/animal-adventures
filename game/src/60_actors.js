@@ -808,11 +808,13 @@ const Homes = {
     S.homes[sp] = { name: p.name, look: p.look, house: Math.max(0, houseIdx) };
     S.leaves += 5;
     const outdoor = SPECIES[sp].outdoor, color = HOUSE_COLOR_NAMES[Math.max(0, houseIdx)] || 'white', cage = CAGED[sp];
-    G.ui.bubble(p, `Welcome to the family, ${nameOf(sp)}!`, 2.8);
+    G.ui.bubble(p, `Welcome to the family, ${nameOf(sp)}! Here's your collar.`, 3);
     G.ui.hearts(P.pos, 6); G.ui.leafPop(P.pos, 5);
-    G.ui.toast(outdoor ? `${p.name} took you home! Your home is the pen behind the ${color} house on Maple Street.`
-      : cage ? `${p.name} took you home! You live in ${CAGE_WORDS[cage]} in the ${color} house on Maple Street.`
-        : `${p.name} took you home! You're an indoor pet in the ${color} house on Maple Street.`, 5600);
+    // a tamed animal always wears a collar with its person's number on it
+    const got = `${p.name} took you home and put a collar on you!`;
+    G.ui.toast(outdoor ? `${got} Your home is the pen behind the ${color} house on Maple Street.`
+      : cage ? `${got} You live in ${CAGE_WORDS[cage]} in the ${color} house on Maple Street.`
+        : `${got} You're an indoor pet in the ${color} house on Maple Street.`, 6000);
     if (G.sound) G.sound.chime();
     Town.collar(P);
     if (p.visitor) { p.visitor = false; p.house = homes[S.homes[sp].house] || null; if (p.pen) this.kennelDoor(p.pen, true); }

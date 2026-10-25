@@ -638,7 +638,8 @@ function homeLine(id) {
   const hm = S.homes[id]; if (!hm) return '';
   const color = ['white', 'yellow', 'blue', 'brick', 'gray', 'white'][hm.house] || 'white';
   const cage = CAGED[id];
-  return `<span class="need">${SPECIES[id].outdoor ? `Lives in ${hm.name}'s yard behind the ${color} house` : cage ? `Lives in ${CAGE_WORDS[cage]} at ${hm.name}'s ${color} house` : `${hm.name}'s indoor pet in the ${color} house`}</span>`;
+  const dot = `<span style="display:inline-block;width:.8em;height:.8em;border-radius:50%;vertical-align:-1px;margin-right:5px;border:2px solid #d9a93a;background:#${hexNum(hm.look && hm.look.shirt).toString(16).padStart(6, '0')}"></span>`;
+  return `<span class="need">${dot}Wears ${hm.name}'s collar. ${SPECIES[id].outdoor ? `Lives in ${hm.name}'s yard behind the ${color} house` : cage ? `Lives in ${CAGE_WORDS[cage]} at ${hm.name}'s ${color} house` : `${hm.name}'s indoor pet in the ${color} house`}</span>`;
 }
 function sheetAnimals() {
   const ids = STARTERS.concat(SHOP).filter((i) => S.owned.includes(i));

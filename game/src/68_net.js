@@ -35,7 +35,8 @@ const Net = {
   state() {
     const b = Player.b; if (!b) return null;
     const r = (v) => Math.round(v * 100) / 100;
-    return { sp: b.sp, age: r(b.age), x: r(b.pos.x), y: Math.round(b.pos.y * 10) / 10, z: r(b.pos.z), yaw: r(b.yaw), speed: r(b.speed), vy: r(b.vy), eat: r(b.eat), mode: b.mode, room: this.roomKey(b.room) };
+    const hm = S.homes[b.sp];
+    return { sp: b.sp, age: r(b.age), col: hm ? hexNum(hm.look && hm.look.shirt) : -1, x: r(b.pos.x), y: Math.round(b.pos.y * 10) / 10, z: r(b.pos.z), yaw: r(b.yaw), speed: r(b.speed), vy: r(b.vy), eat: r(b.eat), mode: b.mode, room: this.roomKey(b.room) };
   },
   sendState(dt) {
     this.sendT -= dt; this.beatT -= dt;
@@ -68,6 +69,9 @@ const Net = {
       this.others.set(id, o);
     }
     o.st = st; o.t = 0;
+    // tamed animals wear their collar for everyone to see
+    const col = Number.isFinite(st.col) && st.col >= 0 ? st.col : null;
+    if (o.col !== col && o.b.rig.setCollar) { o.col = col; o.b.rig.setCollar(col); }
   },
   drop(id) { const o = this.others.get(id); if (!o) return; G.scene.remove(o.b.rig.root); if (o.tag) o.tag.remove(); this.others.delete(id); },
   clearOthers() { for (const id of [...this.others.keys()]) this.drop(id); },
