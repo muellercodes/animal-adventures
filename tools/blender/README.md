@@ -4,7 +4,7 @@ Makes a realistic body for one species with Blender, fitted to the skeleton the 
 `game/models/<id>.*`. `build.mjs` embeds those files in the page and `game/src/40_animals.js` uses the model instead of
 the procedural loft body. Everything else (bones, walk/run/eat/sleep animation, baby proportions, eyes and blinking,
 collar, moods, swimming) keeps working through the same rig API. The pig (bare skin), frog, lizard, turtle, snake,
-horse (coat, mane and tail), deer and moose have models so far; `horse.py` is the example for furry animals, `deer.py` for antlers.
+horse (coat, mane and tail), deer, goat and moose have models so far; `horse.py` is the example for furry animals, `deer.py` for antlers.
 
 Nothing is downloaded: the shape, skin colors and fine detail are all made by the scripts here.
 
@@ -200,6 +200,9 @@ and the cards only.
 Deer: 7.2k body triangles plus 126 in the tail fringe cards; 1024 color and normal maps, 512 fawn color map, 512 fur
 map, 128 x 128 strand texture: 63 KB mesh + 57 + 54 + 23 + 13 + 8 KB maps, about 297 KB in the page
 (`VOXEL=0.0035 TRIS=7200 WEIGHTS=transfer`, about 25 minutes on a busy machine).
+
+Goat: 7.0k body triangles plus 140 in the beard cards; 1024 color and normal maps, 512 fur map, 128 x 128 strand
+texture: 56 KB mesh + 64 + 43 + 12 + 8 KB maps, about 251 KB in the page (`VOXEL=0.0025 TRIS=7000 WEIGHTS=transfer`).
 
 Moose: 7.6k triangles; 1024 color and normal maps, 512 calf color map, 512 fur map: 57 KB mesh + 32 + 52 + 11 + 11 KB
 maps, about 222 KB in the page (`VOXEL=0.006 TRIS=7600 WEIGHTS=transfer`).
