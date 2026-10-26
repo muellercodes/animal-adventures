@@ -71,8 +71,15 @@ placement written to the json) and `MAP_QUALITY`. `sdf.py` has the primitives, s
 Optional settings (defaults are the pig's): `TAIL_RINGS = 0` for an animal without a tail tube, `BAKE_DIST` (cage,
 ray and occlusion distances in meters, smaller for small animals), `DISSOLVE_DEGENERATE = True` (drop the zero area
 slivers the mirror cut leaves, so they do not use up the triangle budget). In `meta()`, the eye can ask for
-`irisNet` (a fine dark network over the iris, for frogs) and the collar for `tilt` (pitch of the band's plane) and
-`maxR` (ignore limbs farther out than this when slicing the neck).
+`irisNet` (a fine dark network over the iris, for frogs) and the collar for `tilt` (pitch of the band's plane),
+`maxR` (ignore limbs farther out than this when slicing the neck), `taper` (each edge of the band rests on the skin
+under it, for a neck that widens into the shoulders; otherwise the band is as wide as the widest skin across it) and
+`wb` / `wbk` (the band follows only these bones, for that share of its weights: the pig's band would otherwise lift
+off with the head when it eats). The baby's band: `babyAt`, `hug`, `babyK`, `babyMaxR` (see the birds).
+
+A species can give its baby its own shape with `baby_offset(P, N, parts)` (offsets in adult space per vertex, before
+the game's baby proportions; see the birds). The pig uses it for a rounder, shorter piglet (the trunk walks along its
+normals onto an egg, `PIGLET`), together with the game's `modelSpec.baby` (bigger head and ears, shorter snout).
 
 ## The frog (`frog.py`)
 

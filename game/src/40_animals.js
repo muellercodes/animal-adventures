@@ -3331,6 +3331,8 @@ const Animals = (() => {
         C.ro = P.part === 'head' && P.z > 0.7 ? 0.42 : 0.6;
       },
       baby: { head: 1.35, muzzle: 0.75, eye: 1.15, ear: 0.82, body: [1.05, 1.05, 0.85], leg: [0.85, 1.05], tail: 0.6 },
+      // the sculpted piglet: a bigger head with a short snout and big ears on a short, round body
+      modelSpec: { baby: { head: 1.52, muzzle: 0.58, eye: 1.12, ear: 1.0, body: [1.1, 1.12, 0.74], leg: [0.85, 0.95], tail: 0.6 } },
       anim: {
         type: 'legged', walk: 1.0, trot: 2.0, run: 4.0, stride: 0.55, strideMax: 2.2,
         duty: [0.64, 0.4, 0.38], lift: [0.05, 0.05], flexF: 1.2, flexH: 0.8,
@@ -6110,8 +6112,21 @@ const Animals = (() => {
     const fl = M.fur ? M.fur.flen : null;
     const ed = [-hw, hw].map((s) => meshSlice(M.pos, M.idx, M.weights, C.clone().addScaledVector(T, s), T, S, Nv, ths, fl, cfg.maxR));
     const r = ths.map((_, j) => Math.max(ed[0][j].r, ed[1][j].r, s0[j].r));
+    // taper (optional): each edge rests on the skin under it (and the middle), so a band on a neck that widens into
+    // the shoulders does not stand off at its narrow edge; without it the band is as wide as the widest skin
+    const re = cfg.taper ? ed.map((q) => ths.map((_, j) => Math.max(q[j].r, s0[j].r))) : [r, r];
+    // wb (optional): the band follows only these bones (share wbk, default 1, of its weights), so a band that sits
+    // where the neck blends into the head does not lift off with the head when it goes down to eat
+    const bw = (w0) => {
+      if (!cfg.wb) return w0;
+      const w = w0.filter((p) => cfg.wb.includes(p[0])), t = w.reduce((a, p) => a + p[1], 0), k = cfg.wbk == null ? 1 : cfg.wbk, m = new Map();
+      if (!(t > 0)) return w0;
+      for (const p of w0) m.set(p[0], (1 - k) * p[1]);
+      for (const p of w) m.set(p[0], m.get(p[0]) + (k * p[1]) / t);
+      return Array.from(m.entries()).filter((p) => p[1] > 0).sort((p, q) => q[1] - p[1]).slice(0, 4);
+    };
     const pl = {
-      mesh: true, cfg, C, T, S, N: Nv, ths, rN, hw, r, w: ed.map((e) => e.map((q) => q.w || [['head', 1]])),
+      mesh: true, cfg, C, T, S, N: Nv, ths, rN, hw, r, re, w: ed.map((e) => e.map((q) => bw(q.w || [['head', 1]]))),
       thick: Math.max(0.055 * rN, 0.0005), gap: (0.025 + cfg.fit) * rN, tagR: 0.3 * rN * cfg.r, hang: new THREE.Vector3(), nOut: new THREE.Vector3(),
     };
     pl.tagLen = pl.tagR * 0.34 * 1.45 + pl.tagR * 2;
@@ -6147,7 +6162,7 @@ const Animals = (() => {
     const map = (p, w, o) => { o.set(0, 0, 0); for (const [n, ww] of w) o.addScaledVector(babyApply(ag.byName[n], p, _v1), ww); return o; };
     const q = new THREE.Vector3(), Pb = [[], []], C = new THREE.Vector3();
     for (let e = 0; e < 2; e++) for (let j = 0; j <= COLLAR_N; j++) {
-      q.copy(pl.C).addScaledVector(pl.T, e ? pl.hw : -pl.hw).add(pl.dir(pl.ths[j], _v2).multiplyScalar(pl.r[j]));
+      q.copy(pl.C).addScaledVector(pl.T, e ? pl.hw : -pl.hw).add(pl.dir(pl.ths[j], _v2).multiplyScalar(pl.re[e][j]));
       Pb[e].push(map(q, pl.w[e][j], new THREE.Vector3()));
       if (j < COLLAR_N) C.addScaledVector(Pb[e][j], 0.5 / COLLAR_N);
     }
@@ -6163,9 +6178,12 @@ const Animals = (() => {
     pl.push = [[], []];
     const rsl = pl.ths.map((_, j) => Math.max(sl[0][j].r, sl[1][j].r, sl[2][j].r));
     // a hugging band follows the neck's outline smoothed around the ring (no zigzag over small bumps)
-    const rsm = pl.cfg.hug ? rsl.map((_, j) => { let t = 0; for (let d = -2; d <= 2; d++) t += rsl[(((j + d) % COLLAR_N) + COLLAR_N) % COLLAR_N]; return t / 5; }) : rsl;
+    const sm = (a) => (pl.cfg.hug ? a.map((_, j) => { let t = 0; for (let d = -2; d <= 2; d++) t += a[(((j + d) % COLLAR_N) + COLLAR_N) % COLLAR_N]; return t / 5; }) : a);
+    const rsm = sm(rsl);
+    // a tapered band: each edge on its own slice (and the middle one)
+    const rse = pl.cfg.taper ? [0, 2].map((s) => sm(pl.ths.map((_, j) => Math.max(sl[s][j].r, sl[1][j].r)))) : null;
     for (let e = 0; e < 2; e++) for (let j = 0; j <= COLLAR_N; j++) {
-      const rs = rsm[j];
+      const rs = rse ? rse[e][j] : rsm[j];
       _v3.subVectors(Pb[e][j], C);
       if (pl.shiftB) _v3.add(pl.shiftB);
       _v3.addScaledVector(T, -_v3.dot(T));
@@ -6186,7 +6204,7 @@ const Animals = (() => {
     for (let j = 0; j <= N; j++) {
       pl.dir(pl.ths[j], D);
       for (let e = 0; e < 2; e++) {
-        P.copy(pl.C).addScaledVector(pl.T, e ? pl.hw : -pl.hw).addScaledVector(D, pl.r[j]);
+        P.copy(pl.C).addScaledVector(pl.T, e ? pl.hw : -pl.hw).addScaledVector(D, pl.re[e][j]);
         const w = pl.w[e][j], inner = P.clone().addScaledVector(D, pl.gap - dep), outer = P.clone().addScaledVector(D, pl.gap + pl.thick);
         const tn = pl.T.clone().multiplyScalar(e ? 1 : -1);
         const v = e ? [[outer, tn, 0.72, 1], [inner, tn, 0.72, 0.4]] : [[inner, tn, 0.72, 0.4], [outer, tn, 0.72, 1]], up = furOn ? sp.len * pl.fl[j] * COLLAR_LIFT : 0;
