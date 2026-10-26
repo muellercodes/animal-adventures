@@ -2216,7 +2216,7 @@ const Animals = (() => {
         ...babyC(birdToes(foot, toes, 0xE4B23A, 'hpawL'), 0xE8B87A),
       ],
       accentRough: 0.55,
-      modelSpec: { anim: { wing: WA.wing }, baby: { muzzle: 0.42, fluff: 0, wing: 0.2, eye: 1.0 } },
+      modelSpec: { anim: { wing: WA.wing }, baby: { muzzle: 0.42, fluff: 0, wing: 0.12, eye: 1.0 } },
       eyes: [{ bone: 'head', p: [0.024, 0.415, 0.138], r: 0.0058, dir: [0.92, 0.15, 0.3], iris: 0xD48A26, irisR: 0.8, pupilR: 0.45, babyIris: 0x1E140E }],
       mouth: [0, 0.392, 0.188],
       anim: {

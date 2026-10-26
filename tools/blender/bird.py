@@ -268,6 +268,18 @@ def onto(P, N, sdf, iters=10, step=0.012, maxd=0.06):
     for _ in range(iters):
         Q = Q - N * np.clip(sdf(Q), -step, step)[:, None]
     d = Q - P
+    # where the normal runs at a slant to the surface (creases, the inner faces of wattles) the walk along it goes
+    # far or misses: take the nearest point on the surface instead (steps down the field's gradient)
+    s0 = np.abs(sdf(P))
+    bad = (np.linalg.norm(d, axis=1) > 2.0 * s0 + 0.004) | (np.abs(sdf(Q)) > 0.002)
+    if bad.any():
+        Pb = P[bad].copy()
+        e = 0.0008
+        for _ in range(5):
+            g = np.stack([sdf(Pb + V(*o)) - sdf(Pb - V(*o)) for o in ((e, 0, 0), (0, e, 0), (0, 0, e))], 1)
+            g /= np.maximum(np.linalg.norm(g, axis=1, keepdims=True), 1e-9)
+            Pb = Pb - g * sdf(Pb)[:, None]
+        d[bad] = Pb - P[bad]
     ln = np.linalg.norm(d, axis=1, keepdims=True)
     return d * np.minimum(1, maxd / np.maximum(ln, 1e-9))
 

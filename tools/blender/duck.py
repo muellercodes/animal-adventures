@@ -570,7 +570,7 @@ def paint_baby(P, N, c):
     de = (Pm - EYE_C)
     cap = sstep(-0.1, 0.4, Nm[:, 1] + 0.7 * sat(-Nm[:, 2])) * sstep(0.392, 0.398, y + 0.25 * np.maximum(0, 0.185 - z)) * hd
     nape = sstep(-0.1, -0.6, Nm[:, 2]) * hd * sstep(0.32, 0.36, y)
-    eyeline = sstep(0.0032, 0.0016, np.abs(de[:, 1] + 0.18 * de[:, 2])) * sstep(0.2, 0.16, z) * sstep(0.135, 0.15, z) * hd
+    eyeline = sstep(0.0045, 0.0025, np.abs(de[:, 1] + 0.18 * de[:, 2])) * sstep(0.205, 0.19, z) * sstep(0.128, 0.145, z) * hd
     ear = sstep(0.0045, 0.002, np.linalg.norm((Pm - V(0.016, 0.381, 0.163)) * V(0.5, 1, 1), axis=1)) * hd
     back = sstep(-0.1, 0.45, Nm[:, 1] + 0.25) * sstep(0.232, 0.25, y) * np.clip(R['trunk'], 0, 1) * sstep(0.13, 0.09, z)
     spots = (sstep(0.024, 0.016, np.linalg.norm((Pm - V(0.05, 0.252, 0.02)) * V(1, 1.3, 0.7), axis=1))
