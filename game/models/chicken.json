@@ -1,7 +1,9 @@
 {
- "v": 1,
+ "v": 2,
  "id": "chicken",
  "data": "chicken.bin",
+ "enc": "deflate",
+ "raw": 72732,
  "maps": {
   "color": "chicken-color.webp",
   "normal": "chicken-normal.webp",
@@ -11,8 +13,10 @@
   "featherNormal": "chicken-feathernrm.webp",
   "babyFeather": "chicken-babyfeather.webp"
  },
- "nv": 4397,
- "ntri": 6004,
+ "nv": 2280,
+ "ntri": 3002,
+ "nbv": 2280,
+ "nbt": 3002,
  "bbox": [
   -0.297649,
   -0.000774,

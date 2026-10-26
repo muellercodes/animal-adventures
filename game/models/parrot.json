@@ -1,7 +1,9 @@
 {
- "v": 1,
+ "v": 2,
  "id": "parrot",
  "data": "parrot.bin",
+ "enc": "deflate",
+ "raw": 70494,
  "maps": {
   "color": "parrot-color.webp",
   "normal": "parrot-normal.webp",
@@ -11,8 +13,10 @@
   "featherNormal": "parrot-feathernrm.webp",
   "babyFeather": "parrot-babyfeather.webp"
  },
- "nv": 4197,
- "ntri": 5986,
+ "nv": 2189,
+ "ntri": 2993,
+ "nbv": 2189,
+ "nbt": 2993,
  "bbox": [
   -0.308913,
   -0.001013,

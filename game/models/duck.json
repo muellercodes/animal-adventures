@@ -1,7 +1,9 @@
 {
- "v": 1,
+ "v": 2,
  "id": "duck",
  "data": "duck.bin",
+ "enc": "deflate",
+ "raw": 67398,
  "maps": {
   "color": "duck-color.webp",
   "normal": "duck-normal.webp",
@@ -11,8 +13,10 @@
   "featherNormal": "duck-feathernrm.webp",
   "babyFeather": "duck-babyfeather.webp"
  },
- "nv": 3953,
- "ntri": 5994,
+ "nv": 2059,
+ "ntri": 2997,
+ "nbv": 2059,
+ "nbt": 2997,
  "bbox": [
   -0.309751,
   -0.000133,
@@ -130,6 +134,7 @@
   0.1
  ],
  "flat": 10130828,
+ "bdelta": 0.279751,
  "belly": [
   0.0,
   0.1153,
@@ -140,7 +145,6 @@
   "feather",
   "babyFeather"
  ],
- "bdelta": 0.279751,
  "feathers": {
   "cols": 8
  }

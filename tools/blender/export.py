@@ -79,7 +79,13 @@ if hasattr(S, 'cards'):
     cards = dict(q=cq, uv=np.round(np.clip(C['uv'], 0, 1) * 65535).astype(np.int64), oct=MP.oct_enc(C['nrm']), si=C['si'], sw=cw,
                  baby=np.round(C['baby'] / bs).astype(np.int64), tri=C['tri'])
 
-blob, js = MP.pack(body, tt, fur, cards)
+# the baby's own shape change per vertex (adult space), for species with baby_offset() (the birds' downy chicks)
+bdelta = bsc = None
+if hasattr(S, 'baby_offset'):
+    P0, N0 = pos[:n0].astype(np.float32), nrm[:n0].astype(np.float32)
+    bdelta, bsc = MP.bdelta_q(S.baby_offset(P0, N0, S.parts(P0)))
+
+blob, js = MP.pack(body, tt, fur, cards, bdelta)
 open(os.path.join(OUT, f'{SP}.bin'), 'wb').write(blob)
 
 # maps
@@ -115,6 +121,8 @@ if FUR:
     meta['fur'] = dict({k: v for k, v in FUR.items() if k != 'quality'}, uvm=round(float(np.sqrt(a3 / a2)), 4))
 if cards is not None:
     meta['cards'] = dict(js['cards'], bbox=cbox, bscale=bs, rough=S.HAIR.get('rough', 0.55), alpha=S.HAIR.get('alpha', 0.3))
+if bsc is not None:
+    meta['bdelta'] = bsc
 # belly contact point under the hips (for lying down)
 rig = json.load(open(os.path.join(WORK, f'{SP}-rig.json')))['adult']
 hips = [b['p'] for b in rig['bones'] if b['name'] == 'hips']
@@ -124,8 +132,7 @@ if hips and 'belly' not in meta:    # (a snake has no hips: the game keeps its b
     k = max(1.0, rig['size']['length'] / 1.2)
     near = (np.abs(pos[:, 0]) < 0.04 * k) & (np.abs(pos[:, 2] - hz) < 0.05 * k) & ~lo['tail']
     meta['belly'] = [0.0, round(float(pos[near, 1].min()), 4), hz]
-# optional species hook for more maps (the birds' baby down and feather atlas). Note: the birds' hook appends their baby
-# offsets to the mesh data the way format 1 stored it; format 2 (deflated) does not take them yet
+# optional species hook for more maps (the birds' baby down and feather atlas)
 if hasattr(S, 'export_extra'):
     S.export_extra(meta, OUT, WORK)
 json.dump(meta, open(os.path.join(OUT, f'{SP}.json'), 'w'), indent=1)

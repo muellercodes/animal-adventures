@@ -1,7 +1,9 @@
 {
- "v": 1,
+ "v": 2,
  "id": "owl",
  "data": "owl.bin",
+ "enc": "deflate",
+ "raw": 66594,
  "maps": {
   "color": "owl-color.webp",
   "normal": "owl-normal.webp",
@@ -11,8 +13,10 @@
   "featherNormal": "owl-feathernrm.webp",
   "babyFeather": "owl-babyfeather.webp"
  },
- "nv": 3940,
- "ntri": 5990,
+ "nv": 2026,
+ "ntri": 2995,
+ "nbv": 2026,
+ "nbt": 2995,
  "bbox": [
   -0.395961,
   -0.001266,

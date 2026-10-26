@@ -5118,6 +5118,16 @@ const Animals = (() => {
       co.baby = (v) => [by[0][v] * bs, by[1][v] * bs, by[2][v] * bs];
       out.cards = co;
     }
+    // optional: the baby's own shape change per vertex (as in format 1, square law), x negated on the mirror twins
+    if (md.bdelta) {
+      const q = [d8(md.nv), d8(md.nv), d8(md.nv)], bd = new Float64Array(N * 3), k = md.bdelta / 16129;
+      for (let i = 0; i < md.nv; i++) {
+        const j = twin[i], x = q[0][i] * Math.abs(q[0][i]) * k, y = q[1][i] * Math.abs(q[1][i]) * k, z = q[2][i] * Math.abs(q[2][i]) * k;
+        bd[i * 3] = x; bd[i * 3 + 1] = y; bd[i * 3 + 2] = z;
+        if (j !== i) { bd[j * 3] = -x; bd[j * 3 + 1] = y; bd[j * 3 + 2] = z; }
+      }
+      out.bdelta = bd;
+    }
     return out;
   }
   function modelData(id) {

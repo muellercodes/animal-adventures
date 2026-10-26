@@ -627,16 +627,7 @@ def export_extra(S, meta, out_dir, work):
         if key in ('babyColor', 'feather', 'babyFeather'):
             srgb_keys.append(key)
     meta['srgb'] = srgb_keys
-    # the baby's own shape change per vertex (adult space): appended to the mesh data, scale in the json
-    if hasattr(S, 'baby_offset'):
-        lo0 = np.load(os.path.join(work, f'{S.ID}-lo.npz'))
-        pos, nrm = lo0['pos'].astype(F), lo0['nrm'].astype(F)
-        d = S.baby_offset(pos, nrm, S.parts(pos)).astype(F)
-        sc = max(float(np.abs(d).max()), 1e-4)
-        q = np.clip(np.round(np.sign(d) * np.sqrt(np.abs(d) / sc) * 127), -127, 127).astype(np.int8)
-        with open(os.path.join(out_dir, f'{S.ID}.bin'), 'ab') as fh:
-            fh.write(q.tobytes())
-        meta['bdelta'] = round(sc, 6)
+    # (the baby's own shape change per vertex, baby_offset(), is packed with the mesh by export.py)
     # belly contact point under the hips from the body's midline only (the legs of a bird stand close to it)
     lo = np.load(os.path.join(work, f'{S.ID}-lo.npz'))
     pos = lo['pos']

@@ -49,9 +49,12 @@ NO_ASSETS=1 API_BASE= node build.mjs && python3 tools/assets.py pig && node buil
 `<id>.bin` holds only the +x half of the body; the game makes the mirrored half when it loads the model (x negated,
 left and right bones swapped). Vertices are numbered by first use, each attribute is stored as byte planes with
 delta coding, and the whole thing is deflated (the game has a small synchronous inflater). For the pig that is 38 KB
-instead of 140 KB. Optional blocks: fur (comb direction and fur length per vertex) and hair cards (their own mesh,
-never mirrored, with a newborn offset per vertex). The game still reads format 1 models; `python3
-tools/blender/modelpack.py <id>` converts one in place.
+instead of 140 KB. Optional blocks: fur (comb direction and fur length per vertex), hair cards (their own mesh,
+never mirrored, with a newborn offset per vertex) and baby offsets (`bdelta`: the baby's own shape change per vertex,
+from the species' `baby_offset(P, N, parts)`; export.py packs it for any species that has one). The game still reads
+format 1 models; `python3 tools/blender/modelpack.py <id>` converts one in place (baby offsets included), and
+`python3 tools/blender/modelpack.py --baby <id>` (a Python with numpy and scipy) gives a format 2 model new baby
+offsets from its species file without the Blender work files, leaving the rest of the model byte for byte.
 
 ## A species file (`pig.py`)
 
@@ -165,8 +168,9 @@ with a feather atlas only swaps what they look like. `bird.py` holds what the fi
   Painted at 1024 x 512 and written at `FEATHER_ATLAS['out']`.
 - Babies: `paint_baby()` / `detail_baby()` give a second color and normal map (down instead of feathers, written at
   `BABY_MAPS['size']`), and `baby_offset()` (`baby_shape()`) gives each vertex its own baby shape change (round egg
-  shaped body, wing arm pulled into the shoulder, thin legs), written after the mesh data as int8 x3 with a square
-  law scale (`md.bdelta`). The game adds it through the bones' baby maps, so it follows the rig like the rest.
+  shaped body, wing arm pulled into the shoulder, thin legs), packed with the mesh (format 2 `bdelta` block, int8 x3
+  with a square law scale `md.bdelta`). The game adds it through the bones' baby maps, so it follows the rig like the
+  rest.
 - Hooks, all optional and off for the other species: `grid(h)` (a rectilinear marching cubes grid, finer where
   the bill and feet are), `UV_PACK` (extra pack_islands options), `extra_maps(X)` in `texture.py` and
   `export_extra(meta, out, work)` in `export.py`.
@@ -233,11 +237,13 @@ fur shells add 4 layers over the coated triangles (about 22k triangles, one draw
 and the cards only.
 
 Frog: about 7.1k triangles, 6k vertices, 512 x 512 maps, about 305 KB in the page (`VOXEL=0.0004 TRIS=7200 TEX=512`),
-converted to format 2 with `modelpack.py`. The birds are still format 1 (their baby offsets are not in format 2 yet).
+converted to format 2 with `modelpack.py`.
 
 Birds (`VOXEL=0.002 TRIS=6000 TEX=768`): about 6k body triangles and 4k vertices, 768 color and normal maps, 512 baby
-maps, a 512 x 256 feather atlas; 250 to 290 KB of files, about 340 to 390 KB in the page each (format 1). In the game
-about 8.7k to 9k triangles with the feather blades (about 2k) and eyes.
+maps, a 512 x 256 feather atlas; 38 to 42 KB mesh with baby offsets (format 2; 128 to 138 KB in format 1), 160 to
+205 KB of files, about 215 to 275 KB in the page each. In the game about 8.7k to 9k triangles with the feather blades
+(about 2k) and eyes. A rebuild of the duck with the scripts here gives the shipped model again (same mesh, maps byte
+for byte).
 
 Fox (`VOXEL=0.002 TRIS=7000 TEX=1024`): 7.0k triangles plus 96 in the whiskers; 1024 color (WebP 72) and normal maps,
 512 fur map, 512 kit color map: 59 KB mesh and cards + 67 + 33 + 13 + 8 + 4 KB, about 250 KB in the page.
