@@ -1,13 +1,17 @@
 {
- "v": 1,
+ "v": 2,
  "id": "frog",
  "data": "frog.bin",
+ "enc": "deflate",
+ "raw": 85674,
  "maps": {
   "color": "frog-color.webp",
   "normal": "frog-normal.webp"
  },
- "nv": 6014,
- "ntri": 7138,
+ "nv": 3060,
+ "ntri": 3569,
+ "nbv": 3060,
+ "nbt": 3569,
  "bbox": [
   -0.108863,
   -5.1e-05,

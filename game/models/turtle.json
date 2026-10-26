@@ -1,13 +1,17 @@
 {
- "v": 1,
+ "v": 2,
  "id": "turtle",
  "data": "turtle.bin",
+ "enc": "deflate",
+ "raw": 84858,
  "maps": {
   "color": "turtle-color.webp",
   "normal": "turtle-normal.webp"
  },
- "nv": 5779,
- "ntri": 7412,
+ "nv": 2982,
+ "ntri": 3706,
+ "nbv": 2982,
+ "nbt": 3706,
  "bbox": [
   -0.137052,
   0.002301,

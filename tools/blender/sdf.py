@@ -128,6 +128,68 @@ def plane_y(P, y0):
     return y0 - P[:, 1]
 
 
+_sweep_cache = {}
+
+
+def sweep(P, keys, n=48, mirror_x=True):
+    """loft along a curved path in the y-z plane (necks, legs, tails). keys: rows (y, z, top, bot, w, eTop, eBot[, xc]):
+    path point, then the section there: a superellipse reaching top along the path's normal (the tangent turned by
+    +90 degrees: up and back for a path rising forward, forward for a path going down), bot the other way, half width w
+    across x, centered on x = xc (default 0; mirror_x measures x from the middle). The path and the section values are
+    joined by smooth monotone cubics and sampled at n points. Closed with rounded caps."""
+    K = np.asarray(keys, dtype=F)
+    ck = (K.tobytes(), n)
+    if ck not in _sweep_cache:
+        from scipy.interpolate import PchipInterpolator
+        seg = np.linalg.norm(np.diff(K[:, :2], axis=0), axis=1)
+        t = np.concatenate([[0], np.cumsum(seg)]).astype(np.float64)
+        f = PchipInterpolator(t, K.astype(np.float64), axis=0)
+        ts = np.linspace(0, t[-1], n)
+        S = f(ts).astype(F)
+        arc = np.concatenate([[0], np.cumsum(np.linalg.norm(np.diff(S[:, :2], axis=0), axis=1))]).astype(F)
+        _sweep_cache[ck] = (S, arc)
+    S, arc = _sweep_cache[ck]
+    y, z = P[:, 1], P[:, 2]
+    best = np.full(len(P), np.inf, F)
+    bi = np.zeros(len(P), np.int32)
+    bt = np.zeros(len(P), F)
+    for i in range(len(S) - 1):
+        ay, az = S[i, 0], S[i, 1]
+        dy, dz = S[i + 1, 0] - ay, S[i + 1, 1] - az
+        l2 = dy * dy + dz * dz
+        t = np.clip(((y - ay) * dy + (z - az) * dz) / l2, 0, 1)
+        ey, ez = y - ay - t * dy, z - az - t * dz
+        d2 = ey * ey + ez * ez
+        m = d2 < best
+        best = np.where(m, d2, best)
+        bi = np.where(m, i, bi)
+        bt = np.where(m, t, bt)
+    a, b = S[bi], S[bi + 1]
+    C = a + (b - a) * bt[:, None]
+    ty, tz = b[:, 0] - a[:, 0], b[:, 1] - a[:, 1]
+    tl = np.sqrt(ty * ty + tz * tz) + 1e-12
+    ty, tz = ty / tl, tz / tl
+    # section normal: the tangent turned by +90 degrees in the y-z plane
+    uy, uz = tz, -ty
+    ry, rz = y - C[:, 0], z - C[:, 1]
+    u = ry * uy + rz * uz
+    s_along = arc[bi] + bt * tl                     # arc length of the closest point
+    over = (ry * ty + rz * tz)                      # past the ends (only nonzero at the caps)
+    top, bot, w, eT, eB = C[:, 2], C[:, 3], C[:, 4], C[:, 5], C[:, 6]
+    x = np.abs(P[:, 0]) if mirror_x else P[:, 0]
+    if K.shape[1] > 7:
+        x = x - C[:, 7]
+    h = np.where(u > 0, top, bot)
+    e = np.where(u > 0, eT, eB)
+    q = (np.abs(x / w) ** e + np.abs(u / h) ** e) ** (1 / e)
+    d = (q - 1) * np.minimum(w, 0.5 * (top + bot))
+    # beyond the ends: rounded caps (arc coordinate, extended past the ends along the end tangents)
+    s_ext = s_along + over
+    cap = np.maximum(-s_ext, s_ext - arc[-1])
+    kc = 0.5 * float(min(K[0, 4], K[-1, 4], 0.5 * (K[0, 2] + K[0, 3]), 0.5 * (K[-1, 2] + K[-1, 3])))
+    return smax(d, cap, kc)
+
+
 # ---------- noise ----------
 def _hash(ix, iy, iz, seed=0):
     h = (ix.astype(np.int64) * 73856093) ^ (iy.astype(np.int64) * 19349663) ^ (iz.astype(np.int64) * 83492791) ^ (seed * 2654435761)

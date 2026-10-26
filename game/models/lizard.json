@@ -1,13 +1,17 @@
 {
- "v": 1,
+ "v": 2,
  "id": "lizard",
  "data": "lizard.bin",
+ "enc": "deflate",
+ "raw": 73449,
  "maps": {
   "color": "lizard-color.webp",
   "normal": "lizard-normal.webp"
  },
- "nv": 4909,
- "ntri": 6836,
+ "nv": 2521,
+ "ntri": 3418,
+ "nbv": 2521,
+ "nbt": 3418,
  "bbox": [
   -0.082068,
   0.000222,

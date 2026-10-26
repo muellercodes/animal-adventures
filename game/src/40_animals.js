@@ -228,6 +228,8 @@ const Animals = (() => {
       if (bt.mor) {
         _pv.set(mirror ? -x : x, y, z); _pn.set(mirror ? -P.nrm[v * 3] : P.nrm[v * 3], P.nrm[v * 3 + 1], P.nrm[v * 3 + 2]);
         babyDelta(bt.age, _pv, P.fluff === false ? null : _pn, four, _pd);
+        // parts can bring an extra newborn offset (hair cards: a foal's short mane and tail)
+        if (P.babyAdd) { const b = P.babyAdd(v); _pd.x += mirror ? -b[0] : b[0]; _pd.y += b[1]; _pd.z += b[2]; }
         bt.mor.push(_pd.x, _pd.y, _pd.z);
       }
     }
@@ -3081,7 +3083,8 @@ const Animals = (() => {
         }
         if (P.part !== 'mane' && P.part !== 'tail' && P.part !== 'forelock') cmul(C, 0.94 + 0.1 * fine);
       },
-      baby: { head: 1.35, muzzle: 0.7, eye: 1.12, ear: 0.8, neck: [0.72, 1.15], body: [1.04, 1.06, 0.78], leg: [0.98, 1.05], tail: 0.45 },
+      // foal: big head, short shallow body, legs nearly as long as a grown horse's
+      baby: { head: 1.35, muzzle: 0.7, eye: 1.12, ear: 0.8, neck: [0.72, 1.1], body: [0.95, 0.9, 0.78], leg: [0.98, 1.05], tail: 0.45 },
       anim: {
         type: 'legged', walk: 1.8, trot: 3.6, canter: 5.6, run: 8.5, stride: 1.75, strideMax: 2.6,
         duty: [0.65, 0.47, 0.32], dutyC: 0.4, lift: [0.16, 0.13], flexF: 1.8, flexH: 1.1,
@@ -4852,7 +4855,7 @@ const Animals = (() => {
       mapLoads.push(new Promise((res) => {
         img.onload = () => {
           const t = new THREE.Texture(img);
-          if (k === 'color') t.encoding = THREE.sRGBEncoding;
+          if (k === 'color' || k === 'hair') t.encoding = THREE.sRGBEncoding;
           t.anisotropy = 4; t.needsUpdate = true;
           mm.tex[k] = t;
           if (++mm.ready === mm.need) for (const f of mm.waiters.splice(0)) f();
@@ -4865,11 +4868,150 @@ const Animals = (() => {
   }
   // resolves once every model's maps are decoded (tools that render pictures of the animals wait for it)
   const ready = Promise.all(mapLoads);
+  // raw deflate (RFC 1951) decoder for format 2 model data, small and synchronous
+  const INF = {
+    lb: [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258],
+    le: [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0],
+    db: [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577],
+    de: [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13],
+  };
+  function inflateRaw(src, size) {
+    const out = new Uint8Array(size);
+    let ip = 0, bb = 0, bc = 0, op = 0, last = 0, fl = null, fd = null;
+    const bits = (n) => { while (bc < n) { bb |= (src[ip++] | 0) << bc; bc += 8; } const v = bb & ((1 << n) - 1); bb >>>= n; bc -= n; return v; };
+    const huff = (lens, n) => {
+      const cnt = new Uint16Array(16), offs = new Uint16Array(16), sym = new Uint16Array(n);
+      for (let i = 0; i < n; i++) cnt[lens[i]]++;
+      cnt[0] = 0;
+      for (let i = 1; i < 16; i++) offs[i] = offs[i - 1] + cnt[i - 1];
+      for (let i = 0; i < n; i++) if (lens[i]) sym[offs[lens[i]]++] = i;
+      return { cnt, sym };
+    };
+    const dec = (h) => {
+      let code = 0, first = 0, index = 0;
+      for (let len = 1; len < 16; len++) { code |= bits(1); const c = h.cnt[len]; if (code - c < first) return h.sym[index + code - first]; index += c; first = (first + c) << 1; code <<= 1; }
+      return 0;
+    };
+    while (!last) {
+      last = bits(1);
+      const type = bits(2);
+      if (type === 0) {
+        bb = 0; bc = 0;
+        const len = src[ip] | (src[ip + 1] << 8); ip += 4;
+        out.set(src.subarray(ip, ip + len), op); ip += len; op += len;
+        continue;
+      }
+      let lh, dh;
+      if (type === 1) {
+        if (!fl) { const l = new Uint8Array(288); l.fill(8, 0, 144); l.fill(9, 144, 256); l.fill(7, 256, 280); l.fill(8, 280, 288); fl = huff(l, 288); fd = huff(new Uint8Array(30).fill(5), 30); }
+        lh = fl; dh = fd;
+      } else {
+        const nl = bits(5) + 257, nd = bits(5) + 1, nc = bits(4) + 4, ord = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15], cl = new Uint8Array(19);
+        for (let i = 0; i < nc; i++) cl[ord[i]] = bits(3);
+        const ch = huff(cl, 19), ll = new Uint8Array(nl + nd);
+        for (let i = 0; i < nl + nd;) {
+          const s = dec(ch);
+          if (s < 16) ll[i++] = s;
+          else { const v = s === 16 ? ll[i - 1] : 0; let r = s === 16 ? 3 + bits(2) : s === 17 ? 3 + bits(3) : 11 + bits(7); while (r--) ll[i++] = v; }
+        }
+        lh = huff(ll.subarray(0, nl), nl); dh = huff(ll.subarray(nl), nd);
+      }
+      for (;;) {
+        let s = dec(lh);
+        if (s < 256) out[op++] = s;
+        else if (s === 256) break;
+        else { s -= 257; const len = INF.lb[s] + bits(INF.le[s]), ds = dec(dh), dist = INF.db[ds] + bits(INF.de[ds]); for (let k = 0; k < len; k++, op++) out[op] = out[op - dist]; }
+      }
+    }
+    return out;
+  }
+  const octDec = (x, y, out, o) => {
+    x /= 127; y /= 127;
+    const z = 1 - Math.abs(x) - Math.abs(y);
+    if (z < 0) { const ox = x; x = (1 - Math.abs(y)) * (ox >= 0 ? 1 : -1); y = (1 - Math.abs(ox)) * (y >= 0 ? 1 : -1); }
+    const l = Math.hypot(x, y, z) || 1;
+    out[o] = x / l; out[o + 1] = y / l; out[o + 2] = z / l;
+  };
+  // format 2 (see tools/blender/modelpack.py): the stored +x half gets its mirror twins here (x negated, left and
+  // right bones swapped, mirrored triangles with reversed winding); optional fur (comb direction and length per
+  // vertex) and hair cards (never mirrored, with a baby offset per vertex)
+  function unpackModel2(md, u8) {
+    const raw = inflateRaw(u8, md.raw);
+    let o = 0;
+    const plane = (n) => { const a = raw.subarray(o, o + n); o += n; return a; };
+    const unz = (v) => (v & 1 ? -((v + 1) >> 1) : v >> 1);
+    // delta sums wrap around: 16 bit values (unsigned), bytes (signed)
+    const d16 = (n) => { const lo = plane(n), hi = plane(n), out = new Int32Array(n); let acc = 0; for (let i = 0; i < n; i++) { acc = (acc + unz(lo[i] | (hi[i] << 8))) & 0xffff; out[i] = acc; } return out; };
+    const d8 = (n) => { const a = plane(n), out = new Int32Array(n); let acc = 0; for (let i = 0; i < n; i++) { acc = (acc + unz(a[i])) & 0xff; out[i] = acc >= 128 ? acc - 256 : acc; } return out; };
+    const tris = (n) => { const lo = plane(n), hi = plane(n), out = new Uint32Array(n); let hw = -1; for (let i = 0; i < n; i++) { const v = hw + 1 - unz(lo[i] | (hi[i] << 8)); out[i] = v; if (v > hw) hw = v; } return out; };
+    const mb = md.bones.map((n, i) => { const m = n.endsWith('L') ? n.slice(0, -1) + 'R' : n.endsWith('R') ? n.slice(0, -1) + 'L' : n, k = md.bones.indexOf(m); return k >= 0 ? k : i; });
+    const mesh = (n, nt, b, mirror) => {
+      const qx = d16(n), qy = d16(n), qz = d16(n), qu = d16(n), qv = d16(n), ox = d8(n), oy = d8(n);
+      const si = [plane(n), plane(n), plane(n), plane(n)], sw = [plane(n), plane(n), plane(n), plane(n)];
+      return { n, nt, b, qx, qy, qz, qu, qv, ox, oy, si, sw, mirror };
+    };
+    const build = (m, twin, N) => {
+      const pos = new Float64Array(N * 3), nrm = new Float64Array(N * 3), uv = new Float64Array(N * 2), si = new Uint8Array(N * 4), sw = new Uint8Array(N * 4), b = m.b;
+      for (let i = 0; i < m.n; i++) {
+        const x = ((m.qx[i] - 32768) / 32767) * b[3], y = b[1] + ((b[4] - b[1]) * m.qy[i]) / 65535, z = b[2] + ((b[5] - b[2]) * m.qz[i]) / 65535;
+        pos[i * 3] = x; pos[i * 3 + 1] = y; pos[i * 3 + 2] = z;
+        uv[i * 2] = m.qu[i] / 65535; uv[i * 2 + 1] = m.qv[i] / 65535;
+        octDec(m.ox[i], m.oy[i], nrm, i * 3);
+        for (let k = 0; k < 4; k++) { si[i * 4 + k] = m.si[k][i]; sw[i * 4 + k] = m.sw[k][i]; }
+        const j = twin ? twin[i] : i;
+        if (j !== i) {
+          pos[j * 3] = -x; pos[j * 3 + 1] = y; pos[j * 3 + 2] = z;
+          uv[j * 2] = uv[i * 2]; uv[j * 2 + 1] = uv[i * 2 + 1];
+          nrm[j * 3] = -nrm[i * 3]; nrm[j * 3 + 1] = nrm[i * 3 + 1]; nrm[j * 3 + 2] = nrm[i * 3 + 2];
+          for (let k = 0; k < 4; k++) { si[j * 4 + k] = mb[m.si[k][i]]; sw[j * 4 + k] = m.sw[k][i]; }
+        }
+      }
+      const weights = (v) => { const w = []; for (let k = 0; k < 4; k++) if (sw[v * 4 + k]) w.push([md.bones[si[v * 4 + k]], sw[v * 4 + k] / 255]); return w; };
+      return { pos, nrm, uv, weights };
+    };
+    // body: mirror twins for the body vertices off the middle plane
+    const m = mesh(md.nv, md.ntri, md.bbox, true), rg = plane(md.nv), t0 = tris(md.ntri * 3);
+    const twin = new Int32Array(md.nv);
+    let nt2 = 0;
+    for (let i = 0; i < md.nv; i++) twin[i] = i < md.nbv && m.qx[i] !== 32768 ? md.nv + nt2++ : i;
+    const N = md.nv + nt2, out = build(m, twin, N), nb = md.nbt * 3;
+    const idx = new Uint32Array(md.ntri * 3 + nb);
+    idx.set(t0.subarray(0, nb), 0);
+    for (let i = 0; i < nb; i += 3) { idx[nb + i] = twin[t0[i]]; idx[nb + i + 1] = twin[t0[i + 2]]; idx[nb + i + 2] = twin[t0[i + 1]]; }
+    idx.set(t0.subarray(nb), 2 * nb);
+    const rgh = new Uint8Array(N);
+    for (let i = 0; i < md.nv; i++) { rgh[i] = rg[i]; rgh[twin[i]] = rg[i]; }
+    Object.assign(out, { idx, rgh });
+    if (md.fur) {
+      const fx = d8(md.nv), fy = d8(md.nv), fl = plane(md.nv), flow = new Float32Array(N * 3), flen = new Float32Array(N), tmp = [0, 0, 0];
+      for (let i = 0; i < md.nv; i++) {
+        octDec(fx[i], fy[i], tmp, 0);
+        const j = twin[i];
+        flow[i * 3] = tmp[0]; flow[i * 3 + 1] = tmp[1]; flow[i * 3 + 2] = tmp[2]; flen[i] = fl[i] / 255;
+        flow[j * 3] = -tmp[0]; flow[j * 3 + 1] = tmp[1]; flow[j * 3 + 2] = tmp[2]; flen[j] = fl[i] / 255;
+      }
+      out.fur = { flow, flen };
+    }
+    if (md.cards) {
+      const c = md.cards, cm = mesh(c.nv, c.ntri, c.bbox, false), by = [d16(c.nv), d16(c.nv), d16(c.nv)].map((a) => a.map((v) => (v >= 32768 ? v - 65536 : v)));
+      const ct = tris(c.ntri * 3), co = build(cm, null, c.nv), bs = c.bscale;
+      co.idx = ct;
+      co.baby = (v) => [by[0][v] * bs, by[1][v] * bs, by[2][v] * bs];
+      out.cards = co;
+    }
+    return out;
+  }
   function modelData(id) {
     if (modelCache[id] !== undefined) return modelCache[id];
     const md = MODELS[id];
     let out = null;
-    if (md) {
+    if (md && md.v >= 2) {
+      try {
+        const bin = atob(md.data), u8 = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+        out = Object.assign(unpackModel2(md, u8), { md, maps: modelMaps[id] });
+      } catch (e) { out = null; }
+    } else if (md) {
       try {
         const bin = atob(md.data), u8 = new Uint8Array(bin.length);
         for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
@@ -4921,6 +5063,16 @@ const Animals = (() => {
     else { m.color.copy(flat); if (mm) mm.waiters.push(apply); }
     return m;
   }
+  // hair cards: the strand texture with alpha (tested, and turned into coverage where the canvas has MSAA), both sides
+  function cardMaterial(M, baby) {
+    const md = M.md, c = md.cards, tint = (baby ? md.babyTint : md.tint) || [1, 1, 1];
+    const m = new THREE.MeshStandardMaterial({ roughness: c.rough || 0.55, metalness: 0, side: THREE.DoubleSide, alphaTest: c.alpha || 0.3 });
+    m.alphaToCoverage = true;
+    const mm = M.maps, apply = () => { m.map = mm.tex.hair || null; m.color.setRGB(tint[0], tint[1], tint[2]); m.visible = !!m.map; m.needsUpdate = true; };
+    if (mm && mm.ready === mm.need) apply();
+    else { m.visible = false; if (mm) mm.waiters.push(apply); }
+    return m;
+  }
   // eyelashes along the upper lid, in the eye's frame (x side, y gaze, z up; meters). The lid line follows the eye
   // shader's lid (lid: [upper, lower, curve] on the unit eye ball); the lashes sit a little in front of the ball.
   function lashGeo(e) {
@@ -4960,6 +5112,8 @@ const Animals = (() => {
       spec.eyes = [Object.assign({ bone: 'head' }, e)];
       if (M.md.mouth) spec.mouth = M.md.mouth;
       spec.accent = null; spec.shell = null;
+      // a sculpted coat (FUR in the species' Blender file): fur shells over the model, set up by the model
+      if (M.fur && M.md.fur) spec.shell = Object.assign({ model: true, n: 4, n1: 0, lean: 1, babyLen: 1.5 }, M.md.fur);
     }
     // bones (expand mirrored)
     const defs = [];
@@ -5023,6 +5177,14 @@ const Animals = (() => {
       g.deleteAttribute('duv');
       g.setAttribute('rgh', new THREE.BufferAttribute(new Uint8Array(M.rgh), 1, true));
       geos = [{ geo: g, mat: modelMaterial(M, false), babyMat: () => modelMaterial(M, true), fur: true, model: true }];
+      // hair cards (manes, tails): their own mesh and strand texture, skinned like the body
+      if (M.cards) {
+        const cb = newBatch(ag), C = M.cards;
+        pushPart(cb, { name: 'cards', pos: C.pos, nrm: C.nrm, idx: C.idx, weights: C.weights, fluff: false, babyAdd: C.baby }, boneIndex, (v) => [C.uv[v * 2], C.uv[v * 2 + 1]], null, false);
+        const cg = batchGeometry(cb, false);
+        cg.deleteAttribute('duv');
+        geos.push({ geo: cg, mat: cardMaterial(M, false), babyMat: () => cardMaterial(M, true), cards: true });
+      }
     } else geos = [{ geo: batchGeometry(furBatch, false), mat: makeFurMat(false), babyMat: spec.babyPaint ? () => makeFurMat(true) : null, fur: true }];
     // accent parts (vertex colored)
     if (spec.accent && spec.accent.length) {
@@ -5076,7 +5238,7 @@ const Animals = (() => {
       eyeDefs.push(e);
       eyeDefs.push(Object.assign({}, e, { p: [-e.p[0], e.p[1], e.p[2]], dir: [-e.dir[0], e.dir[1], e.dir[2]], bone: mirrorBoneName(e.bone, boneIndex) }));
     }
-    const A = { id, spec, defs, boneIndex, rest, geos, eyeDefs, det, furParts: furBatch.parts, extras: spec.extras ? spec.extras(rest) : [], cplan, ag };
+    const A = { id, spec, defs, boneIndex, rest, geos, eyeDefs, det, furParts: furBatch.parts, extras: spec.extras ? spec.extras(rest) : [], cplan, ag, M };
     // eyelid colors (adult, baby): the painted coat right at the eye, unless the spec names one
     if (spec.eyes && spec.eyes[0]) {
       const e = spec.eyes[0], ep = new THREE.Vector3().fromArray(e.p).addScaledVector(new THREE.Vector3().fromArray(e.dir).normalize(), e.r * 1.2);
@@ -5364,6 +5526,7 @@ const Animals = (() => {
   function shellGeo(A, lv) {
     A.shellGeo = A.shellGeo || {};
     if (A.shellGeo[lv] !== undefined) return A.shellGeo[lv];
+    if (A.spec.shell && A.spec.shell.model) return (A.shellGeo[lv] = modelShellGeo(A, lv === 2 ? A.spec.shell.n : A.spec.shell.n1));
     const sp = A.spec.shell, parts = sp && (lv === 2 ? sp.parts : sp.d1);
     if (!parts || !parts.length) return (A.shellGeo[lv] = null);
     const n = lv === 2 ? sp.n || 4 : sp.n1 || 2;
@@ -5398,11 +5561,101 @@ const Animals = (() => {
     A.shellMat = A.shellMat || [null, null];
     const k = baby ? 1 : 0;
     if (A.shellMat[k]) return A.shellMat[k];
+    if (A.spec.shell.model) return (A.shellMat[k] = modelShellMat(A, baby));
     const sp = A.spec.shell, base = baby && A.age.babyMats && A.age.babyMats[0] ? A.age.babyMats[0] : A.geos[0].mat;
     const m = furMaterial(base.map, base.roughnessMap, 1, A.det, true);
     m.userData.aa.aaShell.value = sp.len * (baby ? sp.babyLen || 1.5 : 1);
     m.userData.aa.aaShellK.value.set(0.06, 0.48, sp.lean == null ? 0.35 : sp.lean);
     return (A.shellMat[k] = m);
+  }
+  // ----- fur shells on sculpted models -----
+  // The model's furry triangles copied n times (attribute shl = layer 0..1, ffl = comb direction and fur length per
+  // vertex, both from Blender). Each layer is pushed out along the normal by its share of the fur length and combed
+  // along the flow (more toward the tips), and keeps only the strands of a dot pattern that reach that high: strands
+  // that lean from the nose to the tail and down the legs, on any UV layout.
+  function modelShellGeo(A, n) {
+    const F = A.M && A.M.fur;
+    if (!n || !F) return null;
+    const g0 = A.geos[0].geo, idx = g0.index.array, fl = F.flen, map = new Map(), verts = [], tri = [];
+    for (let i = 0; i < idx.length; i += 3) {
+      const a = idx[i], b = idx[i + 1], c = idx[i + 2];
+      if (Math.max(fl[a], fl[b], fl[c]) < 0.02) continue;
+      for (const v of [a, b, c]) {
+        let k = map.get(v);
+        if (k === undefined) { k = verts.length; map.set(v, k); verts.push(v); }
+        tri.push(k);
+      }
+    }
+    const nv = verts.length, g = new THREE.BufferGeometry();
+    const copy = (src) => {
+      const sz = src.itemSize, a = new src.array.constructor(nv * n * sz);
+      for (let l = 0; l < n; l++) for (let i = 0; i < nv; i++) for (let c = 0; c < sz; c++) a[(l * nv + i) * sz + c] = src.array[verts[i] * sz + c];
+      return new THREE.BufferAttribute(a, sz, src.normalized);
+    };
+    for (const k in g0.attributes) g.setAttribute(k, copy(g0.attributes[k]));
+    if (g0.morphAttributes.position) { g.morphAttributes.position = g0.morphAttributes.position.map(copy); g.morphTargetsRelative = true; }
+    const shl = new Float32Array(nv * n), ffl = new Float32Array(nv * n * 4);
+    for (let l = 0; l < n; l++) {
+      shl.fill((l + 1) / n, l * nv, (l + 1) * nv);
+      for (let i = 0; i < nv; i++) { const v = verts[i], o = (l * nv + i) * 4; ffl[o] = F.flow[v * 3]; ffl[o + 1] = F.flow[v * 3 + 1]; ffl[o + 2] = F.flow[v * 3 + 2]; ffl[o + 3] = fl[v]; }
+    }
+    g.setAttribute('shl', new THREE.BufferAttribute(shl, 1));
+    g.setAttribute('ffl', new THREE.BufferAttribute(ffl, 4));
+    const ix = new (nv * n > 65535 ? Uint32Array : Uint16Array)(tri.length * n);
+    for (let l = 0; l < n; l++) for (let i = 0; i < tri.length; i++) ix[l * tri.length + i] = tri[i] + l * nv;
+    g.setIndex(new THREE.BufferAttribute(ix, 1));
+    g.boundingSphere = g0.boundingSphere;
+    return g;
+  }
+  // strand dots, made once: R strand height (tapering to the tip), G strand id (for density); 32 x 32 strands a tile
+  let furDotsC = null;
+  function furDots() {
+    if (furDotsC) return furDotsC;
+    const N = 128, C = 32, cs = N / C, d = new Uint8Array(N * N * 4);
+    for (let cy = 0; cy < C; cy++) for (let cx = 0; cx < C; cx++) {
+      const px = (cx + 0.2 + 0.6 * hash3(cx, cy, 31)) * cs, py = (cy + 0.2 + 0.6 * hash3(cx, cy, 32)) * cs;
+      const h = 0.4 + 0.6 * hash3(cx, cy, 33), id = hash3(cx, cy, 34), r = cs * (0.42 + 0.16 * hash3(cx, cy, 35));
+      for (let y = Math.floor(py - r - 1); y <= Math.ceil(py + r + 1); y++) for (let x = Math.floor(px - r - 1); x <= Math.ceil(px + r + 1); x++) {
+        const dd = Math.hypot(x + 0.5 - px, y + 0.5 - py) / r;
+        if (dd >= 1) continue;
+        const o = ((((y % N) + N) % N) * N + (((x % N) + N) % N)) * 4, v = h * (1 - dd * dd) * 255;
+        if (v > d[o]) { d[o] = v; d[o + 1] = id * 255; }
+      }
+    }
+    for (let i = 0; i < N * N; i++) d[i * 4 + 3] = 255;
+    const t = new THREE.DataTexture(d, N, N, THREE.RGBAFormat);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping; t.magFilter = THREE.LinearFilter; t.minFilter = THREE.LinearMipmapLinearFilter;
+    t.generateMipmaps = true; t.needsUpdate = true;
+    return (furDotsC = t);
+  }
+  function aaMShellCompile(sh) {
+    aaModelCompile.call(this, sh);
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nattribute float shl;\nattribute vec4 ffl;\nuniform vec3 aaFur;\nvarying float vShl;\nvarying float vFl;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvShl = shl; vFl = ffl.w;\ntransformed += (normal * shl + ffl.xyz * (aaFur.y * shl * shl)) * (ffl.w * aaFur.x);');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying float vShl;\nvarying float vFl;\nuniform sampler2D aaDots;\nuniform sampler2D aaFurMap;\nuniform vec3 aaFurK;')
+      .replace('#include <map_fragment>', `#include <map_fragment>
+#ifdef USE_UV
+  vec2 aaD = texture2D(aaDots, vUv * aaFurK.x).rg;
+  vec2 aaFm = texture2D(aaFurMap, vUv).rg;
+  if (aaD.x * min(aaFm.x / max(vFl, 0.002), 1.0) < vShl || aaD.y > aaFm.y) discard;
+  diffuseColor.rgb *= mix(aaFurK.y, 1.05, vShl);
+#else
+  discard;
+#endif`);
+  }
+  function modelShellMat(A, baby) {
+    const sp = A.spec.shell, M = A.M, base = modelMaterial(M, baby);
+    base.userData.aa.aaFur = { value: new THREE.Vector3(sp.len * (baby ? sp.babyLen : 1), baby && sp.babyLean != null ? sp.babyLean : sp.lean, 0) };
+    base.userData.aa.aaDots = { value: furDots() };
+    base.userData.aa.aaFurMap = { value: M.maps.tex.fur || furDots() };
+    base.userData.aa.aaFurK = { value: new THREE.Vector3((sp.uvm || 1) / ((sp.tile || 0.002) * 32), sp.shade == null ? 0.7 : sp.shade, 0) };
+    base.onBeforeCompile = aaMShellCompile;
+    base.customProgramCacheKey = () => 'aaMShell';
+    // the fur map arrives with the other maps
+    if (!M.maps.tex.fur && M.maps.ready !== M.maps.need) M.maps.waiters.push(() => { base.userData.aa.aaFurMap.value = M.maps.tex.fur || furDots(); });
+    return base;
   }
   function syncShells(R, A) {
     for (const lv of [1, 2]) {
@@ -5650,9 +5903,10 @@ const Animals = (() => {
   // ----- collars on sculpted models: the band is a slice of the model's neck -----
   // Slice the mesh (flat positions, triangle list) with the plane through C normal to T and cast rays in it from C
   // (angle th from the top N toward the side S, like the lofts). Per angle: the farthest surface crossing (the outer
-  // skin, jowls included) and, with wf, the skin weights there. maxR (optional) ignores crossings farther out (limbs).
-  function meshSlice(pos, idx, wf, C, T, S, Nv, ths, maxR = Infinity) {
-    const out = ths.map(() => ({ r: 0, w: null })), d = [0, 0, 0], segs = [];
+  // skin, jowls included) and, with wf, the skin weights there. sf (optional) is a per-vertex value read at the crossing
+  // (fur length); maxR (optional) ignores crossings farther out (limbs).
+  function meshSlice(pos, idx, wf, C, T, S, Nv, ths, sf, maxR = Infinity) {
+    const out = ths.map(() => ({ r: 0, w: null, s: 0 })), d = [0, 0, 0], segs = [];
     const P2 = (v) => { const x = pos[v * 3] - C.x, y = pos[v * 3 + 1] - C.y, z = pos[v * 3 + 2] - C.z; return [x * S.x + y * S.y + z * S.z, x * Nv.x + y * Nv.y + z * Nv.z]; };
     for (let i = 0; i < idx.length; i += 3) {
       const t = [idx[i], idx[i + 1], idx[i + 2]];
@@ -5678,6 +5932,8 @@ const Animals = (() => {
         if (tt > best) { best = tt; bs = sg; bu = clamp(u, 0, 1); }
       }
       out[j].r = Math.max(best, 0);
+      // a per-vertex value at the crossing (fur length under the band)
+      if (sf && bs) out[j].s = (sf[bs[0].va] * (1 - bs[0].f) + sf[bs[0].vb] * bs[0].f) * (1 - bu) + (sf[bs[1].va] * (1 - bs[1].f) + sf[bs[1].vb] * bs[1].f) * bu;
       if (wf && bs) {
         const m = new Map(), add = (v, k) => { for (const [n, w] of wf(v)) m.set(n, (m.get(n) || 0) + w * k); };
         add(bs[0].va, (1 - bs[0].f) * (1 - bu)); add(bs[0].vb, bs[0].f * (1 - bu)); add(bs[1].va, (1 - bs[1].f) * bu); add(bs[1].vb, bs[1].f * bu);
@@ -5701,17 +5957,18 @@ const Animals = (() => {
     // center the slice on the neck outline
     const C = a.clone().lerp(b, cfg.at[2]);
     for (let it = 0; it < 2; it++) {
-      const sl = meshSlice(M.pos, M.idx, null, C, T, S, Nv, ths, cfg.maxR);
+      const sl = meshSlice(M.pos, M.idx, null, C, T, S, Nv, ths, null, cfg.maxR);
       const c = new THREE.Vector3();
       for (let j = 0; j < COLLAR_N; j++) c.addScaledVector(S, Math.sin(ths[j]) * sl[j].r / COLLAR_N).addScaledVector(Nv, Math.cos(ths[j]) * sl[j].r / COLLAR_N);
       C.add(c);
     }
-    const s0 = meshSlice(M.pos, M.idx, null, C, T, S, Nv, ths, cfg.maxR);
+    const s0 = meshSlice(M.pos, M.idx, null, C, T, S, Nv, ths, null, cfg.maxR);
     let rN = 0;
     for (let j = 0; j < COLLAR_N; j++) rN += s0[j].r / COLLAR_N;
     const hw = 0.2 * rN * cfg.w;
     // both band edges, the widest skin across the band at each angle so nothing pokes through
-    const ed = [-hw, hw].map((s) => meshSlice(M.pos, M.idx, M.weights, C.clone().addScaledVector(T, s), T, S, Nv, ths, cfg.maxR));
+    const fl = M.fur ? M.fur.flen : null;
+    const ed = [-hw, hw].map((s) => meshSlice(M.pos, M.idx, M.weights, C.clone().addScaledVector(T, s), T, S, Nv, ths, fl, cfg.maxR));
     const r = ths.map((_, j) => Math.max(ed[0][j].r, ed[1][j].r, s0[j].r));
     const pl = {
       mesh: true, cfg, C, T, S, N: Nv, ths, rN, hw, r, w: ed.map((e) => e.map((q) => q.w || [['head', 1]])),
@@ -5719,7 +5976,10 @@ const Animals = (() => {
     };
     pl.tagLen = pl.tagR * 0.34 * 1.45 + pl.tagR * 2;
     const dir = (th, o) => o.copy(S).multiplyScalar(Math.sin(th)).addScaledVector(Nv, Math.cos(th));
-    const st = meshSlice(M.pos, M.idx, M.weights, C, T, S, Nv, [cfg.tag], cfg.maxR)[0];
+    const st = meshSlice(M.pos, M.idx, M.weights, C, T, S, Nv, [cfg.tag], fl, cfg.maxR)[0];
+    // fur under the band (sculpted coats): the band rides on top of the fur shells
+    pl.fl = ed[0].map((q, j) => Math.max(q.s, ed[1][j].s));
+    pl.flTag = st.s;
     dir(cfg.tag, pl.nOut);
     pl.hang.copy(C).addScaledVector(pl.nOut, st.r + pl.gap + pl.thick);
     pl.dir = dir;
@@ -5752,7 +6012,7 @@ const Animals = (() => {
       if (j < COLLAR_N) C.addScaledVector(Pb[e][j], 0.5 / COLLAR_N);
     }
     const k = a1.distanceTo(b1) / Math.max(1e-6, ag.byName[pl.cfg.at[0]].c0.distanceTo(ag.byName[pl.cfg.at[1]].c0));
-    const sl = [-1, 0, 1].map((s) => meshSlice(P, bt.idx, null, C.clone().addScaledVector(T, s * pl.hw * k), T, S, Nv, pl.ths, pl.cfg.maxR));
+    const sl = [-1, 0, 1].map((s) => meshSlice(P, bt.idx, null, C.clone().addScaledVector(T, s * pl.hw * k), T, S, Nv, pl.ths, null, pl.cfg.maxR));
     pl.push = [[], []];
     for (let e = 0; e < 2; e++) for (let j = 0; j <= COLLAR_N; j++) {
       const rs = Math.max(sl[0][j].r, sl[1][j].r, sl[2][j].r);
@@ -5765,8 +6025,9 @@ const Animals = (() => {
     mp.M = m3.scale(1.25);
   }
   function collarGeoMesh(A) {
-    const pl = A.cplan, N = COLLAR_N, bt = newBatch(A.ag), dep = pl.thick * 0.8;
-    const pos = [], nrm = [], col = [], wts = [], idx = [], outN = [], push = [];
+    const pl = A.cplan, N = COLLAR_N, bt = newBatch(A.ag), dep = pl.thick * 0.8, sp = A.spec.shell;
+    const pos = [], nrm = [], col = [], wts = [], idx = [], outN = [], push = [], lift = [];
+    const furOn = !!(sp && sp.model && pl.fl && Math.max(...pl.fl) > 0.02);
     const P = new THREE.Vector3(), D = new THREE.Vector3();
     for (let j = 0; j <= N; j++) {
       pl.dir(pl.ths[j], D);
@@ -5774,9 +6035,9 @@ const Animals = (() => {
         P.copy(pl.C).addScaledVector(pl.T, e ? pl.hw : -pl.hw).addScaledVector(D, pl.r[j]);
         const w = pl.w[e][j], inner = P.clone().addScaledVector(D, pl.gap - dep), outer = P.clone().addScaledVector(D, pl.gap + pl.thick);
         const tn = pl.T.clone().multiplyScalar(e ? 1 : -1);
-        const v = e ? [[outer, tn, 0.72], [inner, tn, 0.72]] : [[inner, tn, 0.72], [outer, tn, 0.72]];
-        for (const qq of v) { pos.push(qq[0].x, qq[0].y, qq[0].z); nrm.push(qq[1].x, qq[1].y, qq[1].z); col.push(qq[2]); wts.push(w); outN.push(D.x, D.y, D.z); push.push(pl.push ? pl.push[e][j] : 0); }
-        pos.push(outer.x, outer.y, outer.z); nrm.push(D.x, D.y, D.z); col.push(1); wts.push(w); outN.push(D.x, D.y, D.z); push.push(pl.push ? pl.push[e][j] : 0);
+        const v = e ? [[outer, tn, 0.72, 1], [inner, tn, 0.72, 0.4]] : [[inner, tn, 0.72, 0.4], [outer, tn, 0.72, 1]], up = furOn ? sp.len * pl.fl[j] * COLLAR_LIFT : 0;
+        for (const qq of v) { pos.push(qq[0].x, qq[0].y, qq[0].z); nrm.push(qq[1].x, qq[1].y, qq[1].z); col.push(qq[2]); wts.push(w); outN.push(D.x, D.y, D.z); push.push(pl.push ? pl.push[e][j] : 0); lift.push(D.x * up * qq[3], D.y * up * qq[3], D.z * up * qq[3]); }
+        pos.push(outer.x, outer.y, outer.z); nrm.push(D.x, D.y, D.z); col.push(1); wts.push(w); outN.push(D.x, D.y, D.z); push.push(pl.push ? pl.push[e][j] : 0); lift.push(D.x * up, D.y * up, D.z * up);
       }
     }
     for (let j = 0; j < N; j++) {
@@ -5793,9 +6054,11 @@ const Animals = (() => {
     }
     const g = batchGeometry(bt, true), m = g.morphAttributes.position[0];
     for (let v = 0; v < nb; v++) m.setXYZ(v, m.getX(v) + outN[v * 3] * push[v], m.getY(v) + outN[v * 3 + 1] * push[v], m.getZ(v) + outN[v * 3 + 2] * push[v]);
-    g.morphAttributes.position.push(new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count * 3), 3));
+    const lf = new Float32Array(g.attributes.position.count * 3);
+    lf.set(lift);
+    g.morphAttributes.position.push(new THREE.Float32BufferAttribute(lf, 3));
     g.boundingSphere = A.geos[0].geo.boundingSphere;
-    A.collarShellOn = false;
+    A.collarShellOn = furOn;
     return (A.collarGeo = g);
   }
   // shared per species: band slice + tag, uv.x = 1 on metal; morph 0 baby, morph 1 lift onto the fur shells
@@ -5909,7 +6172,7 @@ const Animals = (() => {
       R.ct = { dir: new THREE.Vector3(0, -1, 0), vel: new THREE.Vector3(), pp: new THREE.Vector3(), pv: new THREE.Vector3(), spd: 0, init: false };
       // fur lift of the tag pivot: the band's lift at the tag angle
       const pl = A.cplan, sp = A.spec.shell;
-      A.collarLiftAt = A.collarShellOn ? sp.len * collarFl(A.spec, pl, pl.cfg.tag) * COLLAR_LIFT : 0;
+      A.collarLiftAt = A.collarShellOn ? sp.len * (pl.mesh ? pl.flTag : collarFl(A.spec, pl, pl.cfg.tag)) * COLLAR_LIFT : 0;
     }
     if (R.collarM) { if (on) R.collarM.material = collarMat(R.collarC); syncCollar(R, A); }
     if (on) { R.ct.init = false; collarUpdate(R, A, 0, null); }

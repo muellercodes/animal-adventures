@@ -1,13 +1,17 @@
 {
- "v": 1,
+ "v": 2,
  "id": "pig",
  "data": "pig.bin",
+ "enc": "deflate",
+ "raw": 74352,
  "maps": {
   "color": "pig-color.webp",
   "normal": "pig-normal.webp"
  },
- "nv": 4844,
- "ntri": 6318,
+ "nv": 2598,
+ "ntri": 3299,
+ "nbv": 2435,
+ "nbt": 3019,
  "bbox": [
   -0.226801,
   0.0004,

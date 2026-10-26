@@ -112,6 +112,10 @@ if __name__ == '__main__':
     comps = S.parts(Ph)
     col, rough = S.paint(Ph, Nh, comps)
     h = S.detail(Ph, Nh, comps)
+    # fur shells (species with FUR): fur length (meters) and strand density per texel
+    FUR = getattr(S, 'FUR', None)
+    if FUR:
+        flen, fden = S.fur(Ph, Nh, comps)
     print(f'paint + detail ({time.time() - t0:.0f}s)')
     # height gradient in texture space -> surface gradient through the cotangent frame
     H = np.zeros((R, R), F); H[valid] = h
@@ -152,4 +156,8 @@ if __name__ == '__main__':
     out(N * 0.5 + 0.5).save(os.path.join(WORK, f'{SP}-nrm.png'))
     out(Ro[..., 0]).save(os.path.join(WORK, f'{SP}-rough.png'))
     out(ao).save(os.path.join(WORK, f'{SP}-ao.png'))
+    if FUR:
+        # fur map at half the texture size: R length (of FUR['len']), G density
+        Fm = pad(img(np.stack([np.clip(flen / FUR['len'], 0, 1), np.clip(fden, 0, 1), np.zeros_like(fden)], 1).astype(F), 3), valid, 24)
+        out(down2(down2(Fm))).save(os.path.join(WORK, f'{SP}-fur.png'))
     print(f'textures {TEX} saved ({time.time() - t0:.0f}s)')

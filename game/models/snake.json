@@ -1,13 +1,17 @@
 {
- "v": 1,
+ "v": 2,
  "id": "snake",
  "data": "snake.bin",
+ "enc": "deflate",
+ "raw": 68043,
  "maps": {
   "color": "snake-color.webp",
   "normal": "snake-normal.webp"
  },
- "nv": 3936,
- "ntri": 7680,
+ "nv": 2143,
+ "ntri": 3840,
+ "nbv": 2143,
+ "nbt": 3840,
  "bbox": [
   -0.0172,
   0.000595,
