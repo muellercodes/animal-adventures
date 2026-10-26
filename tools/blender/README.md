@@ -222,6 +222,21 @@ digits, webbing between them), `strands()` (the coat strokes, with a per region 
 - Long bendy bodies (the otter swimming, the weasel standing up and curling to sleep) get rings from
   `meshfix.rings` in `lowpoly_fix`; decimate to fewer triangles (`TRIS`) so the total stays in budget after the cuts.
 
+## The small furry animals (`bunny.py`)
+
+They reuse `carnivore.py` (eyes, ears, hands, coat strokes, whiskers).
+- The bunny (`bunny.py`, eastern cottontail): its own ear (`ear()`: long, cupped, rolled into a cone at the root,
+  thicker rims), a finer grid across the ears (`grid()`: they are thin plates facing forward), a split upper lip and
+  slit nostrils, big hind feet as a flat loft under a big haunch. The agouti coat is the stroke tone: dark tipped and
+  buff banded strokes over a gray-brown base (`_strands` tone below 0.3 dark, above 0.65 buff); a rusty nape patch,
+  pale eye rings, a white belly and the white underside of the cottontail; veins painted and raised a little inside the
+  pink ears. Kits get their own color map (a darker fuzz and a white blaze).
+- A round eye open wide (a rabbit's or a squirrel's) shows the game's own lids at the top of the ball; give `meta()`
+  `'lid': [1.1, -1.1, 0.1]` so they stay out of sight until the eye blinks, and a dark `lidCol` (the pale eye ring
+  makes a shut eye look like a pale ball otherwise).
+- Small animals: the game camera's near plane is 5 cm, so close-up test cameras must stay farther than that (the
+  carnivore helper's eye shots clipped into the bunny's head).
+
 ## Budget
 
 Pig: about 6.3k triangles, 4.8k vertices, 1024 x 1024 color and normal maps: 38 KB mesh (format 2; 136 KB before) +
@@ -256,3 +271,7 @@ smoothly): 7.9k triangles plus 80 in the whiskers; 512 maps, 256 kit color map: 
 
 Close up (detail 2) the four carnivores' fur shells come to 31k to 35k triangles in one draw call (4 or 5 layers over
 the coated triangles); detail 1 and 0 draw the body and the whiskers only (7k to 8.4k triangles).
+
+Bunny (`VOXEL=0.002 TRIS=7000 TEX=768`): 7.0k triangles plus 144 in the whiskers; 768 color and normal maps, 384 fur
+and kit color maps: 57 KB mesh and cards + 77 + 17 + 9 + 14 + 5 KB, about 245 KB in the page. Fur shells at detail 2:
+5 layers, 34k triangles.
