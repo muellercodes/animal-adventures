@@ -1,18 +1,23 @@
 {
- "v": 1,
+ "v": 2,
  "id": "owl",
  "data": "owl.bin",
+ "enc": "deflate",
+ "raw": 72672,
  "maps": {
   "color": "owl-color.webp",
   "normal": "owl-normal.webp",
+  "fur": "owl-fur.webp",
   "babyColor": "owl-babycolor.webp",
   "babyNormal": "owl-babynrm.webp",
   "feather": "owl-feather.webp",
   "featherNormal": "owl-feathernrm.webp",
   "babyFeather": "owl-babyfeather.webp"
  },
- "nv": 3940,
- "ntri": 5990,
+ "nv": 2026,
+ "ntri": 2995,
+ "nbv": 2026,
+ "nbt": 2995,
  "bbox": [
   -0.395961,
   -0.001266,
@@ -111,7 +116,8 @@
   "maxR": 0.1,
   "babyMaxR": 0.3,
   "hug": true,
-  "babyK": 1.6
+  "babyK": 1.6,
+  "lift": 0.35
  },
  "mouth": [
   0.0,
@@ -134,6 +140,18 @@
   0.1
  ],
  "flat": 8020040,
+ "fur": {
+  "len": 0.05,
+  "n": 6,
+  "lean": 0.3,
+  "tile": 0.003,
+  "babyLen": 1.0,
+  "babyLean": 0.3,
+  "shade": 0.85,
+  "babyOnly": true,
+  "uvm": 0.5283
+ },
+ "bdelta": 0.350961,
  "belly": [
   0.0,
   0.04,
@@ -144,7 +162,6 @@
   "feather",
   "babyFeather"
  ],
- "bdelta": 0.350961,
  "feathers": {
   "cols": 8
  }

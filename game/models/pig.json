@@ -3,7 +3,7 @@
  "id": "pig",
  "data": "pig.bin",
  "enc": "deflate",
- "raw": 74352,
+ "raw": 82146,
  "maps": {
   "color": "pig-color.webp",
   "normal": "pig-normal.webp"
@@ -79,7 +79,17 @@
    "neck",
    0.92
   ],
-  "w": 0.8
+  "w": 0.8,
+  "hug": true,
+  "taper": true,
+  "babyAt": 1.15,
+  "wb": [
+   "chest",
+   "neck",
+   "armL",
+   "armR"
+  ],
+  "wbk": 0.6
  },
  "mouth": [
   0.0,
@@ -100,5 +110,6 @@
   0.0,
   0.2626,
   -0.3
- ]
+ ],
+ "bdelta": 0.059716
 }

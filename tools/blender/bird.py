@@ -318,6 +318,42 @@ def fluff_offset(P, N, amp, cell, seed=0):
     return N * (amp * n)[:, None]
 
 
+# ---------- the babies' down as fur shells ----------
+# A bird species with FUR (babyOnly: the adults keep their feathers) gets fur shells on its baby: fur(P, N, c) and
+# flow(P, N) for export.py and texture.py come from these. Down is long and stands up (low lean), shorter on the face
+# and the wing arm, none on the bill, the eyes, the legs and feet (and a hen's comb).
+def down_fur(P, c, L, bare, short, eye, edge=0.004, den=0.92, seed=0):
+    """fur length (m) and density of a baby's down: L on the body, times short[k] on part k (head, arm, drum...),
+    nothing on the bare parts or within the eye ring (eye = (center, radius)); blended over edge meters between parts"""
+    Q = mirror(P)
+    keys = [k for k in c if k in set(bare) | set(short) | {'trunk'}]
+    cmin = np.minimum.reduce([c[k] for k in keys])
+    soft = {k: sstep(edge, 0.0, c[k] - cmin) for k in keys}
+    tot = sum(soft.values()) + 1e-6
+    f = sum(soft[k] * short.get(k, 0.0 if k in bare else 1.0) for k in keys) / tot
+    b = np.clip(sum(soft[k] for k in bare if k in soft) / tot, 0, 1)
+    # short around the eyes and next to the bare parts, so the long down does not fall over the eye or the bill
+    de = np.linalg.norm(Q - eye[0], axis=1)
+    ring = sstep(eye[1] * 1.4, eye[1] * 3.2, de)
+    near = np.minimum.reduce([c[k] for k in bare if k in c])
+    ring = ring * (0.25 + 0.75 * sstep(0.0, 0.012, near))
+    # a little unevenness (tufts)
+    tuft = 0.85 + 0.3 * fbm(Q / 0.006, 2, seed + 41)
+    flen = L * f * ring * np.clip(tuft, 0.6, 1.15)
+    fden = den * (1 - b) * ring
+    return np.clip(flen, 0, L).astype(F), np.clip(fden, 0, 1).astype(F)
+
+
+def down_flow(S, P, N):
+    """the species' feather flow (its _own and _flow on the mirrored side), x mirrored back for the -x side"""
+    R = S._own(S.parts(P))
+    Pm = mirror(P)
+    Nm = N.copy(); Nm[:, 0] = N[:, 0] * np.sign(P[:, 0] + 1e-9)
+    fl = S._flow(Pm, Nm, R).astype(F)
+    fl[:, 0] *= np.sign(P[:, 0] + 1e-9)
+    return fl
+
+
 # ---------- scales on legs and toes ----------
 def scutes(P, axis, cell, seed=0):
     """overlapping transverse plates along an axis (front of the tarsus, top of the toes): ridge at each plate's
@@ -627,16 +663,7 @@ def export_extra(S, meta, out_dir, work):
         if key in ('babyColor', 'feather', 'babyFeather'):
             srgb_keys.append(key)
     meta['srgb'] = srgb_keys
-    # the baby's own shape change per vertex (adult space): appended to the mesh data, scale in the json
-    if hasattr(S, 'baby_offset'):
-        lo0 = np.load(os.path.join(work, f'{S.ID}-lo.npz'))
-        pos, nrm = lo0['pos'].astype(F), lo0['nrm'].astype(F)
-        d = S.baby_offset(pos, nrm, S.parts(pos)).astype(F)
-        sc = max(float(np.abs(d).max()), 1e-4)
-        q = np.clip(np.round(np.sign(d) * np.sqrt(np.abs(d) / sc) * 127), -127, 127).astype(np.int8)
-        with open(os.path.join(out_dir, f'{S.ID}.bin'), 'ab') as fh:
-            fh.write(q.tobytes())
-        meta['bdelta'] = round(sc, 6)
+    # (the baby's own shape change per vertex, baby_offset(), is packed with the mesh by export.py)
     # belly contact point under the hips from the body's midline only (the legs of a bird stand close to it)
     lo = np.load(os.path.join(work, f'{S.ID}-lo.npz'))
     pos = lo['pos']

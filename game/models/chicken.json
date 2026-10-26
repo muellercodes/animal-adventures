@@ -1,18 +1,23 @@
 {
- "v": 1,
+ "v": 2,
  "id": "chicken",
  "data": "chicken.bin",
+ "enc": "deflate",
+ "raw": 79572,
  "maps": {
   "color": "chicken-color.webp",
   "normal": "chicken-normal.webp",
+  "fur": "chicken-fur.webp",
   "babyColor": "chicken-babycolor.webp",
   "babyNormal": "chicken-babynrm.webp",
   "feather": "chicken-feather.webp",
   "featherNormal": "chicken-feathernrm.webp",
   "babyFeather": "chicken-babyfeather.webp"
  },
- "nv": 4397,
- "ntri": 6004,
+ "nv": 2280,
+ "ntri": 3002,
+ "nbv": 2280,
+ "nbt": 3002,
  "bbox": [
   -0.297649,
   -0.000774,
@@ -109,7 +114,8 @@
   ],
   "babyAt": 0.75,
   "hug": true,
-  "babyK": 1.8
+  "babyK": 1.8,
+  "lift": 0.35
  },
  "mouth": [
   0.0,
@@ -132,6 +138,18 @@
   0.06
  ],
  "flat": 8010272,
+ "fur": {
+  "len": 0.036,
+  "n": 6,
+  "lean": 0.25,
+  "tile": 0.0024,
+  "babyLen": 1.0,
+  "babyLean": 0.25,
+  "shade": 0.9,
+  "babyOnly": true,
+  "uvm": 0.4525
+ },
+ "bdelta": 0.259649,
  "belly": [
   0.0,
   0.1482,
@@ -142,7 +160,6 @@
   "feather",
   "babyFeather"
  ],
- "bdelta": 0.259649,
  "feathers": {
   "cols": 8
  }

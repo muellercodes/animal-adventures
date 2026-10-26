@@ -21,7 +21,11 @@
 #   fur   (optional, json fur) 2 x n zigzag deltas of the i8 octahedral comb direction, n fur length (0..255 = 0..fur.len)
 #   cards (optional, json cards: nv, ntri) the hair cards, never mirrored: pos, uv, nrm, bone, weight as above,
 #         baby 3 x (nv low, nv high) zigzag deltas of i16 (baby offset, cards.bscale meters per unit), tri
-# Usage (convert a format 1 model in place): python3 tools/blender/modelpack.py <id>
+#   bdelta (optional, json bdelta = scale in meters) the baby's own shape change per stored vertex (adult space):
+#         3 x n zigzag deltas of i8 q with the square law d = s |s| bdelta, s = q / 127; a mirror twin gets x negated
+# Usage (convert a format 1 model in place, baby offsets included): python3 tools/blender/modelpack.py <id>
+# New baby offsets for a format 2 model from its species' baby_offset() (no Blender work files needed):
+#   <python with numpy and scipy> tools/blender/modelpack.py --baby <id>
 import json, os, sys, zlib
 import numpy as np
 
@@ -101,10 +105,25 @@ def deflate(b):
     return c.compress(b) + c.flush()
 
 
-def pack(body, other_tris=None, fur=None, cards=None):
+def bdelta_q(d):
+    """baby offsets (n,3 meters) to (i8 values, scale): square law, fine for the small offsets, still reaching the big ones"""
+    d = np.asarray(d, np.float64)
+    sc = max(float(np.abs(d).max()), 1e-4)
+    q = np.clip(np.round(np.sign(d) * np.sqrt(np.abs(d) / sc) * 127), -127, 127).astype(np.int64)
+    return q, round(sc, 6)
+
+
+def bdelta_m(q, sc):
+    """i8 baby offset values back to meters (the game's decoding)"""
+    q = np.asarray(q, np.float64)
+    return q * np.abs(q) / 16129.0 * sc
+
+
+def pack(body, other_tris=None, fur=None, cards=None, bdelta=None):
     """body: dict(q (n,3) u16 positions, uv (n,2) u16, oct (n,2) i8, si (n,4), sw (n,4) u8, rough (n,) u8,
     tri (t,3) body triangles of the half mesh); other_tris: triangles never mirrored (tail); fur: dict(oct (n,2), len (n,));
-    cards: dict(q, uv, oct, si, sw, baby (nv,3) i16, tri). Returns (bytes, json fields)."""
+    cards: dict(q, uv, oct, si, sw, baby (nv,3) i16, tri); bdelta: (n,3) i8 baby offset values (bdelta_q).
+    Returns (bytes, json fields)."""
     tb = np.asarray(body['tri'], np.int64).reshape(-1, 3)
     to = np.asarray(other_tris if other_tris is not None else np.zeros((0, 3)), np.int64).reshape(-1, 3)
     n = len(body['q'])
@@ -161,9 +180,121 @@ def pack(body, other_tris=None, fur=None, cards=None):
             out.append(delta16(bb[:, k]))
         out.append(tris(cm[ct]))
         js['cards'] = {'nv': int(len(cq)), 'ntri': int(len(ct))}
+    if bdelta is not None:
+        bq = np.asarray(bdelta, np.int64)[inv]
+        for k in range(3):
+            out.append(delta8(bq[:, k]))
     raw = b''.join(out)
     js['raw'] = len(raw)
     return deflate(raw), js
+
+
+def unpack_v2(md, blob):
+    """format 2 back to its stored arrays (the inverse of pack, in stored order): dict(q, uv, oct, si, sw, rough, tri,
+    and fur, cards, bdelta when the json has them). tri holds every stored triangle (body first, md['nbt'] of them)."""
+    raw = zlib.decompress(blob, -15)
+    assert len(raw) == md['raw'], (len(raw), md['raw'])
+    o = [0]
+
+    def plane(k):
+        a = np.frombuffer(raw, np.uint8, k, o[0]).astype(np.int64); o[0] += k; return a
+
+    def unz(v):
+        return np.where(v & 1, -((v + 1) >> 1), v >> 1)
+
+    def d16(k):
+        lo, hi = plane(k), plane(k)
+        return np.cumsum(unz(lo | (hi << 8))) & 0xFFFF
+
+    def d8(k):
+        a = np.cumsum(unz(plane(k))) & 0xFF
+        return np.where(a >= 128, a - 256, a)
+
+    def tri(k):
+        lo, hi = plane(k), plane(k)
+        z = unz(lo | (hi << 8))
+        out = np.empty(k, np.int64); hw = -1
+        for i in range(k):
+            v = hw + 1 - z[i]; out[i] = v
+            if v > hw:
+                hw = v
+        return out
+
+    def mesh(n):
+        q = np.stack([d16(n) for _ in range(3)], 1)
+        uv = np.stack([d16(n) for _ in range(2)], 1)
+        oc = np.stack([d8(n) for _ in range(2)], 1)
+        si = np.stack([plane(n) for _ in range(4)], 1)
+        sw = np.stack([plane(n) for _ in range(4)], 1)
+        return dict(q=q, uv=uv, oct=oc, si=si, sw=sw)
+    n = md['nv']
+    out = mesh(n)
+    out['rough'] = plane(n)
+    out['tri'] = tri(md['ntri'] * 3).reshape(-1, 3)
+    if md.get('fur'):
+        out['fur'] = dict(oct=np.stack([d8(n), d8(n)], 1), len=plane(n))
+    if md.get('cards'):
+        c = md['cards']
+        cm = mesh(c['nv'])
+        cm['baby'] = np.stack([d16(c['nv']) for _ in range(3)], 1)
+        cm['baby'] = np.where(cm['baby'] >= 32768, cm['baby'] - 65536, cm['baby'])
+        cm['tri'] = tri(c['ntri'] * 3).reshape(-1, 3)
+        out['cards'] = cm
+    if md.get('bdelta'):
+        out['bdelta'] = np.stack([d8(n) for _ in range(3)], 1)
+    assert o[0] == len(raw), (o[0], len(raw))
+    return out
+
+
+def oct_dec(o):
+    """i8 octahedral normals back to unit vectors (the game's octDec)"""
+    x, y = o[:, 0] / 127.0, o[:, 1] / 127.0
+    z = 1 - np.abs(x) - np.abs(y)
+    neg = z < 0
+    ox = x.copy()
+    x = np.where(neg, (1 - np.abs(y)) * np.where(ox >= 0, 1, -1), x)
+    y = np.where(neg, (1 - np.abs(ox)) * np.where(y >= 0, 1, -1), y)
+    n = np.stack([x, y, z], 1)
+    return n / np.maximum(np.linalg.norm(n, axis=1, keepdims=True), 1e-12)
+
+
+def positions(md, U):
+    """stored vertex positions (meters, rig space) from unpack_v2 arrays"""
+    b, q = md['bbox'], U['q']
+    return np.stack([(q[:, 0] - 32768) / 32767.0 * b[3], b[1] + (b[4] - b[1]) * q[:, 1] / 65535.0, b[2] + (b[5] - b[2]) * q[:, 2] / 65535.0], 1)
+
+
+def rebaby(sp, models):
+    """give a format 2 model new baby offsets from its species file's baby_offset(P, N, parts) (the same call the
+    export step makes), keeping everything else byte for byte; for models whose Blender work files are gone"""
+    import importlib
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    S = importlib.import_module(sp)
+    mj = os.path.join(models, f'{sp}.json')
+    md = json.load(open(mj))
+    assert md.get('v') == 2, 'convert to format 2 first'
+    U = unpack_v2(md, open(os.path.join(models, md['data']), 'rb').read())
+    P, N = positions(md, U).astype(np.float32), oct_dec(U['oct']).astype(np.float32)
+    q, sc = bdelta_q(S.baby_offset(P, N, S.parts(P)))
+    md['bdelta'] = sc
+    blob, js = repack(md, U, bdelta=q)
+    md['raw'] = js['raw']
+    open(os.path.join(models, md['data']), 'wb').write(blob)
+    json.dump(md, open(mj, 'w'), indent=1)
+    print(f'{sp}: baby offsets up to {sc * 1000:.1f} mm; {len(blob)} bytes')
+
+
+def repack(md, U, bdelta=None, fur=None):
+    """write a format 2 model again from unpack_v2 arrays, optionally with new baby offsets (i8 values) or fur;
+    returns (bytes, json fields). Vertex order and the mesh stay as they were."""
+    nbt = md['nbt']
+    body = dict(q=U['q'], uv=U['uv'], oct=U['oct'], si=U['si'], sw=U['sw'], rough=U['rough'], tri=U['tri'][:nbt])
+    cards = U.get('cards')
+    if fur is None:
+        fur = U.get('fur')
+    if bdelta is None:
+        bdelta = U.get('bdelta')
+    return pack(body, U['tri'][nbt:], fur, cards, bdelta)
 
 
 def unpack_v1(md, b):
@@ -180,9 +311,12 @@ def unpack_v1(md, b):
     si = take(np.uint8, nv * 4).reshape(-1, 4)
     sw = take(np.uint8, nv * 4).reshape(-1, 4)
     r = take(np.uint8, nv)
+    # the birds' baby offsets were appended after the mesh (i8 x3 per vertex, square law, scale md bdelta)
+    bd = take(np.int8, nv * 3).reshape(-1, 3).astype(np.int64) if md.get('bdelta') else None
+    assert o[0] == len(b), ('format 1 data left over', len(b) - o[0])
     bb = md['bbox']
     pos = np.array(bb[:3]) + (np.array(bb[3:]) - np.array(bb[:3])) * q / 65535.0
-    return dict(pos=pos, uv=uv, oct=oc, si=si, sw=sw, rough=r, idx=idx)
+    return dict(pos=pos, uv=uv, oct=oc, si=si, sw=sw, rough=r, idx=idx, bdelta=bd)
 
 
 def convert(sp, models):
@@ -211,7 +345,15 @@ def convert(sp, models):
     q, bbox = quant_pos(pos[keep])
     # the body half lies on +x (keep x >= 0 there); twins of vertices on the middle plane are themselves
     body = dict(q=q, uv=M['uv'][keep], oct=M['oct'][keep], si=M['si'][keep], sw=M['sw'][keep], rough=M['rough'][keep], tri=remap[tb])
-    blob, js = pack(body, remap[to])
+    # baby offsets: the kept vertices' own (a twin's is the mirror of its vertex's, which the game makes again)
+    bd = M['bdelta'][keep] if M['bdelta'] is not None else None
+    if bd is not None:
+        tw = idx[nb:2 * nb][:, ::-1].ravel()
+        src = tb.ravel()
+        dx = M['bdelta'][tw, 0] + M['bdelta'][src, 0]
+        print(f'{sp}: baby offsets of mirror twins differ by up to {int(np.abs(dx).max())} (x, i8 units) and '
+              f'{int(np.abs(M["bdelta"][tw, 1:] - M["bdelta"][src, 1:]).max())} (y, z)')
+    blob, js = pack(body, remap[to], bdelta=bd)
     md2 = {k: v for k, v in md.items() if k not in ('nv', 'ntri', 'bbox')}
     md2.update({'v': 2, 'enc': 'deflate', 'bbox': bbox, **js})
     open(os.path.join(models, md['data']), 'wb').write(blob)
@@ -224,5 +366,9 @@ def convert(sp, models):
 
 if __name__ == '__main__':
     root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    for sp in sys.argv[1:]:
-        convert(sp, os.path.join(root, 'game', 'models'))
+    if sys.argv[1:2] == ['--baby']:
+        for sp in sys.argv[2:]:
+            rebaby(sp, os.path.join(root, 'game', 'models'))
+    else:
+        for sp in sys.argv[1:]:
+            convert(sp, os.path.join(root, 'game', 'models'))

@@ -51,9 +51,12 @@ NO_ASSETS=1 API_BASE= node build.mjs && python3 tools/assets.py pig && node buil
 `<id>.bin` holds only the +x half of the body; the game makes the mirrored half when it loads the model (x negated,
 left and right bones swapped). Vertices are numbered by first use, each attribute is stored as byte planes with
 delta coding, and the whole thing is deflated (the game has a small synchronous inflater). For the pig that is 38 KB
-instead of 140 KB. Optional blocks: fur (comb direction and fur length per vertex) and hair cards (their own mesh,
-never mirrored, with a newborn offset per vertex). The game still reads format 1 models; `python3
-tools/blender/modelpack.py <id>` converts one in place.
+instead of 140 KB. Optional blocks: fur (comb direction and fur length per vertex), hair cards (their own mesh,
+never mirrored, with a newborn offset per vertex) and baby offsets (`bdelta`: the baby's own shape change per vertex,
+from the species' `baby_offset(P, N, parts)`; export.py packs it for any species that has one). The game still reads
+format 1 models; `python3 tools/blender/modelpack.py <id>` converts one in place (baby offsets included), and
+`python3 tools/blender/modelpack.py --baby <id>` (a Python with numpy and scipy) gives a format 2 model new baby
+offsets from its species file without the Blender work files, leaving the rest of the model byte for byte.
 
 ## A species file (`pig.py`)
 
@@ -70,8 +73,15 @@ placement written to the json) and `MAP_QUALITY`. `sdf.py` has the primitives, s
 Optional settings (defaults are the pig's): `TAIL_RINGS = 0` for an animal without a tail tube, `BAKE_DIST` (cage,
 ray and occlusion distances in meters, smaller for small animals), `DISSOLVE_DEGENERATE = True` (drop the zero area
 slivers the mirror cut leaves, so they do not use up the triangle budget). In `meta()`, the eye can ask for
-`irisNet` (a fine dark network over the iris, for frogs) and the collar for `tilt` (pitch of the band's plane) and
-`maxR` (ignore limbs farther out than this when slicing the neck).
+`irisNet` (a fine dark network over the iris, for frogs) and the collar for `tilt` (pitch of the band's plane),
+`maxR` (ignore limbs farther out than this when slicing the neck), `taper` (each edge of the band rests on the skin
+under it, for a neck that widens into the shoulders; otherwise the band is as wide as the widest skin across it) and
+`wb` / `wbk` (the band follows only these bones, for that share of its weights: the pig's band would otherwise lift
+off with the head when it eats). The baby's band: `babyAt`, `hug`, `babyK`, `babyMaxR` (see the birds).
+
+A species can give its baby its own shape with `baby_offset(P, N, parts)` (offsets in adult space per vertex, before
+the game's baby proportions; see the birds). The pig uses it for a rounder, shorter piglet (the trunk walks along its
+normals onto an egg, `PIGLET`), together with the game's `modelSpec.baby` (bigger head and ears, shorter snout).
 
 ## The frog (`frog.py`)
 
@@ -167,8 +177,17 @@ with a feather atlas only swaps what they look like. `bird.py` holds what the fi
   Painted at 1024 x 512 and written at `FEATHER_ATLAS['out']`.
 - Babies: `paint_baby()` / `detail_baby()` give a second color and normal map (down instead of feathers, written at
   `BABY_MAPS['size']`), and `baby_offset()` (`baby_shape()`) gives each vertex its own baby shape change (round egg
-  shaped body, wing arm pulled into the shoulder, thin legs), written after the mesh data as int8 x3 with a square
-  law scale (`md.bdelta`). The game adds it through the bones' baby maps, so it follows the rig like the rest.
+  shaped body, wing arm pulled into the shoulder, thin legs), packed with the mesh (format 2 `bdelta` block, int8 x3
+  with a square law scale `md.bdelta`). The game adds it through the bones' baby maps, so it follows the rig like the
+  rest.
+- Babies' down as fur shells: each bird has `FUR` with `babyOnly: True` (the game draws shells on the baby only; the
+  adult keeps its feathers and is unchanged), and `fur()` / `flow()` from `down_fur()` / `down_flow()`: long, nearly
+  upright down (`lean` 0.25 to 0.3, `tile` 0.0024 to 0.0036 so the tufts read as fluff, not dust), shorter on the
+  head, wing arm and drumsticks, none on the bill, legs and feet, eyelids (and a hen's comb), short around the eyes and
+  next to the bare parts so it never falls over the eye or the bill. The collar sinks into the down (`lift: 0.35`).
+  Starting points: duckling and chick `len` 0.036, owlet 0.05 (legs and toes downy too, the facial disc short), macaw
+  chick 0.034 and sparse (`den` 0.75), cygnet 0.05. About 15 to 19 KB more files per bird (fur block 6 KB, 384 fur map); at
+  detail 2 the baby has 5 or 6 shell layers over its downy triangles.
 - Hooks, all optional and off for the other species: `grid(h)` (a rectilinear marching cubes grid, finer where
   the bill and feet are), `UV_PACK` (extra pack_islands options), `extra_maps(X)` in `texture.py` and
   `export_extra(meta, out, work)` in `export.py`.
@@ -192,8 +211,10 @@ Lessons:
   pushed onto a fat neck: it folds up when the game's baby maps shorten it; keep its own shape and widen it there.
 - Collars on a baby with its own shape: `babyAt` (band position along the neck for the baby), `hug` (the band comes
   in as well as out), `babyK` (thicker, wider band), `babyMaxR` (limb cutoff for the baby slice).
-- The swan (`swan.py`) is made but not shipped: the adult is only a little better than the procedural one and the
-  cygnet is not better (smooth, no fur shell fluff). Run `VOXEL=0.004 TRIS=6500 TEX=1024 ... make.py swan` to make it.
+- The swan (`swan.py`) is made but not shipped: the adult is only a little better than the procedural one. With the
+  down shells the cygnet is now better than the procedural one (gray-brown and fluffy like a real cygnet), but the
+  adult is still not clearly better, so the swan stays procedural. Run `VOXEL=0.004 TRIS=6500 TEX=1024 ... make.py
+  swan` to make it.
 
 ## The small carnivores (`carnivore.py`)
 
@@ -221,6 +242,11 @@ digits, webbing between them), `strands()` (the coat strokes, with a per region 
   and hips did that).
 - Skin weight masks for paws need bounds on both sides along z: a mask for the hind feet "in front of the heel" also
   took the hands, and a raccoon kit's arm stretched across the meadow.
+- Check the animal at the game camera's distance (fov 55, about 1.2 to 3 m away), not only close up: the mipmaps
+  there mix neighbouring UV islands. The weasel's 512 maps had its cream belly islands 2 texels from the brown back
+  and head islands, which showed as pale seam lines along the back and over the head; `UV_PACK =
+  dict(margin_method='FRACTION', margin=0.016)` (8 texels apart; `UV_PACK` can now set the margin) and a `PAD_SMOOTH`
+  wider than half the gap fixed it, with no visible loss close up.
 - Long bendy bodies (the otter swimming, the weasel standing up and curling to sleep) get rings from
   `meshfix.rings` in `lowpoly_fix`; decimate to fewer triangles (`TRIS`) so the total stays in budget after the cuts.
 
@@ -277,11 +303,13 @@ fur shells add 4 layers over the coated triangles (about 22k triangles, one draw
 and the cards only.
 
 Frog: about 7.1k triangles, 6k vertices, 512 x 512 maps, about 305 KB in the page (`VOXEL=0.0004 TRIS=7200 TEX=512`),
-converted to format 2 with `modelpack.py`. The birds are still format 1 (their baby offsets are not in format 2 yet).
+converted to format 2 with `modelpack.py`.
 
 Birds (`VOXEL=0.002 TRIS=6000 TEX=768`): about 6k body triangles and 4k vertices, 768 color and normal maps, 512 baby
-maps, a 512 x 256 feather atlas; 250 to 290 KB of files, about 340 to 390 KB in the page each (format 1). In the game
-about 8.7k to 9k triangles with the feather blades (about 2k) and eyes.
+maps, a 512 x 256 feather atlas; 38 to 42 KB mesh with baby offsets (format 2; 128 to 138 KB in format 1), 160 to
+205 KB of files, about 215 to 275 KB in the page each. In the game about 8.7k to 9k triangles with the feather blades
+(about 2k) and eyes. A rebuild of the duck with the scripts here gives the shipped model again (same mesh, maps byte
+for byte).
 
 Fox (`VOXEL=0.002 TRIS=7000 TEX=1024`): 7.0k triangles plus 96 in the whiskers; 1024 color (WebP 72) and normal maps,
 512 fur map, 512 kit color map: 59 KB mesh and cards + 67 + 33 + 13 + 8 + 4 KB, about 250 KB in the page.

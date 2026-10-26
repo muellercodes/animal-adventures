@@ -137,8 +137,11 @@ if getattr(S, 'UV_AVERAGE', False):
             for l in loops:
                 l[uvl].uv = c + (l[uvl].uv - c) * k
         bmesh.update_edit_mesh(lo.data)
-# species can pass more packing options (the birds' long irregular islands pack much tighter with shape_method='CONCAVE')
-bpy.ops.uv.pack_islands(rotate=True, margin=0.0045, **getattr(S, 'UV_PACK', {}))
+# species can pass more packing options (the birds' long irregular islands pack much tighter with shape_method='CONCAVE';
+# a wider margin keeps a small map's islands apart in the mipmaps the game camera sees: the weasel)
+pack = dict(rotate=True, margin=0.0045)
+pack.update(getattr(S, 'UV_PACK', {}))
+bpy.ops.uv.pack_islands(**pack)
 bpy.ops.object.mode_set(mode='OBJECT')
 
 # read back: positions, triangles, per-corner uvs; tail faces are the last ones

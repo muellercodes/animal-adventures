@@ -494,7 +494,7 @@ def meta(st):
     p, r, d, lid = EYE.meta()
     return {
         'eye': {'p': p, 'r': r, 'dir': d, 'lid': lid, 'iris': 0x1E140D, 'irisR': 0.95, 'pupilR': 0.55, 'rim': 0x0A0705, 'lidCol': st['lidCol']},
-        'collar': {'at': ['neck', 'head', 0.3]},
+        'collar': {'at': ['neck', 'head', 0.3], 'lift': 0.3},
         'belly': [0.0, 0.08, -0.12],
         'mouth': [round(float(v), 4) for v in MOUTH],
         'tint': [1.0, 1.0, 1.0], 'babyTint': [1.05, 1.04, 1.03],

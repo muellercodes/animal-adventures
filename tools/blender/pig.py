@@ -538,6 +538,44 @@ def finish(C, ao, valid):
     return np.where(lin <= 0.0031308, lin * 12.92, 1.055 * np.power(np.maximum(lin, 0), 1 / 2.4) - 0.055)
 
 
+# ---------- the piglet's own shape ----------
+# Per vertex offsets in adult space (packed with the mesh, the game adds them through the bones' baby maps, which also
+# give the bigger head, short snout and big ears): the square sow's trunk turns into a rounder, egg shaped little
+# barrel (rump, shoulders and belly rounded off, the belly tucked up) so the piglet is not a shrunken sow.
+PIGLET = dict(c=V(0.0, 0.468, -0.05), r=(0.2, 0.228, 0.53), rb=0.19, e=2.05, k=1.0, maxd=0.06)
+
+
+def _egg_walk(Q, Nm):
+    g = PIGLET
+    egg = lambda X: superellipsoid(X, g['c'], g['r'], g['e'], rb=g['rb'])
+    # walk along the normal onto the egg (damped, capped)
+    X = Q.copy()
+    for _ in range(12):
+        X = X - Nm * np.clip(egg(X), -0.01, 0.01)[:, None]
+    d = X - Q
+    ln = np.linalg.norm(d, axis=1, keepdims=True)
+    return d * np.minimum(1, g['maxd'] / np.maximum(ln, 1e-9))
+
+
+def baby_offset(P, N, c):
+    Q = _mirror(P)
+    Nm = N.copy(); Nm[:, 0] = N[:, 0] * np.sign(P[:, 0] + 1e-9)
+    d = _egg_walk(Q, Nm)
+    # only the trunk: not the legs (faded over their top few centimeters), the head or the hooves
+    legd = np.minimum(c['fleg'], c['hleg'])
+    w = sstep(0.035, -0.01, c['trunk'] - legd)
+    w = w * sstep(-0.01, 0.04, c['head'] - c['trunk']) * sstep(0.34, 0.18, Q[:, 2])
+    w = w * sstep(0.02, 0.06, np.minimum(c['hoof'], c['dew']))
+    d = d * (w * PIGLET['k'])[:, None]
+    # the tail tube moves with the rump where it starts
+    tp, tr = tail_curve(40)
+    td = np.min(np.linalg.norm(P[:, None, :] - tp[None, :, :], axis=2) - tr[None, :], axis=1)
+    tb = _egg_walk(tp[:1].copy(), nrm([0, 0.4, -1.0]).reshape(1, 3)) * PIGLET['k']
+    d = np.where((td < 0.006)[:, None], tb, d)
+    d[:, 0] *= np.sign(P[:, 0] + 1e-9)
+    return d.astype(F)
+
+
 # ---------- what the game needs besides the mesh ----------
 MAP_QUALITY = (82, 85)   # WebP quality: color, normal
 
@@ -556,8 +594,11 @@ def meta(st):
         'eye': {'p': [round(float(v), 5) for v in EYE_C], 'r': round(r, 5), 'dir': [round(float(v), 4) for v in EYE_DIR], 'lid': [round(up, 3), round(dn, 3), 0.42],
                 'iris': 0x7C5434, 'irisR': 0.95, 'pupilR': 0.32, 'lidCol': st['lidCol'],
                 'lash': {'n': 11, 'len': 0.0095, 'col': 0xEFE2D2}},
-        # pigs have hardly any neck: the collar sits just behind the jowls
-        'collar': {'at': ['chest', 'neck', 0.92], 'w': 0.8},
+        # pigs have hardly any neck: the collar sits just behind the jowls, each edge on the skin under it (the neck
+        # widens into the shoulders), mostly on the chest and neck bones so it stays down when the head goes down to
+        # eat, and a little farther forward on the piglet, between its big head and its shoulders
+        'collar': {'at': ['chest', 'neck', 0.92], 'w': 0.8, 'hug': True, 'taper': True, 'babyAt': 1.15,
+                   'wb': ['chest', 'neck', 'armL', 'armR'], 'wbk': 0.6},
         'mouth': [round(float(v), 4) for v in MOUTH],
         'tint': [1.0, 1.0, 1.0], 'babyTint': [1.03, 0.98, 0.98],
     }

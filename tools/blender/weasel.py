@@ -230,6 +230,9 @@ def lowpoly_fix(bm, hi):
 
 
 UV_AVERAGE = True
+# the 512 maps are seen minified in the game: islands 8 texels apart (a fraction of the map, not scaled), so the
+# mipmaps do not mix the cream belly into the brown back and head (pale seam lines)
+UV_PACK = dict(margin_method='FRACTION', margin=0.016)
 
 
 def uv_regions(P):
@@ -476,7 +479,7 @@ def fur(P, N, c):
 
 
 MAP_QUALITY = (76, 72)
-PAD_SMOOTH = 3
+PAD_SMOOTH = 5   # beyond the gap between islands (each island's own colors fill it)
 
 
 def stats(P, N, c, col):

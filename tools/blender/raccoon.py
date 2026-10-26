@@ -574,7 +574,9 @@ def meta(st):
     p, r, d, lid = EYE.meta()
     return {
         'eye': {'p': p, 'r': r, 'dir': d, 'lid': lid, 'iris': 0x2A1A10, 'irisR': 0.95, 'pupilR': 0.5, 'rim': 0x0C0806, 'lidCol': 0x141211},
-        'collar': {'at': ['neck', 'head', 0.3]},
+        # snug in the thick coat (0.3 of the fur), each edge on the skin, and on the neck bones so the kit's band does
+        # not stand up behind its big head
+        'collar': {'at': ['neck', 'head', 0.3], 'lift': 0.3, 'hug': True, 'taper': True, 'wb': ['neck', 'chest'], 'wbk': 0.6},
         'belly': [0.0, 0.158, -0.12],
         'mouth': [round(float(v), 4) for v in MOUTH],
         'tint': [1.0, 1.0, 1.0], 'babyTint': [1.06, 1.05, 1.04],

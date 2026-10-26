@@ -433,6 +433,23 @@ def detail_baby(P, N, c):
     return 0.0003 * (dn - 0.5) * feath
 
 
+# the owlet's thick white down as fur shells (babyOnly: the adult keeps its feathers); its legs and toes are downy
+# too, the facial disc short
+FUR = dict(len=0.05, n=6, lean=0.3, tile=0.003, babyLen=1.0, babyLean=0.3, shade=0.85, babyOnly=True, quality=80)
+
+
+def fur(P, N, c):
+    flen, fden = B.down_fur(P, c, FUR['len'], ['bill', 'claws', 'lids'],
+                            {'head': 0.8, 'tuft': 0.6, 'arm': 0.8, 'drum': 0.8, 'tarsus': 0.55, 'toes': 0.35}, (EYE_C, EYE_R), seed=76)
+    Nm = N.copy(); Nm[:, 0] = N[:, 0] * np.sign(P[:, 0] + 1e-9)
+    disc, rim, _, _ = _discs(mirror(P), Nm, _own(c))
+    return (flen * (1 - 0.55 * disc)).astype(F), fden
+
+
+def flow(P, N):
+    return B.down_flow(sys.modules[__name__], P, N)
+
+
 # ---------- feather blades (atlas cells, same order as the game's feather cells) ----------
 def _cells():
     F_ = B.FeatherCell
@@ -501,7 +518,7 @@ def meta(st):
     return {
         'eye': {'p': [round(float(v), 5) for v in EYE_C], 'r': round(r, 5), 'dir': [round(float(v), 4) for v in EYE_DIR], 'lid': [0.84, -0.84, 0.1],
                 'iris': 0xF0A51C, 'irisR': 0.9, 'pupilR': 0.42, 'rim': 0x2A1A0A, 'lidCol': st['lidCol'], 'babyLidCol': 0x8C8478},
-        'collar': {'at': ['neck', 'head', 0.15], 'w': 0.6, 'r': 0.55, 'maxR': 0.1, 'babyMaxR': 0.3, 'hug': True, 'babyK': 1.6},
+        'collar': {'at': ['neck', 'head', 0.15], 'w': 0.6, 'r': 0.55, 'maxR': 0.1, 'babyMaxR': 0.3, 'hug': True, 'babyK': 1.6, 'lift': 0.35},
         'mouth': [round(float(v), 4) for v in MOUTH],
         'tint': [1.0, 1.0, 1.0], 'babyTint': [1.0, 1.0, 1.0], 'rim': [0.14, 0.12, 0.1], 'flat': 0x7A6048,
     }
