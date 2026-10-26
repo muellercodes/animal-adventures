@@ -1,0 +1,147 @@
+{
+ "v": 1,
+ "id": "parrot",
+ "data": "parrot.bin",
+ "maps": {
+  "color": "parrot-color.webp",
+  "normal": "parrot-normal.webp",
+  "babyColor": "parrot-babycolor.webp",
+  "babyNormal": "parrot-babynrm.webp",
+  "feather": "parrot-feather.webp",
+  "featherNormal": "parrot-feathernrm.webp",
+  "babyFeather": "parrot-babyfeather.webp"
+ },
+ "nv": 4197,
+ "ntri": 5986,
+ "bbox": [
+  -0.308913,
+  -0.001013,
+  -0.149765,
+  0.308913,
+  0.421938,
+  0.188679
+ ],
+ "bones": [
+  "hips",
+  "tail",
+  "neck",
+  "head",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "wingL",
+  "wingR",
+  "wforeL",
+  "wforeR",
+  "whandL",
+  "whandR",
+  "f0L",
+  "f0R",
+  "f1L",
+  "f1R",
+  "f2L",
+  "f2R",
+  "f3L",
+  "f3R",
+  "f4L",
+  "f4R",
+  "f5L",
+  "f5R",
+  "f6L",
+  "f6R",
+  "f7L",
+  "f7R",
+  "f8L",
+  "f8R",
+  "f9L",
+  "f9R",
+  "f10L",
+  "f10R",
+  "f11L",
+  "f11R",
+  "f12L",
+  "f12R",
+  "f13L",
+  "f13R",
+  "f14L",
+  "f14R",
+  "f15L",
+  "f15R",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.0318,
+   0.3965,
+   0.1165
+  ],
+  "r": 0.0062,
+  "dir": [
+   0.9211,
+   0.1201,
+   0.3704
+  ],
+  "lid": [
+   0.8,
+   -0.8,
+   0.12
+  ],
+  "iris": 15128738,
+  "irisR": 0.86,
+  "pupilR": 0.34,
+  "rim": 6969904,
+  "lidCol": 14209224,
+  "babyIris": 1971214,
+  "babyLidCol": 13150368
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "head",
+   0.35
+  ],
+  "babyAt": 0.4,
+  "hug": true,
+  "babyK": 1.8
+ },
+ "mouth": [
+  0.0,
+  0.343,
+  0.177
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.14,
+  0.06,
+  0.06
+ ],
+ "flat": 12066848,
+ "belly": [
+  0.0,
+  0.117,
+  0
+ ],
+ "srgb": [
+  "babyColor",
+  "feather",
+  "babyFeather"
+ ],
+ "bdelta": 0.270913,
+ "feathers": {
+  "cols": 8
+ }
+}

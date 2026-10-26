@@ -161,3 +161,6 @@ if __name__ == '__main__':
         Fm = pad(img(np.stack([np.clip(flen / FUR['len'], 0, 1), np.clip(fden, 0, 1), np.zeros_like(fden)], 1).astype(F), 3), valid, 24)
         out(down2(down2(Fm))).save(os.path.join(WORK, f'{SP}-fur.png'))
     print(f'textures {TEX} saved ({time.time() - t0:.0f}s)')
+    # optional species hook for more maps on the same layout (the birds' baby down and feather atlas)
+    if hasattr(S, 'extra_maps'):
+        S.extra_maps(dict(R=R, valid=valid, Ph=Ph, Nh=Nh, Nl=Nl, Gu=Gu, Gv=Gv, Tu=Tu, Tv=Tv, comps=comps, ao=ao, v2=v2, pad=pad, down2=down2, work=WORK))

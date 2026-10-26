@@ -1,0 +1,147 @@
+{
+ "v": 1,
+ "id": "duck",
+ "data": "duck.bin",
+ "maps": {
+  "color": "duck-color.webp",
+  "normal": "duck-normal.webp",
+  "babyColor": "duck-babycolor.webp",
+  "babyNormal": "duck-babynrm.webp",
+  "feather": "duck-feather.webp",
+  "featherNormal": "duck-feathernrm.webp",
+  "babyFeather": "duck-babyfeather.webp"
+ },
+ "nv": 3953,
+ "ntri": 5994,
+ "bbox": [
+  -0.309751,
+  -0.000133,
+  -0.261954,
+  0.309751,
+  0.416187,
+  0.26624
+ ],
+ "bones": [
+  "hips",
+  "tail",
+  "neck",
+  "neck2",
+  "head",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "wingL",
+  "wingR",
+  "wforeL",
+  "wforeR",
+  "whandL",
+  "whandR",
+  "f0L",
+  "f0R",
+  "f1L",
+  "f1R",
+  "f2L",
+  "f2R",
+  "f3L",
+  "f3R",
+  "f4L",
+  "f4R",
+  "f5L",
+  "f5R",
+  "f6L",
+  "f6R",
+  "f7L",
+  "f7R",
+  "f8L",
+  "f8R",
+  "f9L",
+  "f9R",
+  "f10L",
+  "f10R",
+  "f11L",
+  "f11R",
+  "f12L",
+  "f12R",
+  "f13L",
+  "f13R",
+  "f14L",
+  "f14R",
+  "f15L",
+  "f15R",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.0172,
+   0.3935,
+   0.1795
+  ],
+  "r": 0.0045,
+  "dir": [
+   0.9324,
+   0.2005,
+   0.3008
+  ],
+  "lid": [
+   0.8,
+   -0.8,
+   0.12
+  ],
+  "iris": 3809294,
+  "irisR": 0.9,
+  "pupilR": 0.42,
+  "rim": 920070,
+  "lidCol": 1321757,
+  "babyLidCol": 3813408
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "neck2",
+   0.55
+  ],
+  "babyAt": 0.8,
+  "hug": true,
+  "babyK": 1.8
+ },
+ "mouth": [
+  0.0,
+  0.3585,
+  0.258
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.1,
+  0.1,
+  0.1
+ ],
+ "flat": 10130828,
+ "belly": [
+  0.0,
+  0.1153,
+  0
+ ],
+ "srgb": [
+  "babyColor",
+  "feather",
+  "babyFeather"
+ ],
+ "bdelta": 0.279751,
+ "feathers": {
+  "cols": 8
+ }
+}

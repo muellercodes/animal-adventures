@@ -145,6 +145,54 @@ A sculpted body alone looks shaved. `horse.py` is the example for everything bel
 
 Bake costs: the strokes make `texture` take about 4 minutes at 1024; everything else is like the pig.
 
+## The birds (`bird.py`, `duck.py`, `chicken.py`, `swan.py`, `parrot.py`, `owl.py`)
+
+The sculpt is the body, neck, head, bill, eyelids, legs and feet. The wing and tail feathers stay separate blades in
+the game (`spec.feathers`, one per feather bone), so wings still fold, spread and flap and tails still fan; a model
+with a feather atlas only swaps what they look like. `bird.py` holds what the five share:
+- `plumage()`: a feather pattern for the sculpt's surface (jittered 3D grids of feather tips at a few sizes, each
+  point covered by the front-most feather; the species says the feather size and the flow direction per point). It
+  gives the paint the feather id, its edge and position inside it (scallops, pale tips, bars) and `feather_height()`
+  the height field for the normal map.
+- `toes()`, `web()`, `scutes()`, `reticulate()`: feet with claws or webs and scaly legs. `wing_arm()`: the folded
+  arm under the wing feathers (the blades cover it, it only has to be there and bend).
+- `part_weights()`: skin weights from the sculpt's parts (spine coordinate for body, neck and head, groups for legs,
+  wing arm, ear tufts, comb), as the frog does.
+- `feather_atlas()` and `FeatherCell`: an 8 cell RGBA atlas of real feather outlines (flight feathers with a narrow
+  outer vane, rounded coverts, curls, down puffs) with shaft, barbs, splits and a normal map, painted in numpy. The
+  game cuts its rectangle blades with the alpha (`featherBladeCut`, `alphaTest`), so the shadows get the outlines.
+  Painted at 1024 x 512 and written at `FEATHER_ATLAS['out']`.
+- Babies: `paint_baby()` / `detail_baby()` give a second color and normal map (down instead of feathers, written at
+  `BABY_MAPS['size']`), and `baby_offset()` (`baby_shape()`) gives each vertex its own baby shape change (round egg
+  shaped body, wing arm pulled into the shoulder, thin legs), written after the mesh data as int8 x3 with a square
+  law scale (`md.bdelta`). The game adds it through the bones' baby maps, so it follows the rig like the rest.
+- Hooks, all optional and off for the other species: `grid(h)` (a rectilinear marching cubes grid, finer where
+  the bill and feet are), `UV_PACK` (extra pack_islands options), `extra_maps(X)` in `texture.py` and
+  `export_extra(meta, out, work)` in `export.py`.
+
+In the game (`40_animals.js`): `modelSpec` in a species spec overrides settings only when the sculpted model is
+loaded (the folded wing pose that rests on the sculpted back, baby proportions); `spec.feathers(rest, md)` gets the
+model's json and returns the atlas blade set (more blades: two primaries per hand bone with `dyaw`, marginal and
+tertial coverts with `stdWing({ atlas: true })`); `md.srgb` names the extra color maps.
+
+Lessons:
+- Plumage reads at game distance from big shapes, not from the feather pattern: the mallard's head, ring, breast and
+  speculum, the hen's dark tail and pale hackles. Keep the per-feather scallops soft (`feather_height` scale) or the
+  body looks like scales.
+- The folded wing must lie on the body: tune `modelSpec.anim.wing` (`folded`, `foldedPos`) per species with a wing
+  debug view; the procedural values float the wing over the old cone body.
+- Thin parts (bill tip, toes, comb) need the rectilinear grid or a patch, and a patch that crosses x = 0 must cut
+  its core once, not mirrored (fixed in `sculpt.py`), or the bake source has holes.
+- Raw int16 baby offsets cost 6 bytes a vertex; int8 with the square law is enough (sub millimeter where it matters).
+- Baby offsets: `onto()` walks along the vertex normal and falls back to the nearest surface point where the normal
+  is slanted (creases, inner faces), or single vertices shoot out as spikes. A long S shaped neck (swan) must not be
+  pushed onto a fat neck: it folds up when the game's baby maps shorten it; keep its own shape and widen it there.
+- Collars on a baby with its own shape: `babyAt` (band position along the neck for the baby), `hug` (the band comes
+  in as well as out), `babyK` (thicker, wider band), `babyMaxR` (limb cutoff for the baby slice).
+- The swan (`swan.py`) is made but not shipped: the adult is only a little better than the procedural one and the
+  cygnet is not better (smooth, no fur shell fluff). Run `VOXEL=0.004 TRIS=6500 TEX=1024 ... make.py swan` to make it.
+
+
 ## Budget
 
 Pig: about 6.3k triangles, 4.8k vertices, 1024 x 1024 color and normal maps: 38 KB mesh (format 2; 136 KB before) +
@@ -155,5 +203,9 @@ strand texture: 82 KB mesh and cards + 24 + 40 + 8 + 54 KB maps, about 283 KB in
 fur shells add 4 layers over the coated triangles (about 22k triangles, one draw call); detail 1 and 0 draw the body
 and the cards only.
 
-Frog: about 7.1k triangles, 6k vertices, 512 x 512 maps, about 305 KB in the page (`VOXEL=0.0004 TRIS=7200 TEX=512`;
-still the older model format, convert with `python3 tools/blender/modelpack.py frog`).
+Frog: about 7.1k triangles, 6k vertices, 512 x 512 maps, about 305 KB in the page (`VOXEL=0.0004 TRIS=7200 TEX=512`),
+converted to format 2 with `modelpack.py`. The birds are still format 1 (their baby offsets are not in format 2 yet).
+
+Birds (`VOXEL=0.002 TRIS=6000 TEX=768`): about 6k body triangles and 4k vertices, 768 color and normal maps, 512 baby
+maps, a 512 x 256 feather atlas; 250 to 290 KB of files, about 340 to 390 KB in the page each (format 1). In the game
+about 8.7k to 9k triangles with the feather blades (about 2k) and eyes.

@@ -137,6 +137,7 @@ if getattr(S, 'UV_AVERAGE', False):
             for l in loops:
                 l[uvl].uv = c + (l[uvl].uv - c) * k
         bmesh.update_edit_mesh(lo.data)
+# species can pass more packing options (the birds' long irregular islands pack much tighter with shape_method='CONCAVE')
 bpy.ops.uv.pack_islands(rotate=True, margin=0.0045, **getattr(S, 'UV_PACK', {}))
 bpy.ops.object.mode_set(mode='OBJECT')
 

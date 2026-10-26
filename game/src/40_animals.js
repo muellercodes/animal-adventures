@@ -230,6 +230,16 @@ const Animals = (() => {
         babyDelta(bt.age, _pv, P.fluff === false ? null : _pn, four, _pd);
         // parts can bring an extra newborn offset (hair cards: a foal's short mane and tail)
         if (P.babyAdd) { const b = P.babyAdd(v); _pd.x += mirror ? -b[0] : b[0]; _pd.y += b[1]; _pd.z += b[2]; }
+        // a part's own baby shape change (adult space), through the linear part of its bones' baby maps
+        if (P.bdelta) {
+          const dx = P.bdelta[v * 3] * (mirror ? -1 : 1), dy = P.bdelta[v * 3 + 1], dz = P.bdelta[v * 3 + 2];
+          for (let k = 0; k < 4; k++) {
+            const w = four[k][1];
+            if (w <= 0) continue;
+            const M = bt.age.maps[four[k][0]].M;
+            _pd.x += w * (M[0] * dx + M[1] * dy + M[2] * dz); _pd.y += w * (M[3] * dx + M[4] * dy + M[5] * dz); _pd.z += w * (M[6] * dx + M[7] * dy + M[8] * dz);
+          }
+        }
         bt.mor.push(_pd.x, _pd.y, _pd.z);
       }
     }
@@ -565,6 +575,27 @@ const Animals = (() => {
     for (let i = 0; i < nL; i++) for (let j = 0; j < 2; j++) { const a = i * 3 + j, b = a + 3; idx.push(a, b, a + 1, b, b + 1, a + 1); }
     const nrm = computeNormals(pos, idx);
     return { pos, nrm, idx, uv };
+  }
+
+  // blade for a feather atlas cell (sculpted birds): a rectangle along +X (width along Z, up +Y) that the atlas alpha
+  // cuts to the feather's outline; the vane arches a little across (shaft on top), the blade bends down by curl
+  function featherBladeCut(len, wid, curl, camber) {
+    const nL = len > 0.09 ? 6 : 3, cb = camber == null ? 0.06 : camber, pos = [], uv = [], idx = [];
+    for (let i = 0; i <= nL; i++) {
+      const t = i / nL, droop = curl * t * t * len;
+      for (let j = 0; j <= 2; j++) { const s = j - 1; pos.push(t * len, -droop - Math.abs(s) * wid * cb, s * wid * 0.5); uv.push(j / 2, t); }
+    }
+    for (let i = 0; i < nL; i++) for (let j = 0; j < 2; j++) { const a = i * 3 + j, b = a + 3; idx.push(a, b, a + 1, b, b + 1, a + 1); }
+    return { pos, nrm: computeNormals(pos, idx), idx, uv };
+  }
+  // feather material from a model's atlas (alpha tested, so the shadows get the outlines too); hidden until the
+  // maps are decoded, so the bare rectangles never show
+  function featherModelMaterial(M, fs, baby) {
+    const mm = M.maps, m = new THREE.MeshStandardMaterial({ roughness: fs.rough || 0.8, metalness: 0, side: THREE.DoubleSide, alphaTest: 0.5 });
+    m.visible = false;
+    const apply = () => { m.map = (baby ? mm.tex.babyFeather : mm.tex.feather) || null; m.normalMap = baby ? null : mm.tex.featherNormal || null; m.visible = !!m.map; m.needsUpdate = true; };
+    if (mm.ready === mm.need) apply(); else mm.waiters.push(apply);
+    return m;
   }
 
   // ---------- module temps ----------
@@ -1551,9 +1582,10 @@ const Animals = (() => {
           const back = bl.back || 0; // shift blade base back along its own direction (negative = toward root)
           const ya = spreadA * DEG;
           feathers.push({
-            bone: name, mirror: true, len, wid, curl: bl.curl == null ? 0.06 : bl.curl, tip: bl.tip, rootW: bl.rootW,
+            bone: name, mirror: true, len, wid, curl: bl.curl == null ? 0.06 : bl.curl, tip: bl.tip, rootW: bl.rootW, camber: bl.camber,
             base: [bx + Math.cos(ya) * back, by + (bl.layer || 0) + (set.layerStep || 0) * (set.layerDir === -1 ? -i : i), bz - Math.sin(ya) * back],
-            yaw: ya, roll: (bl.twist || 0) * DEG, pitch: (bl.pitch || 0) * DEG, cell: fcell(bl.cell),
+            // dyaw (deg): a second feather on the same bone, turned a little (sculpted birds' fuller wings)
+            yaw: ya + (bl.dyaw || 0) * DEG, roll: (bl.twist || 0) * DEG, pitch: (bl.pitch || 0) * DEG, cell: fcell(bl.cell),
           });
         }
       }
@@ -1564,26 +1596,34 @@ const Animals = (() => {
   // cells { prim, sec, gcov, lcov, tert, pcov }, fold/spread/folded/foldedPos/flap overrides
   function stdWing(o) {
     const s = o.s, wm = (o.wid || 1) * s, pl = o.prim || 1, c = o.cells || {}, tp = o.tip;
-    const ff = o.featherFold || {};
+    const ff = o.featherFold || {}, ps = o.primSpread || [72, 6];
+    // atlas: blades for a sculpted bird's feather atlas (real outlines cut by its alpha): flatter layers so the folded
+    // wing lies close to the body, a second primary on each hand bone (half a step out), tertial and marginal coverts
+    const A = !!o.atlas, ls = A ? 0.55 : 1, aw = A ? 1.15 : 1;
+    const tert = [{ len: [0.12 * s, 0.115 * s], wid: [0.04 * wm * aw, 0.04 * wm * aw], cell: c.tert == null ? 4 : c.tert, layer: 0.012 * s * ls, curl: 0.12 }];
+    const sec = [
+      { len: [0.115 * s, 0.105 * s], wid: [0.034 * wm * aw, 0.032 * wm * aw], cell: c.sec == null ? 1 : c.sec, layer: 0, curl: 0.1, tip: o.secTip },
+      { len: [0.07 * s, 0.065 * s], wid: [0.032 * wm * aw, 0.03 * wm * aw], cell: c.gcov == null ? 2 : c.gcov, layer: 0.005 * s * ls, back: -0.006 * s, curl: 0.1 },
+      { len: [0.045 * s, 0.042 * s], wid: [0.03 * wm * aw, 0.028 * wm * aw], cell: c.lcov == null ? 3 : c.lcov, layer: 0.009 * s * ls, back: -0.01 * s, curl: 0.1 },
+    ];
+    const prim = [
+      { len: [0.16 * s * pl, 0.21 * s * pl], wid: [0.036 * wm * aw, 0.03 * wm * (o.primTipWid || 1) * aw], cell: c.prim == null ? 0 : c.prim, layer: -0.006 * s * ls, curl: 0.05, tip: tp },
+      { len: [0.065 * s, 0.055 * s], wid: [0.03 * wm * aw, 0.024 * wm * aw], cell: c.pcov == null ? 3 : c.pcov, layer: 0.003 * s * ls, back: -0.012 * s, curl: 0.06 },
+    ];
+    if (A) {
+      tert.push({ len: [0.06 * s, 0.055 * s], wid: [0.04 * wm * aw, 0.038 * wm * aw], cell: c.lcov == null ? 3 : c.lcov, layer: 0.016 * s * ls, back: -0.014 * s, curl: 0.08 });
+      sec.push({ len: [0.03 * s, 0.028 * s], wid: [0.028 * wm * aw, 0.026 * wm * aw], cell: c.mcov != null ? c.mcov : c.lcov == null ? 3 : c.lcov, layer: 0.0115 * s * ls, back: -0.016 * s, curl: 0.06 });
+      prim.push(Object.assign({}, prim[0], { len: [0.155 * s * pl, 0.205 * s * pl], layer: -0.0066 * s * ls, dyaw: (ps[1] - ps[0]) / 12 }));
+    }
     return birdWing({
       sh: o.sh, arm: [0.08 * s, 0.1 * s, 0.075 * s], parent: o.parent,
       fold: o.fold || { hum: 86, elb: -170, wri: 172 },
       spread: o.spread || { roll: 4, yaw: 0, pitch: 0 },
       folded: o.folded, foldedPos: o.foldedPos, flap: o.flap,
       sets: [
-        { parent: 'wingL', n: 3, at: [0.2, 0.9], spread: [100, 94], fold: ff.tert || [112, 104], y: 0.004 * s,
-          blades: [{ len: [0.12 * s, 0.115 * s], wid: [0.04 * wm, 0.04 * wm], cell: c.tert == null ? 4 : c.tert, layer: 0.012 * s, curl: 0.12 }] },
-        { parent: 'wforeL', n: 6, at: [0.0, 0.97], spread: [92, 78], fold: ff.sec || [106, 89], layerStep: -0.0012 * s,
-          blades: [
-            { len: [0.115 * s, 0.105 * s], wid: [0.034 * wm, 0.032 * wm], cell: c.sec == null ? 1 : c.sec, layer: 0, curl: 0.1, tip: o.secTip },
-            { len: [0.07 * s, 0.065 * s], wid: [0.032 * wm, 0.03 * wm], cell: c.gcov == null ? 2 : c.gcov, layer: 0.005 * s, back: -0.006 * s, curl: 0.1 },
-            { len: [0.045 * s, 0.042 * s], wid: [0.03 * wm, 0.028 * wm], cell: c.lcov == null ? 3 : c.lcov, layer: 0.009 * s, back: -0.01 * s, curl: 0.1 },
-          ] },
-        { parent: 'whandL', n: 7, at: [0.0, 1.0], spread: o.primSpread || [72, 6], fold: ff.prim || [96, 86], layerStep: -0.0012 * s,
-          blades: [
-            { len: [0.16 * s * pl, 0.21 * s * pl], wid: [0.036 * wm, 0.03 * wm * (o.primTipWid || 1)], cell: c.prim == null ? 0 : c.prim, layer: -0.006 * s, curl: 0.05, tip: tp },
-            { len: [0.065 * s, 0.055 * s], wid: [0.03 * wm, 0.024 * wm], cell: c.pcov == null ? 3 : c.pcov, layer: 0.003 * s, back: -0.012 * s, curl: 0.06 },
-          ] },
+        { parent: 'wingL', n: 3, at: [0.2, 0.9], spread: [100, 94], fold: ff.tert || [112, 104], y: 0.004 * s, blades: tert },
+        { parent: 'wforeL', n: 6, at: [0.0, 0.97], spread: [92, 78], fold: ff.sec || [106, 89], layerStep: -0.0012 * s, blades: sec },
+        { parent: 'whandL', n: 7, at: [0.0, 1.0], spread: ps, fold: ff.prim || [96, 86], layerStep: -0.0012 * s, blades: prim },
       ],
     });
   }
@@ -1668,30 +1708,48 @@ const Animals = (() => {
       belly: hex(0xD8D5CE), wing: hex(0x7E7468), wingDk: hex(0x564E46), blue: hex(0x2C3EAA), purple: hex(0x4A2E98),
       white: hex(0xF5F4F0), black: hex(0x141414), tailW: hex(0xE9E7E2), leg: hex(0xF0892A),
     };
-    const W = birdWing({
+    const wing = (bl, fo) => birdWing({
       sh: [0.05, 0.262, 0.06], arm: [0.08, 0.1, 0.075],
       fold: { hum: 86, elb: -170, wri: 172 },
       spread: { roll: 4, yaw: 0, pitch: 0 },
-      folded: { roll: -24, yaw: 2, pitch: -6 },
-      foldedPos: [0.016, 0.012, -0.03],
+      folded: (fo || {}).folded || { roll: -24, yaw: 2, pitch: -6 },
+      foldedPos: (fo || {}).pos || [0.016, 0.012, -0.03],
       flap: { amp: 60, rate: 6.0, upFold: 0.35, twist: 12, glide: 4 },
       sets: [
-        // wide, overlapping blades so the folded wing reads as one smooth surface on the back
-        { parent: 'wingL', n: 3, at: [0.2, 0.9], spread: [100, 94], fold: [109, 105], y: 0.004,
-          blades: [{ len: [0.12, 0.115], wid: [0.05, 0.048], cell: 4, layer: 0.012, curl: 0.12 }] },
-        { parent: 'wforeL', n: 6, at: [0.0, 0.97], spread: [92, 78], fold: [104, 90], layerStep: -0.0012,
-          blades: [
-            { len: [0.115, 0.105], wid: [0.042, 0.04], cell: 1, layer: 0, curl: 0.1 },
-            { len: [0.07, 0.065], wid: [0.04, 0.038], cell: 2, layer: 0.005, back: -0.006, curl: 0.1 },
-            { len: [0.045, 0.042], wid: [0.038, 0.035], cell: 3, layer: 0.009, back: -0.01, curl: 0.1 },
-          ] },
-        { parent: 'whandL', n: 7, at: [0.0, 1.0], spread: [72, 6], fold: [95, 87], layerStep: -0.0012,
-          blades: [
-            { len: [0.16, 0.21], wid: [0.042, 0.036], cell: 0, layer: -0.006, curl: 0.05 },
-            { len: [0.065, 0.055], wid: [0.036, 0.03], cell: 3, layer: 0.003, back: -0.012, curl: 0.06 },
-          ] },
+        { parent: 'wingL', n: 3, at: [0.2, 0.9], spread: [100, 94], fold: [109, 105], y: 0.004, blades: bl[0] },
+        { parent: 'wforeL', n: 6, at: [0.0, 0.97], spread: [92, 78], fold: [104, 90], layerStep: -0.0012, blades: bl[1] },
+        { parent: 'whandL', n: 7, at: [0.0, 1.0], spread: [72, 6], fold: [95, 87], layerStep: -0.0012, blades: bl[2] },
       ],
     });
+    // wide, overlapping blades so the folded wing reads as one smooth surface on the back
+    const W = wing([
+      [{ len: [0.12, 0.115], wid: [0.05, 0.048], cell: 4, layer: 0.012, curl: 0.12 }],
+      [
+        { len: [0.115, 0.105], wid: [0.042, 0.04], cell: 1, layer: 0, curl: 0.1 },
+        { len: [0.07, 0.065], wid: [0.04, 0.038], cell: 2, layer: 0.005, back: -0.006, curl: 0.1 },
+        { len: [0.045, 0.042], wid: [0.038, 0.035], cell: 3, layer: 0.009, back: -0.01, curl: 0.1 },
+      ],
+      [
+        { len: [0.16, 0.21], wid: [0.042, 0.036], cell: 0, layer: -0.006, curl: 0.05 },
+        { len: [0.065, 0.055], wid: [0.036, 0.03], cell: 3, layer: 0.003, back: -0.012, curl: 0.06 },
+      ],
+    ]);
+    // the sculpted duck's feather atlas: real feather outlines, so more of them (same bones): two primaries per hand
+    // bone, marginal coverts over the leading edge, tertial coverts; thinner layers, so the folded wing lies flat
+    const WA = wing([
+      [{ len: [0.125, 0.118], wid: [0.054, 0.05], cell: 4, layer: 0.0066, curl: 0.1 }, { len: [0.06, 0.055], wid: [0.05, 0.046], cell: 3, layer: 0.0088, back: -0.014, curl: 0.08 }],
+      [
+        { len: [0.118, 0.108], wid: [0.046, 0.044], cell: 1, layer: 0, curl: 0.08 },
+        { len: [0.072, 0.066], wid: [0.046, 0.044], cell: 2, layer: 0.0026, back: -0.006, curl: 0.08 },
+        { len: [0.046, 0.043], wid: [0.044, 0.042], cell: 3, layer: 0.0046, back: -0.01, curl: 0.08 },
+        { len: [0.03, 0.028], wid: [0.038, 0.036], cell: 3, layer: 0.0062, back: -0.016, curl: 0.06 },
+      ],
+      [
+        { len: [0.165, 0.215], wid: [0.048, 0.042], cell: 0, layer: -0.003, curl: 0.04 },
+        { len: [0.16, 0.21], wid: [0.048, 0.042], cell: 0, layer: -0.0036, curl: 0.04, dyaw: -5.5 },
+        { len: [0.066, 0.056], wid: [0.042, 0.036], cell: 3, layer: 0.0016, back: -0.012, curl: 0.05 },
+      ],
+    ], { folded: { roll: -36, yaw: 2, pitch: 0 }, pos: [-0.004, 0.012, -0.03] });
     const toes = [{ a: -26, len: 0.046, r: 0.0038 }, { a: 0, len: 0.054, r: 0.004 }, { a: 26, len: 0.044, r: 0.0038 }, { a: 180, len: 0.012, r: 0.0028, back: true, lift: 0.006 }];
     const foot = [xL, 0.006, -0.008];
     return {
@@ -1783,9 +1841,15 @@ const Animals = (() => {
         }
         if (P.part !== 'leg') cmul(C, 0.93 + 0.12 * fine);
       },
-      feathers: () => ({
+      feathers: (rest, md) => ({
         tex: [256, 128], rough: 0.8,
-        list: [
+        list: md ? [
+          ...WA.feathers,
+          // tail: a fan of whitish rectrices, black uppertail coverts over its base, the drake's two curled feathers
+          ...[-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5].map((i) => ({ bone: 'tail', base: [i * 0.0055, 0.246 - Math.abs(i) * 0.0014, -0.236 + Math.abs(i) * 0.002], yaw: (90 + i * 7.5) * DEG, pitch: (7 - Math.abs(i) * 0.9) * DEG, len: 0.094 - Math.abs(i) * 0.0045, wid: 0.034, curl: 0.03, cell: fcell(5) })),
+          ...[-2, -1, 0, 1, 2].map((i) => ({ bone: 'tail', base: [i * 0.008, 0.253 - Math.abs(i) * 0.002, -0.212], yaw: (90 + i * 11) * DEG, pitch: 7 * DEG, len: 0.056, wid: 0.04, curl: 0.04, cell: fcell(6) })),
+          ...[-1, 1].map((i) => ({ bone: 'tail', base: [i * 0.004, 0.257, -0.226], yaw: (90 - i * 6) * DEG, roll: 90 * DEG, pitch: 35 * DEG, len: 0.042, wid: 0.016, curl: 0.9, camber: 0.02, cell: fcell(6) })),
+        ] : [
           ...W.feathers,
           ...[-2, -1, 0, 1, 2].map((i) => ({ bone: 'tail', base: [i * 0.01, 0.245 - Math.abs(i) * 0.002, -0.24], yaw: (90 + i * 12) * DEG, pitch: 4 * DEG, len: 0.088 - Math.abs(i) * 0.007, wid: 0.028, curl: 0.03, tip: 0.6, cell: fcell(5) })),
           ...[-1, 1].map((i) => ({ bone: 'tail', base: [i * 0.004, 0.252, -0.222], yaw: (90 - i * 6) * DEG, roll: 90 * DEG, pitch: 35 * DEG, len: 0.04, wid: 0.01, curl: 0.9, tip: 0.5, cell: fcell(6) })),
@@ -1819,6 +1883,7 @@ const Animals = (() => {
         ...babyC([birdWeb(foot, toes, 0xE87F25, 'hpawL')], 0x5E5040),
       ],
       accentRough: 0.45,
+      modelSpec: { anim: { wing: WA.wing }, baby: { muzzle: 0.44, fluff: 0, wing: 0.2, eye: 1.0, neck: [0.5, 1.35] } },
       eyes: [{ bone: 'head', p: [0.02, 0.392, 0.183], r: 0.0045, dir: [0.92, 0.2, 0.2], col: 0x1A0F08 }],
       mouth: [0, 0.358, 0.258],
       anim: {
@@ -1860,6 +1925,14 @@ const Animals = (() => {
       featherFold: { tert: [118, 106], sec: [108, 91], prim: [97, 88] },
       flap: { amp: 55, rate: 2.6, upFold: 0.3, twist: 10, glide: 3 },
       cells: { prim: 0, sec: 1, gcov: 2, lcov: 2, tert: 1, pcov: 2 },
+    });
+    // the sculpted swan's wing (feather atlas blades, same bones), folded close over the back
+    const WA = stdWing({
+      s: 2.35, sh: [0.1, 0.5, 0.16], prim: 1.05, wid: 1.05, tip: 0.45, atlas: true,
+      folded: { roll: -26, yaw: 2, pitch: 0 }, foldedPos: [-0.01, 0.01, -0.05],
+      featherFold: { tert: [118, 106], sec: [108, 91], prim: [97, 88] },
+      flap: { amp: 55, rate: 2.6, upFold: 0.3, twist: 10, glide: 3 },
+      cells: { prim: 0, sec: 1, gcov: 2, lcov: 3, tert: 4, pcov: 3 },
     });
     const toes = [{ a: -28, len: 0.11, r: 0.007 }, { a: 0, len: 0.13, r: 0.0075 }, { a: 28, len: 0.105, r: 0.007 }, { a: 180, len: 0.025, r: 0.005, back: true, lift: 0.01 }];
     const foot = [xL, 0.01, -0.06];
@@ -1940,9 +2013,13 @@ const Animals = (() => {
         }
         if (P.part !== 'leg') { cmul(C, 0.95 + 0.08 * fine); C.ro = 0.86; }
       },
-      feathers: () => ({
+      feathers: (rest, md) => ({
         tex: [256, 128], rough: 0.85,
-        list: [
+        list: md ? [
+          ...WA.feathers,
+          ...tailFan('tail', [0, 0.432, -0.43], 9, 0.145, 0.06, 32, 14, 5, { dx: 0.07, dz: 0.012, taper: 0.3, curl: 0.05 }),
+          ...tailFan('tail', [0, 0.448, -0.405], 5, 0.095, 0.07, 26, 17, 6, { dx: 0.05, dz: 0.01, taper: 0.2, curl: 0.04 }),
+        ] : [
           ...W.feathers,
           ...tailFan('tail', [0, 0.43, -0.44], 7, 0.15, 0.05, 30, 12, 3, { dx: 0.06, dz: 0.01, taper: 0.3, curl: 0.05 }),
         ],
@@ -1967,6 +2044,7 @@ const Animals = (() => {
         ...babyC([birdWeb(foot, toes, 0x1D1D1D, 'hpawL')], 0x34302E),
       ],
       accentRough: 0.45,
+      modelSpec: { anim: { wing: WA.wing }, baby: { muzzle: 0.45, fluff: 0, wing: 0.2, eye: 1.0, neck: [0.52, 1.45] } },
       eyes: [{ bone: 'head', p: [0.026, 1.023, 0.41], r: 0.0065, dir: [0.9, 0.2, 0.25], col: 0x120A06 }],
       mouth: [0, 0.95, 0.565],
       anim: {
@@ -2003,6 +2081,14 @@ const Animals = (() => {
       featherFold: { tert: [110, 102], sec: [104, 90], prim: [96, 88] },
       flap: { amp: 50, rate: 7, upFold: 0.3, twist: 10, glide: 3 },
       cells: { prim: 0, sec: 1, gcov: 2, lcov: 2, tert: 2, pcov: 2 },
+    });
+    // the sculpted hen's wing (feather atlas blades, same bones)
+    const WA = stdWing({
+      s: 0.92, sh: [0.06, 0.29, 0.05], prim: 0.85, wid: 1.15, tip: 0.5, atlas: true,
+      folded: { roll: -78, yaw: 0, pitch: 10 }, foldedPos: [0.022, 0.0, -0.02],
+      featherFold: { tert: [110, 102], sec: [104, 90], prim: [96, 88] },
+      flap: { amp: 50, rate: 7, upFold: 0.3, twist: 10, glide: 3 },
+      cells: { prim: 0, sec: 1, gcov: 2, lcov: 3, tert: 2, pcov: 3 },
     });
     const toes = [{ a: -30, len: 0.045, r: 0.0045, claw: 0.008, clawCol: 0x8A6A3A }, { a: 0, len: 0.055, r: 0.005, claw: 0.009, clawCol: 0x8A6A3A }, { a: 30, len: 0.043, r: 0.0045, claw: 0.008, clawCol: 0x8A6A3A }, { a: 180, len: 0.025, r: 0.004, lift: 0.004, claw: 0.007, clawCol: 0x8A6A3A }];
     const foot = [xL, 0.007, 0.004];
@@ -2092,9 +2178,15 @@ const Animals = (() => {
         }
         if (P.part !== 'leg') { cmul(C, 0.9 + 0.18 * fine); C.ro = 0.88; }
       },
-      feathers: () => ({
+      feathers: (rest, md) => ({
         tex: [256, 128], rough: 0.85,
-        list: [
+        list: md ? [
+          ...WA.feathers,
+          // tail: a steep tent of black feathers, black-and-red coverts over it, pointed red saddle feathers at its base
+          ...[0, 1, 2, 3, 4, 5].map((i) => ({ bone: 'tail', mirror: true, base: [0.006 + i * 0.0042, 0.305 - i * 0.006, -0.118 - i * 0.003], yaw: (84 + i * 4) * DEG, pitch: (56 - i * 6) * DEG, roll: (-38 - i * 6) * DEG, len: 0.145 - i * 0.008, wid: 0.044, curl: -0.12, cell: fcell(4) })),
+          ...[0, 1, 2, 3].map((i) => ({ bone: 'tail', mirror: true, base: [0.01 + i * 0.006, 0.31 - i * 0.006, -0.1 - i * 0.008], yaw: (88 + i * 3) * DEG, pitch: (42 - i * 7) * DEG, roll: (-48 - i * 4) * DEG, len: 0.09, wid: 0.042, curl: -0.08, cell: fcell(5) })),
+          ...[0, 1, 2, 3].map((i) => ({ bone: 'tail', mirror: true, base: [0.016 + i * 0.008, 0.318 - i * 0.008, -0.074 - i * 0.01], yaw: (92 + i * 4) * DEG, pitch: (16 - i * 4) * DEG, roll: (-34 - i * 5) * DEG, len: 0.072, wid: 0.032, curl: 0.06, cell: fcell(6) })),
+        ] : [
           ...W.feathers,
           // tail: steep tent of dark feathers
           ...[0, 1, 2, 3].map((i) => ({ bone: 'tail', mirror: true, base: [0.012 + i * 0.004, 0.3 - i * 0.008, -0.12 - i * 0.004], yaw: (90 - 8 + i * 3) * DEG, pitch: (52 - i * 9) * DEG, roll: (-48 - i * 6) * DEG, len: 0.15 - i * 0.012, wid: 0.045, curl: -0.18, tip: 0.45, cell: fcell(i < 2 ? 4 : 5) })),
@@ -2126,6 +2218,7 @@ const Animals = (() => {
         ...babyC(birdToes(foot, toes, 0xE4B23A, 'hpawL'), 0xE8B87A),
       ],
       accentRough: 0.55,
+      modelSpec: { anim: { wing: WA.wing }, baby: { muzzle: 0.42, fluff: 0, wing: 0.12, eye: 1.0 } },
       eyes: [{ bone: 'head', p: [0.024, 0.415, 0.138], r: 0.0058, dir: [0.92, 0.15, 0.3], iris: 0xD48A26, irisR: 0.8, pupilR: 0.45, babyIris: 0x1E140E }],
       mouth: [0, 0.392, 0.188],
       anim: {
@@ -2160,6 +2253,14 @@ const Animals = (() => {
       featherFold: { tert: [108, 100], sec: [102, 92], prim: [96, 90] },
       flap: { amp: 68, rate: 2.2, upFold: 0.25, twist: 8, glide: 4 },
       cells: { prim: 0, sec: 1, gcov: 2, lcov: 2, tert: 2, pcov: 2 },
+    });
+    // the sculpted owl's wing (feather atlas blades, same bones), hanging close along the back
+    const WA = stdWing({
+      s: 1.25, sh: [0.07, 0.35, -0.035], prim: 0.95, wid: 1.45, tip: 0.6, secTip: 0.5, primTipWid: 1.2, atlas: true,
+      folded: { roll: -6, yaw: -24, pitch: -76 }, foldedPos: [0.012, 0.0, -0.02],
+      featherFold: { tert: [108, 100], sec: [102, 92], prim: [96, 90] },
+      flap: { amp: 68, rate: 2.2, upFold: 0.25, twist: 8, glide: 4 },
+      cells: { prim: 0, sec: 1, gcov: 2, lcov: 3, tert: 4, pcov: 3 },
     });
     const toes = [{ a: -22, len: 0.03, r: 0.0085, claw: 0.022 }, { a: 18, len: 0.032, r: 0.0085, claw: 0.022 }, { a: 165, len: 0.022, r: 0.008, lift: 0.004, claw: 0.02 }, { a: -150, len: 0.02, r: 0.008, lift: 0.004, claw: 0.018 }];
     const foot = [xL, 0.009, 0.02];
@@ -2258,9 +2359,12 @@ const Animals = (() => {
         cmul(C, 0.92 + 0.14 * fine);
         C.ro = 0.9;
       },
-      feathers: () => ({
+      feathers: (rest, md) => ({
         tex: [256, 128], rough: 0.9,
-        list: [
+        list: md ? [
+          ...WA.feathers,
+          ...tailFan('tail', [0, 0.14, -0.076], 9, 0.155, 0.052, 20, -58, 5, { dx: 0.04, dz: 0.005, taper: 0.12, curl: 0.04 }),
+        ] : [
           ...W.feathers,
           ...tailFan('tail', [0, 0.14, -0.078], 7, 0.155, 0.05, 18, -58, 3, { dx: 0.035, dz: 0.005, taper: 0.12, curl: 0.04, tip: 0.5 }),
         ],
@@ -2286,6 +2390,7 @@ const Animals = (() => {
         ...birdToes(foot, toes, 0xCDB894, 'hpawL'),
       ],
       accentRough: 0.5,
+      modelSpec: { anim: { wing: WA.wing }, baby: { fluff: 0, wing: 0.25, eye: 1.0 } },
       eyes: [{ bone: 'head', p: [0.032, 0.464, 0.054], r: 0.0145, dir: [0.28, 0.04, 1], iris: 0xF0A51C, irisR: 0.9, pupilR: 0.42, rim: 0x2A1A0A }],
       mouth: [0, 0.432, 0.074],
       anim: {
@@ -2323,6 +2428,14 @@ const Animals = (() => {
       featherFold: { tert: [112, 104], sec: [106, 92], prim: [97, 90] },
       flap: { amp: 58, rate: 6.5, upFold: 0.35, twist: 12, glide: 4 },
       cells: { prim: 0, sec: 1, gcov: 2, lcov: 7, tert: 2, pcov: 1 },
+    });
+    // the sculpted macaw's wing (feather atlas blades, same bones): red lesser coverts along the leading edge
+    const WA = stdWing({
+      s: 0.98, sh: [0.058, 0.245, 0.05], prim: 1.2, wid: 1.3, tip: 0.3, atlas: true,
+      folded: { roll: -58, yaw: 3, pitch: -10 }, foldedPos: [0.018, 0.0, -0.016],
+      featherFold: { tert: [112, 104], sec: [106, 92], prim: [97, 90] },
+      flap: { amp: 58, rate: 6.5, upFold: 0.35, twist: 12, glide: 4 },
+      cells: { prim: 0, sec: 1, gcov: 2, lcov: 7, tert: 2, pcov: 1, mcov: 3 },
     });
     const toes = [{ a: -18, len: 0.035, r: 0.0055, claw: 0.01 }, { a: 18, len: 0.037, r: 0.0055, claw: 0.01 }, { a: 160, len: 0.03, r: 0.0052, lift: 0.003, claw: 0.009 }, { a: -165, len: 0.028, r: 0.0052, lift: 0.003, claw: 0.009 }];
     const foot = [xL, 0.006, 0.012];
@@ -2392,9 +2505,14 @@ const Animals = (() => {
         cmul(C, 0.93 + 0.12 * fine);
         C.ro = 0.72;
       },
-      feathers: () => ({
+      feathers: (rest, md) => ({
         tex: [256, 128], rough: 0.65,
-        list: [
+        list: md ? [
+          ...WA.feathers,
+          // long tail: red central feathers tipped blue, blue outer ones, light blue coverts over the base
+          ...tailFan('tail', [0, 0.205, -0.124], 8, 0.47, 0.04, 11, -10, (i, u) => (Math.abs(u) < 0.45 ? 4 : 5), { dx: 0.014, dz: 0.004, taper: 0.45, curl: 0.03, droop: 3 }),
+          ...tailFan('tail', [0, 0.215, -0.108], 5, 0.12, 0.046, 22, 6, 6, { dx: 0.022, taper: 0.2, curl: 0.04 }),
+        ] : [
           ...W.feathers,
           ...tailFan('tail', [0, 0.205, -0.125], 6, 0.46, 0.034, 9, -10, (i, u) => (Math.abs(u) < 0.5 ? 4 : 5), { dx: 0.012, dz: 0.004, taper: 0.45, curl: 0.03, tip: 0.6, droop: 3 }),
           ...tailFan('tail', [0, 0.214, -0.11], 4, 0.12, 0.04, 20, 6, 6, { dx: 0.02, taper: 0.2, curl: 0.04 }),
@@ -2438,6 +2556,7 @@ const Animals = (() => {
         ...birdToes(foot, toes, 0x4A4440, 'hpawL'),
       ],
       accentRough: 0.35,
+      modelSpec: { anim: { wing: WA.wing }, baby: { muzzle: 0.55, fluff: 0, wing: 0.2, eye: 1.0 } },
       eyes: [{ bone: 'head', p: [0.043, 0.398, 0.118], r: 0.0065, dir: [0.92, 0.15, 0.3], iris: 0xE6D8A2, irisR: 0.85, pupilR: 0.35 }],
       mouth: [0, 0.345, 0.18],
       anim: {
@@ -4855,7 +4974,7 @@ const Animals = (() => {
       mapLoads.push(new Promise((res) => {
         img.onload = () => {
           const t = new THREE.Texture(img);
-          if (k === 'color' || k === 'hair') t.encoding = THREE.sRGBEncoding;
+          if (k === 'color' || k === 'hair' || (md.srgb && md.srgb.indexOf(k) >= 0)) t.encoding = THREE.sRGBEncoding;
           t.anisotropy = 4; t.needsUpdate = true;
           mm.tex[k] = t;
           if (++mm.ready === mm.need) for (const f of mm.waiters.splice(0)) f();
@@ -5020,6 +5139,11 @@ const Animals = (() => {
         const take = (T, n) => { const a = new T(u8.buffer, o, n); o += n * T.BYTES_PER_ELEMENT; return a; };
         const q = take(Uint16Array, nv * 3), quv = take(Uint16Array, nv * 2), idx = take(Uint16Array, nt * 3), oct = take(Int8Array, nv * 2);
         const si = take(Uint8Array, nv * 4), sw = take(Uint8Array, nv * 4), rgh = take(Uint8Array, nv);
+        // optional: the baby's own shape change per vertex (adult space, i8 x3, square-law: d = s |s| md.bdelta meters with
+        // s = q / 127, fine for the small offsets and still reaching the big ones), so a chick can be a round ball of
+        // down rather than a shrunken hen; the bones' baby maps carry it like the rest of the morph
+        const bdq = md.bdelta ? take(Int8Array, nv * 3) : null;
+        const bdelta = bdq ? Array.from(bdq, (q) => (q * Math.abs(q) / 16129) * md.bdelta) : null;
         const pos = new Array(nv * 3), nrm = new Array(nv * 3), uv = new Array(nv * 2);
         for (let i = 0; i < nv; i++) {
           for (let k = 0; k < 3; k++) pos[i * 3 + k] = b[k] + ((b[k + 3] - b[k]) * q[i * 3 + k]) / 65535;
@@ -5032,7 +5156,7 @@ const Animals = (() => {
           nrm[i * 3] = x / l; nrm[i * 3 + 1] = y / l; nrm[i * 3 + 2] = z / l;
         }
         const weights = (v) => { const w = []; for (let k = 0; k < 4; k++) if (sw[v * 4 + k]) w.push([md.bones[si[v * 4 + k]], sw[v * 4 + k] / 255]); return w; };
-        out = { md, pos, nrm, uv, idx: Array.from(idx), weights, rgh, maps: modelMaps[id] };
+        out = { md, pos, nrm, uv, idx: Array.from(idx), weights, rgh, bdelta, maps: modelMaps[id] };
       } catch (e) { out = null; }
     }
     return (modelCache[id] = out);
@@ -5058,7 +5182,8 @@ const Animals = (() => {
     m.userData.aa = { aaRimC: { value: new THREE.Vector3().fromArray(rim) } };
     m.onBeforeCompile = aaModelCompile;
     const mm = M.maps, flat = linColor(md.flat || 0xe0b0a0);
-    const apply = () => { m.map = mm.tex.color || null; m.normalMap = mm.tex.normal || null; m.color.setRGB(tint[0], tint[1], tint[2]); m.needsUpdate = true; };
+    // babies can have their own maps (birds: down instead of feathers)
+    const apply = () => { m.map = (baby && mm.tex.babyColor) || mm.tex.color || null; m.normalMap = (baby && mm.tex.babyNormal) || mm.tex.normal || null; m.color.setRGB(tint[0], tint[1], tint[2]); m.needsUpdate = true; };
     if (mm && mm.ready === mm.need) apply();
     else { m.color.copy(flat); if (mm) mm.waiters.push(apply); }
     return m;
@@ -5114,6 +5239,8 @@ const Animals = (() => {
       spec.accent = null; spec.shell = null;
       // a sculpted coat (FUR in the species' Blender file): fur shells over the model, set up by the model
       if (M.fur && M.md.fur) spec.shell = Object.assign({ model: true, n: 4, n1: 0, lean: 1, babyLen: 1.5 }, M.md.fur);
+      // settings that differ for the sculpted body (a bird's folded wing resting on the sculpted back, baby proportions)
+      if (spec.modelSpec) for (const k in spec.modelSpec) Object.assign(spec[k] || (spec[k] = {}), spec.modelSpec[k]);
     }
     // bones (expand mirrored)
     const defs = [];
@@ -5160,7 +5287,7 @@ const Animals = (() => {
       if (o.fp.mirror) pushPart(furBatch, part, boneIndex, uvFn, null, true);
     });
     if (M) {
-      pushPart(furBatch, { name: 'model', pos: M.pos, nrm: M.nrm, idx: M.idx, weights: M.weights }, boneIndex, (v) => [M.uv[v * 2], M.uv[v * 2 + 1]], null, false);
+      pushPart(furBatch, { name: 'model', pos: M.pos, nrm: M.nrm, idx: M.idx, weights: M.weights, bdelta: M.bdelta }, boneIndex, (v) => [M.uv[v * 2], M.uv[v * 2 + 1]], null, false);
       if (cplan) collarBabyMesh(ag, cplan, furBatch);
     }
     const makeFurMat = (baby) => {
@@ -5212,9 +5339,12 @@ const Animals = (() => {
     // feathers (birds)
     if (spec.feathers) {
       const fb = newBatch(ag);
-      const fs = spec.feathers(rest);
+      // a sculpted bird brings a feather atlas (real outlines in its alpha, vanes, shafts, a normal map): its blades
+      // are plain rectangles cut to the feather by the atlas. The spec gets the model's json to pick its blade set.
+      const fa = M && M.md.feathers ? M : null;
+      const fs = spec.feathers(rest, fa ? M.md : null);
       for (const f of fs.list) {
-        const bl = featherBlade(f.len, f.wid, f.curl || 0, f.tip == null ? 0.35 : f.tip, f.rootW);
+        const bl = fa ? featherBladeCut(f.len, f.wid, f.curl || 0, f.camber) : featherBlade(f.len, f.wid, f.curl || 0, f.tip == null ? 0.35 : f.tip, f.rootW);
         // transform blade: rotate about Y by yaw, X by roll (twist), then translate to base (rest root space)
         const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(f.roll || 0, f.yaw, f.pitch || 0, 'YZX'));
         const pos = [], nrm = [];
@@ -5229,8 +5359,8 @@ const Animals = (() => {
         pushPart(fb, part, boneIndex, uvFn, null, false);
         if (f.mirror) pushPart(fb, part, boneIndex, uvFn, null, true);
       }
-      const fmat = (baby) => new THREE.MeshStandardMaterial({ map: featherTexture(fs, baby), roughness: fs.rough || 0.8, metalness: 0, side: THREE.DoubleSide });
-      geos.push({ geo: batchGeometry(fb, false), mat: fmat(false), babyMat: fs.babyPaint ? () => fmat(true) : null });
+      const fmat = fa ? (baby) => featherModelMaterial(fa, fs, baby) : (baby) => new THREE.MeshStandardMaterial({ map: featherTexture(fs, baby), roughness: fs.rough || 0.8, metalness: 0, side: THREE.DoubleSide });
+      geos.push({ geo: batchGeometry(fb, false), mat: fmat(false), babyMat: fs.babyPaint || fa ? () => fmat(true) : null });
     }
     // eyes
     const eyeDefs = [];
@@ -6012,23 +6142,37 @@ const Animals = (() => {
       if (j < COLLAR_N) C.addScaledVector(Pb[e][j], 0.5 / COLLAR_N);
     }
     const k = a1.distanceTo(b1) / Math.max(1e-6, ag.byName[pl.cfg.at[0]].c0.distanceTo(ag.byName[pl.cfg.at[1]].c0));
-    const sl = [-1, 0, 1].map((s) => meshSlice(P, bt.idx, null, C.clone().addScaledVector(T, s * pl.hw * k), T, S, Nv, pl.ths, null, pl.cfg.maxR));
+    // optional (sculpted birds, whose baby has its own shape): babyAt moves the baby's band along the neck (same
+    // 0..1 between the two bones as at[2]) and hug lets it come in as well as go out, so it sits on the baby's neck
+    if (pl.cfg.babyAt != null) {
+      pl.shiftB = T.clone().multiplyScalar((pl.cfg.babyAt - pl.cfg.at[2]) * a1.distanceTo(b1));
+      C.add(pl.shiftB);
+    }
+    const mr = pl.cfg.babyMaxR != null ? pl.cfg.babyMaxR : pl.cfg.maxR;
+    const sl = [-1, 0, 1].map((s) => meshSlice(P, bt.idx, null, C.clone().addScaledVector(T, s * pl.hw * k), T, S, Nv, pl.ths, null, mr));
     pl.push = [[], []];
+    const rsl = pl.ths.map((_, j) => Math.max(sl[0][j].r, sl[1][j].r, sl[2][j].r));
+    // a hugging band follows the neck's outline smoothed around the ring (no zigzag over small bumps)
+    const rsm = pl.cfg.hug ? rsl.map((_, j) => { let t = 0; for (let d = -2; d <= 2; d++) t += rsl[(((j + d) % COLLAR_N) + COLLAR_N) % COLLAR_N]; return t / 5; }) : rsl;
     for (let e = 0; e < 2; e++) for (let j = 0; j <= COLLAR_N; j++) {
-      const rs = Math.max(sl[0][j].r, sl[1][j].r, sl[2][j].r);
+      const rs = rsm[j];
       _v3.subVectors(Pb[e][j], C);
+      if (pl.shiftB) _v3.add(pl.shiftB);
       _v3.addScaledVector(T, -_v3.dot(T));
-      pl.push[e].push(Math.max(0, rs - _v3.length()));
+      pl.push[e].push(pl.cfg.hug ? rs - _v3.length() : Math.max(0, rs - _v3.length()));
     }
     const tj = Math.round(fract(pl.cfg.tag / TAU) * COLLAR_N), mp = ag.byName.ctag;
-    mp.c1.copy(C).add(_v4.copy(S).multiplyScalar(Math.sin(pl.cfg.tag)).addScaledVector(Nv, Math.cos(pl.cfg.tag)).multiplyScalar(Math.max(sl[0][tj].r, sl[1][tj].r, sl[2][tj].r) + (pl.gap + pl.thick) * 1.25));
-    mp.M = m3.scale(1.25);
+    mp.c1.copy(C).add(_v4.copy(S).multiplyScalar(Math.sin(pl.cfg.tag)).addScaledVector(Nv, Math.cos(pl.cfg.tag)).multiplyScalar(Math.max(sl[0][tj].r, sl[1][tj].r, sl[2][tj].r) + (pl.gap + pl.thick) * Math.max(1.25, pl.cfg.babyK || 0)));
+    mp.M = m3.scale(Math.max(1.25, pl.cfg.babyK || 0));
   }
   function collarGeoMesh(A) {
     const pl = A.cplan, N = COLLAR_N, bt = newBatch(A.ag), dep = pl.thick * 0.8, sp = A.spec.shell;
-    const pos = [], nrm = [], col = [], wts = [], idx = [], outN = [], push = [], lift = [];
+    const pos = [], nrm = [], col = [], wts = [], idx = [], outN = [], push = [], lift = [], ex = [];
     const furOn = !!(sp && sp.model && pl.fl && Math.max(...pl.fl) > 0.02);
     const P = new THREE.Vector3(), D = new THREE.Vector3();
+    // babyK (optional): the baby's band is this much thicker and wider than the adult's, before the body scale
+    const bk = pl.cfg.babyK ? pl.cfg.babyK - 1 : 0;
+    const exAdd = (D, ro, e) => ex.push(bk * (D.x * ro + pl.T.x * (e ? pl.hw : -pl.hw)), bk * (D.y * ro + pl.T.y * (e ? pl.hw : -pl.hw)), bk * (D.z * ro + pl.T.z * (e ? pl.hw : -pl.hw)));
     for (let j = 0; j <= N; j++) {
       pl.dir(pl.ths[j], D);
       for (let e = 0; e < 2; e++) {
@@ -6036,8 +6180,8 @@ const Animals = (() => {
         const w = pl.w[e][j], inner = P.clone().addScaledVector(D, pl.gap - dep), outer = P.clone().addScaledVector(D, pl.gap + pl.thick);
         const tn = pl.T.clone().multiplyScalar(e ? 1 : -1);
         const v = e ? [[outer, tn, 0.72, 1], [inner, tn, 0.72, 0.4]] : [[inner, tn, 0.72, 0.4], [outer, tn, 0.72, 1]], up = furOn ? sp.len * pl.fl[j] * COLLAR_LIFT : 0;
-        for (const qq of v) { pos.push(qq[0].x, qq[0].y, qq[0].z); nrm.push(qq[1].x, qq[1].y, qq[1].z); col.push(qq[2]); wts.push(w); outN.push(D.x, D.y, D.z); push.push(pl.push ? pl.push[e][j] : 0); lift.push(D.x * up * qq[3], D.y * up * qq[3], D.z * up * qq[3]); }
-        pos.push(outer.x, outer.y, outer.z); nrm.push(D.x, D.y, D.z); col.push(1); wts.push(w); outN.push(D.x, D.y, D.z); push.push(pl.push ? pl.push[e][j] : 0); lift.push(D.x * up, D.y * up, D.z * up);
+        for (const qq of v) { pos.push(qq[0].x, qq[0].y, qq[0].z); nrm.push(qq[1].x, qq[1].y, qq[1].z); col.push(qq[2]); wts.push(w); outN.push(D.x, D.y, D.z); push.push(pl.push ? pl.push[e][j] : 0); lift.push(D.x * up * qq[3], D.y * up * qq[3], D.z * up * qq[3]); exAdd(D, qq[0] === outer ? pl.gap + pl.thick : pl.gap - dep, e); }
+        pos.push(outer.x, outer.y, outer.z); nrm.push(D.x, D.y, D.z); col.push(1); wts.push(w); outN.push(D.x, D.y, D.z); push.push(pl.push ? pl.push[e][j] : 0); lift.push(D.x * up, D.y * up, D.z * up); exAdd(D, pl.gap + pl.thick, e);
       }
     }
     for (let j = 0; j < N; j++) {
@@ -6053,7 +6197,8 @@ const Animals = (() => {
       qq.weights = () => [['ctag', 1]]; qq.fluff = false; pushPart(bt, qq, A.boneIndex, () => [1, 0], () => [1, 1, 1], false);
     }
     const g = batchGeometry(bt, true), m = g.morphAttributes.position[0];
-    for (let v = 0; v < nb; v++) m.setXYZ(v, m.getX(v) + outN[v * 3] * push[v], m.getY(v) + outN[v * 3 + 1] * push[v], m.getZ(v) + outN[v * 3 + 2] * push[v]);
+    const sb = pl.shiftB || new THREE.Vector3();
+    for (let v = 0; v < nb; v++) m.setXYZ(v, m.getX(v) + outN[v * 3] * push[v] + sb.x + ex[v * 3], m.getY(v) + outN[v * 3 + 1] * push[v] + sb.y + ex[v * 3 + 1], m.getZ(v) + outN[v * 3 + 2] * push[v] + sb.z + ex[v * 3 + 2]);
     const lf = new Float32Array(g.attributes.position.count * 3);
     lf.set(lift);
     g.morphAttributes.position.push(new THREE.Float32BufferAttribute(lf, 3));

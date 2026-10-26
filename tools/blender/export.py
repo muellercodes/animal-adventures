@@ -119,8 +119,12 @@ if hips:    # (a snake has no hips: the game keeps its belly point at the origin
     k = max(1.0, rig['size']['length'] / 1.2)
     near = (np.abs(pos[:, 0]) < 0.04 * k) & (np.abs(pos[:, 2] - hz) < 0.05 * k) & ~lo['tail']
     meta['belly'] = [0.0, round(float(pos[near, 1].min()), 4), hz]
+# optional species hook for more maps (the birds' baby down and feather atlas). Note: the birds' hook appends their baby
+# offsets to the mesh data the way format 1 stored it; format 2 (deflated) does not take them yet
+if hasattr(S, 'export_extra'):
+    S.export_extra(meta, OUT, WORK)
 json.dump(meta, open(os.path.join(OUT, f'{SP}.json'), 'w'), indent=1)
-sizes = {f: os.path.getsize(os.path.join(OUT, f)) for f in [f'{SP}.bin', f'{SP}.json'] + list(maps.values())}
+sizes = {f: os.path.getsize(os.path.join(OUT, f)) for f in [f'{SP}.bin', f'{SP}.json'] + list(meta['maps'].values())}
 tot = sum(sizes.values())
 print(f'{SP}: {len(pos)} verts {len(idx)} tris (stored {js["nv"]} / {js["ntri"]})' + (f', cards {js["cards"]["nv"]} verts {js["cards"]["ntri"]} tris' if cards is not None else '') + ';',
       ', '.join(f'{k} {v // 1024} KB' for k, v in sizes.items()), f'; total {tot // 1024} KB, as base64 about {tot * 4 // 3 // 1024} KB')
