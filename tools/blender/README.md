@@ -110,10 +110,19 @@ Lessons:
 - Thin parts (bill tip, toes, comb) need the rectilinear grid or a patch, and a patch that crosses x = 0 must cut
   its core once, not mirrored (fixed in `sculpt.py`), or the bake source has holes.
 - Raw int16 baby offsets cost 6 bytes a vertex; int8 with the square law is enough (sub millimeter where it matters).
+- Baby offsets: `onto()` walks along the vertex normal and falls back to the nearest surface point where the normal
+  is slanted (creases, inner faces), or single vertices shoot out as spikes. A long S shaped neck (swan) must not be
+  pushed onto a fat neck: it folds up when the game's baby maps shorten it; keep its own shape and widen it there.
+- Collars on a baby with its own shape: `babyAt` (band position along the neck for the baby), `hug` (the band comes
+  in as well as out), `babyK` (thicker, wider band), `babyMaxR` (limb cutoff for the baby slice).
+- The swan (`swan.py`) is made but not shipped: the adult is only a little better than the procedural one and the
+  cygnet is not better (smooth, no fur shell fluff). Run `VOXEL=0.004 TRIS=6500 TEX=1024 ... make.py swan` to make it.
 
 
 ## Budget
 
 About 6.3k triangles, 4.8k vertices, 1024 x 1024 color and normal maps: 136 KB mesh + 71 KB + 52 KB maps, about 350 KB
 once base64 in the page. The frog: about 7.1k triangles, 6k vertices, 512 x 512 maps, about 305 KB in the page
-(`VOXEL=0.0004 TRIS=7200 TEX=512`).
+(`VOXEL=0.0004 TRIS=7200 TEX=512`). The birds (`VOXEL=0.002 TRIS=6000 TEX=768`): about 6k body triangles and
+4k vertices, 768 color and normal maps, 512 baby maps, a 512 x 256 feather atlas; 250 to 290 KB of files, about 340
+to 390 KB in the page each. In the game about 8.7k to 9k triangles with the feather blades (about 2k) and eyes.

@@ -2042,7 +2042,7 @@ const Animals = (() => {
         ...babyC([birdWeb(foot, toes, 0x1D1D1D, 'hpawL')], 0x34302E),
       ],
       accentRough: 0.45,
-      modelSpec: { anim: { wing: WA.wing }, baby: { muzzle: 0.45, fluff: 0, wing: 0.2, eye: 1.0, neck: [0.62, 1.35] } },
+      modelSpec: { anim: { wing: WA.wing }, baby: { muzzle: 0.45, fluff: 0, wing: 0.2, eye: 1.0, neck: [0.52, 1.45] } },
       eyes: [{ bone: 'head', p: [0.026, 1.023, 0.41], r: 0.0065, dir: [0.9, 0.2, 0.25], col: 0x120A06 }],
       mouth: [0, 0.95, 0.565],
       anim: {
