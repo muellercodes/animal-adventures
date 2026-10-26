@@ -113,6 +113,8 @@ if __name__ == '__main__':
     col, rough = S.paint(Ph, Nh, comps)
     # babies colored differently (a fox kit's gray-brown fuzz): an optional second color map
     bcol = S.baby_paint(Ph, Nh, comps, col) if hasattr(S, 'baby_paint') else None
+    # a species with a differently colored newborn (a fawn's spots) paints a second color map for it
+    colb = S.paint_baby(Ph, Nh, comps)[0] if hasattr(S, 'paint_baby') else None
     h = S.detail(Ph, Nh, comps)
     # fur shells (species with FUR): fur length (meters) and strand density per texel
     FUR = getattr(S, 'FUR', None)
@@ -178,6 +180,8 @@ if __name__ == '__main__':
         if bt != TEX:
             im = im.resize((bt, bt), Image.LANCZOS)
         im.save(os.path.join(WORK, f'{SP}-babycolor.png'))
+    if colb is not None:
+        out(S.finish(down2(pad(img(colb, 3), valid, 24)), ao, v2)).save(os.path.join(WORK, f'{SP}-color-baby.png'))
     if FUR:
         # fur map at half the texture size: R length (of FUR['len']), G density
         Fm = pad(img(np.stack([np.clip(flen / FUR['len'], 0, 1), np.clip(fden, 0, 1), np.zeros_like(fden)], 1).astype(F), 3), valid, 24)

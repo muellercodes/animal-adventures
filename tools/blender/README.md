@@ -3,9 +3,11 @@
 Makes a realistic body for one species with Blender, fitted to the skeleton the game already uses, and writes it to
 `game/models/<id>.*`. `build.mjs` embeds those files in the page and `game/src/40_animals.js` uses the model instead of
 the procedural loft body. Everything else (bones, walk/run/eat/sleep animation, baby proportions, eyes and blinking,
-collar, moods, swimming) keeps working through the same rig API. The pig (bare skin), frog, lizard, turtle, snake,
-horse (coat, mane and tail), fox, raccoon, otter and weasel have models so far; `horse.py` is the example for furry
-animals and `carnivore.py` has the parts the small carnivores share.
+collar, moods, swimming) keeps working through the same rig API. Models so far: the pig, frog, lizard, turtle,
+snake, horse, duck, hen, macaw, owl, fox, raccoon, otter, weasel, deer, goat and moose. `horse.py` is the example for
+furry animals, `carnivore.py` has the parts the small carnivores share, `ungulate.py` the hooved animals' (`deer.py`
+for antlers), and `bird.py` the birds'. A baby with its own coat colors writes a second color map (`baby_paint()` or
+`paint_baby()`), stored as the `babyColor` map.
 
 Nothing is downloaded: the shape, skin colors and fine detail are all made by the scripts here.
 
@@ -222,6 +224,48 @@ digits, webbing between them), `strands()` (the coat strokes, with a per region 
 - Long bendy bodies (the otter swimming, the weasel standing up and curling to sleep) get rings from
   `meshfix.rings` in `lowpoly_fix`; decimate to fewer triangles (`TRIS`) so the total stays in budget after the cuts.
 
+## Hooved animals (`ungulate.py`: `deer.py`, `goat.py`, `moose.py`)
+
+The deer (and the goat and moose after it) reuse the horse's approach; the field helpers that were module globals in
+`horse.py` are generic functions in `ungulate.py`, plus:
+- `cloven()` and `dewclaws()`: a split hoof (two claws, flat inner walls, pointed tips, the front wall leaning back) and
+  the two little claws behind the fetlock. Put the dewclaws on the back of the pastern, not floating behind it.
+- `Tubes`: antlers and other branching tubes as smooth unions of round cones along resampled polylines (each segment
+  evaluated only near its box, so the fine bake patch stays fast), and per point coordinates of the nearest tube (arc
+  length, angle around the axis) for ridges in `detail()` and the dark base / ivory tips in the paint. The deer puts
+  the burr (a pearled ring) and its pearls only in a small box around the burr: evaluated over the whole antler patch
+  they took minutes.
+- Antlers and horns ride on their own bone (the game scales it to nothing on babies): weight only what lies above the
+  burr to it (`(P - BURR) @ axis > 0`) and leave the pedicle on the head, short and blended in, or the baby's head gets
+  holes or nubs where the antlers were.
+- A tail that lifts a long way (the deer's flag) is its own piece (`PIECES = [body, tail]`, see the turtle): blended
+  into the rump it would drag the skin up with it. Weight it in `fix_weights` by which piece a vertex lies on.
+- Newborns with their own coat (fawn spots): `paint_baby(P, N, c)` paints a second color map (`texture.py` writes
+  `<id>-color-baby.png`, `export.py` adds it as the `colorBaby` map at `BABY_MAP = (size, quality)`), and the game
+  uses it with the baby proportions. Spots that should line up (the fawn's rows along the spine) are placed on the rows
+  explicitly; jittered-grid spots never form rows.
+- Hair cards also suit short tufts: the deer's white tail fringe is 21 small cards weighted to the tail bones directly
+  (not `'_skin'`: the nearest skin to a card tip can be the rump).
+- Belly line: keep the belly ellipsoid above the brisket, and keep the stifle (front of the thigh) from hanging below
+  the belly, or it reads as a ball under the flank; a flat ellipsoid from the belly to the stifle makes the flank fold.
+- Every `_local` box must hold its whole part plus the blend radius: where a box cuts a part, the field jumps and the
+  smooth union leaves a crease that the bake prints into the normal map (the goat's neck box cut across its chest and
+  drew a bib there). A quick check: evaluate each part on a coarse grid and compare where it is below its blend radius
+  with its box.
+- Deer, goat and moose coats are matte: roughness about 0.62 (the horse's 0.44 looks like plastic on them).
+- Horns (`goat.py`): `horn()` sweeps an oval section (flattened side to side, a keel in front) along a polyline with
+  transverse ridges every few millimeters. Keep the first 1.5 to 2 cm of the horn on the head (`HORN_STUB`) and only
+  the rest on the horn bone: on a kid that stub is the horn bud. Small horn buds are also sculpted under the horns.
+- A beard is a few hair cards hanging from the chin with `'_skin'` roots; their baby points pull them in to nothing.
+- A goat's body reads as a box unless the croup slopes down to the tail, the buttocks curve back and under to the hock,
+  and the loft exponents stay near 2 (2.4 and up gives square sections).
+- Palmate antlers (`moose.py`): each palm is a plate built from a 2D outline (rasterized, eroded and grown back so the
+  points get round tips, sampled bilinearly) in its own frame, thick at the beam and thin in the points, dished by
+  `palm_cup()`; the brow palm is a second, smaller plate reaching forward. Lay the palm's face up, forward and in:
+  standing up like a fan or lying flat both look wrong from the side.
+- Big animals: the moose's sculpt at 5 mm plus fine patches was too big to bake in the 7 GB the machine had (Cycles was
+  killed); 6 mm with 2 to 3.4 mm patches bakes fine and looks the same in the game.
+
 ## Budget
 
 Pig: about 6.3k triangles, 4.8k vertices, 1024 x 1024 color and normal maps: 38 KB mesh (format 2; 136 KB before) +
@@ -256,3 +300,16 @@ smoothly): 7.9k triangles plus 80 in the whiskers; 512 maps, 256 kit color map: 
 
 Close up (detail 2) the four carnivores' fur shells come to 31k to 35k triangles in one draw call (4 or 5 layers over
 the coated triangles); detail 1 and 0 draw the body and the whiskers only (7k to 8.4k triangles).
+
+Deer: 7.2k body triangles plus 126 in the tail fringe cards; 1024 color and normal maps, 512 fawn color map, 512 fur
+map, 128 x 128 strand texture: 62 KB mesh + 55 + 52 + 21 + 12 + 8 KB maps, about 287 KB in the page
+(`VOXEL=0.0035 TRIS=7200 WEIGHTS=transfer`, about 25 minutes on a busy machine).
+
+Goat: 7.0k body triangles plus 140 in the beard cards; 1024 color and normal maps, 512 fur map, 128 x 128 strand
+texture: 56 KB mesh + 64 + 43 + 12 + 8 KB maps, about 251 KB in the page (`VOXEL=0.0025 TRIS=7000 WEIGHTS=transfer`).
+
+Moose: 7.6k triangles; 1024 color and normal maps, 512 calf color map, 512 fur map: 57 KB mesh + 32 + 52 + 11 + 11 KB
+maps, about 222 KB in the page (`VOXEL=0.006 TRIS=7600 WEIGHTS=transfer`).
+
+Frog: about 7.1k triangles, 6k vertices, 512 x 512 maps, about 305 KB in the page (`VOXEL=0.0004 TRIS=7200 TEX=512`;
+still the older model format, convert with `python3 tools/blender/modelpack.py frog`).

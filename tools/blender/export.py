@@ -90,6 +90,14 @@ if hasattr(S, 'baby_paint'):
     # babies colored differently: a second color map (the game swaps it in with the baby material)
     maps['babyColor'] = f'{SP}-baby.webp'
     Image.open(os.path.join(WORK, f'{SP}-babycolor.png')).convert('RGB').save(os.path.join(OUT, maps['babyColor']), 'WEBP', quality=S.MAP_QUALITY[0], method=6)
+if hasattr(S, 'paint_baby'):
+    # (or paint_baby: the newborn's own color map (BABY_MAP = size, WebP quality; babies are small on screen, so it can be smaller)
+    maps['babyColor'] = f'{SP}-color-baby.webp'
+    bsz, bq = getattr(S, 'BABY_MAP', (0, S.MAP_QUALITY[0]))
+    im = Image.open(os.path.join(WORK, f'{SP}-color-baby.png')).convert('RGB')
+    if bsz and bsz != im.size[0]:
+        im = im.resize((bsz, bsz), Image.LANCZOS)
+    im.save(os.path.join(OUT, maps['babyColor']), 'WEBP', quality=bq, method=6)
 if FUR:
     maps['fur'] = f'{SP}-fur.webp'
     Image.open(os.path.join(WORK, f'{SP}-fur.png')).convert('RGB').save(os.path.join(OUT, maps['fur']), 'WEBP', quality=FUR.get('quality', 80), method=6)
