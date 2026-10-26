@@ -5193,7 +5193,8 @@ const Animals = (() => {
     const md = M.md, c = md.cards, tint = (baby ? md.babyTint : md.tint) || [1, 1, 1];
     const m = new THREE.MeshStandardMaterial({ roughness: c.rough || 0.55, metalness: 0, side: THREE.DoubleSide, alphaTest: c.alpha || 0.3 });
     m.alphaToCoverage = true;
-    const mm = M.maps, apply = () => { m.map = mm.tex.hair || null; m.color.setRGB(tint[0], tint[1], tint[2]); m.visible = !!m.map; m.needsUpdate = true; };
+    // babies can have their own strand texture (a hoglet's soft pale spines)
+    const mm = M.maps, apply = () => { m.map = (baby && mm.tex.babyHair) || mm.tex.hair || null; m.color.setRGB(tint[0], tint[1], tint[2]); m.visible = !!m.map; m.needsUpdate = true; };
     if (mm && mm.ready === mm.need) apply();
     else { m.visible = false; if (mm) mm.waiters.push(apply); }
     return m;

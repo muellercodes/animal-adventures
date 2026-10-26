@@ -222,7 +222,7 @@ digits, webbing between them), `strands()` (the coat strokes, with a per region 
 - Long bendy bodies (the otter swimming, the weasel standing up and curling to sleep) get rings from
   `meshfix.rings` in `lowpoly_fix`; decimate to fewer triangles (`TRIS`) so the total stays in budget after the cuts.
 
-## The small furry animals (`bunny.py`, `squirrel.py`, `smallfur.py`)
+## The small furry animals (`bunny.py`, `squirrel.py`, `hedgehog.py`, `smallfur.py`)
 
 They reuse `carnivore.py` (eyes, ears, hands, coat strokes, whiskers). `smallfur.py` adds `strand_texture()`: a hair
 card texture painted column by column with color bands along the strand (`stops`), as wavy hairs or as straight
@@ -244,6 +244,18 @@ tapering spines. A species uses it through `hair_texture()` (export.py writes th
   shells; a small plume needs very long shells to look bushy. Tail skin weights come from the position along its middle
   line (`tail_t`, `tail_weights`), and the cards' points use the same, so the locks follow the tail bones.
   `meshfix.rings` across the body and along the tail (15 mm apart) let it sit up, climb and curl up.
+- The hedgehog (`hedgehog.py`, European hedgehog): the spines are real geometry, about 1,350 straight cards of two
+  points (2 triangles each) rooted over the spine coat (rays in toward the middle of the dome from a Fibonacci sphere,
+  kept where `spine_w()` says spines grow, then mirrored), leaning back along the flow at 20 to 45 degrees and turned a
+  little about the normal so they cross. Each card carries six spines from an 8 column spine texture
+  (`strand_texture` kind 'spine': cream root, a dark band, a pale point; one column all pale). Turn the cards only a
+  little about their own axis: two sided cards show their unlit backs as dark patches. The skin under them is painted
+  with the same banded spines (`_spine_strokes`: several spines per cell, the cell as big as the longest spine so a 3 x 3
+  x 3 neighborhood finds every spine, the flow taken at the texel; fast enough at 1536 texels) for far away and between
+  the cards. Fur shells only on the face, the belly, the legs and a skirt along the spine line. Every card point is
+  weighted with `'_skin'`, and the dome's skin weights are smooth bands (rump, hips, chest, neck), so it rolls up into a
+  ball with the spines on. Hoglets get short spines (the cards' newborn offsets) and a pale strand texture of their own
+  (`babyHair`, written by `export_extra()`; the game's card material takes it for babies).
 - The slice for the collar can meet another part of the body: the squirrel's neck plane also cuts the tail tip curled
   over its back, and the band stretched up to it. `'collar': {'maxR': ...}` in `meta()` ignores it.
 - Memory: a nearest-point search of every texel against a polyline (N x points arrays) took over 2 GB at 1536 texels
@@ -297,3 +309,8 @@ and kit color maps: 57 KB mesh and cards + 77 + 17 + 9 + 14 + 5 KB, about 245 KB
 Squirrel (`VOXEL=0.0012 TRIS=4800 TEX=768`, then rings across the body and along the tail): 6.7k triangles plus 516 in
 the cards (whiskers, ear tufts, 64 tail locks); 768 color and normal maps, 384 fur map, 384 x 256 strand texture: 66 KB
 mesh and cards + 48 + 19 + 7 + 48 KB, about 255 KB in the page. Fur shells at detail 2: 5 layers, about 34k triangles.
+
+Hedgehog (`VOXEL=0.001 TRIS=3400 TEX=768`, then rings across the dome): 6.2k triangles plus 2.7k in the cards (1,350
+spine cards and the whiskers), 8.9k in all; 768 color and normal maps, 384 fur map, 256 hoglet color map, two 432 x 192
+strand textures (spines, the hoglets' pale spines): 80 KB mesh and cards + 64 + 18 + 7 + 5 + 18 + 18 KB, about 286 KB in
+the page. Fur shells (face, belly, skirt) at detail 2: 3 layers, 9k triangles.
