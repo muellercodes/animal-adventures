@@ -1,0 +1,102 @@
+{
+ "v": 1,
+ "id": "frog",
+ "data": "frog.bin",
+ "maps": {
+  "color": "frog-color.webp",
+  "normal": "frog-normal.webp"
+ },
+ "nv": 6014,
+ "ntri": 7138,
+ "bbox": [
+  -0.108863,
+  -5.1e-05,
+  -0.07905,
+  0.108863,
+  0.088234,
+  0.096443
+ ],
+ "bones": [
+  "hips",
+  "chest",
+  "head",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.0255,
+   0.0738,
+   0.0555
+  ],
+  "r": 0.0115,
+  "dir": [
+   0.7403,
+   0.4002,
+   0.5402
+  ],
+  "lid": [
+   0.652,
+   -0.791,
+   0.35
+  ],
+  "iris": 13870389,
+  "irisR": 0.97,
+  "pupil": "h",
+  "pupilR": 0.29,
+  "irisNet": 1,
+  "rim": 3812370,
+  "sclera": 6968352,
+  "lidCol": 4420642
+ },
+ "collar": {
+  "at": [
+   "chest",
+   "head",
+   0.347
+  ],
+  "tilt": 0.773,
+  "maxR": 0.048
+ },
+ "mouth": [
+  0.0,
+  0.06,
+  0.0905
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.03,
+  1.0,
+  0.88
+ ],
+ "rim": [
+  0.08,
+  0.12,
+  0.03
+ ],
+ "flat": 6199860,
+ "belly": [
+  0.0,
+  0.0075,
+  -0.035
+ ]
+}

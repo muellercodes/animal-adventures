@@ -37,7 +37,7 @@ def activate(ob):
 
 # ---------- decimate (symmetric), keep the +x half ----------
 body = obj('body', hi['v'], hi['f'])
-tail_tris = 2 * 8 * (S.TAIL_RINGS - 1) + 8
+tail_tris = 2 * 8 * (S.TAIL_RINGS - 1) + 8 if getattr(S, 'TAIL_RINGS', 0) else 0
 mod = body.modifiers.new('dec', 'DECIMATE')
 mod.ratio = (TRIS - tail_tris) / len(hi['f'])
 mod.use_symmetry = True
@@ -61,6 +61,9 @@ bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_c
 for v in bm.verts:
     if abs(v.co.x) < 1e-5:
         v.co.x = 0.0
+if getattr(S, 'DISSOLVE_DEGENERATE', False):
+    # zero area slivers along the cut (they take a share of the triangle budget for nothing)
+    bmesh.ops.dissolve_degenerate(bm, dist=1e-6, edges=bm.edges[:])
 bmesh.ops.triangulate(bm, faces=bm.faces[:])
 bm.to_mesh(me); bm.free()
 print(f'decimated half: {len(me.polygons)} tris ({time.time() - t0:.0f}s)')
@@ -73,14 +76,19 @@ bpy.ops.uv.smart_project(angle_limit=1.15, island_margin=0.004, area_weight=0.0,
 bpy.ops.object.mode_set(mode='OBJECT')
 
 # ---------- tail: low tube with a cylinder unwrap ----------
-tp, tr = S.tail_curve(S.TAIL_RINGS - 1)
-tv, tf, tuv = MU.tube_uv(tp, tr, 8)
-tail = obj('tail', tv, tf)
-uvl = tail.data.uv_layers.new(name='UVMap')
-uvl.data.foreach_set('uv', tuv[tf.ravel()].ravel())
-# one object, one UV layout
-activate(body); tail.select_set(True)
-bpy.ops.object.join()
+nt = 0
+if tail_tris:
+    tp, tr = S.tail_curve(S.TAIL_RINGS - 1)
+    tv, tf, tuv = MU.tube_uv(tp, tr, 8)
+    tail = obj('tail', tv, tf)
+    uvl = tail.data.uv_layers.new(name='UVMap')
+    uvl.data.foreach_set('uv', tuv[tf.ravel()].ravel())
+    nt = len(tf)
+    # one object, one UV layout
+    activate(body); tail.select_set(True)
+    bpy.ops.object.join()
+else:
+    activate(body)
 lo = bpy.context.view_layer.objects.active
 lo.name = 'lo'
 bpy.context.scene.tool_settings.use_uv_select_sync = True
@@ -99,8 +107,17 @@ Fh = L.reshape(-1, 3)
 a, b = UV.min(0), UV.max(0)
 UV = 0.002 + (UV - a) / (b - a) * 0.996
 UVf = UV.reshape(-1, 3, 2)
-nt = len(tf)
-is_tail = np.zeros(len(Fh), bool); is_tail[-nt:] = True
+is_tail = np.zeros(len(Fh), bool)
+if nt:
+    is_tail[-nt:] = True
+# drop duplicate triangles (and ones that repeat a vertex): the bake step rebuilds this mesh, Blender's validation
+# removes them there and every following triangle would then get the wrong UVs
+_, first = np.unique(np.sort(Fh, 1), axis=0, return_index=True)
+ok = np.zeros(len(Fh), bool); ok[first] = True
+ok &= (Fh[:, 0] != Fh[:, 1]) & (Fh[:, 1] != Fh[:, 2]) & (Fh[:, 0] != Fh[:, 2])
+if not ok.all():
+    print(f'dropped {(~ok).sum()} duplicate triangles')
+    Fh, UVf, is_tail = Fh[ok], UVf[ok], is_tail[ok]
 print(f'uv packed: {len(Fh)} tris, {len(V)} verts ({time.time() - t0:.0f}s)')
 
 # ---------- full mesh for the game (mirror the half, add the tail) ----------

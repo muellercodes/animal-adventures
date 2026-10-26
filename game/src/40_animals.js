@@ -2574,7 +2574,8 @@ const Animals = (() => {
         climb: { splay: 0.25, drop: 0.55, reach: 0.25, neck: -0.25, flex: 0.3, toe: 0.2 },
         sleep: { style: 'rest', neck: [0, 0.1], ears: 0 }, happyHop: 0.1, wiggle: 0.4,
       },
-      baby: { head: 1.15, eye: 1.05, muzzle: 0.85, body: [1.05, 1.08, 0.92], leg: [0.85, 1.05] },
+      // froglet: just out of the water, a big head and big eyes on a short body, legs not grown yet
+      baby: { head: 1.22, eye: 1.12, muzzle: 0.8, body: [1.04, 1.06, 0.88], leg: [0.8, 1.0] },
     };
   };
 
@@ -5138,9 +5139,10 @@ const Animals = (() => {
   // Every species gets an iris now: dark-eyed mammals get a deep brown one with a pupil, so the eye reads wet and alive.
   function eyeTexture(e) {
     const iris = e.iris || e.col || 0x2a1a10;
-    const key = [iris, e.pupil || '', e.irisR || 0, e.pupilR || 0, e.sclera || 0, e.rim || 0].join(',');
+    const key = [iris, e.pupil || '', e.irisR || 0, e.pupilR || 0, e.sclera || 0, e.rim || 0].join(',') + (e.irisNet ? ',net' + e.irisNet : '');
     if (eyeTexs[key]) return eyeTexs[key];
-    const W = 128, H = 64, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    // irisNet (frogs): a fine dark network over the iris instead of radial fibers, on a finer texture
+    const net = e.irisNet || 0, W = net ? 256 : 128, H = net ? 128 : 64, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
     const ctx = cv.getContext('2d'), img = ctx.createImageData(W, H), d = img.data;
     const ir = hex(iris), dark = hex(0x050403), rim = hex(e.rim || 0x140d08), scl = e.sclera ? hex(e.sclera) : mixc(rim, ir, 0.25);
     const irisA = (e.irisR || 0.8) * 0.5 * PI, pa = irisA * (e.pupilR || 0.45);
@@ -5156,7 +5158,12 @@ const Animals = (() => {
         const f = th / irisA;
         // radial fibers, a darker collar near the pupil and a dark limbal ring
         const fib = noise(Math.cos(ph) * 9 + 3, Math.sin(ph) * 9, f * 2.5) * 0.6 + noise(Math.cos(ph) * 22, Math.sin(ph) * 22, f * 6) * 0.4;
-        const k = (0.62 + 0.55 * fib) * (1 - 0.3 * sstep(0.55, 1, f)) * (1 + 0.25 * sstep(0.2, 0.0, Math.abs(f - 0.62)));
+        let k = (0.62 + 0.55 * fib) * (1 - 0.3 * sstep(0.55, 1, f)) * (1 + 0.25 * sstep(0.2, 0.0, Math.abs(f - 0.62)));
+        if (net) {
+          const n1 = noise(px * 11 + 3.1, py * 11 + 1.7, 5.5), n2 = noise(px * 26 + 8.3, py * 26 + 2.9, 7.5), n3 = noise(px * 4 + 1.3, py * 4 + 6.1, 2.5);
+          const r1 = 1 - Math.abs(2 * n1 - 1), r2 = 1 - Math.abs(2 * n2 - 1);
+          k = (0.8 + 0.35 * n3) * (1 - net * (0.5 * sstep(0.86, 0.975, r1) + 0.32 * sstep(0.87, 0.975, r2))) * (1 - 0.35 * sstep(0.6, 1, f)) * (1 + 0.2 * sstep(0.25, 0.0, Math.abs(f - 0.45)));
+        }
         c = [ir[0] * k, ir[1] * k, ir[2] * k];
         c = mixc(c, rim, sstep(0.82, 1.0, f) * 0.85);
         c = mixc(c, dark, sstep(1.25, 1.0, Math.sqrt(inP)) * 0.35);
@@ -5643,8 +5650,8 @@ const Animals = (() => {
   // ----- collars on sculpted models: the band is a slice of the model's neck -----
   // Slice the mesh (flat positions, triangle list) with the plane through C normal to T and cast rays in it from C
   // (angle th from the top N toward the side S, like the lofts). Per angle: the farthest surface crossing (the outer
-  // skin, jowls included) and, with wf, the skin weights there.
-  function meshSlice(pos, idx, wf, C, T, S, Nv, ths) {
+  // skin, jowls included) and, with wf, the skin weights there. maxR (optional) ignores crossings farther out (limbs).
+  function meshSlice(pos, idx, wf, C, T, S, Nv, ths, maxR = Infinity) {
     const out = ths.map(() => ({ r: 0, w: null })), d = [0, 0, 0], segs = [];
     const P2 = (v) => { const x = pos[v * 3] - C.x, y = pos[v * 3 + 1] - C.y, z = pos[v * 3 + 2] - C.z; return [x * S.x + y * S.y + z * S.z, x * Nv.x + y * Nv.y + z * Nv.z]; };
     for (let i = 0; i < idx.length; i += 3) {
@@ -5667,7 +5674,7 @@ const Animals = (() => {
         const a = sg[0].p, b = sg[1].p, ex = b[0] - a[0], ey = b[1] - a[1], den = dx * ey - dy * ex;
         if (Math.abs(den) < 1e-12) continue;
         const tt = (a[0] * ey - a[1] * ex) / den, u = (a[0] * dy - a[1] * dx) / den;
-        if (u < -1e-6 || u > 1 + 1e-6 || tt <= 0) continue;
+        if (u < -1e-6 || u > 1 + 1e-6 || tt <= 0 || tt > maxR) continue;
         if (tt > best) { best = tt; bs = sg; bu = clamp(u, 0, 1); }
       }
       out[j].r = Math.max(best, 0);
@@ -5685,23 +5692,26 @@ const Animals = (() => {
     const rest = {};
     for (const d of defs) rest[d.name] = d.p;
     const a = rest[cfg.at[0]], b = rest[cfg.at[1]];
-    const T = b.clone().sub(a).normalize(), S = new THREE.Vector3(1, 0, 0).addScaledVector(T, -T.x).normalize(), Nv = new THREE.Vector3().crossVectors(T, S);
+    // tilt (rad, optional): pitch the band's plane about the side axis (a frog's band slants to pass behind its arms)
+    const T = b.clone().sub(a).normalize(), S = new THREE.Vector3(1, 0, 0).addScaledVector(T, -T.x).normalize();
+    if (cfg.tilt) T.applyAxisAngle(S, cfg.tilt);
+    const Nv = new THREE.Vector3().crossVectors(T, S);
     const ths = [];
     for (let j = 0; j <= COLLAR_N; j++) ths.push((j / COLLAR_N) * TAU);
     // center the slice on the neck outline
     const C = a.clone().lerp(b, cfg.at[2]);
     for (let it = 0; it < 2; it++) {
-      const sl = meshSlice(M.pos, M.idx, null, C, T, S, Nv, ths);
+      const sl = meshSlice(M.pos, M.idx, null, C, T, S, Nv, ths, cfg.maxR);
       const c = new THREE.Vector3();
       for (let j = 0; j < COLLAR_N; j++) c.addScaledVector(S, Math.sin(ths[j]) * sl[j].r / COLLAR_N).addScaledVector(Nv, Math.cos(ths[j]) * sl[j].r / COLLAR_N);
       C.add(c);
     }
-    const s0 = meshSlice(M.pos, M.idx, null, C, T, S, Nv, ths);
+    const s0 = meshSlice(M.pos, M.idx, null, C, T, S, Nv, ths, cfg.maxR);
     let rN = 0;
     for (let j = 0; j < COLLAR_N; j++) rN += s0[j].r / COLLAR_N;
     const hw = 0.2 * rN * cfg.w;
     // both band edges, the widest skin across the band at each angle so nothing pokes through
-    const ed = [-hw, hw].map((s) => meshSlice(M.pos, M.idx, M.weights, C.clone().addScaledVector(T, s), T, S, Nv, ths));
+    const ed = [-hw, hw].map((s) => meshSlice(M.pos, M.idx, M.weights, C.clone().addScaledVector(T, s), T, S, Nv, ths, cfg.maxR));
     const r = ths.map((_, j) => Math.max(ed[0][j].r, ed[1][j].r, s0[j].r));
     const pl = {
       mesh: true, cfg, C, T, S, N: Nv, ths, rN, hw, r, w: ed.map((e) => e.map((q) => q.w || [['head', 1]])),
@@ -5709,7 +5719,7 @@ const Animals = (() => {
     };
     pl.tagLen = pl.tagR * 0.34 * 1.45 + pl.tagR * 2;
     const dir = (th, o) => o.copy(S).multiplyScalar(Math.sin(th)).addScaledVector(Nv, Math.cos(th));
-    const st = meshSlice(M.pos, M.idx, M.weights, C, T, S, Nv, [cfg.tag])[0];
+    const st = meshSlice(M.pos, M.idx, M.weights, C, T, S, Nv, [cfg.tag], cfg.maxR)[0];
     dir(cfg.tag, pl.nOut);
     pl.hang.copy(C).addScaledVector(pl.nOut, st.r + pl.gap + pl.thick);
     pl.dir = dir;
@@ -5730,7 +5740,9 @@ const Animals = (() => {
       P[v * 3] = bt.pos[v * 3] + bt.mor[v * 3] + ox; P[v * 3 + 1] = bt.pos[v * 3 + 1] + bt.mor[v * 3 + 1] + oy; P[v * 3 + 2] = bt.pos[v * 3 + 2] + bt.mor[v * 3 + 2] + oz;
     }
     const a1 = ag.byName[pl.cfg.at[0]].c1, b1 = ag.byName[pl.cfg.at[1]].c1;
-    const T = b1.clone().sub(a1).normalize(), S = new THREE.Vector3(1, 0, 0).addScaledVector(T, -T.x).normalize(), Nv = new THREE.Vector3().crossVectors(T, S);
+    const T = b1.clone().sub(a1).normalize(), S = new THREE.Vector3(1, 0, 0).addScaledVector(T, -T.x).normalize();
+    if (pl.cfg.tilt) T.applyAxisAngle(S, pl.cfg.tilt);
+    const Nv = new THREE.Vector3().crossVectors(T, S);
     // where the skin under the band goes in the baby (each outline point through its own bone maps)
     const map = (p, w, o) => { o.set(0, 0, 0); for (const [n, ww] of w) o.addScaledVector(babyApply(ag.byName[n], p, _v1), ww); return o; };
     const q = new THREE.Vector3(), Pb = [[], []], C = new THREE.Vector3();
@@ -5740,7 +5752,7 @@ const Animals = (() => {
       if (j < COLLAR_N) C.addScaledVector(Pb[e][j], 0.5 / COLLAR_N);
     }
     const k = a1.distanceTo(b1) / Math.max(1e-6, ag.byName[pl.cfg.at[0]].c0.distanceTo(ag.byName[pl.cfg.at[1]].c0));
-    const sl = [-1, 0, 1].map((s) => meshSlice(P, bt.idx, null, C.clone().addScaledVector(T, s * pl.hw * k), T, S, Nv, pl.ths));
+    const sl = [-1, 0, 1].map((s) => meshSlice(P, bt.idx, null, C.clone().addScaledVector(T, s * pl.hw * k), T, S, Nv, pl.ths, pl.cfg.maxR));
     pl.push = [[], []];
     for (let e = 0; e < 2; e++) for (let j = 0; j <= COLLAR_N; j++) {
       const rs = Math.max(sl[0][j].r, sl[1][j].r, sl[2][j].r);

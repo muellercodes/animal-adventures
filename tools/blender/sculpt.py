@@ -74,7 +74,10 @@ if __name__ == '__main__':
         pv, pf = np.concatenate(PV), np.concatenate(PF)
     else:
         pv, pf = np.zeros((0, 3), F), np.zeros((0, 3), np.int64)
-    tp, tr = S.tail_curve(60)
-    tv, tf = tube(tp, tr, 16)
+    if getattr(S, 'TAIL_RINGS', 0):
+        tp, tr = S.tail_curve(60)
+        tv, tf = tube(tp, tr, 16)
+    else:   # no tail tube (frog)
+        tv, tf = np.zeros((0, 3), F), np.zeros((0, 3), np.int64)
     np.savez_compressed(os.path.join(WORK, f'{SP}-hi.npz'), v=v, f=f, bv=bv, bf=bf, pv=pv, pf=pf, tv=tv, tf=tf, h=H)
     print('saved', os.path.join(WORK, f'{SP}-hi.npz'))

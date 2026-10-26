@@ -3,7 +3,7 @@
 Makes a realistic body for one species with Blender, fitted to the skeleton the game already uses, and writes it to
 `game/models/<id>.*`. `build.mjs` embeds those files in the page and `game/src/40_animals.js` uses the model instead of
 the procedural loft body. Everything else (bones, walk/run/eat/sleep animation, baby proportions, eyes and blinking,
-collar, moods, swimming) keeps working through the same rig API. Only the pig has a model so far.
+collar, moods, swimming) keeps working through the same rig API. The pig and the frog have models so far.
 
 Nothing is downloaded: the shape, skin colors and fine detail are all made by the scripts here.
 
@@ -50,7 +50,30 @@ export. It provides: `BOUNDS`, `PATCHES` (fine bake-only boxes), `shape(P)` (the
 `finish()` (folds ambient occlusion into the color), `stats()`, `meta()` (eye, lids, lashes, iris, mouth, collar
 placement written to the json) and `MAP_QUALITY`. `sdf.py` has the primitives, smooth booleans, noise and meshing.
 
-## Budget (pig)
+Optional settings (defaults are the pig's): `TAIL_RINGS = 0` for an animal without a tail tube, `BAKE_DIST` (cage,
+ray and occlusion distances in meters, smaller for small animals), `DISSOLVE_DEGENERATE = True` (drop the zero area
+slivers the mirror cut leaves, so they do not use up the triangle budget). In `meta()`, the eye can ask for
+`irisNet` (a fine dark network over the iris, for frogs) and the collar for `tilt` (pitch of the band's plane) and
+`maxR` (ignore limbs farther out than this when slicing the neck).
+
+## The frog (`frog.py`)
+
+A smooth skinned animal (no fur), small (0.2 m), sitting with its legs folded in a Z. Things the next species can
+reuse:
+- Folded limbs: `_fold()` joins two limb segments that lie against each other with a blend only at the joint and a
+  thin slit everywhere else, so the skin opens cleanly when the joint straightens (a hop). Without it the folded
+  thigh, shank and foot fuse into one lump and stretch into fins.
+- Skin weights from the sculpt's own parts (`fix_weights`): each vertex follows the part it lies on, and two
+  neighbouring bones blend only within a few millimeters of their joint. Transferred weights from the procedural
+  body were not good enough for the frog's extreme folds.
+- Decimation: small, curved features (toes, discs) keep triangles by curvature alone and big smooth areas get almost
+  none, so `keep()` protects the body and limbs instead (and never uses 1, which locks a vertex). Check where the
+  triangles went per part before baking.
+- Maps at 512 for a 0.2 m animal are about 0.4 mm a texel: skin granules need cells of about 3 texels or more.
+
+
+## Budget
 
 About 6.3k triangles, 4.8k vertices, 1024 x 1024 color and normal maps: 136 KB mesh + 71 KB + 52 KB maps, about 350 KB
-once base64 in the page.
+once base64 in the page. The frog: about 7.1k triangles, 6k vertices, 512 x 512 maps, about 305 KB in the page
+(`VOXEL=0.0004 TRIS=7200 TEX=512`).
