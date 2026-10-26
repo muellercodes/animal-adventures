@@ -145,6 +145,25 @@ A sculpted body alone looks shaved. `horse.py` is the example for everything bel
 
 Bake costs: the strokes make `texture` take about 4 minutes at 1024; everything else is like the pig.
 
+## The small carnivores (`carnivore.py`)
+
+The fox, raccoon, otter and weasel share `carnivore.py`: field helpers (`local`, `mirror`, `groove`), `Frame` (a head
+frame along the muzzle), `Eye` (ball, almond lid opening with a slant, lid mound, `sink` to set the ball back so a
+shut eye sits flush, and the eye's `meta()` with the game's own lids kept just behind the sculpted ones), `ear()`
+(pointed or round, cupped), `paw()` (digitigrade toes on a pad), `hand()` and `web()` (flat hands and feet with long
+digits, webbing between them), `strands()` (the coat strokes, with a per region length factor `lenk`), `whiskers()`
+(hair cards rooted with `'_skin'`, shorter on babies) and `set_part()` for skin weight fixes. Things learned:
+- `keep()` needs a floor over the whole body (about 0.44) or the decimator gives a fox's head, ears and paws nearly all
+  the triangles and leaves 60 for the trunk; a lower floor on a long smooth tail (0.36 to 0.42) stops it taking too much.
+- Every `local()` box has to reach past the blend radius of its part, or the field steps at the box wall and the mesh
+  gets a crease right across the body.
+- Noise added to an edge has to move both ends of `sstep(a, b, x)` together; when the ends swap the mask inverts and
+  leaves white specks (the fox's tail tip did that).
+- `meta()` can give `belly` (the contact point for lying down) when the legs are close to the middle; the export's own
+  search under the hips finds the inside of the legs on a fox and the animal sleeps standing.
+- A species with `baby_paint(P, N, comps, col)` gets a second color map for babies (`BABY_TEX`, 256 to 512 is enough):
+  a fox kit's gray-brown fuzz and a weasel kit's grayer coat. The game swaps it in with the baby material (`babyColor`).
+
 ## Budget
 
 Pig: about 6.3k triangles, 4.8k vertices, 1024 x 1024 color and normal maps: 38 KB mesh (format 2; 136 KB before) +
