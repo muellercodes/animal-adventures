@@ -4,7 +4,7 @@ Makes a realistic body for one species with Blender, fitted to the skeleton the 
 `game/models/<id>.*`. `build.mjs` embeds those files in the page and `game/src/40_animals.js` uses the model instead of
 the procedural loft body. Everything else (bones, walk/run/eat/sleep animation, baby proportions, eyes and blinking,
 collar, moods, swimming) keeps working through the same rig API. The pig (bare skin), frog, lizard, turtle, snake,
-horse (coat, mane and tail), fox and raccoon have models so far; `horse.py` is the example for furry animals and
+horse (coat, mane and tail), fox, raccoon and otter have models so far; `horse.py` is the example for furry animals and
 `carnivore.py` has the parts the small carnivores share.
 
 Nothing is downloaded: the shape, skin colors and fine detail are all made by the scripts here.
@@ -193,3 +193,8 @@ Fox (`VOXEL=0.002 TRIS=7000 TEX=1024`): 7.0k triangles plus 96 in the whiskers; 
 
 Raccoon (`VOXEL=0.002 TRIS=7000 TEX=1024`): 7.0k triangles plus 96 in the whiskers; 1024 maps (color WebP 60 with
 `PAD_SMOOTH`), 512 fur map: 59 KB + 103 + 30 + 13 + 4 KB, about 282 KB in the page.
+
+Otter (`VOXEL=0.002 TRIS=5400 TEX=1024`, then rings across the body and tail): 8.2k triangles plus 144 in the whiskers;
+1024 maps, 512 fur and pup color maps: 66 KB + 32 + 54 + 9 + 3 + 5 KB, about 232 KB in the page. The wet coat is
+clumps of strands (`_clumps()`: wide tapering strokes, light ridges and dark partings, glossy roughness); pups get a
+dry, even coat in their own color map.
