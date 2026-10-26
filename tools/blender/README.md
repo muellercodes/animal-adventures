@@ -3,7 +3,7 @@
 Makes a realistic body for one species with Blender, fitted to the skeleton the game already uses, and writes it to
 `game/models/<id>.*`. `build.mjs` embeds those files in the page and `game/src/40_animals.js` uses the model instead of
 the procedural loft body. Everything else (bones, walk/run/eat/sleep animation, baby proportions, eyes and blinking,
-collar, moods, swimming) keeps working through the same rig API. The pig and the frog have models so far.
+collar, moods, swimming) keeps working through the same rig API. The pig, frog, lizard, turtle and snake have models so far.
 
 Nothing is downloaded: the shape, skin colors and fine detail are all made by the scripts here.
 
@@ -71,6 +71,16 @@ reuse:
   triangles went per part before baking.
 - Maps at 512 for a 0.2 m animal are about 0.4 mm a texel: skin granules need cells of about 3 texels or more.
 
+Optional, for animals that are small, long or bendy (the lizard uses most of them): `TAIL_RINGS = 0` when the tail is
+part of the field (no tail tube), `BAKE_CAGE = (cage, ray)` and `AO_DIST` (bake distances in meters, scaled to the
+animal), `UV_PACK` (extra `uv.pack_islands` options, such as axis aligned islands), `unwrap(ob)` (its own UV islands
+instead of smart project) and `lowpoly_fix(bm, hi)` (edits the decimated half before unwrapping). `meshfix.py` has the
+fix-ups for `lowpoly_fix`: rings cut across a tail, neck or leg so it can bend (the decimator leaves smooth stretches
+with almost no vertices), seam cuts, and removal of slivers and loose specks. `PIECES` (a list of fields) meshes
+separate closed pieces that overlap without merging, like the turtle's rigid shell and the soft body that slides in and
+out of it. A species can also skip the sculpt and build its game mesh and exact surface itself:
+`make_game_mesh(work, rig, tris)` (called by the lowpoly step) and `make_bake(work, tex)` (called by the bake step); the
+snake does that for its tube body, which is laid out as four strips in the maps.
 
 ## Budget
 

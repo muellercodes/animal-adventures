@@ -12,12 +12,18 @@ import meshutil as MU
 
 SP = sys.argv[1] if len(sys.argv) > 1 else 'pig'
 TEX = int(sys.argv[2]) if len(sys.argv) > 2 else 1024
-# cage extrusion, max ray distance and occlusion distance in meters (small animals set smaller ones)
-CAGE, RAY, AO_DIST = getattr(importlib.import_module(SP), 'BAKE_DIST', (0.012, 0.03, 0.12))
+S = importlib.import_module(SP)
+# cage extrusion and ray length for the bake, and the occlusion distance (meters): species can scale them to their size,
+# either as BAKE_DIST = (cage, ray, occlusion) or as BAKE_CAGE = (cage, ray) plus AO_DIST
+CAGE, RAY, AO_DIST = getattr(S, 'BAKE_DIST', None) or (*getattr(S, 'BAKE_CAGE', (0.012, 0.03)), getattr(S, 'AO_DIST', 0.12))
 WORK = os.path.join(HERE, 'work')
 t0 = time.time()
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
+if hasattr(S, 'make_bake'):
+    # a species with an exact surface (no sculpt) writes work/<id>-bake.npz itself
+    S.make_bake(WORK, TEX)
+    sys.exit(print(f'saved {SP}-bake.npz ({time.time() - t0:.0f}s)'))
 sc = bpy.context.scene
 sc.render.engine = 'CYCLES'
 sc.cycles.device = 'CPU'

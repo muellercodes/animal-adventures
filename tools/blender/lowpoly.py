@@ -19,6 +19,10 @@ RIG = json.load(open(os.path.join(WORK, f'{SP}-rig.json')))['adult']
 t0 = time.time()
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
+if hasattr(S, 'make_game_mesh'):
+    # a species that builds its game mesh directly (the snake's tube) writes work/<id>-lo.npz itself
+    S.make_game_mesh(WORK, RIG, TRIS)
+    sys.exit(print(f'saved {SP}-lo.npz ({time.time() - t0:.0f}s)'))
 hi = np.load(os.path.join(WORK, f'{SP}-hi.npz'))
 
 
@@ -37,7 +41,8 @@ def activate(ob):
 
 # ---------- decimate (symmetric), keep the +x half ----------
 body = obj('body', hi['v'], hi['f'])
-tail_tris = 2 * 8 * (S.TAIL_RINGS - 1) + 8 if getattr(S, 'TAIL_RINGS', 0) else 0
+NTR = getattr(S, 'TAIL_RINGS', 0)    # 0: no separate tail tube (the tail is part of the sculpt)
+tail_tris = 2 * 8 * (NTR - 1) + 8 if NTR else 0
 mod = body.modifiers.new('dec', 'DECIMATE')
 mod.ratio = (TRIS - tail_tris) / len(hi['f'])
 mod.use_symmetry = True
@@ -65,6 +70,9 @@ if getattr(S, 'DISSOLVE_DEGENERATE', False):
     # zero area slivers along the cut (they take a share of the triangle budget for nothing)
     bmesh.ops.dissolve_degenerate(bm, dist=1e-6, edges=bm.edges[:])
 bmesh.ops.triangulate(bm, faces=bm.faces[:])
+# species fix-ups on the decimated half before unwrapping (extra edge loops where it has to bend, ...)
+if hasattr(S, 'lowpoly_fix'):
+    S.lowpoly_fix(bm, hi)
 bm.to_mesh(me); bm.free()
 print(f'decimated half: {len(me.polygons)} tris ({time.time() - t0:.0f}s)')
 
@@ -72,18 +80,21 @@ print(f'decimated half: {len(me.polygons)} tris ({time.time() - t0:.0f}s)')
 activate(body)
 bpy.ops.object.mode_set(mode='EDIT')
 bpy.ops.mesh.select_all(action='SELECT')
-bpy.ops.uv.smart_project(angle_limit=1.15, island_margin=0.004, area_weight=0.0, scale_to_bounds=False)
+if hasattr(S, 'unwrap'):
+    S.unwrap(body)      # the species' own islands (edit mode, everything selected)
+else:
+    bpy.ops.uv.smart_project(angle_limit=1.15, island_margin=0.004, area_weight=0.0, scale_to_bounds=False)
 bpy.ops.object.mode_set(mode='OBJECT')
 
 # ---------- tail: low tube with a cylinder unwrap ----------
 nt = 0
-if tail_tris:
-    tp, tr = S.tail_curve(S.TAIL_RINGS - 1)
+if NTR:
+    tp, tr = S.tail_curve(NTR - 1)
     tv, tf, tuv = MU.tube_uv(tp, tr, 8)
+    nt = len(tf)
     tail = obj('tail', tv, tf)
     uvl = tail.data.uv_layers.new(name='UVMap')
     uvl.data.foreach_set('uv', tuv[tf.ravel()].ravel())
-    nt = len(tf)
     # one object, one UV layout
     activate(body); tail.select_set(True)
     bpy.ops.object.join()
@@ -94,7 +105,7 @@ lo.name = 'lo'
 bpy.context.scene.tool_settings.use_uv_select_sync = True
 bpy.ops.object.mode_set(mode='EDIT')
 bpy.ops.mesh.select_all(action='SELECT')
-bpy.ops.uv.pack_islands(rotate=True, margin=0.0045)
+bpy.ops.uv.pack_islands(rotate=True, margin=0.0045, **getattr(S, 'UV_PACK', {}))
 bpy.ops.object.mode_set(mode='OBJECT')
 
 # read back: positions, triangles, per-corner uvs; tail faces are the last ones

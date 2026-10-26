@@ -41,8 +41,19 @@ def tube(pts, rad, segs, cap=True):
 
 if __name__ == '__main__':
     t0 = time.time()
+    if hasattr(S, 'make_game_mesh'):
+        sys.exit(print(f'{SP}: no sculpt (the species builds its game mesh and surface directly)'))
     lo, hi = S.BOUNDS
-    v, f = mesh_half(S.shape, lo, hi, H)
+    if getattr(S, 'PIECES', None):
+        # separate closed pieces meshed one by one, so they overlap without merging (a turtle's rigid shell and the
+        # soft body that slides in and out of it)
+        vs, fs, o = [], [], 0
+        for fn in S.PIECES:
+            a, b = mesh_half(fn, lo, hi, H)
+            vs.append(a); fs.append(b + o); o += len(a)
+        v, f = np.concatenate(vs), np.concatenate(fs)
+    else:
+        v, f = mesh_half(S.shape, lo, hi, H)
     print(f'body: {len(v)} verts {len(f)} tris in {time.time() - t0:.1f}s')
     # bake-only detail patches: fine meshes over small features, replacing the coarse triangles in their core
     # (v, f stay whole for the game mesh; bv, bf is the bake copy with the patch cores cut out)
@@ -77,7 +88,8 @@ if __name__ == '__main__':
     if getattr(S, 'TAIL_RINGS', 0):
         tp, tr = S.tail_curve(60)
         tv, tf = tube(tp, tr, 16)
-    else:   # no tail tube (frog)
+    else:
+        # no tail tube: the species has its tail in the field (or no tail, like the frog)
         tv, tf = np.zeros((0, 3), F), np.zeros((0, 3), np.int64)
     np.savez_compressed(os.path.join(WORK, f'{SP}-hi.npz'), v=v, f=f, bv=bv, bf=bf, pv=pv, pf=pf, tv=tv, tf=tf, h=H)
     print('saved', os.path.join(WORK, f'{SP}-hi.npz'))
