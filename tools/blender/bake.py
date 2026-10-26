@@ -20,6 +20,10 @@ WORK = os.path.join(HERE, 'work')
 t0 = time.time()
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
+if hasattr(S, 'make_bake'):
+    # a species with an exact surface (no sculpt) writes work/<id>-bake.npz itself
+    S.make_bake(WORK, TEX)
+    sys.exit(print(f'saved {SP}-bake.npz ({time.time() - t0:.0f}s)'))
 sc = bpy.context.scene
 sc.render.engine = 'CYCLES'
 sc.cycles.device = 'CPU'

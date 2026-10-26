@@ -41,6 +41,8 @@ def tube(pts, rad, segs, cap=True):
 
 if __name__ == '__main__':
     t0 = time.time()
+    if hasattr(S, 'make_game_mesh'):
+        sys.exit(print(f'{SP}: no sculpt (the species builds its game mesh and surface directly)'))
     lo, hi = S.BOUNDS
     if getattr(S, 'PIECES', None):
         # separate closed pieces meshed one by one, so they overlap without merging (a turtle's rigid shell and the

@@ -53,9 +53,11 @@ meta = {
 meta.update(S.meta(stats))
 # belly contact point under the hips (for lying down)
 rig = json.load(open(os.path.join(WORK, f'{SP}-rig.json')))['adult']
-hz = [b['p'] for b in rig['bones'] if b['name'] == 'hips'][0][2]
-near = (np.abs(pos[:, 0]) < 0.04) & (np.abs(pos[:, 2] - hz) < 0.05) & ~lo['tail']
-meta['belly'] = [0.0, round(float(pos[near, 1].min()), 4), hz]
+hips = [b['p'] for b in rig['bones'] if b['name'] == 'hips']
+if hips:    # (a snake has no hips: the game keeps its belly point at the origin, as for its procedural body)
+    hz = hips[0][2]
+    near = (np.abs(pos[:, 0]) < 0.04) & (np.abs(pos[:, 2] - hz) < 0.05) & ~lo['tail']
+    meta['belly'] = [0.0, round(float(pos[near, 1].min()), 4), hz]
 json.dump(meta, open(os.path.join(OUT, f'{SP}.json'), 'w'), indent=1)
 sizes = {f: os.path.getsize(os.path.join(OUT, f)) for f in (f'{SP}.bin', f'{SP}-color.webp', f'{SP}-normal.webp', f'{SP}.json')}
 tot = sum(sizes.values())

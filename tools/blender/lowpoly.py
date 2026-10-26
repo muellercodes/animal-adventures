@@ -19,6 +19,10 @@ RIG = json.load(open(os.path.join(WORK, f'{SP}-rig.json')))['adult']
 t0 = time.time()
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
+if hasattr(S, 'make_game_mesh'):
+    # a species that builds its game mesh directly (the snake's tube) writes work/<id>-lo.npz itself
+    S.make_game_mesh(WORK, RIG, TRIS)
+    sys.exit(print(f'saved {SP}-lo.npz ({time.time() - t0:.0f}s)'))
 hi = np.load(os.path.join(WORK, f'{SP}-hi.npz'))
 
 

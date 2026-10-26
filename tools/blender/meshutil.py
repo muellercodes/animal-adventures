@@ -182,5 +182,5 @@ def weights(G, RIG, mode, S):
     top[top < 0.01] = 0
     s = top.sum(1, keepdims=True)
     top = np.where(s > 0, top / np.maximum(s, 1e-9), np.array([1, 0, 0, 0], F))
-    order = np.where(s > 0, order, bi['hips'])
+    order = np.where(s > 0, order, bi['hips'] if 'hips' in bi else 0)   # (a snake has no hips: its first bone)
     return dict(si=order[weld].astype(np.uint8), sw=top[weld].astype(F), bones=np.array(names))
