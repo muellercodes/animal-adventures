@@ -4,7 +4,7 @@ Makes a realistic body for one species with Blender, fitted to the skeleton the 
 `game/models/<id>.*`. `build.mjs` embeds those files in the page and `game/src/40_animals.js` uses the model instead of
 the procedural loft body. Everything else (bones, walk/run/eat/sleep animation, baby proportions, eyes and blinking,
 collar, moods, swimming) keeps working through the same rig API. The pig (bare skin), frog, lizard, turtle, snake,
-horse (coat, mane and tail) and deer have models so far; `horse.py` is the example for furry animals, `deer.py` for antlers.
+horse (coat, mane and tail), deer and moose have models so far; `horse.py` is the example for furry animals, `deer.py` for antlers.
 
 Nothing is downloaded: the shape, skin colors and fine detail are all made by the scripts here.
 
@@ -145,7 +145,7 @@ A sculpted body alone looks shaved. `horse.py` is the example for everything bel
 
 Bake costs: the strokes make `texture` take about 4 minutes at 1024; everything else is like the pig.
 
-## Hooved animals (`ungulate.py`; `deer.py`)
+## Hooved animals (`ungulate.py`: `deer.py`, `goat.py`, `moose.py`)
 
 The deer (and the goat and moose after it) reuse the horse's approach; the field helpers that were module globals in
 `horse.py` are generic functions in `ungulate.py`, plus:
@@ -169,7 +169,23 @@ The deer (and the goat and moose after it) reuse the horse's approach; the field
   (not `'_skin'`: the nearest skin to a card tip can be the rump).
 - Belly line: keep the belly ellipsoid above the brisket, and keep the stifle (front of the thigh) from hanging below
   the belly, or it reads as a ball under the flank; a flat ellipsoid from the belly to the stifle makes the flank fold.
+- Every `_local` box must hold its whole part plus the blend radius: where a box cuts a part, the field jumps and the
+  smooth union leaves a crease that the bake prints into the normal map (the goat's neck box cut across its chest and
+  drew a bib there). A quick check: evaluate each part on a coarse grid and compare where it is below its blend radius
+  with its box.
 - Deer, goat and moose coats are matte: roughness about 0.62 (the horse's 0.44 looks like plastic on them).
+- Horns (`goat.py`): `horn()` sweeps an oval section (flattened side to side, a keel in front) along a polyline with
+  transverse ridges every few millimeters. Keep the first 1.5 to 2 cm of the horn on the head (`HORN_STUB`) and only
+  the rest on the horn bone: on a kid that stub is the horn bud. Small horn buds are also sculpted under the horns.
+- A beard is a few hair cards hanging from the chin with `'_skin'` roots; their baby points pull them in to nothing.
+- A goat's body reads as a box unless the croup slopes down to the tail, the buttocks curve back and under to the hock,
+  and the loft exponents stay near 2 (2.4 and up gives square sections).
+- Palmate antlers (`moose.py`): each palm is a plate built from a 2D outline (rasterized, eroded and grown back so the
+  points get round tips, sampled bilinearly) in its own frame, thick at the beam and thin in the points, dished by
+  `palm_cup()`; the brow palm is a second, smaller plate reaching forward. Lay the palm's face up, forward and in:
+  standing up like a fan or lying flat both look wrong from the side.
+- Big animals: the moose's sculpt at 5 mm plus fine patches was too big to bake in the 7 GB the machine had (Cycles was
+  killed); 6 mm with 2 to 3.4 mm patches bakes fine and looks the same in the game.
 
 ## Budget
 
@@ -184,6 +200,9 @@ and the cards only.
 Deer: 7.2k body triangles plus 126 in the tail fringe cards; 1024 color and normal maps, 512 fawn color map, 512 fur
 map, 128 x 128 strand texture: 63 KB mesh + 57 + 54 + 23 + 13 + 8 KB maps, about 297 KB in the page
 (`VOXEL=0.0035 TRIS=7200 WEIGHTS=transfer`, about 25 minutes on a busy machine).
+
+Moose: 7.6k triangles; 1024 color and normal maps, 512 calf color map, 512 fur map: 57 KB mesh + 32 + 52 + 11 + 11 KB
+maps, about 222 KB in the page (`VOXEL=0.006 TRIS=7600 WEIGHTS=transfer`).
 
 Frog: about 7.1k triangles, 6k vertices, 512 x 512 maps, about 305 KB in the page (`VOXEL=0.0004 TRIS=7200 TEX=512`;
 still the older model format, convert with `python3 tools/blender/modelpack.py frog`).
