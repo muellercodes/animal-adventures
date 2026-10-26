@@ -606,7 +606,8 @@ def meta(st):
     return {
         'eye': {'p': p, 'r': r, 'dir': d, 'lid': lid, 'iris': 0xC98A2C, 'irisR': 0.9, 'pupil': 'v', 'pupilR': 0.5, 'rim': 0x2A1608,
                 'lidCol': st['lidCol'], 'babyLidCol': 0x5A4A42, 'babyIris': 0x6F7C82},
-        'collar': {'at': ['neck2', 'head', 0.0]},
+        # the band sinks into the thick ruff (rides on 0.3 of the fur instead of 0.8), snug at every detail level
+        'collar': {'at': ['neck2', 'head', 0.0], 'lift': 0.3},
         # belly contact point under the hips (the legs are too close to the middle for the export's own search)
         'belly': [0.0, 0.254, -0.14],
         'mouth': [round(float(v), 4) for v in MOUTH],
