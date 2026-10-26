@@ -1,0 +1,90 @@
+{
+ "v": 1,
+ "id": "turtle",
+ "data": "turtle.bin",
+ "maps": {
+  "color": "turtle-color.webp",
+  "normal": "turtle-normal.webp"
+ },
+ "nv": 5779,
+ "ntri": 7412,
+ "bbox": [
+  -0.137052,
+  0.002301,
+  -0.15963,
+  0.137052,
+  0.116076,
+  0.199789
+ ],
+ "bones": [
+  "hips",
+  "neck",
+  "head",
+  "tail1",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.0112,
+   0.0617,
+   0.1738
+  ],
+  "r": 0.0041,
+  "dir": [
+   0.8597,
+   0.2599,
+   0.4398
+  ],
+  "lid": [
+   0.683,
+   -0.78,
+   0.25
+  ],
+  "iris": 6969886,
+  "irisR": 0.9,
+  "pupilR": 0.45,
+  "lidCol": 3618592
+ },
+ "mouth": [
+  0.0,
+  0.0505,
+  0.196
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.05,
+  0.05,
+  0.04
+ ],
+ "flat": 2501663,
+ "belly": [
+  0.0,
+  0.03,
+  0
+ ]
+}

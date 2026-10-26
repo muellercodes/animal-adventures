@@ -42,7 +42,16 @@ def tube(pts, rad, segs, cap=True):
 if __name__ == '__main__':
     t0 = time.time()
     lo, hi = S.BOUNDS
-    v, f = mesh_half(S.shape, lo, hi, H)
+    if getattr(S, 'PIECES', None):
+        # separate closed pieces meshed one by one, so they overlap without merging (a turtle's rigid shell and the
+        # soft body that slides in and out of it)
+        vs, fs, o = [], [], 0
+        for fn in S.PIECES:
+            a, b = mesh_half(fn, lo, hi, H)
+            vs.append(a); fs.append(b + o); o += len(a)
+        v, f = np.concatenate(vs), np.concatenate(fs)
+    else:
+        v, f = mesh_half(S.shape, lo, hi, H)
     print(f'body: {len(v)} verts {len(f)} tris in {time.time() - t0:.1f}s')
     # bake-only detail patches: fine meshes over small features, replacing the coarse triangles in their core
     # (v, f stay whole for the game mesh; bv, bf is the bake copy with the patch cores cut out)

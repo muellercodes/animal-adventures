@@ -53,7 +53,9 @@ placement written to the json) and `MAP_QUALITY`. `sdf.py` has the primitives, s
 Optional, for animals that are small, long or bendy (the lizard uses all of them): `TAIL_RINGS = 0` when the tail is part
 of the field (no tail tube), `BAKE_CAGE = (cage, ray)` and `AO_DIST` (bake distances in meters, scaled to the animal),
 `UV_PACK` (extra `uv.pack_islands` options, such as axis aligned islands), `unwrap(ob)` (its own UV islands instead of
-smart project) and `lowpoly_fix(bm, hi)` (edits the decimated half before unwrapping). `meshfix.py` has the fix-ups for
+smart project), `lowpoly_fix(bm, hi)` (edits the decimated half before unwrapping) and `PIECES` (several fields meshed
+as separate closed pieces that overlap without merging, like the turtle's rigid shell and the soft body that slides in
+and out of it). `meshfix.py` has the fix-ups for
 that: rings cut across a tail, neck or leg so it can bend (the decimator leaves smooth stretches with almost no
 vertices), seam cuts, and removal of slivers and loose specks.
 

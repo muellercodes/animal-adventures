@@ -69,11 +69,17 @@ def finish(bm, min_area=2e-7):
         if v.co.x < 3e-5:
             v.co.x = 0.0
     bmesh.ops.triangulate(bm, faces=bm.faces[:])
+    # triangles left with no area (three vertices in a line), or lying in the middle plane (the mirrored half would
+    # cover them back to back), would give their vertices no normal
+    flat = [f for f in bm.faces if f.calc_area() < 1e-11 or all(v.co.x == 0.0 for v in f.verts)]
+    if flat:
+        bmesh.ops.delete(bm, geom=flat, context='FACES_ONLY')
+        bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context='VERTS')
     drop_crumbs(bm, min_area)
 
 
 def drop_crumbs(bm, min_area=2e-7):
-    """delete tiny loose pieces (a claw tip the voxel grid caught as a separate speck)"""
+    """delete tiny loose pieces (a claw tip or a sliver of a groove the voxel grid caught as a separate speck)"""
     import bmesh
     seen, kill = set(), []
     for f0 in bm.faces:
@@ -87,7 +93,7 @@ def drop_crumbs(bm, min_area=2e-7):
                 for g in e.link_faces:
                     if g not in seen:
                         seen.add(g); stack.append(g)
-        if sum(f.calc_area() for f in comp) < min_area:
+        if len(comp) < 12 or sum(f.calc_area() for f in comp) < min_area:
             kill += comp
     if kill:
         bmesh.ops.delete(bm, geom=kill, context='FACES')
