@@ -2042,7 +2042,7 @@ const Animals = (() => {
         ...babyC([birdWeb(foot, toes, 0x1D1D1D, 'hpawL')], 0x34302E),
       ],
       accentRough: 0.45,
-      modelSpec: { anim: { wing: WA.wing }, baby: { muzzle: 0.45, fluff: 0, wing: 0.2, eye: 1.0, neck: [0.5, 1.35] } },
+      modelSpec: { anim: { wing: WA.wing }, baby: { muzzle: 0.45, fluff: 0, wing: 0.2, eye: 1.0, neck: [0.62, 1.35] } },
       eyes: [{ bone: 'head', p: [0.026, 1.023, 0.41], r: 0.0065, dir: [0.9, 0.2, 0.25], col: 0x120A06 }],
       mouth: [0, 0.95, 0.565],
       anim: {
@@ -5888,7 +5888,8 @@ const Animals = (() => {
       pl.shiftB = T.clone().multiplyScalar((pl.cfg.babyAt - pl.cfg.at[2]) * a1.distanceTo(b1));
       C.add(pl.shiftB);
     }
-    const sl = [-1, 0, 1].map((s) => meshSlice(P, bt.idx, null, C.clone().addScaledVector(T, s * pl.hw * k), T, S, Nv, pl.ths, pl.cfg.maxR));
+    const mr = pl.cfg.babyMaxR != null ? pl.cfg.babyMaxR : pl.cfg.maxR;
+    const sl = [-1, 0, 1].map((s) => meshSlice(P, bt.idx, null, C.clone().addScaledVector(T, s * pl.hw * k), T, S, Nv, pl.ths, mr));
     pl.push = [[], []];
     const rsl = pl.ths.map((_, j) => Math.max(sl[0][j].r, sl[1][j].r, sl[2][j].r));
     // a hugging band follows the neck's outline smoothed around the ring (no zigzag over small bumps)
