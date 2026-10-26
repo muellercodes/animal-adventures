@@ -345,8 +345,6 @@ def folds(P):
     # front edge of the shoulder blade, the line between the triceps and the shoulder
     c += groove(z - 0.36 + 0.55 * (y - 0.8) + w, 0.014, 0.0012) * side * sstep(0.76, 0.82, y) * sstep(1.0, 0.94, y)
     c += groove(z - 0.215 - 0.3 * (y - 0.72) + w, 0.012, 0.0016) * side * sstep(0.64, 0.69, y) * sstep(0.84, 0.78, y)
-    # jugular groove low on the side of the neck
-    c += groove((z - 0.4) * 0.72 - (y - 0.9) * 0.69 + 0.03 + w * 0.5, 0.016, 0.001) * sstep(0.025, 0.05, x) * sstep(0.95, 1.02, y) * sstep(1.25, 1.12, y)
     # hindquarters: the line down the back of the thigh between the big muscles
     c += groove(z + 0.57 - 0.18 * (y - 0.8) + w, 0.012, 0.0018) * sstep(0.06, 0.1, x) * sstep(0.68, 0.74, y) * sstep(0.98, 0.9, y)
     # hollow in front of the hamstring above the hock
@@ -366,7 +364,7 @@ def parts(P):
 
 def body(P):
     d = trunk(P)
-    d = smin(d, _local(P, (-0.2, 0.75, 0.2), (0.2, 1.48, 0.66), neck), 0.05)
+    d = smin(d, _local(P, (-0.2, 0.72, 0.12), (0.2, 1.52, 0.74), neck), 0.05)
     h = _local(P, (-0.09, 1.2, 0.5), (0.09, 1.52, 0.99), head)
     ca, li, ba, br = _local_n(P, EYE_C * V(-1, 1, 1) - V(0.03, 0.04, 0.04), EYE_C + V(0.03, 0.04, 0.04), eye_parts, 4)
     h = smin(h, li, 0.008)
@@ -375,7 +373,7 @@ def body(P):
     h = smin(h, ba, 0.001)
     d = smin(d, h, 0.03)
     d = d + _local(P, (-0.09, 1.2, 0.55), (0.09, 1.45, 0.82), jawline, far=0.0)
-    d = smin(d, _local(P, (-0.22, 1.42, 0.5), (0.22, 1.66, 0.68), ears), 0.008)
+    d = smin(d, _local(P, (-0.22, 1.4, 0.5), (0.22, 1.66, 0.68), ears), 0.008)
     an = _local(P, *ANT_BOX, antler)
     d = smin(d, an, 0.004)
     fl = _local(P, (-0.17, 0.08, 0.17), (0.17, 0.86, 0.36), fleg)

@@ -3,7 +3,7 @@
  "id": "deer",
  "data": "deer.bin",
  "enc": "deflate",
- "raw": 111114,
+ "raw": 109836,
  "maps": {
   "color": "deer-color.webp",
   "normal": "deer-normal.webp",
@@ -11,10 +11,10 @@
   "fur": "deer-fur.webp",
   "hair": "deer-hair.webp"
  },
- "nv": 3519,
- "ntri": 3589,
- "nbv": 3519,
- "nbt": 3589,
+ "nv": 3466,
+ "ntri": 3588,
+ "nbv": 3466,
+ "nbt": 3588,
  "bbox": [
   -0.206837,
   0.0004,
@@ -118,7 +118,7 @@
   "tile": 0.0016,
   "babyLen": 1.7,
   "babyLean": 1.0,
-  "uvm": 1.4967
+  "uvm": 1.4183
  },
  "cards": {
   "nv": 168,

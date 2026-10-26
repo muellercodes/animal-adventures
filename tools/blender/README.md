@@ -198,7 +198,7 @@ fur shells add 4 layers over the coated triangles (about 22k triangles, one draw
 and the cards only.
 
 Deer: 7.2k body triangles plus 126 in the tail fringe cards; 1024 color and normal maps, 512 fawn color map, 512 fur
-map, 128 x 128 strand texture: 63 KB mesh + 57 + 54 + 23 + 13 + 8 KB maps, about 297 KB in the page
+map, 128 x 128 strand texture: 62 KB mesh + 55 + 52 + 21 + 12 + 8 KB maps, about 287 KB in the page
 (`VOXEL=0.0035 TRIS=7200 WEIGHTS=transfer`, about 25 minutes on a busy machine).
 
 Goat: 7.0k body triangles plus 140 in the beard cards; 1024 color and normal maps, 512 fur map, 128 x 128 strand
