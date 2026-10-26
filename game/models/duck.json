@@ -3,10 +3,11 @@
  "id": "duck",
  "data": "duck.bin",
  "enc": "deflate",
- "raw": 67398,
+ "raw": 73575,
  "maps": {
   "color": "duck-color.webp",
   "normal": "duck-normal.webp",
+  "fur": "duck-fur.webp",
   "babyColor": "duck-babycolor.webp",
   "babyNormal": "duck-babynrm.webp",
   "feather": "duck-feather.webp",
@@ -111,7 +112,8 @@
   ],
   "babyAt": 0.8,
   "hug": true,
-  "babyK": 1.8
+  "babyK": 1.8,
+  "lift": 0.35
  },
  "mouth": [
   0.0,
@@ -134,6 +136,17 @@
   0.1
  ],
  "flat": 10130828,
+ "fur": {
+  "len": 0.036,
+  "n": 6,
+  "lean": 0.25,
+  "tile": 0.0024,
+  "babyLen": 1.0,
+  "babyLean": 0.25,
+  "shade": 0.9,
+  "babyOnly": true,
+  "uvm": 0.4973
+ },
  "bdelta": 0.279751,
  "belly": [
   0.0,

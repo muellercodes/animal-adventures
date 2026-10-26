@@ -178,6 +178,14 @@ with a feather atlas only swaps what they look like. `bird.py` holds what the fi
   shaped body, wing arm pulled into the shoulder, thin legs), packed with the mesh (format 2 `bdelta` block, int8 x3
   with a square law scale `md.bdelta`). The game adds it through the bones' baby maps, so it follows the rig like the
   rest.
+- Babies' down as fur shells: each bird has `FUR` with `babyOnly: True` (the game draws shells on the baby only; the
+  adult keeps its feathers and is unchanged), and `fur()` / `flow()` from `down_fur()` / `down_flow()`: long, nearly
+  upright down (`lean` 0.25 to 0.3, `tile` 0.0024 to 0.0036 so the tufts read as fluff, not dust), shorter on the
+  head, wing arm and drumsticks, none on the bill, legs and feet, eyelids (and a hen's comb), short around the eyes and
+  next to the bare parts so it never falls over the eye or the bill. The collar sinks into the down (`lift: 0.35`).
+  Starting points: duckling and chick `len` 0.036, owlet 0.05 (legs and toes downy too, the facial disc short), macaw
+  chick 0.034 and sparse (`den` 0.75), cygnet 0.05. About 15 to 19 KB more files per bird (fur block 6 KB, 384 fur map); at
+  detail 2 the baby has 5 or 6 shell layers over its downy triangles.
 - Hooks, all optional and off for the other species: `grid(h)` (a rectilinear marching cubes grid, finer where
   the bill and feet are), `UV_PACK` (extra pack_islands options), `extra_maps(X)` in `texture.py` and
   `export_extra(meta, out, work)` in `export.py`.
@@ -201,8 +209,10 @@ Lessons:
   pushed onto a fat neck: it folds up when the game's baby maps shorten it; keep its own shape and widen it there.
 - Collars on a baby with its own shape: `babyAt` (band position along the neck for the baby), `hug` (the band comes
   in as well as out), `babyK` (thicker, wider band), `babyMaxR` (limb cutoff for the baby slice).
-- The swan (`swan.py`) is made but not shipped: the adult is only a little better than the procedural one and the
-  cygnet is not better (smooth, no fur shell fluff). Run `VOXEL=0.004 TRIS=6500 TEX=1024 ... make.py swan` to make it.
+- The swan (`swan.py`) is made but not shipped: the adult is only a little better than the procedural one. With the
+  down shells the cygnet is now better than the procedural one (gray-brown and fluffy like a real cygnet), but the
+  adult is still not clearly better, so the swan stays procedural. Run `VOXEL=0.004 TRIS=6500 TEX=1024 ... make.py
+  swan` to make it.
 
 ## The small carnivores (`carnivore.py`)
 

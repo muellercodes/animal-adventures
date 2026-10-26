@@ -611,6 +611,19 @@ def detail_baby(P, N, c):
     return h
 
 
+# the duckling's down as fur shells (babyOnly: the adult keeps its feathers)
+FUR = dict(len=0.036, n=6, lean=0.25, tile=0.0024, babyLen=1.0, babyLean=0.25, shade=0.9, babyOnly=True, quality=80)
+
+
+def fur(P, N, c):
+    return B.down_fur(P, c, FUR['len'], ['bill', 'nail', 'tarsus', 'toes', 'web', 'claws', 'lids'],
+                      {'head': 0.6, 'neck': 0.85, 'arm': 0.75, 'drum': 0.6}, (EYE_C, EYE_R), seed=71)
+
+
+def flow(P, N):
+    return B.down_flow(sys.modules[__name__], P, N)
+
+
 # ---------- feather blades (atlas cells, same order as the game's feather cells) ----------
 def _vn(s, t, base, edge, k=0.5):
     return mix(np.tile(base, (len(s), 1)), edge, sstep(0.55, 1.0, np.abs(s)) * k)
@@ -706,7 +719,7 @@ def meta(st):
     return {
         'eye': {'p': [round(float(v), 5) for v in EYE_C], 'r': round(r, 5), 'dir': [round(float(v), 4) for v in EYE_DIR], 'lid': [0.8, -0.8, 0.12],
                 'iris': 0x3A200E, 'irisR': 0.9, 'pupilR': 0.42, 'rim': 0x0E0A06, 'lidCol': st['lidCol'], 'babyLidCol': 0x3A3020},
-        'collar': {'at': ['neck', 'neck2', 0.55], 'babyAt': 0.8, 'hug': True, 'babyK': 1.8},
+        'collar': {'at': ['neck', 'neck2', 0.55], 'babyAt': 0.8, 'hug': True, 'babyK': 1.8, 'lift': 0.35},
         'mouth': [round(float(v), 4) for v in MOUTH],
         'tint': [1.0, 1.0, 1.0], 'babyTint': [1.0, 1.0, 1.0], 'rim': [0.1, 0.1, 0.1], 'flat': 0x9A958C,
     }

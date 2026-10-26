@@ -6207,7 +6207,8 @@ const Animals = (() => {
         P.copy(pl.C).addScaledVector(pl.T, e ? pl.hw : -pl.hw).addScaledVector(D, pl.re[e][j]);
         const w = pl.w[e][j], inner = P.clone().addScaledVector(D, pl.gap - dep), outer = P.clone().addScaledVector(D, pl.gap + pl.thick);
         const tn = pl.T.clone().multiplyScalar(e ? 1 : -1);
-        const v = e ? [[outer, tn, 0.72, 1], [inner, tn, 0.72, 0.4]] : [[inner, tn, 0.72, 0.4], [outer, tn, 0.72, 1]], up = furOn ? sp.len * pl.fl[j] * COLLAR_LIFT : 0;
+        // lift (optional): how far up the fur the band rides, instead of COLLAR_LIFT (a chick's long down: the band sinks in)
+        const v = e ? [[outer, tn, 0.72, 1], [inner, tn, 0.72, 0.4]] : [[inner, tn, 0.72, 0.4], [outer, tn, 0.72, 1]], up = furOn ? sp.len * pl.fl[j] * (pl.cfg.lift == null ? COLLAR_LIFT : pl.cfg.lift) : 0;
         for (const qq of v) { pos.push(qq[0].x, qq[0].y, qq[0].z); nrm.push(qq[1].x, qq[1].y, qq[1].z); col.push(qq[2]); wts.push(w); outN.push(D.x, D.y, D.z); push.push(pl.push ? pl.push[e][j] : 0); lift.push(D.x * up * qq[3], D.y * up * qq[3], D.z * up * qq[3]); exAdd(D, qq[0] === outer ? pl.gap + pl.thick : pl.gap - dep, e); }
         pos.push(outer.x, outer.y, outer.z); nrm.push(D.x, D.y, D.z); col.push(1); wts.push(w); outN.push(D.x, D.y, D.z); push.push(pl.push ? pl.push[e][j] : 0); lift.push(D.x * up, D.y * up, D.z * up); exAdd(D, pl.gap + pl.thick, e);
       }
@@ -6345,7 +6346,7 @@ const Animals = (() => {
       R.ct = { dir: new THREE.Vector3(0, -1, 0), vel: new THREE.Vector3(), pp: new THREE.Vector3(), pv: new THREE.Vector3(), spd: 0, init: false };
       // fur lift of the tag pivot: the band's lift at the tag angle
       const pl = A.cplan, sp = A.spec.shell;
-      A.collarLiftAt = A.collarShellOn ? sp.len * (pl.mesh ? pl.flTag : collarFl(A.spec, pl, pl.cfg.tag)) * COLLAR_LIFT : 0;
+      A.collarLiftAt = A.collarShellOn ? sp.len * (pl.mesh ? pl.flTag : collarFl(A.spec, pl, pl.cfg.tag)) * (pl.cfg.lift == null ? COLLAR_LIFT : pl.cfg.lift) : 0;
     }
     if (R.collarM) { if (on) R.collarM.material = collarMat(R.collarC); syncCollar(R, A); }
     if (on) { R.ct.init = false; collarUpdate(R, A, 0, null); }

@@ -418,6 +418,20 @@ def detail_baby(P, N, c):
     return 0.0002 * (dn - 0.5) * feath + _leg_h(P, c, R)
 
 
+# the chick's thin gray down as fur shells (babyOnly: the adult keeps its feathers): shorter and sparser than a
+# duckling's, the pink skin shows through
+FUR = dict(len=0.034, n=5, lean=0.3, tile=0.0024, babyLen=1.0, babyLean=0.3, shade=0.88, babyOnly=True, quality=80)
+
+
+def fur(P, N, c):
+    return B.down_fur(P, c, FUR['len'], ['bill', 'tarsus', 'toes', 'claws', 'lids'],
+                      {'head': 0.65, 'neck': 0.8, 'arm': 0.7, 'drum': 0.5}, (EYE_C, EYE_R), den=0.75, seed=74)
+
+
+def flow(P, N):
+    return B.down_flow(sys.modules[__name__], P, N)
+
+
 # ---------- feather blades (atlas cells, same order as the game's feather cells) ----------
 def _vn(s, t, base, edge, k=0.5):
     return mix(np.tile(base, (len(s), 1)), edge, sstep(0.55, 1.0, np.abs(s)) * k)
@@ -500,7 +514,7 @@ def meta(st):
     return {
         'eye': {'p': [round(float(v), 5) for v in EYE_C], 'r': round(r, 5), 'dir': [round(float(v), 4) for v in EYE_DIR], 'lid': [0.8, -0.8, 0.12],
                 'iris': 0xE6D8A2, 'irisR': 0.86, 'pupilR': 0.34, 'rim': 0x6A5A30, 'lidCol': st['lidCol'], 'babyIris': 0x1E140E, 'babyLidCol': 0xC8A8A0},
-        'collar': {'at': ['neck', 'head', 0.35], 'babyAt': 0.4, 'hug': True, 'babyK': 1.8},
+        'collar': {'at': ['neck', 'head', 0.35], 'babyAt': 0.4, 'hug': True, 'babyK': 1.8, 'lift': 0.35},
         'mouth': [round(float(v), 4) for v in MOUTH],
         'tint': [1.0, 1.0, 1.0], 'babyTint': [1.0, 1.0, 1.0], 'rim': [0.14, 0.06, 0.06], 'flat': 0xB82020,
     }
