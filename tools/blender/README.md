@@ -4,8 +4,8 @@ Makes a realistic body for one species with Blender, fitted to the skeleton the 
 `game/models/<id>.*`. `build.mjs` embeds those files in the page and `game/src/40_animals.js` uses the model instead of
 the procedural loft body. Everything else (bones, walk/run/eat/sleep animation, baby proportions, eyes and blinking,
 collar, moods, swimming) keeps working through the same rig API. The pig (bare skin), frog, lizard, turtle, snake,
-horse (coat, mane and tail), fox, raccoon and otter have models so far; `horse.py` is the example for furry animals and
-`carnivore.py` has the parts the small carnivores share.
+horse (coat, mane and tail), fox, raccoon, otter and weasel have models so far; `horse.py` is the example for furry
+animals and `carnivore.py` has the parts the small carnivores share.
 
 Nothing is downloaded: the shape, skin colors and fine detail are all made by the scripts here.
 
@@ -198,3 +198,10 @@ Otter (`VOXEL=0.002 TRIS=5400 TEX=1024`, then rings across the body and tail): 8
 1024 maps, 512 fur and pup color maps: 66 KB + 32 + 54 + 9 + 3 + 5 KB, about 232 KB in the page. The wet coat is
 clumps of strands (`_clumps()`: wide tapering strokes, light ridges and dark partings, glossy roughness); pups get a
 dry, even coat in their own color map.
+
+Weasel (`VOXEL=0.0008 TRIS=4600 TEX=512`, then rings across the body, neck and tail so it stands up and curls up
+smoothly): 7.9k triangles plus 80 in the whiskers; 512 maps, 256 kit color map: 64 KB + 19 + 9 + 3 + 5 + 4 KB, about
+145 KB in the page.
+
+Close up (detail 2) the four carnivores' fur shells come to 31k to 35k triangles in one draw call (4 or 5 layers over
+the coated triangles); detail 1 and 0 draw the body and the whiskers only (7k to 8.4k triangles).
