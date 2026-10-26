@@ -222,18 +222,36 @@ digits, webbing between them), `strands()` (the coat strokes, with a per region 
 - Long bendy bodies (the otter swimming, the weasel standing up and curling to sleep) get rings from
   `meshfix.rings` in `lowpoly_fix`; decimate to fewer triangles (`TRIS`) so the total stays in budget after the cuts.
 
-## The small furry animals (`bunny.py`)
+## The small furry animals (`bunny.py`, `squirrel.py`, `smallfur.py`)
 
-They reuse `carnivore.py` (eyes, ears, hands, coat strokes, whiskers).
+They reuse `carnivore.py` (eyes, ears, hands, coat strokes, whiskers). `smallfur.py` adds `strand_texture()`: a hair
+card texture painted column by column with color bands along the strand (`stops`), as wavy hairs or as straight
+tapering spines. A species uses it through `hair_texture()` (export.py writes that instead of `cards.texture(HAIR)`).
 - The bunny (`bunny.py`, eastern cottontail): its own ear (`ear()`: long, cupped, rolled into a cone at the root,
   thicker rims), a finer grid across the ears (`grid()`: they are thin plates facing forward), a split upper lip and
   slit nostrils, big hind feet as a flat loft under a big haunch. The agouti coat is the stroke tone: dark tipped and
   buff banded strokes over a gray-brown base (`_strands` tone below 0.3 dark, above 0.65 buff); a rusty nape patch,
   pale eye rings, a white belly and the white underside of the cottontail; veins painted and raised a little inside the
   pink ears. Kits get their own color map (a darker fuzz and a white blaze).
-- A round eye open wide (a rabbit's or a squirrel's) shows the game's own lids at the top of the ball; give `meta()`
-  `'lid': [1.1, -1.1, 0.1]` so they stay out of sight until the eye blinks, and a dark `lidCol` (the pale eye ring
-  makes a shut eye look like a pale ball otherwise).
+- The squirrel (`squirrel.py`, American red squirrel): hands with long fingers and curved claws (`CV.hand`), dark ear
+  tufts and whiskers as cards, a white eye ring kept flat (no fur over it, which is what made today's dotted halo), a
+  black line along the flank above the white belly. The tail is the signature: a big round plume swept along a curve
+  (`TAIL`) under the longest fur shells, painted rust with black tipped guard hairs, and 64 thin locks (cards) all
+  around it that lie along the plume, flare out toward their tips and face out. What did not work: locks only out to
+  the sides read as a flat strap from the side; locks standing across the tail show their unlit backs (cards are two
+  sided and the back face takes the flipped normal) and, with a dense root (`root` 0.15 to 0.3 in the strand texture)
+  or a strong black band, read as dark flakes, most of all at detail 1 and 0 and in the menu icon where there are no
+  shells; a small plume needs very long shells to look bushy. Tail skin weights come from the position along its middle
+  line (`tail_t`, `tail_weights`), and the cards' points use the same, so the locks follow the tail bones.
+  `meshfix.rings` across the body and along the tail (15 mm apart) let it sit up, climb and curl up.
+- The slice for the collar can meet another part of the body: the squirrel's neck plane also cuts the tail tip curled
+  over its back, and the band stretched up to it. `'collar': {'maxR': ...}` in `meta()` ignores it.
+- Memory: a nearest-point search of every texel against a polyline (N x points arrays) took over 2 GB at 1536 texels
+  and the texture step was killed; use a KD tree (`scipy.spatial.cKDTree`).
+- A round eye open wide (a rabbit's or a squirrel's): `'lid': [1.1, -1.1, 0.1]` in `meta()` keeps the game's lids off
+  the corners of the ball until it blinks (the default curve brings them down at the sides), and a dark `lidCol`, or the
+  pale eye ring makes a shut eye look like a pale ball. The carnivore helper's `cextra` "eye open" shot can catch a
+  blink; `ceye` sets the lids explicitly.
 - Small animals: the game camera's near plane is 5 cm, so close-up test cameras must stay farther than that (the
   carnivore helper's eye shots clipped into the bunny's head).
 
@@ -275,3 +293,7 @@ the coated triangles); detail 1 and 0 draw the body and the whiskers only (7k to
 Bunny (`VOXEL=0.002 TRIS=7000 TEX=768`): 7.0k triangles plus 144 in the whiskers; 768 color and normal maps, 384 fur
 and kit color maps: 57 KB mesh and cards + 77 + 17 + 9 + 14 + 5 KB, about 245 KB in the page. Fur shells at detail 2:
 5 layers, 34k triangles.
+
+Squirrel (`VOXEL=0.0012 TRIS=4800 TEX=768`, then rings across the body and along the tail): 6.7k triangles plus 516 in
+the cards (whiskers, ear tufts, 64 tail locks); 768 color and normal maps, 384 fur map, 384 x 256 strand texture: 66 KB
+mesh and cards + 48 + 19 + 7 + 48 KB, about 255 KB in the page. Fur shells at detail 2: 5 layers, about 34k triangles.
