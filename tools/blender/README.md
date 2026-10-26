@@ -240,6 +240,11 @@ digits, webbing between them), `strands()` (the coat strokes, with a per region 
   and hips did that).
 - Skin weight masks for paws need bounds on both sides along z: a mask for the hind feet "in front of the heel" also
   took the hands, and a raccoon kit's arm stretched across the meadow.
+- Check the animal at the game camera's distance (fov 55, about 1.2 to 3 m away), not only close up: the mipmaps
+  there mix neighbouring UV islands. The weasel's 512 maps had its cream belly islands 2 texels from the brown back
+  and head islands, which showed as pale seam lines along the back and over the head; `UV_PACK =
+  dict(margin_method='FRACTION', margin=0.016)` (8 texels apart; `UV_PACK` can now set the margin) and a `PAD_SMOOTH`
+  wider than half the gap fixed it, with no visible loss close up.
 - Long bendy bodies (the otter swimming, the weasel standing up and curling to sleep) get rings from
   `meshfix.rings` in `lowpoly_fix`; decimate to fewer triangles (`TRIS`) so the total stays in budget after the cuts.
 
