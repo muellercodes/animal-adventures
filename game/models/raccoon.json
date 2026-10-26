@@ -78,7 +78,15 @@
    "neck",
    "head",
    0.3
-  ]
+  ],
+  "lift": 0.3,
+  "hug": true,
+  "taper": true,
+  "wb": [
+   "neck",
+   "chest"
+  ],
+  "wbk": 0.6
  },
  "belly": [
   0.0,
