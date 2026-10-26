@@ -1,6 +1,8 @@
 # Renders the animal icons (grown-up and baby) and world pictures used in the menus into game/assets/.
 # The #assets page pretends it is summer, so the pictures have no autumn or Halloween things in them.
 # Run after building with assets off:  NO_ASSETS=1 API_BASE= node build.mjs && python3 tools/assets.py
+# To redraw only some animals' icons (no world pictures):  python3 tools/assets.py pig goat
+# PAGE=<path to a built index.html> uses another build than docs/index.html.
 # Needs Playwright with Chromium (WebGL runs in software, so this takes a few minutes).
 import base64, os, sys
 from playwright.sync_api import sync_playwright
@@ -15,17 +17,19 @@ SHOTS = {  # camera position, look-at point (relative to the world spawn) for ea
 with sync_playwright() as p:
     b = p.chromium.launch(args=['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'])
     pg = b.new_page(viewport={'width': 640, 'height': 360}, device_scale_factor=1)
-    pg.goto('file://' + os.path.join(ROOT, 'docs', 'index.html') + '#assets', wait_until='load')
+    pg.goto('file://' + os.environ.get('PAGE', os.path.join(ROOT, 'docs', 'index.html')) + '#assets', wait_until='load')
     pg.wait_for_function('window.__aa', timeout=60000)
     pg.evaluate('__aa.manual(true)')
-    ids = pg.evaluate('Object.keys(__aa.SPECIES)')
+    pg.evaluate('() => __aa.Animals.ready')   # sculpted models: their maps decode after the page loads
+    only = sys.argv[1:]
+    ids = only or pg.evaluate('Object.keys(__aa.SPECIES)')
     for sp in ids:
         url = pg.evaluate(f'__aa.animalIcon("{sp}")')
         open(os.path.join(OUT, f'icon-{sp}.png'), 'wb').write(base64.b64decode(url.split(',')[1]))
         url = pg.evaluate(f'__aa.animalIcon("{sp}", 0)')
         open(os.path.join(OUT, f'icon-{sp}-baby.png'), 'wb').write(base64.b64decode(url.split(',')[1]))
         print('icon', sp)
-    for wid, (cam, look) in SHOTS.items():
+    for wid, (cam, look) in ({} if only else SHOTS).items():
         url = pg.evaluate('''([wid, cam, look]) => {
           const a = __aa; a.loadWorld(wid); a.S.time = 260;
           a.step(3, 1 / 30, false);

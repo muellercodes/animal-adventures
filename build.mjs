@@ -25,9 +25,25 @@ if (!process.env.NO_ASSETS && existsSync('game/assets')) {
     assets[m[1] === 'icon' ? 'icons' : 'worlds'][m[2]] = uri;
   }
 }
+// sculpted animal models (made by tools/blender): game/models/<id>.json names its mesh data and texture files,
+// which go into the page as base64. A species without a model keeps its procedural body. NO_MODELS=1 leaves them out.
+const models = {};
+let modelBytes = 0;
+if (!process.env.NO_MODELS && existsSync('game/models')) {
+  const mime = { webp: 'image/webp', jpg: 'image/jpeg', png: 'image/png' };
+  for (const f of readdirSync('game/models')) {
+    const m = f.match(/^([a-z]+)\.json$/); if (!m) continue;
+    const md = JSON.parse(readFileSync(`game/models/${f}`, 'utf8'));
+    md.data = readFileSync(`game/models/${md.data}`).toString('base64');
+    for (const k in md.maps) md.maps[k] = `data:${mime[md.maps[k].split('.').pop()]};base64,${readFileSync(`game/models/${md.maps[k]}`).toString('base64')}`;
+    models[m[1]] = md;
+  }
+  modelBytes = JSON.stringify(models).length;
+}
 const three = readFileSync('game/vendor/three.min.js', 'utf8');
 const shell = readFileSync('game/shell.html', 'utf8');
-const scripts = `<script>\n${three}\n</script>\n<script>window.AA_ASSETS = ${JSON.stringify(assets)};</script>\n<script>\n${js}</script>\n`;
+const scripts = `<script>\n${three}\n</script>\n<script>window.AA_ASSETS = ${JSON.stringify(assets)};</script>\n` +
+  (Object.keys(models).length ? `<script>window.AA_MODELS = ${JSON.stringify(models)};</script>\n` : '') + `<script>\n${js}</script>\n`;
 
 const cut = shell.indexOf('</style>') + '</style>'.length;
 const page = `<!doctype html>
@@ -59,4 +75,5 @@ writeFileSync(`${OUT}/index.html`, page);
 // artifact flavor: no document wrapper (the host adds one) and no cloud saves
 writeFileSync(`${DIST}/artifact.html`, shell + '\n' + scripts);
 const n = Object.keys(assets.icons).length + Object.keys(assets.worlds).length;
-console.log(`built ${OUT}/index.html (${(page.length / 1024).toFixed(0)} KB, ${n} pictures), cloud saves: ${api || 'off'}`);
+const nm = Object.keys(models).length;
+console.log(`built ${OUT}/index.html (${(page.length / 1024).toFixed(0)} KB, ${n} pictures, ${nm} models${nm ? ` ${(modelBytes / 1024).toFixed(0)} KB` : ''}), cloud saves: ${api || 'off'}`);

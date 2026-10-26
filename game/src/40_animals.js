@@ -4833,9 +4833,133 @@ const Animals = (() => {
     const c = new THREE.Color(); c.r = s2l(clamp(C.r, 0, 1)); c.g = s2l(clamp(C.g, 0, 1)); c.b = s2l(clamp(C.b, 0, 1));
     return c;
   }
+  // ---------- sculpted models ----------
+  // A species can have a body sculpted in Blender (tools/blender) instead of its lofts: build.mjs embeds
+  // game/models/<id>.json as window.AA_MODELS[id], with the mesh (quantized, skinned to the species' skeleton by
+  // bone name) in base64 and color and normal maps as WebP data URIs. Everything else stays the same: the spec's
+  // bones, animator, baby proportions (the per-vertex morph from the skin weights), eyes (placed by the model) and
+  // the collar (a slice of the sculpted neck). Species without a model keep their procedural body.
+  const MODELS = (typeof window !== 'undefined' && window.AA_MODELS) || {};
+  const modelCache = {};
+  // start decoding the maps right away; materials made before they arrive show a flat skin color and swap them in
+  const modelMaps = {}, mapLoads = [];
+  for (const id in MODELS) {
+    const md = MODELS[id], mm = modelMaps[id] = { ready: 0, need: 0, waiters: [], tex: {} };
+    for (const k in md.maps || {}) {
+      mm.need++;
+      const img = new Image();
+      mapLoads.push(new Promise((res) => {
+        img.onload = () => {
+          const t = new THREE.Texture(img);
+          if (k === 'color') t.encoding = THREE.sRGBEncoding;
+          t.anisotropy = 4; t.needsUpdate = true;
+          mm.tex[k] = t;
+          if (++mm.ready === mm.need) for (const f of mm.waiters.splice(0)) f();
+          res();
+        };
+        img.onerror = res;
+      }));
+      img.src = md.maps[k];
+    }
+  }
+  // resolves once every model's maps are decoded (tools that render pictures of the animals wait for it)
+  const ready = Promise.all(mapLoads);
+  function modelData(id) {
+    if (modelCache[id] !== undefined) return modelCache[id];
+    const md = MODELS[id];
+    let out = null;
+    if (md) {
+      try {
+        const bin = atob(md.data), u8 = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+        const nv = md.nv, nt = md.ntri, b = md.bbox;
+        let o = 0;
+        const take = (T, n) => { const a = new T(u8.buffer, o, n); o += n * T.BYTES_PER_ELEMENT; return a; };
+        const q = take(Uint16Array, nv * 3), quv = take(Uint16Array, nv * 2), idx = take(Uint16Array, nt * 3), oct = take(Int8Array, nv * 2);
+        const si = take(Uint8Array, nv * 4), sw = take(Uint8Array, nv * 4), rgh = take(Uint8Array, nv);
+        const pos = new Array(nv * 3), nrm = new Array(nv * 3), uv = new Array(nv * 2);
+        for (let i = 0; i < nv; i++) {
+          for (let k = 0; k < 3; k++) pos[i * 3 + k] = b[k] + ((b[k + 3] - b[k]) * q[i * 3 + k]) / 65535;
+          uv[i * 2] = quv[i * 2] / 65535; uv[i * 2 + 1] = quv[i * 2 + 1] / 65535;
+          // octahedral normal
+          let x = oct[i * 2] / 127, y = oct[i * 2 + 1] / 127;
+          const z = 1 - Math.abs(x) - Math.abs(y);
+          if (z < 0) { const ox = x; x = (1 - Math.abs(y)) * (ox >= 0 ? 1 : -1); y = (1 - Math.abs(ox)) * (y >= 0 ? 1 : -1); }
+          const l = Math.hypot(x, y, z) || 1;
+          nrm[i * 3] = x / l; nrm[i * 3 + 1] = y / l; nrm[i * 3 + 2] = z / l;
+        }
+        const weights = (v) => { const w = []; for (let k = 0; k < 4; k++) if (sw[v * 4 + k]) w.push([md.bones[si[v * 4 + k]], sw[v * 4 + k] / 255]); return w; };
+        out = { md, pos, nrm, uv, idx: Array.from(idx), weights, rgh, maps: modelMaps[id] };
+      } catch (e) { out = null; }
+    }
+    return (modelCache[id] = out);
+  }
+  // model skin: color and normal maps, roughness per vertex, a soft warm rim like light through skin
+  function aaModelCompile(sh) {
+    Object.assign(sh.uniforms, this.userData.aa);
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nattribute float rgh;\nvarying float vRgh;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRgh = rgh;');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying float vRgh;\nuniform vec3 aaRimC;')
+      .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = roughness * vRgh;')
+      .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
+{
+  float aaRim = pow(1.0 - saturate(dot(normal, geometry.viewDir)), 3.0);
+  reflectedLight.directDiffuse *= vec3(1.0) + aaRimC * aaRim; reflectedLight.indirectDiffuse *= vec3(1.0) + aaRimC * aaRim;
+}`);
+  }
+  function modelMaterial(M, baby) {
+    const md = M.md, tint = (baby ? md.babyTint : md.tint) || [1, 1, 1], rim = md.rim || [0.25, 0.1, 0.08];
+    const m = new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0 });
+    m.userData.aa = { aaRimC: { value: new THREE.Vector3().fromArray(rim) } };
+    m.onBeforeCompile = aaModelCompile;
+    const mm = M.maps, flat = linColor(md.flat || 0xe0b0a0);
+    const apply = () => { m.map = mm.tex.color || null; m.normalMap = mm.tex.normal || null; m.color.setRGB(tint[0], tint[1], tint[2]); m.needsUpdate = true; };
+    if (mm && mm.ready === mm.need) apply();
+    else { m.color.copy(flat); if (mm) mm.waiters.push(apply); }
+    return m;
+  }
+  // eyelashes along the upper lid, in the eye's frame (x side, y gaze, z up; meters). The lid line follows the eye
+  // shader's lid (lid: [upper, lower, curve] on the unit eye ball); the lashes sit a little in front of the ball.
+  function lashGeo(e) {
+    const L = e.lash, r = e.r, n = L.n, pos = [], nrm = [], idx = [], col = [], lk = e.lid, c = hex(L.col || 0xf2ebe0);
+    for (let i = 0; i < n; i++) {
+      const xu = lerp(-0.62, 0.7, (i + 0.5) / n + (hash3(i, 3, 9) - 0.5) * 0.06), zu = lk[0] - lk[2] * xu * xu + 0.03;
+      const R = r * 1.12, x = xu * r, z = zu * r, y = Math.sqrt(Math.max(0, R * R - x * x - z * z));
+      const len = L.len * (0.55 + 0.45 * Math.cos(xu * 1.6)) * (0.85 + 0.3 * hash3(i, 5, 9));
+      const b = pos.length / 3;
+      // three segments: out along the gaze from the lid edge, then curling up, each a little different
+      const tw = (hash3(i, 7, 9) - 0.5) * 0.5, up = 0.35 + 0.3 * hash3(i, 8, 9);
+      for (let s = 0; s <= 3; s++) {
+        const t = s / 3, w = 0.00032 * (1 - 0.8 * t);
+        const px = x + (xu * 0.35 + tw) * len * t, py = y + len * (0.85 * t - 0.25 * t * t), pz = z + len * (0.1 * t + up * t * t);
+        pos.push(px - w, py, pz, px + w, py, pz);
+        nrm.push(0, 0.3, 0.95, 0, 0.3, 0.95);
+        for (let k = 0; k < 2; k++) col.push(s2l(c[0]), s2l(c[1]), s2l(c[2]));
+        if (s < 3) { const a = b + s * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2, a, a + 2, a + 1, a + 1, a + 2, a + 3); }
+      }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    g.setIndex(idx);
+    return g;
+  }
+  let lashMat = null;
+
   function getAssets(id) {
     if (cache[id]) return cache[id];
     const spec = SPEC[id]();
+    const M = modelData(id);
+    if (M) {
+      // the sculpt places the eyes and the mouth; no loft parts, accents or fur shells
+      const e = M.md.eye;
+      spec.eyes = [Object.assign({ bone: 'head' }, e)];
+      if (M.md.mouth) spec.mouth = M.md.mouth;
+      spec.accent = null; spec.shell = null;
+    }
     // bones (expand mirrored)
     const defs = [];
     for (const b of spec.bones) {
@@ -4844,16 +4968,16 @@ const Animals = (() => {
     }
     if (spec.extraBones) for (const b of spec.extraBones(defs)) defs.push(b);
     // collar tag bone (always there, so any rig can wear a collar later)
-    const cplan = collarPlan(spec, id, defs);
+    const cplan = M ? collarPlanMesh(spec, id, defs, M) : collarPlan(spec, id, defs);
     if (cplan) defs.push({ name: 'ctag', parent: cplan.parent, p: cplan.hang.clone() });
     const boneIndex = {}, rest = {};
     defs.forEach((d, i) => { boneIndex[d.name] = i; rest[d.name] = d.p; });
     const ag = babyMaps(spec, defs, rest, boneIndex);
     ag.fluff = ag.B.fluff || 0;
-    if (cplan) collarBaby(ag, cplan);
+    if (cplan && !cplan.mesh) collarBaby(ag, cplan);
     // fur parts
     const furBatch = newBatch(ag), lofts = [];
-    for (const fp of spec.fur || []) {
+    for (const fp of M ? [] : spec.fur || []) {
       const L = buildLoft(fp);
       const ringW = fp.bones.length > 1 ? skinLoft(L, fp.bones, rest, fp.blend || 0.03) : null;
       L.weights = (v) => (ringW ? ringW[L.ringOf[v]] : [[fp.bones[0], 1]]);
@@ -4880,6 +5004,10 @@ const Animals = (() => {
       pushPart(furBatch, part, boneIndex, uvFn, null, false);
       if (o.fp.mirror) pushPart(furBatch, part, boneIndex, uvFn, null, true);
     });
+    if (M) {
+      pushPart(furBatch, { name: 'model', pos: M.pos, nrm: M.nrm, idx: M.idx, weights: M.weights }, boneIndex, (v) => [M.uv[v * 2], M.uv[v * 2 + 1]], null, false);
+      if (cplan) collarBabyMesh(ag, cplan, furBatch);
+    }
     const makeFurMat = (baby) => {
       const pf = baby && spec.babyPaint ? (P, C) => { spec.paint(P, C); spec.babyPaint(P, C); } : spec.paint;
       const atlas = paintAtlas(TW, TH, bands, pf, orm, spec.rough || 0.85, baby);
@@ -4888,7 +5016,13 @@ const Animals = (() => {
       if (baby && spec.feathers) { m.userData.aa.aaKO.value = 0; m.userData.aa.aaK.value.set(0.22, det.tile * 0.012, 0.35); }
       return m;
     };
-    const geos = [{ geo: batchGeometry(furBatch, false), mat: makeFurMat(false), babyMat: spec.babyPaint ? () => makeFurMat(true) : null, fur: true }];
+    let geos;
+    if (M) {
+      const g = batchGeometry(furBatch, false);
+      g.deleteAttribute('duv');
+      g.setAttribute('rgh', new THREE.BufferAttribute(new Uint8Array(M.rgh), 1, true));
+      geos = [{ geo: g, mat: modelMaterial(M, false), babyMat: () => modelMaterial(M, true), fur: true, model: true }];
+    } else geos = [{ geo: batchGeometry(furBatch, false), mat: makeFurMat(false), babyMat: spec.babyPaint ? () => makeFurMat(true) : null, fur: true }];
     // accent parts (vertex colored)
     if (spec.accent && spec.accent.length) {
       const ab = newBatch(ag), abBaby = spec.accent.some((a) => a.babyCol != null) ? [] : null;
@@ -4948,7 +5082,8 @@ const Animals = (() => {
       A.lidCol = e.lidCol != null ? [linColor(e.lidCol), linColor(e.babyLidCol != null ? e.babyLidCol : e.lidCol)] : [paintAt(spec, lofts, ep, false), paintAt(spec, lofts, ep, true)];
     }
     // belly contact point under the hips (for lying down and climbing), from the body loft
-    if (lofts.length && rest.hips) {
+    if (M && M.md.belly) A.belly = new THREE.Vector3().fromArray(M.md.belly);
+    else if (lofts.length && rest.hips) {
       const L = lofts[0].L, hp = rest.hips;
       let best = null, bd = 1e9;
       for (const r of L.rings) { const d = Math.abs(r.C.z - hp.z); if (d < bd && r.b > 1e-4) { bd = d; best = r; } }
@@ -5072,6 +5207,12 @@ const Animals = (() => {
     if (R.noBlink) open = 1;
     const o = R.eyeMat.userData.aa.aaOpen.value;
     if (R.lowerBlink) o.set(lerp(0.55, 1, open), open); else o.set(open, lerp(0.75, 1, open));
+    // lashes ride on the upper lid edge: turn them down about the eye's side axis as far as the lid moved
+    if (R.lashes.length) {
+      const lk = R.eyeMat.userData.aa.aaLidK.value, z0 = clamp(lk.x, -1, 1), z1 = clamp(lerp(lk.y + 0.04, lk.x, o.x), -1, 1);
+      const a = Math.asin(z1) - Math.asin(z0);
+      for (const l of R.lashes) l.rotation.x = a;
+    }
   }
 
   const _m4 = new THREE.Matrix4();
@@ -5109,7 +5250,7 @@ const Animals = (() => {
       meshes.push(m);
     }
     // eyes
-    const eyes = [], eyeMat = A.eyeDefs.length ? eyeMaterial(A) : null;
+    const eyes = [], lashes = [], eyeMat = A.eyeDefs.length ? eyeMaterial(A) : null;
     for (const e of A.eyeDefs) {
       const piv = new THREE.Group();
       piv.position.fromArray(e.p).sub(A.rest[e.bone]);
@@ -5119,6 +5260,14 @@ const Animals = (() => {
       m.castShadow = true; m.receiveShadow = false;
       piv.add(m);
       piv.userData.r = e.r;
+      // eyelashes (sculpted models): a group in the eye's frame, its inner mesh turns down with the upper lid
+      if (e.lash) {
+        const lg = new THREE.Group(), lm = new THREE.Mesh(A.lashGeo || (A.lashGeo = lashGeo(e)), lashMat || (lashMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, metalness: 0 })));
+        eyeBasis(e.dir, lg.quaternion);
+        lg.add(lm);
+        piv.add(lg);
+        lashes.push(lm);
+      }
       bones[e.bone].add(piv);
       eyes.push(piv);
     }
@@ -5141,7 +5290,7 @@ const Animals = (() => {
     for (const nm in bones) { const b = bones[nm]; b.userData.p0 = b.position.clone(); }
     const rest = {};
     for (const nm in A.rest) rest[nm] = A.rest[nm].clone();
-    return { root, bones, list, skel, meshes, eyes, eyeMat, lowerBlink: !!A.spec.feathers, noBlink: !!(A.spec.eyes && A.spec.eyes[0] && A.spec.eyes[0].noBlink), mouth, rnd, extras, extraList, rest, belly: A.belly.clone(), eat: A.eat0, age: 1, ageDrop: 0, hooks: [], sneezeReq: false, autoSneeze: true, onSneeze: null, detail: 1, shellM: {} };
+    return { root, bones, list, skel, meshes, eyes, lashes, eyeMat, lowerBlink: !!A.spec.feathers, noBlink: !!(A.spec.eyes && A.spec.eyes[0] && A.spec.eyes[0].noBlink), mouth, rnd, extras, extraList, rest, belly: A.belly.clone(), eat: A.eat0, age: 1, ageDrop: 0, hooks: [], sneezeReq: false, autoSneeze: true, onSneeze: null, detail: 1, shellM: {} };
   }
 
   // set proportions for an age (0 newborn .. 1 adult). Not per frame: lerps rest bones, eyes and mouth, sets the
@@ -5158,6 +5307,7 @@ const Animals = (() => {
       const e = R.eyes[i], ea = AG.eyes[i];
       e.position.lerpVectors(ea.p0, ea.p1, t);
       e.children[0].scale.setScalar(e.userData.r * lerp(1, ea.s1, t));
+      if (e.children[1]) e.children[1].scale.setScalar(lerp(1, ea.s1, t));
     }
     R.mouth.position.lerpVectors(AG.mouth0, AG.mouth1, t);
     for (let i = 0; i < R.extraList.length; i++) {
@@ -5257,8 +5407,9 @@ const Animals = (() => {
   }
   function setDetail(R, A, l) {
     R.detail = l;
-    // far away the eyes are a pixel or two: skip their draw calls
+    // far away the eyes are a pixel or two: skip their draw calls; eyelashes only show up close
     for (const e of R.eyes) e.visible = l > 0;
+    for (const m of R.lashes) m.visible = l === 2;
     const sp = A.spec.shell;
     for (const lv of [1, 2]) {
       const want = l === lv && !!shellGeo(A, lv) && !(sp && sp.babyOnly && R.age >= 0.4);
@@ -5489,9 +5640,156 @@ const Animals = (() => {
     }
     return { pos, nrm, idx };
   }
+  // ----- collars on sculpted models: the band is a slice of the model's neck -----
+  // Slice the mesh (flat positions, triangle list) with the plane through C normal to T and cast rays in it from C
+  // (angle th from the top N toward the side S, like the lofts). Per angle: the farthest surface crossing (the outer
+  // skin, jowls included) and, with wf, the skin weights there.
+  function meshSlice(pos, idx, wf, C, T, S, Nv, ths) {
+    const out = ths.map(() => ({ r: 0, w: null })), d = [0, 0, 0], segs = [];
+    const P2 = (v) => { const x = pos[v * 3] - C.x, y = pos[v * 3 + 1] - C.y, z = pos[v * 3 + 2] - C.z; return [x * S.x + y * S.y + z * S.z, x * Nv.x + y * Nv.y + z * Nv.z]; };
+    for (let i = 0; i < idx.length; i += 3) {
+      const t = [idx[i], idx[i + 1], idx[i + 2]];
+      for (let k = 0; k < 3; k++) { const v = t[k]; d[k] = (pos[v * 3] - C.x) * T.x + (pos[v * 3 + 1] - C.y) * T.y + (pos[v * 3 + 2] - C.z) * T.z; }
+      if ((d[0] > 0 && d[1] > 0 && d[2] > 0) || (d[0] <= 0 && d[1] <= 0 && d[2] <= 0)) continue;
+      const pts = [];
+      for (let k = 0; k < 3; k++) {
+        const a = k, b = (k + 1) % 3;
+        if ((d[a] > 0) === (d[b] > 0)) continue;
+        const f = d[a] / (d[a] - d[b]), pa = P2(t[a]), pb = P2(t[b]);
+        pts.push({ p: [lerp(pa[0], pb[0], f), lerp(pa[1], pb[1], f)], va: t[a], vb: t[b], f });
+      }
+      if (pts.length === 2) segs.push(pts);
+    }
+    for (let j = 0; j < ths.length; j++) {
+      const dx = Math.sin(ths[j]), dy = Math.cos(ths[j]);
+      let best = -1, bs = null, bu = 0;
+      for (const sg of segs) {
+        const a = sg[0].p, b = sg[1].p, ex = b[0] - a[0], ey = b[1] - a[1], den = dx * ey - dy * ex;
+        if (Math.abs(den) < 1e-12) continue;
+        const tt = (a[0] * ey - a[1] * ex) / den, u = (a[0] * dy - a[1] * dx) / den;
+        if (u < -1e-6 || u > 1 + 1e-6 || tt <= 0) continue;
+        if (tt > best) { best = tt; bs = sg; bu = clamp(u, 0, 1); }
+      }
+      out[j].r = Math.max(best, 0);
+      if (wf && bs) {
+        const m = new Map(), add = (v, k) => { for (const [n, w] of wf(v)) m.set(n, (m.get(n) || 0) + w * k); };
+        add(bs[0].va, (1 - bs[0].f) * (1 - bu)); add(bs[0].vb, bs[0].f * (1 - bu)); add(bs[1].va, (1 - bs[1].f) * bu); add(bs[1].vb, bs[1].f * bu);
+        out[j].w = Array.from(m.entries()).sort((p, q) => q[1] - p[1]).slice(0, 4);
+      }
+    }
+    return out;
+  }
+  function collarPlanMesh(spec, id, defs, M) {
+    const cfg = Object.assign({ tag: PI, w: 1, r: 1, fit: 0 }, COLLAR[id] || spec.collar || {}, M.md.collar || {});
+    if (!cfg.at) return null;
+    const rest = {};
+    for (const d of defs) rest[d.name] = d.p;
+    const a = rest[cfg.at[0]], b = rest[cfg.at[1]];
+    const T = b.clone().sub(a).normalize(), S = new THREE.Vector3(1, 0, 0).addScaledVector(T, -T.x).normalize(), Nv = new THREE.Vector3().crossVectors(T, S);
+    const ths = [];
+    for (let j = 0; j <= COLLAR_N; j++) ths.push((j / COLLAR_N) * TAU);
+    // center the slice on the neck outline
+    const C = a.clone().lerp(b, cfg.at[2]);
+    for (let it = 0; it < 2; it++) {
+      const sl = meshSlice(M.pos, M.idx, null, C, T, S, Nv, ths);
+      const c = new THREE.Vector3();
+      for (let j = 0; j < COLLAR_N; j++) c.addScaledVector(S, Math.sin(ths[j]) * sl[j].r / COLLAR_N).addScaledVector(Nv, Math.cos(ths[j]) * sl[j].r / COLLAR_N);
+      C.add(c);
+    }
+    const s0 = meshSlice(M.pos, M.idx, null, C, T, S, Nv, ths);
+    let rN = 0;
+    for (let j = 0; j < COLLAR_N; j++) rN += s0[j].r / COLLAR_N;
+    const hw = 0.2 * rN * cfg.w;
+    // both band edges, the widest skin across the band at each angle so nothing pokes through
+    const ed = [-hw, hw].map((s) => meshSlice(M.pos, M.idx, M.weights, C.clone().addScaledVector(T, s), T, S, Nv, ths));
+    const r = ths.map((_, j) => Math.max(ed[0][j].r, ed[1][j].r, s0[j].r));
+    const pl = {
+      mesh: true, cfg, C, T, S, N: Nv, ths, rN, hw, r, w: ed.map((e) => e.map((q) => q.w || [['head', 1]])),
+      thick: Math.max(0.055 * rN, 0.0005), gap: (0.025 + cfg.fit) * rN, tagR: 0.3 * rN * cfg.r, hang: new THREE.Vector3(), nOut: new THREE.Vector3(),
+    };
+    pl.tagLen = pl.tagR * 0.34 * 1.45 + pl.tagR * 2;
+    const dir = (th, o) => o.copy(S).multiplyScalar(Math.sin(th)).addScaledVector(Nv, Math.cos(th));
+    const st = meshSlice(M.pos, M.idx, M.weights, C, T, S, Nv, [cfg.tag])[0];
+    dir(cfg.tag, pl.nOut);
+    pl.hang.copy(C).addScaledVector(pl.nOut, st.r + pl.gap + pl.thick);
+    pl.dir = dir;
+    pl.parent = (st.w && st.w[0] && st.w[0][0]) || cfg.at[0];
+    return pl;
+  }
+  // baby fit: slice the baby-shaped mesh (morph applied, bones at their baby rest) and push the band out where the
+  // bigger baby head would come through it; the tag pivot goes to the baby band
+  function collarBabyMesh(ag, pl, bt) {
+    const nv = bt.pos.length / 3, P = new Array(nv * 3);
+    for (let v = 0; v < nv; v++) {
+      let ox = 0, oy = 0, oz = 0;
+      for (let k = 0; k < 4; k++) {
+        const w = bt.sw[v * 4 + k]; if (!w) continue;
+        const mp = ag.maps[bt.si[v * 4 + k]];
+        ox += w * (mp.c1.x - mp.c0.x); oy += w * (mp.c1.y - mp.c0.y); oz += w * (mp.c1.z - mp.c0.z);
+      }
+      P[v * 3] = bt.pos[v * 3] + bt.mor[v * 3] + ox; P[v * 3 + 1] = bt.pos[v * 3 + 1] + bt.mor[v * 3 + 1] + oy; P[v * 3 + 2] = bt.pos[v * 3 + 2] + bt.mor[v * 3 + 2] + oz;
+    }
+    const a1 = ag.byName[pl.cfg.at[0]].c1, b1 = ag.byName[pl.cfg.at[1]].c1;
+    const T = b1.clone().sub(a1).normalize(), S = new THREE.Vector3(1, 0, 0).addScaledVector(T, -T.x).normalize(), Nv = new THREE.Vector3().crossVectors(T, S);
+    // where the skin under the band goes in the baby (each outline point through its own bone maps)
+    const map = (p, w, o) => { o.set(0, 0, 0); for (const [n, ww] of w) o.addScaledVector(babyApply(ag.byName[n], p, _v1), ww); return o; };
+    const q = new THREE.Vector3(), Pb = [[], []], C = new THREE.Vector3();
+    for (let e = 0; e < 2; e++) for (let j = 0; j <= COLLAR_N; j++) {
+      q.copy(pl.C).addScaledVector(pl.T, e ? pl.hw : -pl.hw).add(pl.dir(pl.ths[j], _v2).multiplyScalar(pl.r[j]));
+      Pb[e].push(map(q, pl.w[e][j], new THREE.Vector3()));
+      if (j < COLLAR_N) C.addScaledVector(Pb[e][j], 0.5 / COLLAR_N);
+    }
+    const k = a1.distanceTo(b1) / Math.max(1e-6, ag.byName[pl.cfg.at[0]].c0.distanceTo(ag.byName[pl.cfg.at[1]].c0));
+    const sl = [-1, 0, 1].map((s) => meshSlice(P, bt.idx, null, C.clone().addScaledVector(T, s * pl.hw * k), T, S, Nv, pl.ths));
+    pl.push = [[], []];
+    for (let e = 0; e < 2; e++) for (let j = 0; j <= COLLAR_N; j++) {
+      const rs = Math.max(sl[0][j].r, sl[1][j].r, sl[2][j].r);
+      _v3.subVectors(Pb[e][j], C);
+      _v3.addScaledVector(T, -_v3.dot(T));
+      pl.push[e].push(Math.max(0, rs - _v3.length()));
+    }
+    const tj = Math.round(fract(pl.cfg.tag / TAU) * COLLAR_N), mp = ag.byName.ctag;
+    mp.c1.copy(C).add(_v4.copy(S).multiplyScalar(Math.sin(pl.cfg.tag)).addScaledVector(Nv, Math.cos(pl.cfg.tag)).multiplyScalar(Math.max(sl[0][tj].r, sl[1][tj].r, sl[2][tj].r) + (pl.gap + pl.thick) * 1.25));
+    mp.M = m3.scale(1.25);
+  }
+  function collarGeoMesh(A) {
+    const pl = A.cplan, N = COLLAR_N, bt = newBatch(A.ag), dep = pl.thick * 0.8;
+    const pos = [], nrm = [], col = [], wts = [], idx = [], outN = [], push = [];
+    const P = new THREE.Vector3(), D = new THREE.Vector3();
+    for (let j = 0; j <= N; j++) {
+      pl.dir(pl.ths[j], D);
+      for (let e = 0; e < 2; e++) {
+        P.copy(pl.C).addScaledVector(pl.T, e ? pl.hw : -pl.hw).addScaledVector(D, pl.r[j]);
+        const w = pl.w[e][j], inner = P.clone().addScaledVector(D, pl.gap - dep), outer = P.clone().addScaledVector(D, pl.gap + pl.thick);
+        const tn = pl.T.clone().multiplyScalar(e ? 1 : -1);
+        const v = e ? [[outer, tn, 0.72], [inner, tn, 0.72]] : [[inner, tn, 0.72], [outer, tn, 0.72]];
+        for (const qq of v) { pos.push(qq[0].x, qq[0].y, qq[0].z); nrm.push(qq[1].x, qq[1].y, qq[1].z); col.push(qq[2]); wts.push(w); outN.push(D.x, D.y, D.z); push.push(pl.push ? pl.push[e][j] : 0); }
+        pos.push(outer.x, outer.y, outer.z); nrm.push(D.x, D.y, D.z); col.push(1); wts.push(w); outN.push(D.x, D.y, D.z); push.push(pl.push ? pl.push[e][j] : 0);
+      }
+    }
+    for (let j = 0; j < N; j++) {
+      const a = j * 6, b = a + 6;
+      idx.push(a, a + 1, b, a + 1, b + 1, b);
+      idx.push(a + 2, a + 5, b + 2, a + 5, b + 5, b + 2);
+      idx.push(a + 3, a + 4, b + 3, a + 4, b + 4, b + 3);
+    }
+    const nb = pos.length / 3;
+    pushPart(bt, { pos, nrm, idx, weights: (v) => wts[v], fluff: false }, A.boneIndex, () => [0, 0], (v) => [col[v], col[v], col[v]], false);
+    const r = pl.tagR, rr = r * 0.34, H = pl.hang;
+    for (const qq of [torusPart([H.x, H.y - rr * 0.6, H.z], rr, rr * 0.24, 7, 3), discPart([H.x, H.y - rr * 1.45 - r, H.z], r, r * 0.16, 14)]) {
+      qq.weights = () => [['ctag', 1]]; qq.fluff = false; pushPart(bt, qq, A.boneIndex, () => [1, 0], () => [1, 1, 1], false);
+    }
+    const g = batchGeometry(bt, true), m = g.morphAttributes.position[0];
+    for (let v = 0; v < nb; v++) m.setXYZ(v, m.getX(v) + outN[v * 3] * push[v], m.getY(v) + outN[v * 3 + 1] * push[v], m.getZ(v) + outN[v * 3 + 2] * push[v]);
+    g.morphAttributes.position.push(new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count * 3), 3));
+    g.boundingSphere = A.geos[0].geo.boundingSphere;
+    A.collarShellOn = false;
+    return (A.collarGeo = g);
+  }
   // shared per species: band slice + tag, uv.x = 1 on metal; morph 0 baby, morph 1 lift onto the fur shells
   function collarGeo(A) {
     if (A.collarGeo) return A.collarGeo;
+    if (A.cplan.mesh) return collarGeoMesh(A);
     const pl = A.cplan, spec = A.spec, sp = spec.shell, N = COLLAR_N, bt = newBatch(A.ag);
     const shellOn = !!(sp && sp.parts && sp.parts.includes(pl.fp.name));
     const P = new THREE.Vector3(), Nn = new THREE.Vector3(), lift = [], outN = [];
@@ -5715,5 +6013,5 @@ const Animals = (() => {
     return rig;
   }
 
-  return { ids, build };
+  return { ids, build, ready };
 })();

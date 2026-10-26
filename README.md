@@ -58,13 +58,15 @@ game/src/68_net.js      playing together: sends your animal to the server and dr
 game/src/70_game.js     rendering, camera, controls, day and night, menus, saves
 game/vendor/            three.js r149
 game/assets/            pre-rendered menu pictures (made by tools/assets.py)
+game/models/            sculpted animal models (made by tools/blender, embedded by build.mjs)
+tools/blender/          the Blender pipeline that sculpts, bakes and exports those models
 game/config.json        address of the cloud save API
 build.mjs               builds docs/index.html
 docs/                   the published site (GitHub Pages serves this folder)
 worker/                 Cloudflare Worker API + D1 schema
 ```
 
-Everything 3D is built from code when the game loads (no model or texture files), using [three.js](https://threejs.org).
+Everything 3D is built from code when the game loads, using [three.js](https://threejs.org). The one exception is the pig, whose body is sculpted by script in Blender (see [tools/blender](tools/blender/README.md)) and embedded in the page as a small mesh with color and normal maps.
 
 ## Building
 

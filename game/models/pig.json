@@ -1,0 +1,100 @@
+{
+ "v": 1,
+ "id": "pig",
+ "data": "pig.bin",
+ "maps": {
+  "color": "pig-color.webp",
+  "normal": "pig-normal.webp"
+ },
+ "nv": 4844,
+ "ntri": 6318,
+ "bbox": [
+  -0.226801,
+  0.0004,
+  -0.646207,
+  0.226801,
+  0.738866,
+  0.791492
+ ],
+ "bones": [
+  "hips",
+  "chest",
+  "neck",
+  "head",
+  "tail1",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "earL",
+  "earR",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.0815,
+   0.548,
+   0.565
+  ],
+  "r": 0.0125,
+  "dir": [
+   0.7992,
+   0.1598,
+   0.5794
+  ],
+  "lid": [
+   0.448,
+   -0.64,
+   0.42
+  ],
+  "iris": 8148020,
+  "irisR": 0.95,
+  "pupilR": 0.32,
+  "lidCol": 10315357,
+  "lash": {
+   "n": 11,
+   "len": 0.0095,
+   "col": 15721170
+  }
+ },
+ "collar": {
+  "at": [
+   "chest",
+   "neck",
+   0.92
+  ],
+  "w": 0.8
+ },
+ "mouth": [
+  0.0,
+  0.384,
+  0.722
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.03,
+  0.98,
+  0.98
+ ],
+ "belly": [
+  0.0,
+  0.2626,
+  -0.3
+ ]
+}
