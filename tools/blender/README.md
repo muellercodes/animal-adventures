@@ -50,6 +50,13 @@ export. It provides: `BOUNDS`, `PATCHES` (fine bake-only boxes), `shape(P)` (the
 `finish()` (folds ambient occlusion into the color), `stats()`, `meta()` (eye, lids, lashes, iris, mouth, collar
 placement written to the json) and `MAP_QUALITY`. `sdf.py` has the primitives, smooth booleans, noise and meshing.
 
+Optional, for animals that are small, long or bendy (the lizard uses all of them): `TAIL_RINGS = 0` when the tail is part
+of the field (no tail tube), `BAKE_CAGE = (cage, ray)` and `AO_DIST` (bake distances in meters, scaled to the animal),
+`UV_PACK` (extra `uv.pack_islands` options, such as axis aligned islands), `unwrap(ob)` (its own UV islands instead of
+smart project) and `lowpoly_fix(bm, hi)` (edits the decimated half before unwrapping). `meshfix.py` has the fix-ups for
+that: rings cut across a tail, neck or leg so it can bend (the decimator leaves smooth stretches with almost no
+vertices), seam cuts, and removal of slivers and loose specks.
+
 ## Budget (pig)
 
 About 6.3k triangles, 4.8k vertices, 1024 x 1024 color and normal maps: 136 KB mesh + 71 KB + 52 KB maps, about 350 KB

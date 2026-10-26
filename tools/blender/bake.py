@@ -2,7 +2,7 @@
 # and normal (object space) at 2x the texture size and ambient occlusion at the texture size. The textures themselves
 # are made from these in texture.py. Writes work/<id>-bake.npz.
 # Usage: <blender python> tools/blender/bake.py pig [texture size, default 1024]
-import os, sys, time
+import importlib, os, sys, time
 import numpy as np
 import bpy
 
@@ -12,6 +12,10 @@ import meshutil as MU
 
 SP = sys.argv[1] if len(sys.argv) > 1 else 'pig'
 TEX = int(sys.argv[2]) if len(sys.argv) > 2 else 1024
+S = importlib.import_module(SP)
+# cage extrusion and ray length for the bake, and the occlusion distance (meters): species can scale them to their size
+CAGE, RAY = getattr(S, 'BAKE_CAGE', (0.012, 0.03))
+AO_DIST = getattr(S, 'AO_DIST', 0.12)
 WORK = os.path.join(HERE, 'work')
 t0 = time.time()
 
@@ -74,7 +78,7 @@ def bake(kind, size, samples, **kw):
     tgt.select_set(True)
     bpy.context.view_layer.objects.active = tgt
     t = time.time()
-    bpy.ops.object.bake(type=kind, use_selected_to_active=True, cage_extrusion=0.012, max_ray_distance=0.03, margin=0, use_clear=True, **kw)
+    bpy.ops.object.bake(type=kind, use_selected_to_active=True, cage_extrusion=CAGE, max_ray_distance=RAY, margin=0, use_clear=True, **kw)
     a = np.empty(size * size * 4, np.float32)
     img.pixels.foreach_get(a)
     print(f'baked {kind} {size} in {time.time() - t:.0f}s')
@@ -85,7 +89,7 @@ R2 = TEX * 2
 nrm = bake('NORMAL', R2, 1, normal_space='OBJECT', normal_r='POS_X', normal_g='POS_Y', normal_b='POS_Z')
 pos = bake('EMIT', R2, 1)
 sc.world = bpy.data.worlds.new('w')
-sc.world.light_settings.distance = 0.12
+sc.world.light_settings.distance = AO_DIST
 ao = bake('AO', TEX, 48)
 np.savez_compressed(os.path.join(WORK, f'{SP}-bake.npz'), nrm=nrm, pos=pos, ao=ao, plo=PLO, phi=PHI)
 print(f'saved {SP}-bake.npz ({time.time() - t0:.0f}s)')

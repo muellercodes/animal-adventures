@@ -1,0 +1,94 @@
+{
+ "v": 1,
+ "id": "lizard",
+ "data": "lizard.bin",
+ "maps": {
+  "color": "lizard-color.webp",
+  "normal": "lizard-normal.webp"
+ },
+ "nv": 4909,
+ "ntri": 6836,
+ "bbox": [
+  -0.082068,
+  0.000222,
+  -0.293696,
+  0.082068,
+  0.048038,
+  0.141556
+ ],
+ "bones": [
+  "hips",
+  "chest",
+  "neck",
+  "head",
+  "tail1",
+  "tail2",
+  "tail3",
+  "tail4",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.01,
+   0.0408,
+   0.0985
+  ],
+  "r": 0.0032,
+  "dir": [
+   0.9045,
+   0.3015,
+   0.3015
+  ],
+  "lid": [
+   0.594,
+   -0.719,
+   0.25
+  ],
+  "iris": 10119714,
+  "irisR": 0.9,
+  "pupilR": 0.42,
+  "lidCol": 2301976
+ },
+ "mouth": [
+  0.0,
+  0.03,
+  0.1345
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.04,
+  0.04,
+  0.05
+ ],
+ "flat": 1710877,
+ "belly": [
+  0.0,
+  0.013,
+  -0.035
+ ]
+}
