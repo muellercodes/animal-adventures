@@ -22,6 +22,10 @@ VIEWS = {
     'eye': ((0.3, 0.57, 0.68), (0.0815, 0.548, 0.565), 12),
     'mouth': ((0.45, 0.33, 0.85), (0.04, 0.39, 0.68), 18),
 }
+# a species can bring its own camera views (PREVIEW in <id>.py, same format), for animals of another size
+sys.path.insert(0, HERE)
+import importlib
+VIEWS.update(getattr(importlib.import_module(SP), 'PREVIEW', {}))
 want = sys.argv[3].split(',') if len(sys.argv) > 3 else ['side', 'front3q', 'front', 'rear3q', 'face', 'feet']
 os.makedirs(OUT, exist_ok=True)
 
@@ -63,7 +67,7 @@ so.rotation_euler = (math.radians(50), 0, math.radians(35))
 w = bpy.data.worlds.new('w'); sc.world = w; w.use_nodes = True
 w.node_tree.nodes['Background'].inputs['Color'].default_value = (0.55, 0.65, 0.8, 1)
 w.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.8
-sc.render.engine = 'CYCLES'; sc.cycles.samples = 24; sc.cycles.use_denoising = True
+sc.render.engine = 'CYCLES'; sc.cycles.samples = int(os.environ.get('SAMPLES', 24)); sc.cycles.use_denoising = True
 sc.cycles.device = 'CPU'
 sc.render.resolution_x, sc.render.resolution_y = 640, 440
 sc.view_settings.view_transform = 'Standard'
