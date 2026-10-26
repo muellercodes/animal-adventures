@@ -4974,7 +4974,7 @@ const Animals = (() => {
       mapLoads.push(new Promise((res) => {
         img.onload = () => {
           const t = new THREE.Texture(img);
-          if (k === 'color' || k === 'hair' || (md.srgb && md.srgb.indexOf(k) >= 0)) t.encoding = THREE.sRGBEncoding;
+          if (k === 'color' || k === 'hair' || k === 'babyColor' || (md.srgb && md.srgb.indexOf(k) >= 0)) t.encoding = THREE.sRGBEncoding;
           t.anisotropy = 4; t.needsUpdate = true;
           mm.tex[k] = t;
           if (++mm.ready === mm.need) for (const f of mm.waiters.splice(0)) f();
@@ -5182,7 +5182,7 @@ const Animals = (() => {
     m.userData.aa = { aaRimC: { value: new THREE.Vector3().fromArray(rim) } };
     m.onBeforeCompile = aaModelCompile;
     const mm = M.maps, flat = linColor(md.flat || 0xe0b0a0);
-    // babies can have their own maps (birds: down instead of feathers)
+    // babies can have their own maps (birds: down instead of feathers; a fox kit's gray-brown fuzz)
     const apply = () => { m.map = (baby && mm.tex.babyColor) || mm.tex.color || null; m.normalMap = (baby && mm.tex.babyNormal) || mm.tex.normal || null; m.color.setRGB(tint[0], tint[1], tint[2]); m.needsUpdate = true; };
     if (mm && mm.ready === mm.need) apply();
     else { m.color.copy(flat); if (mm) mm.waiters.push(apply); }

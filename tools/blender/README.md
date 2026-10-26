@@ -3,8 +3,9 @@
 Makes a realistic body for one species with Blender, fitted to the skeleton the game already uses, and writes it to
 `game/models/<id>.*`. `build.mjs` embeds those files in the page and `game/src/40_animals.js` uses the model instead of
 the procedural loft body. Everything else (bones, walk/run/eat/sleep animation, baby proportions, eyes and blinking,
-collar, moods, swimming) keeps working through the same rig API. The pig (bare skin), frog, lizard, turtle, snake and
-horse (coat, mane and tail) have models so far; `horse.py` is the example for furry animals.
+collar, moods, swimming) keeps working through the same rig API. The pig (bare skin), frog, lizard, turtle, snake,
+horse (coat, mane and tail), fox, raccoon, otter and weasel have models so far; `horse.py` is the example for furry
+animals and `carnivore.py` has the parts the small carnivores share.
 
 Nothing is downloaded: the shape, skin colors and fine detail are all made by the scripts here.
 
@@ -192,6 +193,34 @@ Lessons:
 - The swan (`swan.py`) is made but not shipped: the adult is only a little better than the procedural one and the
   cygnet is not better (smooth, no fur shell fluff). Run `VOXEL=0.004 TRIS=6500 TEX=1024 ... make.py swan` to make it.
 
+## The small carnivores (`carnivore.py`)
+
+The fox, raccoon, otter and weasel share `carnivore.py`: field helpers (`local`, `mirror`, `groove`), `Frame` (a head
+frame along the muzzle), `Eye` (ball, almond lid opening with a slant, lid mound, `sink` to set the ball back so a
+shut eye sits flush, and the eye's `meta()` with the game's own lids kept just behind the sculpted ones), `ear()`
+(pointed or round, cupped), `paw()` (digitigrade toes on a pad), `hand()` and `web()` (flat hands and feet with long
+digits, webbing between them), `strands()` (the coat strokes, with a per region length factor `lenk`), `whiskers()`
+(hair cards rooted with `'_skin'`, shorter on babies) and `set_part()` for skin weight fixes. Things learned:
+- `keep()` needs a floor over the whole body (about 0.44) or the decimator gives a fox's head, ears and paws nearly all
+  the triangles and leaves 60 for the trunk; a lower floor on a long smooth tail (0.36 to 0.42) stops it taking too much.
+- Every `local()` box has to reach past the blend radius of its part, or the field steps at the box wall and the mesh
+  gets a crease right across the body.
+- Noise added to an edge has to move both ends of `sstep(a, b, x)` together; when the ends swap the mask inverts and
+  leaves white specks (the fox's tail tip did that).
+- `meta()` can give `belly` (the contact point for lying down) when the legs are close to the middle; the export's own
+  search under the hips finds the inside of the legs on a fox and the animal sleeps standing.
+- A species with `baby_paint(P, N, comps, col)` gets a second color map for babies (`BABY_TEX`, 256 to 512 is enough):
+  a fox kit's gray-brown fuzz and a weasel kit's grayer coat. The game swaps it in with the baby material (`babyColor`).
+- A grizzled coat (the raccoon's black and white tipped guard hairs) makes a big WebP: `PAD_SMOOTH = 4` fills the
+  padding farther than 4 texels from the islands with a smooth blur instead of smeared strokes, and quality 60 is
+  enough for such a busy map.
+- A `sweep()` rounds its end caps by half the smaller of its end widths, so a tapering tail or leg has a nearly flat
+  disc at its thick end: start it inside the body, or the disc's rim prints a ring across the skin (the otter's tail
+  and hips did that).
+- Skin weight masks for paws need bounds on both sides along z: a mask for the hind feet "in front of the heel" also
+  took the hands, and a raccoon kit's arm stretched across the meadow.
+- Long bendy bodies (the otter swimming, the weasel standing up and curling to sleep) get rings from
+  `meshfix.rings` in `lowpoly_fix`; decimate to fewer triangles (`TRIS`) so the total stays in budget after the cuts.
 
 ## Budget
 
@@ -209,3 +238,21 @@ converted to format 2 with `modelpack.py`. The birds are still format 1 (their b
 Birds (`VOXEL=0.002 TRIS=6000 TEX=768`): about 6k body triangles and 4k vertices, 768 color and normal maps, 512 baby
 maps, a 512 x 256 feather atlas; 250 to 290 KB of files, about 340 to 390 KB in the page each (format 1). In the game
 about 8.7k to 9k triangles with the feather blades (about 2k) and eyes.
+
+Fox (`VOXEL=0.002 TRIS=7000 TEX=1024`): 7.0k triangles plus 96 in the whiskers; 1024 color (WebP 72) and normal maps,
+512 fur map, 512 kit color map: 59 KB mesh and cards + 67 + 33 + 13 + 8 + 4 KB, about 250 KB in the page.
+
+Raccoon (`VOXEL=0.002 TRIS=7000 TEX=1024`): 7.0k triangles plus 96 in the whiskers; 1024 maps (color WebP 60 with
+`PAD_SMOOTH`), 512 fur map: 59 KB + 103 + 30 + 13 + 4 KB, about 282 KB in the page.
+
+Otter (`VOXEL=0.002 TRIS=5400 TEX=1024`, then rings across the body and tail): 8.2k triangles plus 144 in the whiskers;
+1024 maps, 512 fur and pup color maps: 66 KB + 32 + 54 + 9 + 3 + 5 KB, about 232 KB in the page. The wet coat is
+clumps of strands (`_clumps()`: wide tapering strokes, light ridges and dark partings, glossy roughness); pups get a
+dry, even coat in their own color map.
+
+Weasel (`VOXEL=0.0008 TRIS=4600 TEX=512`, then rings across the body, neck and tail so it stands up and curls up
+smoothly): 7.9k triangles plus 80 in the whiskers; 512 maps, 256 kit color map: 64 KB + 19 + 9 + 3 + 5 + 4 KB, about
+145 KB in the page.
+
+Close up (detail 2) the four carnivores' fur shells come to 31k to 35k triangles in one draw call (4 or 5 layers over
+the coated triangles); detail 1 and 0 draw the body and the whiskers only (7k to 8.4k triangles).

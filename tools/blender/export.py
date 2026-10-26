@@ -86,6 +86,10 @@ open(os.path.join(OUT, f'{SP}.bin'), 'wb').write(blob)
 maps = {'color': f'{SP}-color.webp', 'normal': f'{SP}-normal.webp'}
 Image.open(os.path.join(WORK, f'{SP}-color.png')).convert('RGB').save(os.path.join(OUT, maps['color']), 'WEBP', quality=S.MAP_QUALITY[0], method=6)
 Image.open(os.path.join(WORK, f'{SP}-nrm.png')).convert('RGB').save(os.path.join(OUT, maps['normal']), 'WEBP', quality=S.MAP_QUALITY[1], method=6)
+if hasattr(S, 'baby_paint'):
+    # babies colored differently: a second color map (the game swaps it in with the baby material)
+    maps['babyColor'] = f'{SP}-baby.webp'
+    Image.open(os.path.join(WORK, f'{SP}-babycolor.png')).convert('RGB').save(os.path.join(OUT, maps['babyColor']), 'WEBP', quality=S.MAP_QUALITY[0], method=6)
 if FUR:
     maps['fur'] = f'{SP}-fur.webp'
     Image.open(os.path.join(WORK, f'{SP}-fur.png')).convert('RGB').save(os.path.join(OUT, maps['fur']), 'WEBP', quality=FUR.get('quality', 80), method=6)
@@ -114,7 +118,8 @@ if cards is not None:
 # belly contact point under the hips (for lying down)
 rig = json.load(open(os.path.join(WORK, f'{SP}-rig.json')))['adult']
 hips = [b['p'] for b in rig['bones'] if b['name'] == 'hips']
-if hips:    # (a snake has no hips: the game keeps its belly point at the origin, as for its procedural body)
+if hips and 'belly' not in meta:    # (a snake has no hips: the game keeps its belly point at the origin; a species
+    # with its legs close to the middle, like the fox, gives its own point in meta())
     hz = hips[0][2]
     k = max(1.0, rig['size']['length'] / 1.2)
     near = (np.abs(pos[:, 0]) < 0.04 * k) & (np.abs(pos[:, 2] - hz) < 0.05 * k) & ~lo['tail']

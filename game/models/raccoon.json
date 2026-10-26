@@ -1,0 +1,134 @@
+{
+ "v": 2,
+ "id": "raccoon",
+ "data": "raccoon.bin",
+ "enc": "deflate",
+ "raw": 87642,
+ "maps": {
+  "color": "raccoon-color.webp",
+  "normal": "raccoon-normal.webp",
+  "fur": "raccoon-fur.webp",
+  "hair": "raccoon-hair.webp"
+ },
+ "nv": 2624,
+ "ntri": 3495,
+ "nbv": 2624,
+ "nbt": 3495,
+ "bbox": [
+  -0.120442,
+  0.00048,
+  -0.58638,
+  0.120442,
+  0.380687,
+  0.366063
+ ],
+ "bones": [
+  "hips",
+  "chest",
+  "neck",
+  "head",
+  "tail1",
+  "tail2",
+  "tail3",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "earL",
+  "earR",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.03798,
+   0.27801,
+   0.28942
+  ],
+  "r": 0.0078,
+  "dir": [
+   0.5222,
+   0.1808,
+   0.8335
+  ],
+  "lid": [
+   0.95,
+   -0.903,
+   0.3
+  ],
+  "iris": 2759184,
+  "irisR": 0.95,
+  "pupilR": 0.5,
+  "rim": 788486,
+  "lidCol": 1315345
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "head",
+   0.3
+  ]
+ },
+ "belly": [
+  0.0,
+  0.158,
+  -0.12
+ ],
+ "mouth": [
+  0.0,
+  0.2277,
+  0.3371
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.06,
+  1.05,
+  1.04
+ ],
+ "rim": [
+  0.12,
+  0.11,
+  0.1
+ ],
+ "flat": 7235682,
+ "fur": {
+  "len": 0.036,
+  "n": 5,
+  "lean": 1.0,
+  "tile": 0.0016,
+  "babyLen": 1.4,
+  "babyLean": 0.45,
+  "shade": 0.62,
+  "uvm": 0.681
+ },
+ "cards": {
+  "nv": 120,
+  "ntri": 96,
+  "bbox": [
+   -0.070843,
+   0.214717,
+   0.314658,
+   0.070843,
+   0.252036,
+   0.361436
+  ],
+  "bscale": 1e-06,
+  "rough": 0.45,
+  "alpha": 0.35
+ }
+}
