@@ -56,7 +56,10 @@ rig = json.load(open(os.path.join(WORK, f'{SP}-rig.json')))['adult']
 hz = [b['p'] for b in rig['bones'] if b['name'] == 'hips'][0][2]
 near = (np.abs(pos[:, 0]) < 0.04) & (np.abs(pos[:, 2] - hz) < 0.05) & ~lo['tail']
 meta['belly'] = [0.0, round(float(pos[near, 1].min()), 4), hz]
+# optional species hook for more maps (the birds' baby down and feather atlas)
+if hasattr(S, 'export_extra'):
+    S.export_extra(meta, OUT, WORK)
 json.dump(meta, open(os.path.join(OUT, f'{SP}.json'), 'w'), indent=1)
-sizes = {f: os.path.getsize(os.path.join(OUT, f)) for f in (f'{SP}.bin', f'{SP}-color.webp', f'{SP}-normal.webp', f'{SP}.json')}
+sizes = {f: os.path.getsize(os.path.join(OUT, f)) for f in [f'{SP}.bin', f'{SP}.json'] + list(meta['maps'].values())}
 tot = sum(sizes.values())
 print(f'{SP}: {nv} verts {nt} tris;', ', '.join(f'{k} {v // 1024} KB' for k, v in sizes.items()), f'; total {tot // 1024} KB, as base64 about {tot * 4 // 3 // 1024} KB')

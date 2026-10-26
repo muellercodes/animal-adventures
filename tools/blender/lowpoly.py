@@ -94,7 +94,8 @@ lo.name = 'lo'
 bpy.context.scene.tool_settings.use_uv_select_sync = True
 bpy.ops.object.mode_set(mode='EDIT')
 bpy.ops.mesh.select_all(action='SELECT')
-bpy.ops.uv.pack_islands(rotate=True, margin=0.0045)
+# species can pass more packing options (the birds' long irregular islands pack much tighter with shape_method='CONCAVE')
+bpy.ops.uv.pack_islands(rotate=True, margin=0.0045, **getattr(S, 'UV_PACK', {}))
 bpy.ops.object.mode_set(mode='OBJECT')
 
 # read back: positions, triangles, per-corner uvs; tail faces are the last ones

@@ -153,3 +153,6 @@ if __name__ == '__main__':
     out(Ro[..., 0]).save(os.path.join(WORK, f'{SP}-rough.png'))
     out(ao).save(os.path.join(WORK, f'{SP}-ao.png'))
     print(f'textures {TEX} saved ({time.time() - t0:.0f}s)')
+    # optional species hook for more maps on the same layout (the birds' baby down and feather atlas)
+    if hasattr(S, 'extra_maps'):
+        S.extra_maps(dict(R=R, valid=valid, Ph=Ph, Nh=Nh, Nl=Nl, Gu=Gu, Gv=Gv, Tu=Tu, Tv=Tv, comps=comps, ao=ao, v2=v2, pad=pad, down2=down2, work=WORK))

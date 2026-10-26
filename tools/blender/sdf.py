@@ -212,6 +212,47 @@ def mirror(v, f):
     return np.concatenate([v, vm]), np.concatenate([f, f[:, ::-1] + len(v)])
 
 
+def axis_steps(lo, hi, bands, h):
+    """grid coordinates from lo to hi with spacing h, finer (or coarser) inside bands [(a, b, spacing), ...]"""
+    out, x = [], float(lo)
+    while x <= hi + 1e-9:
+        out.append(x)
+        s = h
+        for a, b, hs in bands:
+            if a - 1e-9 <= x < b:
+                s = hs
+        x += s
+    return np.array(out, dtype=F)
+
+
+def mesh_half_rect(field, xs, ys, zs, chunk=16):
+    """like mesh_half on a rectilinear grid (separate coordinate arrays per axis, xs starting at 0), so thin parts
+    (webs, claws, the wing arm) can get a finer spacing along the axes that need it. Marching cubes runs in index
+    space and every vertex is mapped back through the axis coordinates (exact on the grid edges it lies on)."""
+    from skimage.measure import marching_cubes
+    vol = np.empty((len(xs), len(ys), len(zs)), dtype=F)
+    X, Y = np.meshgrid(xs, ys, indexing='ij')
+    for z0 in range(0, len(zs), chunk):
+        zz = zs[z0:z0 + chunk]
+        P = np.empty((len(xs), len(ys), len(zz), 3), dtype=F)
+        P[..., 0] = X[..., None]; P[..., 1] = Y[..., None]; P[..., 2] = zz[None, None, :]
+        vol[:, :, z0:z0 + len(zz)] = field(P.reshape(-1, 3)).reshape(len(xs), len(ys), len(zz))
+    v, f, _, _ = marching_cubes(vol, 0.0, allow_degenerate=False)
+    v = np.stack([np.interp(v[:, k], np.arange(len(a)), a) for k, a in enumerate((xs, ys, zs))], 1).astype(F)
+    v[:, 0] = np.where(v[:, 0] < 1e-7, 0.0, v[:, 0])
+    nv = len(v)
+    vm = v.copy(); vm[:, 0] *= -1
+    fm = f[:, ::-1] + nv
+    V2 = np.concatenate([v, vm]); F2 = np.concatenate([f, fm])
+    on = np.where(np.abs(v[:, 0]) < 1e-7)[0]
+    remap = np.arange(len(V2))
+    remap[on + nv] = on
+    F2 = remap[F2]
+    used = np.unique(F2)
+    idx = np.full(len(V2), -1); idx[used] = np.arange(len(used))
+    return V2[used], idx[F2]
+
+
 def mesh_half(field, lo, hi, h, chunk=24):
     """Polygonize field(P) (P: (N,3)) over x in [0, hi.x] and mirror it to the -x side. Returns (verts, faces).
     The grid has a plane at x = 0, so both halves share the cut exactly and weld cleanly."""

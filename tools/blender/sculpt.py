@@ -42,7 +42,12 @@ def tube(pts, rad, segs, cap=True):
 if __name__ == '__main__':
     t0 = time.time()
     lo, hi = S.BOUNDS
-    v, f = mesh_half(S.shape, lo, hi, H)
+    if hasattr(S, 'grid'):
+        # rectilinear grid from the species (finer spacing where thin parts need it), scaled with the voxel size
+        from sdf import mesh_half_rect
+        v, f = mesh_half_rect(S.shape, *S.grid(H))
+    else:
+        v, f = mesh_half(S.shape, lo, hi, H)
     print(f'body: {len(v)} verts {len(f)} tris in {time.time() - t0:.1f}s')
     # bake-only detail patches: fine meshes over small features, replacing the coarse triangles in their core
     # (v, f stay whole for the game mesh; bv, bf is the bake copy with the patch cores cut out)
@@ -58,8 +63,10 @@ if __name__ == '__main__':
         a, b = crop(a, b, lo_k, hi_p - m)
         core_lo, core_hi = lo_p + 4 * H, hi_p - 4 * H
         if lo_p[0] <= 0:
-            core_lo = core_lo.copy(); core_lo[0] = -1
-        for sg in (1, -1):
+            # a patch across the middle: one core from -x to +x (cutting all of -x, or both mirrored halves to +-1,
+            # would also remove body beyond the patch on one side and leave holes in the bake source there)
+            core_lo = core_lo.copy(); core_lo[0] = -core_hi[0]
+        for sg in ((1,) if lo_p[0] <= 0 else (1, -1)):
             lo_c, hi_c = core_lo.copy(), core_hi.copy()
             if sg < 0:
                 lo_c[0], hi_c[0] = -core_hi[0], -core_lo[0]
