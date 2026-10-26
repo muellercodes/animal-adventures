@@ -151,6 +151,17 @@ if __name__ == '__main__':
     aov = ao > 0
     ao = pad(np.where(aov, ao, 0)[..., None], aov, 24)[..., 0]
     C = S.finish(C, ao, v2)
+    # optional (PAD_SMOOTH = texels): beyond a few texels of the islands the padding only needs to be smooth; the
+    # smeared coat strokes there cost a lot of WebP bytes (a grizzled coat's color map shrinks by about a third)
+    def smooth_pad(A, keep):
+        from scipy import ndimage
+        near = ndimage.binary_dilation(v2, iterations=keep)
+        Bl = np.stack([ndimage.uniform_filter(A[..., k], 33, mode='nearest') for k in range(A.shape[2])], 2)
+        return np.where(near[..., None], A, Bl)
+    PS = getattr(S, 'PAD_SMOOTH', 0)
+    if PS:
+        C = smooth_pad(C, PS)
+        N = smooth_pad(N, PS); N /= np.linalg.norm(N, axis=2, keepdims=True)
     import json
     json.dump(S.stats(Ph, Nh, comps, col), open(os.path.join(WORK, f'{SP}-stats.json'), 'w'))
     out = lambda a: Image.fromarray(np.clip(a[::-1] * 255 + 0.5, 0, 255).astype(np.uint8))
@@ -160,6 +171,8 @@ if __name__ == '__main__':
     out(ao).save(os.path.join(WORK, f'{SP}-ao.png'))
     if bcol is not None:
         Cb = S.finish(down2(pad(img(bcol, 3), valid, 24)), ao, v2)
+        if PS:
+            Cb = smooth_pad(Cb, PS)
         im = out(Cb)
         bt = getattr(S, 'BABY_TEX', TEX)
         if bt != TEX:

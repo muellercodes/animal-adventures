@@ -3,8 +3,9 @@
 Makes a realistic body for one species with Blender, fitted to the skeleton the game already uses, and writes it to
 `game/models/<id>.*`. `build.mjs` embeds those files in the page and `game/src/40_animals.js` uses the model instead of
 the procedural loft body. Everything else (bones, walk/run/eat/sleep animation, baby proportions, eyes and blinking,
-collar, moods, swimming) keeps working through the same rig API. The pig (bare skin), frog, lizard, turtle, snake and
-horse (coat, mane and tail) have models so far; `horse.py` is the example for furry animals.
+collar, moods, swimming) keeps working through the same rig API. The pig (bare skin), frog, lizard, turtle, snake,
+horse (coat, mane and tail), fox and raccoon have models so far; `horse.py` is the example for furry animals and
+`carnivore.py` has the parts the small carnivores share.
 
 Nothing is downloaded: the shape, skin colors and fine detail are all made by the scripts here.
 
@@ -163,6 +164,16 @@ digits, webbing between them), `strands()` (the coat strokes, with a per region 
   search under the hips finds the inside of the legs on a fox and the animal sleeps standing.
 - A species with `baby_paint(P, N, comps, col)` gets a second color map for babies (`BABY_TEX`, 256 to 512 is enough):
   a fox kit's gray-brown fuzz and a weasel kit's grayer coat. The game swaps it in with the baby material (`babyColor`).
+- A grizzled coat (the raccoon's black and white tipped guard hairs) makes a big WebP: `PAD_SMOOTH = 4` fills the
+  padding farther than 4 texels from the islands with a smooth blur instead of smeared strokes, and quality 60 is
+  enough for such a busy map.
+- A `sweep()` rounds its end caps by half the smaller of its end widths, so a tapering tail or leg has a nearly flat
+  disc at its thick end: start it inside the body, or the disc's rim prints a ring across the skin (the otter's tail
+  and hips did that).
+- Skin weight masks for paws need bounds on both sides along z: a mask for the hind feet "in front of the heel" also
+  took the hands, and a raccoon kit's arm stretched across the meadow.
+- Long bendy bodies (the otter swimming, the weasel standing up and curling to sleep) get rings from
+  `meshfix.rings` in `lowpoly_fix`; decimate to fewer triangles (`TRIS`) so the total stays in budget after the cuts.
 
 ## Budget
 
@@ -176,3 +187,9 @@ and the cards only.
 
 Frog: about 7.1k triangles, 6k vertices, 512 x 512 maps, about 305 KB in the page (`VOXEL=0.0004 TRIS=7200 TEX=512`;
 still the older model format, convert with `python3 tools/blender/modelpack.py frog`).
+
+Fox (`VOXEL=0.002 TRIS=7000 TEX=1024`): 7.0k triangles plus 96 in the whiskers; 1024 color (WebP 72) and normal maps,
+512 fur map, 512 kit color map: 59 KB mesh and cards + 67 + 33 + 13 + 8 + 4 KB, about 250 KB in the page.
+
+Raccoon (`VOXEL=0.002 TRIS=7000 TEX=1024`): 7.0k triangles plus 96 in the whiskers; 1024 maps (color WebP 60 with
+`PAD_SMOOTH`), 512 fur map: 59 KB + 103 + 30 + 13 + 4 KB, about 282 KB in the page.
