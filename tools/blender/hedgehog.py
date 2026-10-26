@@ -485,7 +485,9 @@ def meta(st):
     p, r, d, lid = EYE.meta()
     return {
         'eye': {'p': p, 'r': r, 'dir': d, 'lid': lid, 'iris': 0x0A0706, 'irisR': 0.97, 'pupilR': 0.6, 'rim': 0x050303, 'lidCol': 0x4E3C2E},
-        'collar': {'at': ['neck', 'head', 0.75], 'r': 0.8, 'w': 0.75},
+        # no real neck: keep the band low on the face fur (lift) and ignore the spine dome around it (maxR), or it
+        # stands off the face as a big hoop
+        'collar': {'at': ['neck', 'head', 0.75], 'r': 0.8, 'w': 0.75, 'maxR': 0.045, 'lift': 0.1},
         'mouth': [round(float(v), 4) for v in MOUTH],
         'tint': [1.0, 1.0, 1.0], 'babyTint': [1.0, 1.0, 1.0],
         'rim': [0.12, 0.09, 0.07], 'flat': 0x5A4636,
