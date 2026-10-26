@@ -111,7 +111,8 @@ if cards is not None:
     maps['hair'] = f'{SP}-hair.webp'
     import cards as CA
     hp = os.path.join(WORK, f'{SP}-hair.png')
-    CA.save_texture(CA.texture(S.HAIR), hp)
+    # a species can paint its own strand texture (banded tail hairs, spines): hair_texture() -> RGBA rows, 0..1
+    CA.save_texture(S.hair_texture() if hasattr(S, 'hair_texture') else CA.texture(S.HAIR), hp)
     Image.open(hp).save(os.path.join(OUT, maps['hair']), 'WEBP', quality=S.HAIR.get('quality', 85), method=6)
 
 meta = {'v': 2, 'id': SP, 'data': f'{SP}.bin', 'enc': 'deflate', 'raw': js['raw'], 'maps': maps, 'nv': js['nv'], 'ntri': js['ntri'], 'nbv': js['nbv'], 'nbt': js['nbt'],
