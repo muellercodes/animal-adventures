@@ -3,8 +3,8 @@
 Makes a realistic body for one species with Blender, fitted to the skeleton the game already uses, and writes it to
 `game/models/<id>.*`. `build.mjs` embeds those files in the page and `game/src/40_animals.js` uses the model instead of
 the procedural loft body. Everything else (bones, walk/run/eat/sleep animation, baby proportions, eyes and blinking,
-collar, moods, swimming) keeps working through the same rig API. The pig (bare skin), frog, lizard, turtle, snake and
-horse (coat, mane and tail) have models so far; `horse.py` is the example for furry animals.
+collar, moods, swimming) keeps working through the same rig API. The pig (bare skin), frog, lizard, turtle, snake,
+horse (coat, mane and tail) and deer have models so far; `horse.py` is the example for furry animals, `deer.py` for antlers.
 
 Nothing is downloaded: the shape, skin colors and fine detail are all made by the scripts here.
 
@@ -145,6 +145,32 @@ A sculpted body alone looks shaved. `horse.py` is the example for everything bel
 
 Bake costs: the strokes make `texture` take about 4 minutes at 1024; everything else is like the pig.
 
+## Hooved animals (`ungulate.py`; `deer.py`)
+
+The deer (and the goat and moose after it) reuse the horse's approach; the field helpers that were module globals in
+`horse.py` are generic functions in `ungulate.py`, plus:
+- `cloven()` and `dewclaws()`: a split hoof (two claws, flat inner walls, pointed tips, the front wall leaning back) and
+  the two little claws behind the fetlock. Put the dewclaws on the back of the pastern, not floating behind it.
+- `Tubes`: antlers and other branching tubes as smooth unions of round cones along resampled polylines (each segment
+  evaluated only near its box, so the fine bake patch stays fast), and per point coordinates of the nearest tube (arc
+  length, angle around the axis) for ridges in `detail()` and the dark base / ivory tips in the paint. The deer puts
+  the burr (a pearled ring) and its pearls only in a small box around the burr: evaluated over the whole antler patch
+  they took minutes.
+- Antlers and horns ride on their own bone (the game scales it to nothing on babies): weight only what lies above the
+  burr to it (`(P - BURR) @ axis > 0`) and leave the pedicle on the head, short and blended in, or the baby's head gets
+  holes or nubs where the antlers were.
+- A tail that lifts a long way (the deer's flag) is its own piece (`PIECES = [body, tail]`, see the turtle): blended
+  into the rump it would drag the skin up with it. Weight it in `fix_weights` by which piece a vertex lies on.
+- Newborns with their own coat (fawn spots): `paint_baby(P, N, c)` paints a second color map (`texture.py` writes
+  `<id>-color-baby.png`, `export.py` adds it as the `colorBaby` map at `BABY_MAP = (size, quality)`), and the game
+  uses it with the baby proportions. Spots that should line up (the fawn's rows along the spine) are placed on the rows
+  explicitly; jittered-grid spots never form rows.
+- Hair cards also suit short tufts: the deer's white tail fringe is 21 small cards weighted to the tail bones directly
+  (not `'_skin'`: the nearest skin to a card tip can be the rump).
+- Belly line: keep the belly ellipsoid above the brisket, and keep the stifle (front of the thigh) from hanging below
+  the belly, or it reads as a ball under the flank; a flat ellipsoid from the belly to the stifle makes the flank fold.
+- Deer, goat and moose coats are matte: roughness about 0.62 (the horse's 0.44 looks like plastic on them).
+
 ## Budget
 
 Pig: about 6.3k triangles, 4.8k vertices, 1024 x 1024 color and normal maps: 38 KB mesh (format 2; 136 KB before) +
@@ -154,6 +180,10 @@ Horse: 7.0k body triangles plus 2.0k in the hair cards; 1024 maps for color and 
 strand texture: 82 KB mesh and cards + 24 + 40 + 8 + 54 KB maps, about 283 KB in the page. Close up (detail 2) the
 fur shells add 4 layers over the coated triangles (about 22k triangles, one draw call); detail 1 and 0 draw the body
 and the cards only.
+
+Deer: 7.2k body triangles plus 126 in the tail fringe cards; 1024 color and normal maps, 512 fawn color map, 512 fur
+map, 128 x 128 strand texture: 63 KB mesh + 57 + 54 + 23 + 13 + 8 KB maps, about 297 KB in the page
+(`VOXEL=0.0035 TRIS=7200 WEIGHTS=transfer`, about 25 minutes on a busy machine).
 
 Frog: about 7.1k triangles, 6k vertices, 512 x 512 maps, about 305 KB in the page (`VOXEL=0.0004 TRIS=7200 TEX=512`;
 still the older model format, convert with `python3 tools/blender/modelpack.py frog`).

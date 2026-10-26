@@ -1,0 +1,143 @@
+{
+ "v": 2,
+ "id": "deer",
+ "data": "deer.bin",
+ "enc": "deflate",
+ "raw": 111114,
+ "maps": {
+  "color": "deer-color.webp",
+  "normal": "deer-normal.webp",
+  "colorBaby": "deer-color-baby.webp",
+  "fur": "deer-fur.webp",
+  "hair": "deer-hair.webp"
+ },
+ "nv": 3519,
+ "ntri": 3589,
+ "nbv": 3519,
+ "nbt": 3589,
+ "bbox": [
+  -0.206837,
+  0.0004,
+  -0.739604,
+  0.206837,
+  1.722896,
+  0.923964
+ ],
+ "bones": [
+  "hips",
+  "chest",
+  "neck",
+  "neck2",
+  "head",
+  "tail1",
+  "tail2",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "earL",
+  "earR",
+  "antler",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.05,
+   1.40271,
+   0.68432
+  ],
+  "r": 0.0155,
+  "dir": [
+   0.8815,
+   0.1402,
+   0.4508
+  ],
+  "lid": [
+   0.606,
+   -0.529,
+   0.3
+  ],
+  "iris": 2364940,
+  "irisR": 0.97,
+  "pupil": "h",
+  "pupilR": 0.42,
+  "rim": 788229,
+  "lidCol": 5982007,
+  "lash": {
+   "n": 18,
+   "len": 0.013,
+   "col": 1840144
+  }
+ },
+ "collar": {
+  "at": [
+   "neck2",
+   "head",
+   0.45
+  ],
+  "w": 0.8,
+  "maxR": 0.09
+ },
+ "mouth": [
+  0.0,
+  1.2299,
+  0.8904
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.16,
+  0.1,
+  0.07
+ ],
+ "flat": 10116148,
+ "fur": {
+  "len": 0.01,
+  "n": 4,
+  "lean": 1.8,
+  "tile": 0.0016,
+  "babyLen": 1.7,
+  "babyLean": 1.0,
+  "uvm": 1.4967
+ },
+ "cards": {
+  "nv": 168,
+  "ntri": 126,
+  "bbox": [
+   -0.079733,
+   0.728675,
+   -0.737163,
+   0.079733,
+   0.966986,
+   -0.683146
+  ],
+  "bscale": 1e-06,
+  "rough": 0.7,
+  "alpha": 0.3
+ },
+ "belly": [
+  0.0,
+  0.6037,
+  -0.42
+ ]
+}

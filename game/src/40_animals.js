@@ -4855,7 +4855,7 @@ const Animals = (() => {
       mapLoads.push(new Promise((res) => {
         img.onload = () => {
           const t = new THREE.Texture(img);
-          if (k === 'color' || k === 'hair') t.encoding = THREE.sRGBEncoding;
+          if (k === 'color' || k === 'hair' || k === 'colorBaby') t.encoding = THREE.sRGBEncoding;
           t.anisotropy = 4; t.needsUpdate = true;
           mm.tex[k] = t;
           if (++mm.ready === mm.need) for (const f of mm.waiters.splice(0)) f();
@@ -5058,7 +5058,8 @@ const Animals = (() => {
     m.userData.aa = { aaRimC: { value: new THREE.Vector3().fromArray(rim) } };
     m.onBeforeCompile = aaModelCompile;
     const mm = M.maps, flat = linColor(md.flat || 0xe0b0a0);
-    const apply = () => { m.map = mm.tex.color || null; m.normalMap = mm.tex.normal || null; m.color.setRGB(tint[0], tint[1], tint[2]); m.needsUpdate = true; };
+    // a model can bring its own newborn colors (colorBaby: a fawn's spots), used with the baby proportions
+    const apply = () => { m.map = (baby && mm.tex.colorBaby) || mm.tex.color || null; m.normalMap = mm.tex.normal || null; m.color.setRGB(tint[0], tint[1], tint[2]); m.needsUpdate = true; };
     if (mm && mm.ready === mm.need) apply();
     else { m.color.copy(flat); if (mm) mm.waiters.push(apply); }
     return m;

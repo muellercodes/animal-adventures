@@ -86,6 +86,14 @@ open(os.path.join(OUT, f'{SP}.bin'), 'wb').write(blob)
 maps = {'color': f'{SP}-color.webp', 'normal': f'{SP}-normal.webp'}
 Image.open(os.path.join(WORK, f'{SP}-color.png')).convert('RGB').save(os.path.join(OUT, maps['color']), 'WEBP', quality=S.MAP_QUALITY[0], method=6)
 Image.open(os.path.join(WORK, f'{SP}-nrm.png')).convert('RGB').save(os.path.join(OUT, maps['normal']), 'WEBP', quality=S.MAP_QUALITY[1], method=6)
+if hasattr(S, 'paint_baby'):
+    # the newborn's own color map (BABY_MAP = size, WebP quality; babies are small on screen, so it can be smaller)
+    maps['colorBaby'] = f'{SP}-color-baby.webp'
+    bsz, bq = getattr(S, 'BABY_MAP', (0, S.MAP_QUALITY[0]))
+    im = Image.open(os.path.join(WORK, f'{SP}-color-baby.png')).convert('RGB')
+    if bsz and bsz != im.size[0]:
+        im = im.resize((bsz, bsz), Image.LANCZOS)
+    im.save(os.path.join(OUT, maps['colorBaby']), 'WEBP', quality=bq, method=6)
 if FUR:
     maps['fur'] = f'{SP}-fur.webp'
     Image.open(os.path.join(WORK, f'{SP}-fur.png')).convert('RGB').save(os.path.join(OUT, maps['fur']), 'WEBP', quality=FUR.get('quality', 80), method=6)
