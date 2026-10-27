@@ -633,6 +633,7 @@ const Folk = {
       if (p.visitor) { this.visitorStep(p, dt, P, dP, greet); continue; }
       if (p.staff) { this.staffStep(p, dt, P, dP); continue; }
       if (p.fairgoer) { Town.fairgoerStep(p, dt, P, dP, greet, playerReachable); continue; }
+      if (p.city) { const r = CityLife.step(p, dt, P, dP, greet, playerReachable); if (r) { p.sit = r.sit || 0; p.seatY = r.seatY; this.pose(p, dt, r.crouch, r.reach, camPos); continue; } }
       if (p.role) { const r = Town.step(p, dt, P, dP, greet, playerReachable) || NO_POSE; p.sit = r.sit || 0; p.seatY = r.seatY; this.pose(p, dt, r.crouch, r.reach, camPos); continue; }
       // evenings: people walk home and go inside (your person stays with you if you are at home together)
       if (!dayTime && !p.away && p.state !== 'home' && !(p.friend && P && P.room && P.room === p.room)) { p.state = 'home'; p.timer = 12; ui.bubble(p, 'Good night!', 2.5); }
@@ -647,6 +648,7 @@ const Folk = {
           p.speed = damp(p.speed, 0, 6, dt); p.timer -= dt;
           if (p.timer <= 0) {
             if (p.room) { const rm = p.room; p.target = { x: rm.ox + (Math.random() - 0.5) * (rm.w - 2), z: rm.oz + (Math.random() - 0.5) * (rm.d - 2) }; }
+            else if (p.walkPts) { const wp = p.walkPts[(Math.random() * p.walkPts.length) | 0]; p.target = { x: wp[0] + (Math.random() - 0.5) * 3, z: wp[1] }; }
             else { const pts = w.def.villageWalk && Math.random() < 0.4 ? w.def.villageWalk : w.def.walk; const wp = pts[(Math.random() * pts.length) | 0]; p.target = wp ? w.ringPoint(wp[0], wp[1], 0, 9, false) : null; }
             p.state = p.target ? 'stroll' : 'look'; p.timer = 3; p.pace = 1.0 + Math.random() * 0.4; p.stuck = 0;
           }

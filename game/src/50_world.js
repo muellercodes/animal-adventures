@@ -1067,7 +1067,7 @@ const World = (() => {
     const putTree = (type, variant, x, z, s, rot) => { const h = H(x, z); placeProp(w.own || w.stat, { spot: type === 'oak' ? 'acorn' : null, spotR: 3, sink: 0.05 }, type, variant, x, z, h, s, rot); };
     const addGroup = (g, x, z, rot, y) => { if (!g) return null; w.addObj(g, x, z, rot, y); g.userData.bake = 1; for (const c of g.userData.colliders || []) addCollider(colTo(x, z, rot, c)); return g; };
     const STORE_NAME = (k) => SHOP_NAMES[k] || k;
-    w.signals = [];
+    w.signals = []; w.benches = [];
 
     /* the city */
     const CT = Plan.CITY;
@@ -1076,6 +1076,7 @@ const World = (() => {
       for (const s of CT.segs) if (s.part === part.key) citySeg(s, M);
       for (const n of CT.nodes) if (n.part === part.key) cityNode(n, M);
       if (part.blocks) for (const b of CT.blocks) if (part.blocks(b)) cityBlock(b);
+      for (const st of Plan.BUS.stops) if (st.part === part.key) putProp('busstop', 0, st.sx, st.sz, Plan.CY, st.rot);
     }
     function citySeg(s, M) {
       const ex = s.dir === 'x', a = ex ? s.ax : s.az, b = ex ? s.bx : s.bz, c = ex ? s.az : s.ax;
@@ -1182,7 +1183,7 @@ const World = (() => {
       putProp('statue', 0, cx - hw + 4, cz + 6, y0, Math.PI / 2);
       for (const [dx, dz] of [[-6, -6], [6, -6], [-6, 6], [6, 6]]) putProp('flowerbed', 0, cx + dx * 1.9, cz + dz * 1.9, y0, 0);
       // benches along the paths, facing them; lamps; picnic tables by the pond
-      const benchAt = (x, z, rot) => putProp('parkbench', 0, x, z, y0, rot);
+      const benchAt = (x, z, rot) => { putProp('parkbench', 0, x, z, y0, rot); w.benches.push({ x, z, rot, own: w.own, busy: null }); };
       for (const t of [-0.6, -0.2, 0.2, 0.6]) { benchAt(cx + t * hw * 1.6 / 2 * 2 * 0.5, cz - hd + ri - 2.6, 0); benchAt(cx + t * hw * 0.8, cz + hd - ri + 2.6, Math.PI); }
       for (const t of [-0.5, 0.5]) { benchAt(cx - hw + ri - 2.6, cz + t * hd, Math.PI / 2); benchAt(cx + hw - ri + 2.6, cz + t * hd, -Math.PI / 2); }
       for (let i = 0; i < 6; i++) { const a = i / 6 * TAU + 0.3; benchAt(cx + Math.cos(a) * 12, cz + Math.sin(a) * 12, Math.atan2(-Math.cos(a), -Math.sin(a))); }
@@ -1264,6 +1265,7 @@ const World = (() => {
       // welcome signs at the edges of town, and the way to the city
       if (Env.townSign) { addGroup(Env.townSign('Maple Town'), 40, -61, -Math.PI / 2); addGroup(Env.townSign('Maple Town'), 262, -61, Math.PI / 2); }
       if (Env.roadSign) addGroup(Env.roadSign('City', 'up'), 250, -48.8, -Math.PI / 2);
+      for (const st of Plan.BUS.stops) if (st.town) putProp('busstop', 0, st.sx, st.sz, T.y, st.rot);
       finishSurfaces(null);
     };
 
@@ -1477,6 +1479,7 @@ const World = (() => {
       w.traps = w.traps.filter((t) => t.own !== own);
       w.fishTraps = w.fishTraps.filter((t) => t.own !== own);
       w.signals = w.signals.filter((q) => q.own !== own);
+      w.benches = w.benches.filter((q) => q.own !== own);
       for (const h of w.houses.filter((q) => q.own === own)) { if (h.room && h.room === w.dynRoom) { dropRoom(h.room); w.dynRoom = null; } }
       w.houses = w.houses.filter((h) => h.own !== own);
       w.lanterns = w.lanterns.filter((l) => !own.objs.includes(l));

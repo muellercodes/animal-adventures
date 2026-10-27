@@ -112,6 +112,7 @@ const Plan = (() => {
     CITY.nodes.push({ x, z, open, deg, exit: EXITS[x + ',' + z] || null, outer: Math.abs(x) === 100 || Math.abs(z) === 100, part: partOf(x, z) });
   }
   CITY.partOf = partOf;
+  function partOfW(x, z) { return partOf(x - CX, z - CZ); }
 
   // the city in four quarters plus the park, each made when you come near
   CITY.parts = [
@@ -121,6 +122,29 @@ const Plan = (() => {
     { key: 'city-se', x: CX + 50, z: CZ + 75, blocks: (b) => b.c >= 2 && b.r >= 3 },
     { key: 'city-park', x: CX + 50, z: CZ, park: true },
   ];
+
+  /* ---------- the bus: a loop from the Maple Town green to the city and around the park ---------- */
+  const BUS = {
+    route: [[256, -55], [256, 2], [195, 2], [195, -55], [256, -55], toW(-100, 0), toW(-50, 0), toW(0, 0), toW(0, -50), toW(50, -50), toW(100, -50), toW(100, 0), toW(100, 50), toW(50, 50), toW(0, 50), toW(0, 0), toW(-50, 0), toW(-100, 0)],
+    // stops: on the street from a to b, t of the way along, on the right hand side
+    stops: [
+      { name: 'Maple Town', a: [195, -55], b: [256, -55], t: 31 / 61, town: true },
+      { name: 'Main Street', a: toW(-100, 0), b: toW(-50, 0), t: 0.55 },
+      { name: 'Park West', a: toW(0, 0), b: toW(0, -50), t: 0.5 },
+      { name: 'Park North', a: toW(50, -50), b: toW(100, -50), t: 0.5 },
+      { name: 'Park East', a: toW(100, -50), b: toW(100, 0), t: 0.5 },
+      { name: 'Park South', a: toW(100, 50), b: toW(50, 50), t: 0.5 },
+      { name: 'Main Street', a: toW(0, 0), b: toW(-50, 0), t: 0.45 },
+    ],
+  };
+  for (const st of BUS.stops) {
+    const [ax, az] = st.a, [bx, bz] = st.b, L = Math.hypot(bx - ax, bz - az), fx = (bx - ax) / L, fz = (bz - az) / L, rx = -fz, rz = fx;
+    const off = st.town ? ST_W / 2 + 2.2 : HALF - 0.9;
+    st.x = ax + (bx - ax) * st.t; st.z = az + (bz - az) * st.t;
+    st.sx = st.x + rx * off; st.sz = st.z + rz * off; st.rot = Math.atan2(-rx, -rz);   // the shelter, facing the street
+    st.wx = st.x + rx * (off - 1.6); st.wz = st.z + rz * (off - 1.6);                 // where people wait
+    st.part = st.town ? null : partOfW(st.sx, st.sz);
+  }
 
   /* ---------- small towns all around the city ---------- */
   const TOWNS = [
@@ -295,5 +319,5 @@ const Plan = (() => {
     for (let i = 0; i < n; i++) { const s0 = (i / n) * r.len, s1 = ((i + 1) / n) * r.len, [x, z] = roadAt(r, (s0 + s1) / 2); PLACES.push({ kind: 'road', key: r.key + '-' + i, road: r, s0, s1, x, z, reach: (s1 - s0) / 2 + 10 }); }
   }
 
-  return { PI, TOWN, CITY, TOWNS, ROADS, PLACES, RW, ST_W, TY, CY, init, H, busy, reserved, paint, grass, streetD, inCity, inPark, roadAt, roadY, roadNear, rectD, inR };
+  return { PI, TOWN, CITY, TOWNS, ROADS, PLACES, BUS, RW, ST_W, TY, CY, init, H, busy, reserved, paint, grass, streetD, inCity, inPark, roadAt, roadY, roadNear, rectD, inR };
 })();
