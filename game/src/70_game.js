@@ -123,7 +123,7 @@ function followCamera(dt) {
   if (b.riding) {
     const c = b.riding, rx = -c.fz, rz = c.fx;
     Cam.yaw = c.yaw - Math.PI / 2;
-    x = b.pos.x + rx * 7.5 - c.fx * 2.5; z = b.pos.z + rz * 7.5 - c.fz * 2.5; y = b.pos.y + 1.6;
+    x = b.pos.x + rx * 5.2 - c.fx * 1.5; z = b.pos.z + rz * 5.2 - c.fz * 1.5; y = b.pos.y + 1.1;
     Cam.target.set(b.pos.x, b.pos.y + 0.4, b.pos.z);
   }
   camera.position.set(x, y, z);
@@ -280,6 +280,18 @@ function doAction(a) {
   Sound.click();
   switch (a.id) {
     case 'in': startDoor(a.house, 1); break;
+    case 'buson': {
+      const b = Player.b; b.riding = a.bus; Traffic.seat(b); Cam.snap = true;
+      const nx = Plan.BUS.stops[(Plan.BUS.stops.findIndex((q) => q === (a.bus.stopAt && a.bus.stopAt.st)) + 1) % Plan.BUS.stops.length];
+      UI.toast(`All aboard! Next stop: ${nx ? nx.name : 'the city'}.`, 3200);
+      break;
+    }
+    case 'busoff': {
+      const b = Player.b, c = b.riding; if (!c) break;
+      const d = Traffic.doorPoint(c); b.riding = null; Player.place(d.x, d.z); b.yaw = c.yaw; Cam.yaw = c.yaw; Cam.snap = true;
+      UI.toast(`Thanks for riding! This is ${Traffic.stopName(c)}.`, 2600);
+      break;
+    }
     case 'out': startDoor(Player.b.room.house, -1); break;
     case 'letout': Homes.letOut(); break;
     case 'letoutFair': Town.letOutFair(); break;
@@ -936,18 +948,6 @@ document.addEventListener('click', (e) => {
     case 'tab': R.shopTab = v; renderSheet(); break;
     case 'pack': R.pack = v; R.gc = newGc(); R.shopTab = 'grownup'; renderSheet(); break;
     case 'go': travel(v); break;
-    case 'buson': {
-      const b = Player.b; b.riding = a.bus; Traffic.seat(b); Cam.snap = true;
-      const nx = Plan.BUS.stops[(Plan.BUS.stops.findIndex((q) => q === (a.bus.stopAt && a.bus.stopAt.st)) + 1) % Plan.BUS.stops.length];
-      UI.toast(`All aboard! Next stop: ${nx ? nx.name : 'the city'}.`, 3200);
-      break;
-    }
-    case 'busoff': {
-      const b = Player.b, c = b.riding; if (!c) break;
-      const d = Traffic.doorPoint(c); b.riding = null; Player.place(d.x, d.z); b.yaw = c.yaw + Math.PI / 2; Cam.snap = true;
-      UI.toast(`Thanks for riding! This is ${Traffic.stopName(c)}.`, 2600);
-      break;
-    }
     case 'place': {
       const p = Plan.SPOTS[+v], b = Player.b;
       if (!p || !b || b.room) break;

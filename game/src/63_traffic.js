@@ -376,7 +376,7 @@ const Traffic = (() => {
   /* ---- riding the bus ---- */
   // the spot just outside the front door (on the right)
   const doorZ = (c) => { const d = c.bus && c.bus.userData.doorZ && c.bus.userData.doorZ[0]; return d ? (d.z0 + d.z1) / 2 : c.len / 2 - 1.6; };
-  T.doorPoint = (c) => { const f = doorZ(c), sd = c.wid / 2 + 0.7; return { x: c.x + c.fx * f - c.fz * sd, z: c.z + c.fz * f + c.fx * sd }; };
+  T.doorPoint = (c) => { const f = doorZ(c), sd = c.wid / 2 + 1.5; return { x: c.x + c.fx * f - c.fz * sd, z: c.z + c.fz * f + c.fx * sd }; };
   // a bus at a stop with its doors open, close enough to get on
   T.boardable = (b) => {
     for (const c of T.buses) {
@@ -390,9 +390,10 @@ const Traffic = (() => {
   // sit on a seat by the window, near the front
   T.seat = (b) => {
     const c = b.riding; if (!c) return;
-    const lx = -0.45, lz = c.len / 2 - 3.2, co = Math.cos(c.yaw), si = Math.sin(c.yaw), fy = (c.bus && c.bus.userData.floorY) || 0.85;
+    // on a seat by a right hand window, just behind the front door (high enough to look out)
+    const lx = -(c.wid / 2 - 0.62), lz = doorZ(c) - 1.35, co = Math.cos(c.yaw), si = Math.sin(c.yaw), fy = ((c.bus && c.bus.userData.floorY) || 0.4) + 0.46;
     b.pos.set(c.x + lx * co + lz * si, c.y + fy, c.z - lx * si + lz * co);
-    b.yaw = c.yaw;
+    b.yaw = c.yaw - Math.PI / 2;   // looking out of the window
   };
   return T;
 })();
