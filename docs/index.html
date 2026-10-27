@@ -19407,9 +19407,10 @@ const Traffic = (() => {
       }
       // bus stops: pull in, open the doors, wait, close them
       if (c.bus && !c.turn) {
-        const st = T.busStops.find((q) => q.e === c.e && q.s > c.s - 0.5);
+        const ds0 = c.len / 2 - 1.6;   // stop with the front door at the stop
+        const st = T.busStops.find((q) => q.e === c.e && q.s - ds0 > c.s - 0.5);
         if (st && c.dwell <= 0 && c.stopDone !== st) {
-          const toS = st.s - c.s; if (toS < gap) gap = toS;
+          const toS = st.s - ds0 - c.s; if (toS < gap) gap = toS;
           if (toS < 0.4 && c.v < 0.3) {
             c.dwell = 7.5; c.stopAt = st;
             if (P && P.riding === c) { c.dwell = 12; G.ui.toast(`${st.st.name} stop! Tap Get off to get off here.`, 3500); }
@@ -19475,7 +19476,7 @@ const Traffic = (() => {
     for (const c of T.buses) {
       if (!(c.dwell > 0.8 && c.doors > 0.6)) continue;
       const d = T.doorPoint(c);
-      if (Math.hypot(b.pos.x - d.x, b.pos.z - d.z) < 2.6 + b.m.radius) return c;
+      if (Math.hypot(b.pos.x - d.x, b.pos.z - d.z) < 3.4 + b.m.radius) return c;
     }
     return null;
   };
