@@ -2926,9 +2926,9 @@
   /* sizes for layout code: lot, footprint w x d (the body is exactly that, centered, front +z), h (the top of the
      highest thing on the roof), floors, and for the midrise the storefront bay (where a 'storefront' prop goes) */
   const LOTS = {
-    apartment: [['quarter', 15, 15, 32.3, 8, 'red brick, fire escape, water tank'], ['quarter', 15, 15, 46.2, 12, 'limestone, penthouse terrace'], ['quarter', 15, 15, 35.5, 10, 'stucco, glass balconies, roof garden'],
+    apartment: [['quarter', 15, 15, 32.3, 8, 'red brick, fire escape, water tank'], ['quarter', 15, 15, 46.3, 12, 'limestone, penthouse terrace'], ['quarter', 15, 15, 35.5, 10, 'stucco, glass balconies, roof garden'],
       ['wide', 31, 15, 56.6, 16, 'buff brick slab, balconies'], ['deep', 15, 31, 25.0, 6, 'painted brick tenement, fire escape on the front'], ['wide', 31, 15, 38.1, 10, 'red brick on a stone base, quoins']],
-    office: [['quarter', 15, 15, 62.7, 14, 'stone grid'], ['wide', 31, 15, 75.0, 18, 'glass curtain wall'], ['deep', 15, 31, 51.0, 11, 'granite ribbon windows'], ['full', 31, 31, 114.3, 26, 'podium, two glass setbacks, spire']],
+    office: [['quarter', 15, 15, 62.8, 14, 'stone grid'], ['wide', 31, 15, 75.0, 18, 'glass curtain wall'], ['deep', 15, 31, 51.0, 11, 'granite ribbon windows'], ['full', 31, 31, 114.4, 26, 'podium, two glass setbacks, spire']],
     midrise: [['quarter', 15, 15, 17.0, 4, 'red brick, fire escape'], ['quarter', 15, 15, 13.8, 3, 'painted brick, flower boxes'], ['quarter', 15, 15, 23.2, 5, 'buff brick, fire escape, water tank'], ['quarter', 15, 15, 17.0, 4, 'brownstone']],
   };
   const cityPieces = {};
