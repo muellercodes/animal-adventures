@@ -7185,11 +7185,20 @@ void main() {`);
   /* ============================================================
      Public API
      ============================================================ */
+  // the building blocks, for the modules that add more scenery after this one (36_city, 37_street): Env._k
+  const KIT = {
+    TAU, V3, clamp, lerp, smooth, rng, strSeed, noise3, fbm, s2l, L, lcol, mixc, mulc, prep, paint, setAttr1, setGlow, setTint,
+    merge, smoothNormals, boxUV, eachVertex, place, soup, path, tube, canvasTex, wrapDraw, gray, mat, depthMat, TX, PROPS, VARIANTS,
+    propCache, boxG, meshOf, wallQuadZ, wallQuadX, polyFan, polyX, polyZ, beam, roofX, roofHip, windowParts, addWindow, doorGeo,
+    chimneyGeo, roundBox, doorRec, resolveDoors, setDoors, cachedDoors, cachedGroup, pivot, glassMat, glassMesh, quadTo, pipeGeo,
+    vPanel, rrect, hexOf, sign, nightU, autumnU, windU,
+  };
   return {
+    _k: KIT,
     prop, barn, fence, garden, grass, water, waterUniforms, sky, clouds, cloudSea, rainbow, fireflies,
     glowTexture, leafTexture, food, foodUpdate,
     wind: windU,
-    propTypes: Object.keys(PROPS),
+    get propTypes() { return Object.keys(PROPS); },
     propVariants: (type) => VARIANTS[type] || 1,
     autumn: (a) => { if (a !== undefined) autumnU.value = clamp(+a || 0, 0, 1); return autumnU.value; },
     setNight: (n) => { if (n !== undefined) nightU.value = clamp(+n || 0, 0, 1); return nightU.value; },
