@@ -149,6 +149,12 @@ button.pill{cursor:pointer}
 .card[disabled]{cursor:not-allowed;box-shadow:0 2px 0 var(--ink)}
 .card[disabled] .pv{filter:grayscale(.7) opacity(.7)}
 .tags{display:flex;flex-wrap:wrap;gap:6px}
+.sub{margin:20px 0 10px;font:900 20px/1.1 var(--display)}
+.places{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.place{display:flex;flex-direction:column;gap:4px;text-align:left;background:#fff;border:3px solid var(--ink);border-radius:14px;padding:8px 10px;cursor:pointer;box-shadow:0 3px 0 var(--ink);min-width:0;color:var(--ink)}
+.place .t{font:900 17px/1.1 var(--display)}
+.place .d{font-size:13px;line-height:1.3}
+.place[disabled]{cursor:not-allowed;opacity:.6}
 .tg{display:inline-block;font:700 12px/1 var(--body);letter-spacing:.05em;text-transform:uppercase;padding:5px 8px;border-radius:999px;border:2px solid var(--ink);background:var(--paper-2)}
 .tg.new{background:var(--sun)}
 .tg.lock{background:#F7D9D0}
@@ -15215,6 +15221,15 @@ const Plan = (() => {
     return sm((streetD(x, z) - RW / 2 - 0.4) / 1.2);
   }
 
+  /* ---------- places you can go to from the map ---------- */
+  const SPOTS = [
+    { name: 'The farm', d: 'Where you started', x: 10, z: -2 },
+    { name: 'Maple Town', d: 'Shops, houses and the town green', x: 150, z: -59.6 },
+    { name: 'The city', d: 'Main Street stores and tall buildings', x: CX - 82, z: CZ - HALF + 1.7 },
+    { name: 'City park', d: 'The fountain, the pond and the bandstand', x: CX + 36, z: CZ },
+  ];
+  for (const t of TOWNS) SPOTS.push({ name: t.name, d: 'A small town', x: t.axis === 'x' ? t.x + 8 : t.x - t.roadSide * 4.6, z: t.axis === 'x' ? t.z - t.roadSide * 4.6 : t.z + 8 });
+
   /* ---------- places made when you come near (50_world streams them like landmarks) ---------- */
   const PLACES = [];
   for (const p of CITY.parts) PLACES.push({ kind: p.park ? 'park' : 'city', key: p.key, part: p, x: p.x, z: p.z, reach: p.park ? 60 : 80 });
@@ -15225,7 +15240,7 @@ const Plan = (() => {
     for (let i = 0; i < n; i++) { const s0 = (i / n) * r.len, s1 = ((i + 1) / n) * r.len, [x, z] = roadAt(r, (s0 + s1) / 2); PLACES.push({ kind: 'road', key: r.key + '-' + i, road: r, s0, s1, x, z, reach: (s1 - s0) / 2 + 10 }); }
   }
 
-  return { PI, TOWN, CITY, TOWNS, ROADS, PLACES, BUS, RW, ST_W, TY, CY, init, H, busy, reserved, paint, grass, streetD, inCity, inPark, roadAt, roadY, roadNear, rectD, inR };
+  return { PI, TOWN, CITY, TOWNS, ROADS, PLACES, BUS, SPOTS, RW, ST_W, TY, CY, init, H, busy, reserved, paint, grass, streetD, inCity, inPark, roadAt, roadY, roadNear, rectD, inR };
 })();
 
 /* ---------- worlds: endless terrain in tiles, water, plants, farms, colliders, houses, ground cover ---------- */
@@ -17346,7 +17361,7 @@ const Player = {
         else if (b.mode === 'air') { c.want = 0; }
       }
     }
-    moveBody(b, dt, c);
+    if (b.riding) { b.speed = 0; b.vy = 0; b.mode = 'ground'; } else moveBody(b, dt, c);
     if (b.pos.y < -30) { G.ui.toast('Whoosh! Back to an island.'); const I = G.world.ringPoint(b.pos.x, b.pos.z, 0, 120, false); if (I) this.place(I.x, I.z); else this.place(G.world.def.spawn[0], G.world.def.spawn[1]); }
     poseBody(b, dt, true);
     // tummy: it slowly empties; an empty tummy makes you tired, and staying empty gives you a cold
@@ -17446,6 +17461,7 @@ const Wild = {
     if (n >= 7) return;
     const a = Math.random() * TAU, d = 60 + Math.random() * 35, x = P.pos.x + Math.sin(a) * d, z = P.pos.z + Math.cos(a) * d;
     if (Math.max(Math.abs(x), Math.abs(z)) < World.CORE + 20) return;
+    if (def.reserved && def.reserved(x, z, 0)) return;   // no deer wandering in from the woods into towns or onto roads
     let sum = 0; for (const q of def.ambient) sum += q.w;
     let pick = Math.random() * sum, spec = def.ambient[0];
     for (const q of def.ambient) { pick -= q.w; if (pick <= 0) { spec = q; break; } }
@@ -17726,7 +17742,7 @@ const Folk = {
       const sameRoom = P && P.room === p.room;
       const dP = P && sameRoom ? Math.hypot(P.pos.x - p.pos.x, P.pos.z - p.pos.z) : 99;
       const greet = P ? 0.9 + P.m.length * 0.55 : 1;
-      const playerReachable = P && sameRoom && P.mode !== 'fly' && P.mode !== 'swim' && P.mode !== 'climb' && P.mode !== 'perch';
+      const playerReachable = P && sameRoom && !P.riding && P.mode !== 'fly' && P.mode !== 'swim' && P.mode !== 'climb' && P.mode !== 'perch';
       if (p.visitor) { this.visitorStep(p, dt, P, dP, greet); continue; }
       if (p.staff) { this.staffStep(p, dt, P, dP); continue; }
       if (p.fairgoer) { Town.fairgoerStep(p, dt, P, dP, greet, playerReachable); continue; }
@@ -17739,12 +17755,19 @@ const Folk = {
         if (p.house) { this.teleport(p, p.house.door.x, p.house.door.z); }
         else { const wp = w.def.walk[(Math.random() * w.def.walk.length) | 0]; const pt = w.ringPoint(wp[0], wp[1], 0, 8, false); if (pt) this.teleport(p, pt.x, pt.z); }
       }
+      // popping into a shop for a while
+      if (p.inShop > 0) {
+        p.inShop -= dt;
+        if (p.inShop <= 0) { const h = p.shopTo; p.shopTo = null; p.away = false; p.rig.setVisible(true); if (h) { this.teleport(p, h.door.x, h.door.z); p.yaw = h.door.yaw; if (h.group) w.openDoor(h.group, 1); } p.state = 'look'; p.timer = 1; }
+        continue;
+      }
       if (p.away) continue;
       switch (p.state) {
         case 'look':
           p.speed = damp(p.speed, 0, 6, dt); p.timer -= dt;
           if (p.timer <= 0) {
             if (p.room) { const rm = p.room; p.target = { x: rm.ox + (Math.random() - 0.5) * (rm.w - 2), z: rm.oz + (Math.random() - 0.5) * (rm.d - 2) }; }
+            else if (dayTime && Math.random() < 0.3 && (p.shopTo = this.shopNear(p))) p.target = { x: p.shopTo.door.x, z: p.shopTo.door.z };
             else if (p.walkPts) { const wp = p.walkPts[(Math.random() * p.walkPts.length) | 0]; p.target = { x: wp[0] + (Math.random() - 0.5) * 3, z: wp[1] }; }
             else { const pts = w.def.villageWalk && Math.random() < 0.4 ? w.def.villageWalk : w.def.walk; const wp = pts[(Math.random() * pts.length) | 0]; p.target = wp ? w.ringPoint(wp[0], wp[1], 0, 9, false) : null; }
             p.state = p.target ? 'stroll' : 'look'; p.timer = 3; p.pace = 1.0 + Math.random() * 0.4; p.stuck = 0;
@@ -17753,7 +17776,8 @@ const Folk = {
         case 'stroll': {
           const d = this.walkTo(p, dt, p.target.x, p.target.z, p.room ? 0.8 : p.pace);
           if (p.blocked) p.stuck += dt;
-          if (d < 0.8 || p.stuck > 3) { p.state = 'look'; p.timer = 2 + Math.random() * 4; }
+          if (p.shopTo && d < 1.0) { p.inShop = 15 + Math.random() * 30; p.away = true; p.rig.setVisible(false); ui.dropBubble(p); if (p.shopTo.group) w.openDoor(p.shopTo.group, 1); break; }
+          if (d < 0.8 || p.stuck > 3) { p.state = 'look'; p.timer = 2 + Math.random() * 4; p.shopTo = null; }
           break;
         }
         // someone who likes your animal stops, kneels and holds out a hand. Animals can't talk:
@@ -17847,6 +17871,12 @@ const Folk = {
       this.pose(p, dt, crouch, reach, camPos);
     }
   },
+  // a shop in your own town, not too far to walk to
+  shopNear(p) {
+    const town = p.house && p.house.town ? p.house.town : 'Maple Town';
+    const list = G.world.houses.filter((h) => h.kind === 'shop' && h.town === town && Math.hypot(h.door.x - p.pos.x, h.door.z - p.pos.z) < 90);
+    return list.length ? list[(Math.random() * list.length) | 0] : null;
+  },
   giveUp(p, wave) { p.state = 'look'; p.timer = 1.5; p.cool = 45; if (wave) G.ui.bubble(p, 'Bye bye!', 1.8); },
   pose(p, dt, crouch, reach, camPos) {
     p.pos.y = G.world.H(p.pos.x, p.pos.z) + (p.yOff || 0);
@@ -17892,6 +17922,8 @@ const CAGE_WORDS = { terrarium: 'a glass tank', birdCage: 'a big bird cage', hut
 const Homes = {
   penT: 0, kennel: null,
   village() { return G.world.houses.filter((h) => h.village); },
+  // what color a village house is painted
+  color(h, i) { return (h && HOUSE_COLOR_NAMES[h.variant]) || HOUSE_COLOR_NAMES[i] || 'white'; },
   homeOf(sp) {
     const hm = S.homes[sp]; if (!hm || G.world.id !== 'land') return null;
     return this.village()[hm.house] || null;
@@ -17903,17 +17935,25 @@ const Homes = {
     const homes = w.id === 'land' ? this.village() : [];
     const used = new Set(Object.values(S.homes).map((h) => h.house));
     if (p.house && homes.includes(p.house)) houseIdx = homes.indexOf(p.house);
-    else { for (let i = 0; i < 6; i++) if (!used.has(i)) { houseIdx = i; break; } }
+    else { for (let i = 0; i < homes.length; i++) if (!used.has(i)) { houseIdx = i; break; } }
+    // an outdoor animal needs a house with a pen out back (not every house in town has one)
+    if (SPECIES[sp].outdoor && homes.length && !(homes[houseIdx] && homes[houseIdx].pen)) {
+      const h0 = homes[houseIdx] || homes[0];
+      let best = -1, bd = 1e9;
+      homes.forEach((h, i) => { if (!h.pen) return; const d = Math.hypot(h.x - h0.x, h.z - h0.z) + (used.has(i) ? 500 : 0); if (d < bd) { bd = d; best = i; } });
+      if (best >= 0) houseIdx = best;
+    }
     S.homes[sp] = { name: p.name, look: p.look, house: Math.max(0, houseIdx) };
     S.leaves += 5;
-    const outdoor = SPECIES[sp].outdoor, color = HOUSE_COLOR_NAMES[Math.max(0, houseIdx)] || 'white', cage = CAGED[sp];
+    const hh = homes[Math.max(0, houseIdx)], street = (hh && hh.street) || 'Maple Street';
+    const outdoor = SPECIES[sp].outdoor, color = Homes.color(hh, houseIdx), cage = CAGED[sp];
     G.ui.bubble(p, `Welcome to the family, ${nameOf(sp)}! Here's your collar.`, 3);
     G.ui.hearts(P.pos, 6); G.ui.leafPop(P.pos, 5);
     // a tamed animal always wears a collar with its person's number on it
     const got = `${p.name} took you home and put a collar on you!`;
-    G.ui.toast(outdoor ? `${got} Your home is the pen behind the ${color} house on Maple Street.`
-      : cage ? `${got} You live in ${CAGE_WORDS[cage]} in the ${color} house on Maple Street.`
-        : `${got} You're an indoor pet in the ${color} house on Maple Street.`, 6000);
+    G.ui.toast(outdoor ? `${got} Your home is the pen behind the ${color} house on ${street}.`
+      : cage ? `${got} You live in ${CAGE_WORDS[cage]} in the ${color} house on ${street}.`
+        : `${got} You're an indoor pet in the ${color} house on ${street}.`, 6000);
     if (G.sound) G.sound.chime();
     Town.collar(P);
     if (p.visitor) { p.visitor = false; p.house = homes[S.homes[sp].house] || null; if (p.pen) this.kennelDoor(p.pen, true); }
@@ -19241,7 +19281,7 @@ const Traffic = (() => {
   /* ---- what is in front: other cars, the light, and anyone in the road ---- */
   function obstacles(P) {
     const list = [];
-    if (P && !P.room && P.mode !== 'fly' && P.mode !== 'perch') list.push({ x: P.pos.x, z: P.pos.z, r: Math.max(0.3, P.m.length * 0.5), player: true });
+    if (P && !P.room && !P.riding && P.mode !== 'fly' && P.mode !== 'perch') list.push({ x: P.pos.x, z: P.pos.z, r: Math.max(0.3, P.m.length * 0.5), player: true });
     for (const b of Wild.list) if (!b.room && b.mode !== 'fly' && b.mode !== 'perch' && b.mode !== 'climb' && (!P || Math.abs(b.pos.x - P.pos.x) < 200 && Math.abs(b.pos.z - P.pos.z) < 200)) list.push({ x: b.pos.x, z: b.pos.z, r: Math.max(0.25, (b.m ? b.m.length : 0.5) * 0.5) });
     for (const p of Folk.list) if (!p.room && !p.away && (!P || Math.abs(p.pos.x - P.pos.x) < 200 && Math.abs(p.pos.z - P.pos.z) < 200)) list.push({ x: p.pos.x, z: p.pos.z, r: 0.35, person: true });
     if (typeof Net !== 'undefined' && Net.others) for (const o of Net.others.values()) if (o.b && o.b.pos) list.push({ x: o.b.pos.x, z: o.b.pos.z, r: 0.5 });
@@ -19297,10 +19337,10 @@ const Traffic = (() => {
     // where each stop is on its leg
     const stops = Plan.BUS.stops.map((st) => { const A = net.find(st.a[0], st.a[1]), B = net.find(st.b[0], st.b[1]); const e = A && B ? A.out.find((q) => q.b === B) : null; return e ? { st, e, s: e.s0 + (e.s1 - e.s0) * st.t } : null; }).filter(Boolean);
     T.busLegs = legs; T.busStops = stops;
-    for (let k = 0; k < 2; k++) {
+    for (let k = 0; k < 3; k++) {
       const g = Env.bus(); g.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
       w.out.add(g);
-      const li = k === 0 ? 0 : 8, e = legs[li];
+      const li = [0, 7, 13][k] % legs.length, e = legs[li];
       const c = addCar(e, e.s0 + 2, ['bus', 0], g);
       if (!c) continue;
       c.leg = li; c.next = legs[(li + 1) % legs.length]; c.v = 0; c.dwell = 0; c.doors = 0; c.stopAt = null; c.riders = 0; c.name = 'bus ' + (k + 1);
@@ -19313,6 +19353,7 @@ const Traffic = (() => {
   T.init = (w) => {
     T.on = !!(w.def.places && Plan && Env.vehicle);
     T.cars = []; T.buses = []; T.ims = null; T.time = 0;
+    if (Player.b) Player.b.riding = null;
     if (!T.on) return;
     T.net = T.net || build();
     for (const e of T.net.edges) e.cars = [];
@@ -19367,7 +19408,13 @@ const Traffic = (() => {
       // bus stops: pull in, open the doors, wait, close them
       if (c.bus && !c.turn) {
         const st = T.busStops.find((q) => q.e === c.e && q.s > c.s - 0.5);
-        if (st && c.dwell <= 0 && c.stopDone !== st) { const toS = st.s - c.s; if (toS < gap) gap = toS; if (toS < 0.4 && c.v < 0.3) { c.dwell = 9; c.stopAt = st; } }
+        if (st && c.dwell <= 0 && c.stopDone !== st) {
+          const toS = st.s - c.s; if (toS < gap) gap = toS;
+          if (toS < 0.4 && c.v < 0.3) {
+            c.dwell = 7.5; c.stopAt = st;
+            if (P && P.riding === c) { c.dwell = 12; G.ui.toast(`${st.st.name} stop! Tap Get off to get off here.`, 3500); }
+          }
+        }
         if (c.dwell > 0) { gap = 0; c.dwell -= dt; c.doors = Math.min(1, c.doors + dt * 1.2); if (c.dwell <= 1.5) c.doors = Math.max(0, c.doors - dt * 1.6); if (c.dwell <= 0) { c.stopDone = c.stopAt; c.stopAt = null; c.doors = 0; } }
         if (c.bus.userData.doors && Env.setDoors) Env.setDoors(c.bus, c.doors);
       }
@@ -19419,6 +19466,27 @@ const Traffic = (() => {
     }
   }
   T.clear = () => { T.cars = []; T.buses = []; T.on = false; };
+
+  /* ---- riding the bus ---- */
+  // the spot just outside the front door (on the right)
+  T.doorPoint = (c) => { const f = c.len / 2 - 1.6, sd = c.wid / 2 + 0.7; return { x: c.x + c.fx * f - c.fz * sd, z: c.z + c.fz * f + c.fx * sd }; };
+  // a bus at a stop with its doors open, close enough to get on
+  T.boardable = (b) => {
+    for (const c of T.buses) {
+      if (!(c.dwell > 0.8 && c.doors > 0.6)) continue;
+      const d = T.doorPoint(c);
+      if (Math.hypot(b.pos.x - d.x, b.pos.z - d.z) < 2.6 + b.m.radius) return c;
+    }
+    return null;
+  };
+  T.stopName = (c) => (c.stopAt ? c.stopAt.st.name : '');
+  // sit on a seat by the window, near the front
+  T.seat = (b) => {
+    const c = b.riding; if (!c) return;
+    const lx = -0.45, lz = c.len / 2 - 3.2, co = Math.cos(c.yaw), si = Math.sin(c.yaw), fy = (c.bus && c.bus.userData.floorY) || 0.85;
+    b.pos.set(c.x + lx * co + lz * si, c.y + fy, c.z - lx * si + lz * co);
+    b.yaw = c.yaw;
+  };
   return T;
 })();
 
@@ -20144,6 +20212,13 @@ function followCamera(dt) {
     Cam.block = k < (Cam.block || 1) ? k : damp(Cam.block || 1, k, 2.5, dt);
     if (Cam.block < 0.999) { x = Cam.target.x + (x - Cam.target.x) * Cam.block; y = Cam.target.y + (y - Cam.target.y) * Cam.block; z = Cam.target.z + (z - Cam.target.z) * Cam.block; }
   }
+  // riding the bus: watch from beside it, on the door side, so you can see your animal at the window
+  if (b.riding) {
+    const c = b.riding, rx = -c.fz, rz = c.fx;
+    Cam.yaw = c.yaw - Math.PI / 2;
+    x = b.pos.x + rx * 7.5 - c.fx * 2.5; z = b.pos.z + rz * 7.5 - c.fz * 2.5; y = b.pos.y + 1.6;
+    Cam.target.set(b.pos.x, b.pos.y + 0.4, b.pos.z);
+  }
   camera.position.set(x, y, z);
   camera.lookAt(Cam.target);
   G.camYaw = Cam.yaw;
@@ -20236,7 +20311,7 @@ function readInput() {
   if (stick.id !== null) { ix = stick.dx / STICK_R; iy = -stick.dy / STICK_R; const m = Math.hypot(ix, iy); if (m < 0.12) { ix = 0; iy = 0; } }
   const kx = (keys.r ? 1 : 0) - (keys.l ? 1 : 0), ky = (keys.f ? 1 : 0) - (keys.b ? 1 : 0);
   if (kx || ky) { const m = Math.hypot(kx, ky); ix = kx / m; iy = ky / m; }
-  const held = Town.busy();
+  const held = Town.busy() || !!(Player.b && Player.b.riding);
   if (R.hatch || R.sleeping > 0 || R.doorSeq || held) { ix = 0; iy = 0; }
   const fx = Math.sin(Cam.yaw), fz = Math.cos(Cam.yaw), rx = -Math.cos(Cam.yaw), rz = Math.sin(Cam.yaw);
   inp.mx = fx * iy + rx * ix; inp.mz = fz * iy + rz * ix; inp.ix = ix; inp.iy = iy;
@@ -20254,6 +20329,9 @@ function findAction() {
   if (R.hatch) return R.hatch.done ? null : { id: 'hatch', label: 'Tap to hatch!' };
   if (R.sleeping > 0 || R.doorSeq || Town.busy()) return null;
   if (b.mode === 'climb' || b.mode === 'perch') return { id: 'letgo', label: 'Let go' };
+  // the bus: get on at a stop when the doors are open, get off at any stop
+  if (b.riding) return b.riding.dwell > 0.8 && b.riding.doors > 0.6 ? { id: 'busoff', label: 'Get off' } : null;
+  if (!b.room && b.mode === 'ground' && Traffic.buses.length) { const bus = Traffic.boardable(b); if (bus) return b.m.height > 1.3 ? { id: 'big', label: 'Too big!' } : { id: 'buson', label: 'Get on the bus', bus }; }
   const sp = SPECIES[b.sp], home = Homes.homeOf(b.sp), reach = 0.9 + b.m.radius;
   if (b.room) {
     const rm = b.room;
@@ -20657,14 +20735,14 @@ function sheetMap() {
       <span class="t">${w.name}</span><span class="d">${w.blurb}</span>
       <span class="tags">${here ? `<span class="tg">You are here</span>${b && !b.room && Math.hypot(b.pos.x - G.world.def.spawn[0], b.pos.z - G.world.def.spawn[1]) > 150 ? '<span class="tg new">Tap to go back to the start</span>' : ''}` : ''}${locked ? `<span class="tg lock">${A.fly ? 'Grow up to fly here' : A.many + " can't fly"}</span>` : ''}${!here && !locked && isNew ? '<span class="tg new">New! +10 leaves</span>' : ''}</span>
     </button>`;
-  }).join('')}</div>`;
+  }).join('')}</div>${S.world === 'land' && G.world && G.world.def.places ? `<h3 class="sub">Places in the Land</h3>${b && b.room ? '<p class="note">Go outside first to travel.</p>' : ''}<div class="places">${Plan.SPOTS.map((p, i) => `<button class="place" type="button" data-action="place" data-v="${i}"${b && b.room ? ' disabled' : ''}><span class="t">${p.name}</span><span class="d">${p.d}</span></button>`).join('')}</div>` : ''}`;
 }
 function homeLine(id) {
   const hm = S.homes[id]; if (!hm) return '';
-  const color = ['white', 'yellow', 'blue', 'brick', 'gray', 'white'][hm.house] || 'white';
+  const hh = G.world && G.world.id === 'land' ? Homes.village()[hm.house] : null, color = Homes.color(hh, hm.house), street = hh && hh.street && hh.street !== 'Maple Street' ? ` on ${hh.street}` : '';
   const cage = CAGED[id];
   const dot = `<span style="display:inline-block;width:.8em;height:.8em;border-radius:50%;vertical-align:-1px;margin-right:5px;border:2px solid #d9a93a;background:#${hexNum(hm.look && hm.look.shirt).toString(16).padStart(6, '0')}"></span>`;
-  return `<span class="need">${dot}Wears ${hm.name}'s collar. ${SPECIES[id].outdoor ? `Lives in ${hm.name}'s yard behind the ${color} house` : cage ? `Lives in ${CAGE_WORDS[cage]} at ${hm.name}'s ${color} house` : `${hm.name}'s indoor pet in the ${color} house`}</span>`;
+  return `<span class="need">${dot}Wears ${hm.name}'s collar. ${SPECIES[id].outdoor ? `Lives in ${hm.name}'s yard behind the ${color} house${street}` : cage ? `Lives in ${CAGE_WORDS[cage]} at ${hm.name}'s ${color} house${street}` : `${hm.name}'s indoor pet in the ${color} house${street}`}</span>`;
 }
 function sheetAnimals() {
   const ids = STARTERS.concat(SHOP).filter((i) => S.owned.includes(i));
@@ -20951,6 +21029,24 @@ document.addEventListener('click', (e) => {
     case 'tab': R.shopTab = v; renderSheet(); break;
     case 'pack': R.pack = v; R.gc = newGc(); R.shopTab = 'grownup'; renderSheet(); break;
     case 'go': travel(v); break;
+    case 'buson': {
+      const b = Player.b; b.riding = a.bus; Traffic.seat(b); Cam.snap = true;
+      const nx = Plan.BUS.stops[(Plan.BUS.stops.findIndex((q) => q === (a.bus.stopAt && a.bus.stopAt.st)) + 1) % Plan.BUS.stops.length];
+      UI.toast(`All aboard! Next stop: ${nx ? nx.name : 'the city'}.`, 3200);
+      break;
+    }
+    case 'busoff': {
+      const b = Player.b, c = b.riding; if (!c) break;
+      const d = Traffic.doorPoint(c); b.riding = null; Player.place(d.x, d.z); b.yaw = c.yaw + Math.PI / 2; Cam.snap = true;
+      UI.toast(`Thanks for riding! This is ${Traffic.stopName(c)}.`, 2600);
+      break;
+    }
+    case 'place': {
+      const p = Plan.SPOTS[+v], b = Player.b;
+      if (!p || !b || b.room) break;
+      closeSheet(); b.yaw = 0; Player.place(p.x, p.z); Cam.snap = true; Foods.fill(60); UI.toast(p.name === 'The farm' ? 'Back to the farm' : `Welcome to ${p.name}`);
+      break;
+    }
     case 'switch': switchAnimal(v); break;
     case 'buy': buyAnimal(v); break;
     case 'name': R.naming = v; renderSheet(); break;
@@ -20999,6 +21095,7 @@ function tick(dt, raw, draw) {
       R.action = findAction();
       if (press.act) { press.act = false; doAction(R.action); }
       if (press.call) { press.call = false; Net.sendCall(); Sound.call(Player.b); Player.b.happy = 1; for (const w of Wild.list) if (w.sp === Player.sp && !w.caged && w.pos.distanceTo(Player.pos) < 25) setTimeout(() => Sound.wildCall(w, camera.position, Cam.yaw), 500 + Math.random() * 900); }
+      if (Player.b.riding) Traffic.seat(Player.b);
       Player.update(dt, inp);
       Homes.update(dt);
       updateDoorSeq(dt);

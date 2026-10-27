@@ -133,6 +133,12 @@ button.pill{cursor:pointer}
 .card[disabled]{cursor:not-allowed;box-shadow:0 2px 0 var(--ink)}
 .card[disabled] .pv{filter:grayscale(.7) opacity(.7)}
 .tags{display:flex;flex-wrap:wrap;gap:6px}
+.sub{margin:20px 0 10px;font:900 20px/1.1 var(--display)}
+.places{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.place{display:flex;flex-direction:column;gap:4px;text-align:left;background:#fff;border:3px solid var(--ink);border-radius:14px;padding:8px 10px;cursor:pointer;box-shadow:0 3px 0 var(--ink);min-width:0;color:var(--ink)}
+.place .t{font:900 17px/1.1 var(--display)}
+.place .d{font-size:13px;line-height:1.3}
+.place[disabled]{cursor:not-allowed;opacity:.6}
 .tg{display:inline-block;font:700 12px/1 var(--body);letter-spacing:.05em;text-transform:uppercase;padding:5px 8px;border-radius:999px;border:2px solid var(--ink);background:var(--paper-2)}
 .tg.new{background:var(--sun)}
 .tg.lock{background:#F7D9D0}

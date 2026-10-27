@@ -309,6 +309,15 @@ const Plan = (() => {
     return sm((streetD(x, z) - RW / 2 - 0.4) / 1.2);
   }
 
+  /* ---------- places you can go to from the map ---------- */
+  const SPOTS = [
+    { name: 'The farm', d: 'Where you started', x: 10, z: -2 },
+    { name: 'Maple Town', d: 'Shops, houses and the town green', x: 150, z: -59.6 },
+    { name: 'The city', d: 'Main Street stores and tall buildings', x: CX - 82, z: CZ - HALF + 1.7 },
+    { name: 'City park', d: 'The fountain, the pond and the bandstand', x: CX + 36, z: CZ },
+  ];
+  for (const t of TOWNS) SPOTS.push({ name: t.name, d: 'A small town', x: t.axis === 'x' ? t.x + 8 : t.x - t.roadSide * 4.6, z: t.axis === 'x' ? t.z - t.roadSide * 4.6 : t.z + 8 });
+
   /* ---------- places made when you come near (50_world streams them like landmarks) ---------- */
   const PLACES = [];
   for (const p of CITY.parts) PLACES.push({ kind: p.park ? 'park' : 'city', key: p.key, part: p, x: p.x, z: p.z, reach: p.park ? 60 : 80 });
@@ -319,5 +328,5 @@ const Plan = (() => {
     for (let i = 0; i < n; i++) { const s0 = (i / n) * r.len, s1 = ((i + 1) / n) * r.len, [x, z] = roadAt(r, (s0 + s1) / 2); PLACES.push({ kind: 'road', key: r.key + '-' + i, road: r, s0, s1, x, z, reach: (s1 - s0) / 2 + 10 }); }
   }
 
-  return { PI, TOWN, CITY, TOWNS, ROADS, PLACES, BUS, RW, ST_W, TY, CY, init, H, busy, reserved, paint, grass, streetD, inCity, inPark, roadAt, roadY, roadNear, rectD, inR };
+  return { PI, TOWN, CITY, TOWNS, ROADS, PLACES, BUS, SPOTS, RW, ST_W, TY, CY, init, H, busy, reserved, paint, grass, streetD, inCity, inPark, roadAt, roadY, roadNear, rectD, inR };
 })();

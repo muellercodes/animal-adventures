@@ -119,6 +119,13 @@ function followCamera(dt) {
     Cam.block = k < (Cam.block || 1) ? k : damp(Cam.block || 1, k, 2.5, dt);
     if (Cam.block < 0.999) { x = Cam.target.x + (x - Cam.target.x) * Cam.block; y = Cam.target.y + (y - Cam.target.y) * Cam.block; z = Cam.target.z + (z - Cam.target.z) * Cam.block; }
   }
+  // riding the bus: watch from beside it, on the door side, so you can see your animal at the window
+  if (b.riding) {
+    const c = b.riding, rx = -c.fz, rz = c.fx;
+    Cam.yaw = c.yaw - Math.PI / 2;
+    x = b.pos.x + rx * 7.5 - c.fx * 2.5; z = b.pos.z + rz * 7.5 - c.fz * 2.5; y = b.pos.y + 1.6;
+    Cam.target.set(b.pos.x, b.pos.y + 0.4, b.pos.z);
+  }
   camera.position.set(x, y, z);
   camera.lookAt(Cam.target);
   G.camYaw = Cam.yaw;
@@ -211,7 +218,7 @@ function readInput() {
   if (stick.id !== null) { ix = stick.dx / STICK_R; iy = -stick.dy / STICK_R; const m = Math.hypot(ix, iy); if (m < 0.12) { ix = 0; iy = 0; } }
   const kx = (keys.r ? 1 : 0) - (keys.l ? 1 : 0), ky = (keys.f ? 1 : 0) - (keys.b ? 1 : 0);
   if (kx || ky) { const m = Math.hypot(kx, ky); ix = kx / m; iy = ky / m; }
-  const held = Town.busy();
+  const held = Town.busy() || !!(Player.b && Player.b.riding);
   if (R.hatch || R.sleeping > 0 || R.doorSeq || held) { ix = 0; iy = 0; }
   const fx = Math.sin(Cam.yaw), fz = Math.cos(Cam.yaw), rx = -Math.cos(Cam.yaw), rz = Math.sin(Cam.yaw);
   inp.mx = fx * iy + rx * ix; inp.mz = fz * iy + rz * ix; inp.ix = ix; inp.iy = iy;
@@ -229,6 +236,9 @@ function findAction() {
   if (R.hatch) return R.hatch.done ? null : { id: 'hatch', label: 'Tap to hatch!' };
   if (R.sleeping > 0 || R.doorSeq || Town.busy()) return null;
   if (b.mode === 'climb' || b.mode === 'perch') return { id: 'letgo', label: 'Let go' };
+  // the bus: get on at a stop when the doors are open, get off at any stop
+  if (b.riding) return b.riding.dwell > 0.8 && b.riding.doors > 0.6 ? { id: 'busoff', label: 'Get off' } : null;
+  if (!b.room && b.mode === 'ground' && Traffic.buses.length) { const bus = Traffic.boardable(b); if (bus) return b.m.height > 1.3 ? { id: 'big', label: 'Too big!' } : { id: 'buson', label: 'Get on the bus', bus }; }
   const sp = SPECIES[b.sp], home = Homes.homeOf(b.sp), reach = 0.9 + b.m.radius;
   if (b.room) {
     const rm = b.room;
@@ -632,14 +642,14 @@ function sheetMap() {
       <span class="t">${w.name}</span><span class="d">${w.blurb}</span>
       <span class="tags">${here ? `<span class="tg">You are here</span>${b && !b.room && Math.hypot(b.pos.x - G.world.def.spawn[0], b.pos.z - G.world.def.spawn[1]) > 150 ? '<span class="tg new">Tap to go back to the start</span>' : ''}` : ''}${locked ? `<span class="tg lock">${A.fly ? 'Grow up to fly here' : A.many + " can't fly"}</span>` : ''}${!here && !locked && isNew ? '<span class="tg new">New! +10 leaves</span>' : ''}</span>
     </button>`;
-  }).join('')}</div>`;
+  }).join('')}</div>${S.world === 'land' && G.world && G.world.def.places ? `<h3 class="sub">Places in the Land</h3>${b && b.room ? '<p class="note">Go outside first to travel.</p>' : ''}<div class="places">${Plan.SPOTS.map((p, i) => `<button class="place" type="button" data-action="place" data-v="${i}"${b && b.room ? ' disabled' : ''}><span class="t">${p.name}</span><span class="d">${p.d}</span></button>`).join('')}</div>` : ''}`;
 }
 function homeLine(id) {
   const hm = S.homes[id]; if (!hm) return '';
-  const color = ['white', 'yellow', 'blue', 'brick', 'gray', 'white'][hm.house] || 'white';
+  const hh = G.world && G.world.id === 'land' ? Homes.village()[hm.house] : null, color = Homes.color(hh, hm.house), street = hh && hh.street && hh.street !== 'Maple Street' ? ` on ${hh.street}` : '';
   const cage = CAGED[id];
   const dot = `<span style="display:inline-block;width:.8em;height:.8em;border-radius:50%;vertical-align:-1px;margin-right:5px;border:2px solid #d9a93a;background:#${hexNum(hm.look && hm.look.shirt).toString(16).padStart(6, '0')}"></span>`;
-  return `<span class="need">${dot}Wears ${hm.name}'s collar. ${SPECIES[id].outdoor ? `Lives in ${hm.name}'s yard behind the ${color} house` : cage ? `Lives in ${CAGE_WORDS[cage]} at ${hm.name}'s ${color} house` : `${hm.name}'s indoor pet in the ${color} house`}</span>`;
+  return `<span class="need">${dot}Wears ${hm.name}'s collar. ${SPECIES[id].outdoor ? `Lives in ${hm.name}'s yard behind the ${color} house${street}` : cage ? `Lives in ${CAGE_WORDS[cage]} at ${hm.name}'s ${color} house${street}` : `${hm.name}'s indoor pet in the ${color} house${street}`}</span>`;
 }
 function sheetAnimals() {
   const ids = STARTERS.concat(SHOP).filter((i) => S.owned.includes(i));
@@ -926,6 +936,24 @@ document.addEventListener('click', (e) => {
     case 'tab': R.shopTab = v; renderSheet(); break;
     case 'pack': R.pack = v; R.gc = newGc(); R.shopTab = 'grownup'; renderSheet(); break;
     case 'go': travel(v); break;
+    case 'buson': {
+      const b = Player.b; b.riding = a.bus; Traffic.seat(b); Cam.snap = true;
+      const nx = Plan.BUS.stops[(Plan.BUS.stops.findIndex((q) => q === (a.bus.stopAt && a.bus.stopAt.st)) + 1) % Plan.BUS.stops.length];
+      UI.toast(`All aboard! Next stop: ${nx ? nx.name : 'the city'}.`, 3200);
+      break;
+    }
+    case 'busoff': {
+      const b = Player.b, c = b.riding; if (!c) break;
+      const d = Traffic.doorPoint(c); b.riding = null; Player.place(d.x, d.z); b.yaw = c.yaw + Math.PI / 2; Cam.snap = true;
+      UI.toast(`Thanks for riding! This is ${Traffic.stopName(c)}.`, 2600);
+      break;
+    }
+    case 'place': {
+      const p = Plan.SPOTS[+v], b = Player.b;
+      if (!p || !b || b.room) break;
+      closeSheet(); b.yaw = 0; Player.place(p.x, p.z); Cam.snap = true; Foods.fill(60); UI.toast(p.name === 'The farm' ? 'Back to the farm' : `Welcome to ${p.name}`);
+      break;
+    }
     case 'switch': switchAnimal(v); break;
     case 'buy': buyAnimal(v); break;
     case 'name': R.naming = v; renderSheet(); break;
@@ -974,6 +1002,7 @@ function tick(dt, raw, draw) {
       R.action = findAction();
       if (press.act) { press.act = false; doAction(R.action); }
       if (press.call) { press.call = false; Net.sendCall(); Sound.call(Player.b); Player.b.happy = 1; for (const w of Wild.list) if (w.sp === Player.sp && !w.caged && w.pos.distanceTo(Player.pos) < 25) setTimeout(() => Sound.wildCall(w, camera.position, Cam.yaw), 500 + Math.random() * 900); }
+      if (Player.b.riding) Traffic.seat(Player.b);
       Player.update(dt, inp);
       Homes.update(dt);
       updateDoorSeq(dt);

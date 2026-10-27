@@ -186,7 +186,7 @@ const Traffic = (() => {
   /* ---- what is in front: other cars, the light, and anyone in the road ---- */
   function obstacles(P) {
     const list = [];
-    if (P && !P.room && P.mode !== 'fly' && P.mode !== 'perch') list.push({ x: P.pos.x, z: P.pos.z, r: Math.max(0.3, P.m.length * 0.5), player: true });
+    if (P && !P.room && !P.riding && P.mode !== 'fly' && P.mode !== 'perch') list.push({ x: P.pos.x, z: P.pos.z, r: Math.max(0.3, P.m.length * 0.5), player: true });
     for (const b of Wild.list) if (!b.room && b.mode !== 'fly' && b.mode !== 'perch' && b.mode !== 'climb' && (!P || Math.abs(b.pos.x - P.pos.x) < 200 && Math.abs(b.pos.z - P.pos.z) < 200)) list.push({ x: b.pos.x, z: b.pos.z, r: Math.max(0.25, (b.m ? b.m.length : 0.5) * 0.5) });
     for (const p of Folk.list) if (!p.room && !p.away && (!P || Math.abs(p.pos.x - P.pos.x) < 200 && Math.abs(p.pos.z - P.pos.z) < 200)) list.push({ x: p.pos.x, z: p.pos.z, r: 0.35, person: true });
     if (typeof Net !== 'undefined' && Net.others) for (const o of Net.others.values()) if (o.b && o.b.pos) list.push({ x: o.b.pos.x, z: o.b.pos.z, r: 0.5 });
@@ -242,10 +242,10 @@ const Traffic = (() => {
     // where each stop is on its leg
     const stops = Plan.BUS.stops.map((st) => { const A = net.find(st.a[0], st.a[1]), B = net.find(st.b[0], st.b[1]); const e = A && B ? A.out.find((q) => q.b === B) : null; return e ? { st, e, s: e.s0 + (e.s1 - e.s0) * st.t } : null; }).filter(Boolean);
     T.busLegs = legs; T.busStops = stops;
-    for (let k = 0; k < 2; k++) {
+    for (let k = 0; k < 3; k++) {
       const g = Env.bus(); g.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
       w.out.add(g);
-      const li = k === 0 ? 0 : 8, e = legs[li];
+      const li = [0, 7, 13][k] % legs.length, e = legs[li];
       const c = addCar(e, e.s0 + 2, ['bus', 0], g);
       if (!c) continue;
       c.leg = li; c.next = legs[(li + 1) % legs.length]; c.v = 0; c.dwell = 0; c.doors = 0; c.stopAt = null; c.riders = 0; c.name = 'bus ' + (k + 1);
@@ -258,6 +258,7 @@ const Traffic = (() => {
   T.init = (w) => {
     T.on = !!(w.def.places && Plan && Env.vehicle);
     T.cars = []; T.buses = []; T.ims = null; T.time = 0;
+    if (Player.b) Player.b.riding = null;
     if (!T.on) return;
     T.net = T.net || build();
     for (const e of T.net.edges) e.cars = [];
@@ -312,7 +313,13 @@ const Traffic = (() => {
       // bus stops: pull in, open the doors, wait, close them
       if (c.bus && !c.turn) {
         const st = T.busStops.find((q) => q.e === c.e && q.s > c.s - 0.5);
-        if (st && c.dwell <= 0 && c.stopDone !== st) { const toS = st.s - c.s; if (toS < gap) gap = toS; if (toS < 0.4 && c.v < 0.3) { c.dwell = 9; c.stopAt = st; } }
+        if (st && c.dwell <= 0 && c.stopDone !== st) {
+          const toS = st.s - c.s; if (toS < gap) gap = toS;
+          if (toS < 0.4 && c.v < 0.3) {
+            c.dwell = 7.5; c.stopAt = st;
+            if (P && P.riding === c) { c.dwell = 12; G.ui.toast(`${st.st.name} stop! Tap Get off to get off here.`, 3500); }
+          }
+        }
         if (c.dwell > 0) { gap = 0; c.dwell -= dt; c.doors = Math.min(1, c.doors + dt * 1.2); if (c.dwell <= 1.5) c.doors = Math.max(0, c.doors - dt * 1.6); if (c.dwell <= 0) { c.stopDone = c.stopAt; c.stopAt = null; c.doors = 0; } }
         if (c.bus.userData.doors && Env.setDoors) Env.setDoors(c.bus, c.doors);
       }
@@ -364,5 +371,26 @@ const Traffic = (() => {
     }
   }
   T.clear = () => { T.cars = []; T.buses = []; T.on = false; };
+
+  /* ---- riding the bus ---- */
+  // the spot just outside the front door (on the right)
+  T.doorPoint = (c) => { const f = c.len / 2 - 1.6, sd = c.wid / 2 + 0.7; return { x: c.x + c.fx * f - c.fz * sd, z: c.z + c.fz * f + c.fx * sd }; };
+  // a bus at a stop with its doors open, close enough to get on
+  T.boardable = (b) => {
+    for (const c of T.buses) {
+      if (!(c.dwell > 0.8 && c.doors > 0.6)) continue;
+      const d = T.doorPoint(c);
+      if (Math.hypot(b.pos.x - d.x, b.pos.z - d.z) < 2.6 + b.m.radius) return c;
+    }
+    return null;
+  };
+  T.stopName = (c) => (c.stopAt ? c.stopAt.st.name : '');
+  // sit on a seat by the window, near the front
+  T.seat = (b) => {
+    const c = b.riding; if (!c) return;
+    const lx = -0.45, lz = c.len / 2 - 3.2, co = Math.cos(c.yaw), si = Math.sin(c.yaw), fy = (c.bus && c.bus.userData.floorY) || 0.85;
+    b.pos.set(c.x + lx * co + lz * si, c.y + fy, c.z - lx * si + lz * co);
+    b.yaw = c.yaw;
+  };
   return T;
 })();
