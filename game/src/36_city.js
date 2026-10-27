@@ -1888,7 +1888,8 @@
     return { x: 0, z: +(zf + 1.2).toFixed(2) };
   }
   function awning(st, K2, W, pil, wTop, zf) {
-    const ax0 = -W / 2 + pil + 0.05, ax1 = W / 2 - pil - 0.05, aw = ax1 - ax0, ay0 = wTop + 0.36, ay1 = wTop - 0.42, az1 = zf + 1.35, vh = 0.28;
+    // the town fronts are lower, so their awning slopes less to keep the valance above head height (about 2.1 m)
+    const ax0 = -W / 2 + pil + 0.05, ax1 = W / 2 - pil - 0.05, aw = ax1 - ax0, ay0 = wTop + 0.36, ay1 = wTop - (W > 12 ? 0.42 : 0.08), az1 = zf + 1.35, vh = 0.28;
     const n = Math.max(2, Math.round(aw / 0.42)), [c0, c1] = K2.awn.map(L);
     for (let i = 0; i < n; i++) {
       const x0 = ax0 + aw * i / n, x1 = ax0 + aw * (i + 1) / n, col = i % 2 ? c1 : c0;
