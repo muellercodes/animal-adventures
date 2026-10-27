@@ -312,7 +312,7 @@ const Traffic = (() => {
       }
       // bus stops: pull in, open the doors, wait, close them
       if (c.bus && !c.turn) {
-        const ds0 = c.len / 2 - 1.6;   // stop with the front door at the stop
+        const ds0 = doorZ(c);   // stop with the front door at the stop
         const st = T.busStops.find((q) => q.e === c.e && q.s - ds0 > c.s - 0.5);
         if (st && c.dwell <= 0 && c.stopDone !== st) {
           const toS = st.s - ds0 - c.s; if (toS < gap) gap = toS;
@@ -375,7 +375,8 @@ const Traffic = (() => {
 
   /* ---- riding the bus ---- */
   // the spot just outside the front door (on the right)
-  T.doorPoint = (c) => { const f = c.len / 2 - 1.6, sd = c.wid / 2 + 0.7; return { x: c.x + c.fx * f - c.fz * sd, z: c.z + c.fz * f + c.fx * sd }; };
+  const doorZ = (c) => { const d = c.bus && c.bus.userData.doorZ && c.bus.userData.doorZ[0]; return d ? (d.z0 + d.z1) / 2 : c.len / 2 - 1.6; };
+  T.doorPoint = (c) => { const f = doorZ(c), sd = c.wid / 2 + 0.7; return { x: c.x + c.fx * f - c.fz * sd, z: c.z + c.fz * f + c.fx * sd }; };
   // a bus at a stop with its doors open, close enough to get on
   T.boardable = (b) => {
     for (const c of T.buses) {

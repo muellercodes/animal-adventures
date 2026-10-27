@@ -195,6 +195,9 @@ const Plan = (() => {
     for (let i = 1; i < r.pts.length; i++) { r.len += Math.hypot(r.pts[i][0] - r.pts[i - 1][0], r.pts[i][1] - r.pts[i - 1][1]); r.cum.push(r.len); }
   }
 
+  // the bandstands on the town green and in the park
+  const GAZEBOS = [{ x: TOWN.green.x, z: TOWN.green.z }, { x: CX + 50 - 20, z: CZ + 22 }];
+
   /* ---------- ground shape ---------- */
   let flatH = null;          // the ground with the town and city flats but no roads (for the road profiles)
   // ground height along each road, sampled every 4 m and smoothed, so roads run smooth over the bumps
@@ -254,6 +257,8 @@ const Plan = (() => {
       const [d, s] = roadNear(r, x, z);
       if (d < RW / 2 + SHOULDER) h += (roadY(r, s) - h) * (1 - sm((d - RW / 2 - 0.6) / SHOULDER));
     }
+    // bandstands: the ground inside rises to the deck (0.36 m), so animals walk on it
+    for (const g of GAZEBOS) { const d = Math.hypot(x - g.x, z - g.z); if (d < 3.9) h += 0.33 * (1 - sm((d - 3.0) / 0.8)); }
     // the park pond: a gentle bank down to the water, then a bowl below it
     const P = CITY.pond, px = CX + P.x, pz = CZ + P.z;
     if (Math.abs(x - px) < P.r * 1.2 + 9 && Math.abs(z - pz) < P.r * 1.2 + 9) {

@@ -1076,7 +1076,7 @@ const World = (() => {
       for (const s of CT.segs) if (s.part === part.key) citySeg(s, M);
       for (const n of CT.nodes) if (n.part === part.key) cityNode(n, M);
       if (part.blocks) for (const b of CT.blocks) if (part.blocks(b)) cityBlock(b);
-      for (const st of Plan.BUS.stops) if (st.part === part.key) putProp('busstop', 0, st.sx, st.sz, Plan.CY, st.rot);
+      for (const st of Plan.BUS.stops) if (st.part === part.key) putProp('busstop', 0, st.sx, st.sz, Plan.CY + 0.07, st.rot);
     }
     function citySeg(s, M) {
       const ex = s.dir === 'x', a = ex ? s.ax : s.az, b = ex ? s.bx : s.bz, c = ex ? s.az : s.ax;
@@ -1099,17 +1099,17 @@ const World = (() => {
       const at = (al, sd, off) => { const q = P(al, c + sd * (R + off), 0); return [q[0], q[2]]; };
       const face = (sd) => (ex ? (sd > 0 ? Math.PI : 0) : (sd > 0 ? -Math.PI / 2 : Math.PI / 2));   // toward the road
       for (const sd of [-1, 1]) {
-        for (const al of [a + R + 10, b - R - 10]) { const [x, z] = at(al, sd, 0.7); putProp('streetlamp', 0, x, z, y0, face(sd)); }
+        for (const al of [a + R + 10, b - R - 10]) { const [x, z] = at(al, sd, 0.7); putProp('streetlamp', 0, x, z, ys, face(sd)); }
         { const [x, z] = at((a + b) / 2, sd, 1.1); putTree('maple', ((a + b + sd) & 3) % 3, x, z, 0.78, a + sd); }
       }
-      { const [x, z] = at(a + R + 4.5, 1, 0.55); putProp('hydrant', 0, x, z, y0, face(1)); }
-      { const [x, z] = at(b - R - 3, -1, 0.6); putProp('trashcan', 0, x, z, y0, face(-1)); }
+      { const [x, z] = at(a + R + 4.5, 1, 0.55); putProp('hydrant', 0, x, z, ys, face(1)); }
+      { const [x, z] = at(b - R - 3, -1, 0.6); putProp('trashcan', 0, x, z, ys, face(-1)); }
       const main = ex && c === 0 && b <= 0, parkSide = (sd) => (ex ? (a >= 0 && ((c === -50 && sd > 0) || (c === 50 && sd < 0))) : (b <= 50 && a >= -50 && ((c === 0 && sd > 0) || (c === 100 && sd < 0))));
-      for (const sd of [-1, 1]) if (main || parkSide(sd)) for (const al of [a + R + 16, b - R - 16]) { const [x, z] = at(al, sd, Wk - 0.7); putProp('bench', 0, x, z, y0, face(sd)); }
-      if (main) for (const sd of [-1, 1]) { const [x, z] = at((a + b) / 2 + 4, sd, Wk - 0.5); putProp('newsbox', 0, x, z, y0, face(sd)); }
+      for (const sd of [-1, 1]) if (main || parkSide(sd)) for (const al of [a + R + 16, b - R - 16]) { const [x, z] = at(al, sd, Wk - 0.7); putProp('bench', 0, x, z, ys, face(sd)); }
+      if (main) for (const sd of [-1, 1]) { const [x, z] = at((a + b) / 2 + 4, sd, Wk - 0.5); putProp('newsbox', (a + sd + 9) % 3, x, z, ys, face(sd)); }
     }
     function cityNode(n, M) {
-      const R = CT.road / 2, Wk = CT.walk, y0 = Plan.CY, yr = y0 + 0.03, ys = y0 + 0.07, X = CT.x + n.x, Z = CT.z + n.z;
+      const R = CT.road / 2, Wk = CT.walk, y0 = Plan.CY, yr = y0 + 0.03, ys = y0 + 0.07, X = CT.x + n.x, Z = CT.z + n.z; void y0;
       quad(M.junction, [[X - R, yr, Z - R], [X - R, yr, Z + R], [X + R, yr, Z + R], [X + R, yr, Z - R]], [[(X - R) / 10, (Z - R) / 10], [(X - R) / 10, (Z + R) / 10], [(X + R) / 10, (Z + R) / 10], [(X + R) / 10, (Z - R) / 10]]);
       // sidewalk where no street goes on (but not where a country road leaves), and the corners not covered
       const dirs = { n: [0, -1], s: [0, 1], e: [1, 0], w: [-1, 0] };
@@ -1131,8 +1131,9 @@ const World = (() => {
           if (!n.open[d]) continue;
           const Fx = -dx, Fz = -dz, Rx = -Fz, Rz = Fx;                       // cars coming in from side d drive along F
           const px = X + Fx * 6.6 + Rx * 6.6, pz = Z + Fz * 6.6 + Rz * 6.6;
-          putProp('trafficpole', 0, px, pz, y0, Math.atan2(Rz, -Rx));
-          const hd = Env.signalHead(); hd.position.set(px - Rx * 4.2, y0 + 5.3, pz - Rz * 4.2); hd.rotation.y = Math.atan2(-Fx, -Fz);
+          putProp('trafficpole', 0, px, pz, ys, Math.atan2(Rz, -Rx));
+          const mt = (hasProp('trafficpole') && Env.prop('trafficpole', 0).mounts) || { arm: [{ x: 4.2, y: 5.3 }] }, am = mt.arm[mt.arm.length - 1];
+          const hd = Env.signalHead(); hd.position.set(px - Rx * am.x, ys + am.y, pz - Rz * am.x); hd.rotation.y = Math.atan2(-Fx, -Fz);
           out.add(hd); w.own.objs.push(hd);
           sig.heads.push({ obj: hd, axis: dx ? 'x' : 'z' });
         }
@@ -1162,7 +1163,7 @@ const World = (() => {
     /* the city park: paths, the fountain, the pond, a bandstand, a playground, trees, benches and lamps */
     function buildPark(f) {
       const M = streetMats(), P0 = CT.park, cx = CT.x + (P0.x0 + P0.x1) / 2, cz = CT.z + (P0.z0 + P0.z1) / 2;
-      const hw = (P0.x1 - P0.x0) / 2, hd = (P0.z1 - P0.z0) / 2, y0 = Plan.CY, yp = y0 + 0.04;
+      const hw = (P0.x1 - P0.x0) / 2, hd = (P0.z1 - P0.z0) / 2, y0 = Plan.CY + 0.03, yp = Plan.CY + 0.04;
       const pond = { x: CT.x + CT.pond.x, z: CT.z + CT.pond.z, r: CT.pond.r };
       const paths = [];
       const path = (ax, az, bx, bz, wd) => { paths.push([ax, az, bx, bz, wd]); const L = Math.hypot(bx - ax, bz - az), lx = (bz - az) / L * wd / 2, lz = -(bx - ax) / L * wd / 2;
@@ -1174,14 +1175,14 @@ const World = (() => {
       path(cx - hw - 0.5, cz, cx - 9, cz, 4); path(cx + 9, cz, cx + hw + 0.5, cz, 3.5); path(cx, cz - hd - 0.5, cx, cz - 9, 3.5); path(cx, cz + 9, cx, cz + hd + 0.5, 3.5);
       // the plaza: a round paved circle
       { const n = 28, r = 10; for (let i = 0; i < n; i++) { const a0 = i / n * TAU, a1 = (i + 1) / n * TAU; const pts = [[cx, yp + 0.002, cz], [cx + Math.cos(a1) * r, yp + 0.002, cz + Math.sin(a1) * r], [cx + Math.cos(a0) * r, yp + 0.002, cz + Math.sin(a0) * r], [cx, yp + 0.002, cz]]; quad(M.paving, pts, pts.map((q) => [q[0] / 2, q[2] / 2])); } }
-      if (Env.fountain) addGroup(Env.fountain(), cx, cz, 0, y0);
+      if (Env.fountain) { const fg = addGroup(Env.fountain(), cx, cz, 0, y0); for (const c of (fg && fg.userData.rim) || []) addCollider({ x: cx + c.x, z: cz + c.z, r: c.r }); }
       const onPath = (x, z, pad) => paths.some(([ax, az, bx, bz, wd]) => segDist(x, z, ax, az, bx, bz) < wd / 2 + pad) || Math.hypot(x - cx, z - cz) < 10 + pad;
       // the bandstand by the pond, the playground in the north west corner, a statue at the Main Street gate
       const gz = { x: cx - 20, z: cz + 22 }; putProp('gazebo', 0, gz.x, gz.z, y0, Math.PI / 8);
       if (Env.playground) w.addPlayground({ x: cx - 22, z: cz - 22, rot: 0, extra: true });
-      putProp('statue', 0, cx - hw + 4, cz - 6, y0, Math.PI / 2);
-      putProp('statue', 0, cx - hw + 4, cz + 6, y0, Math.PI / 2);
-      for (const [dx, dz] of [[-6, -6], [6, -6], [-6, 6], [6, 6]]) putProp('flowerbed', 0, cx + dx * 1.9, cz + dz * 1.9, y0, 0);
+      putProp('statue', 0, cx - hw + 4, cz - 6, y0, -Math.PI / 2);
+      putProp('statue', 1, cx - hw + 4, cz + 6, y0, -Math.PI / 2);
+      for (const [dx, dz] of [[-6, -6], [6, -6], [-6, 6], [6, 6]]) putProp('flowerbed', (dx + dz === 0 ? 1 : 0), cx + dx * 1.9, cz + dz * 1.9, y0, 0);
       // benches along the paths, facing them; lamps; picnic tables by the pond
       const benchAt = (x, z, rot) => { putProp('parkbench', 0, x, z, y0, rot); w.benches.push({ x, z, rot, own: w.own, busy: null }); };
       for (const t of [-0.6, -0.2, 0.2, 0.6]) { benchAt(cx + t * hw * 1.6 / 2 * 2 * 0.5, cz - hd + ri - 2.6, 0); benchAt(cx + t * hw * 0.8, cz + hd - ri + 2.6, Math.PI); }
@@ -1237,7 +1238,7 @@ const World = (() => {
           const sd = k % 2 ? 1 : -1, t = d / L, x = s.a[0] + (s.b[0] - s.a[0]) * t, z = s.a[1] + (s.b[1] - s.a[1]) * t;
           const px = ex ? x : x + sd * (R + 0.9), pz = ex ? z + sd * (R + 0.9) : z;
           if (cross.some(([cx2, cz2]) => Math.hypot(px - cx2, pz - cz2) < 7)) continue;
-          putProp('parklamp', 0, px, pz, T.y, 0);
+          putProp('parklamp', 0, px, pz, T.y + 0.02, 0);
         }
       }
       // street trees on the verge between the houses
@@ -1258,14 +1259,14 @@ const World = (() => {
         quad(M.paving, pts, pts.map((q) => [q[0] / 2, q[2] / 2]));
       }
       putProp('gazebo', 0, G0.x, G0.z, T.y, 0);
-      for (const [dx, dz] of [[-12, -10], [12, -10], [-12, 10], [12, 10]]) putProp('flowerbed', 0, G0.x + dx, G0.z + dz, T.y, 0);
+      for (const [dx, dz] of [[-12, -10], [12, -10], [-12, 10], [12, 10]]) putProp('flowerbed', dx > 0 ? 1 : 0, G0.x + dx, G0.z + dz, T.y, 0);
       for (const [dx, dz, r] of [[-8, -3, 0], [8, -3, 0], [-8, 3, Math.PI], [8, 3, Math.PI], [-3, -14, Math.PI / 2], [3, 14, -Math.PI / 2]]) putProp('parkbench', 0, G0.x + dx, G0.z + dz, T.y, r);
       for (const [dx, dz] of [[-19, -17], [19, -17], [-19, 17], [19, 17], [-20, 0], [20, 6]]) putTree(dx < 0 ? 'oak' : 'maple', (dx + dz) & 1, G0.x + dx, G0.z + dz, 1.05, dx);
-      for (const [dx, dz] of [[-3, -8], [3, 8], [-16, 2.5], [16, -2.5]]) putProp('parklamp', 0, G0.x + dx, G0.z + dz, T.y, 0);
+      for (const [dx, dz] of [[-3, -8], [3, 8], [-16, 2.5], [16, -2.5]]) putProp('parklamp', 0, G0.x + dx, G0.z + dz, T.y + 0.03, 0);
       // welcome signs at the edges of town, and the way to the city
       if (Env.townSign) { addGroup(Env.townSign('Maple Town'), 40, -61, -Math.PI / 2); addGroup(Env.townSign('Maple Town'), 262, -61, Math.PI / 2); }
       if (Env.roadSign) addGroup(Env.roadSign('City', 'up'), 250, -48.8, -Math.PI / 2);
-      for (const st of Plan.BUS.stops) if (st.town) putProp('busstop', 0, st.sx, st.sz, T.y, st.rot);
+      for (const st of Plan.BUS.stops) if (st.town) putProp('busstop', 0, st.sx, st.sz, T.y + 0.02, st.rot);
       finishSurfaces(null);
     };
 
@@ -1279,7 +1280,7 @@ const World = (() => {
       for (const L of t.lots) w.addHouse(L);
       const P = (u, c) => (ax ? [t.x + u, t.z + c] : [t.x + c, t.z + u]);
       // lamps, trees between the lots, signs at both ends, a bench and a mailbox by the shops
-      for (let u = -hl + 6, k = 0; u <= hl - 6; u += 20, k++) { const sd = k % 2 ? 1 : -1; if (Math.abs(u) < 6 && sd === t.roadSide) continue; const [x, z] = P(u, sd * (R + 0.9)); putProp('parklamp', 0, x, z, t.y, 0); }
+      for (let u = -hl + 6, k = 0; u <= hl - 6; u += 20, k++) { const sd = k % 2 ? 1 : -1; if (Math.abs(u) < 6 && sd === t.roadSide) continue; const [x, z] = P(u, sd * (R + 0.9)); putProp('parklamp', 0, x, z, t.y + 0.02, 0); }
       for (let u = -50; u <= 50; u += 20) for (const sd of [-1, 1]) { if (Math.abs(u) < 12 && sd === t.roadSide) continue; const [x, z] = P(u, sd * (R + 4)); putTree(u % 40 ? 'maple' : 'oak', (u / 20 + sd + 8) % 2 | 0, x, z, 0.95, u); }
       // the welcome sign stands beside the road coming in, facing the people arriving
       if (Env.townSign) { const [x, z] = P(-7, t.roadSide * (R + 7)); addGroup(Env.townSign(t.name), x, z, ax ? (t.roadSide > 0 ? 0 : Math.PI) : (t.roadSide > 0 ? Math.PI / 2 : -Math.PI / 2)); }
