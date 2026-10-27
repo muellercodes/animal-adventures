@@ -5,12 +5,15 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
-const ORDER = ['00_core', '35_envkit', '36_city', '37_street', '40_animals', '45_people', '50_world', '60_actors', '62_town', '65_audio', '68_net', '70_game'];
+const ORDER = ['00_core', '35_envkit', '36_city', '37_street', '40_animals', '45_people', '49_plan', '50_world', '60_actors', '62_town', '65_audio', '68_net', '70_game'];
 const cfg = JSON.parse(readFileSync('game/config.json', 'utf8'));
 const api = process.env.API_BASE ?? cfg.apiBase ?? '';
 
 const OUT = process.env.OUT || 'docs', DIST = process.env.DIST || 'dist';   // OUT/DIST let test builds go somewhere else
-const js = `(() => {\n'use strict';\n${ORDER.map((f) => readFileSync(`game/src/${f}.js`, 'utf8')).join('\n')}\n})();\n`;
+// EXTRA=a.js,b.js adds test-only scripts right after the scenery modules (stand-ins while art is being made)
+const files = ORDER.map((f) => `game/src/${f}.js`);
+files.splice(files.indexOf('game/src/37_street.js') + 1, 0, ...(process.env.EXTRA || '').split(',').filter(Boolean));
+const js = `(() => {\n'use strict';\n${files.map((f) => readFileSync(f, 'utf8')).join('\n')}\n})();\n`;
 mkdirSync(DIST, { recursive: true });
 writeFileSync(`${DIST}/game.js`, js);
 execFileSync(process.execPath, ['--check', `${DIST}/game.js`], { stdio: 'inherit' });
