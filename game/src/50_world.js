@@ -1198,12 +1198,12 @@ const World = (() => {
         // parked cars along the curb (none by the corners, the hydrant or a bus stop), with meters downtown
         const fill = down ? 0.78 : 0.6;
         let cone = !down && sd > 0 && r() < 0.08;
-        for (const al of [9.6, 16.2, 22.8, 29.4]) {
+        for (const al of [9, 15, 21, 27, 33]) {
           if (al + 3 > len - 6 || stopNear(al, sd)) continue;
           if (down) put('parkingmeter', 0, al - 2.9, 0.42, face(sd) + Math.PI);
           if (cone) { cone = false; for (const k of [-1.8, 0, 1.8]) { const [x, z] = at(al + k, sd, -1.8); putProp('cone', 0, x, z, YR, r() * 3, 1, false); } const [bx, bz] = at(al, sd, -0.9); putProp('barrier', 0, bx, bz, YR, drive(sd) + Math.PI / 2); continue; }
           if (r() > fill) continue;
-          const [x, z] = at(al + (r() - 0.5) * 0.8, sd, -1.72 + (r() - 0.5) * 0.15);
+          const [x, z] = at(al + (r() - 0.5) * 0.5, sd, -1.2 + (r() - 0.5) * 0.12);
           parkCar(x, z, drive(sd) + (r() - 0.5) * 0.04, r);
         }
         // benches with their backs to the park, and on Main Street
@@ -1273,7 +1273,7 @@ const World = (() => {
         const x = X + sx * (R + 0.9), z = Z + sz * (R + 0.9);
         const named = n.z === 0 || n.exit || Math.abs(n.x - (CT.gates.n[0])) <= 55.5 && Math.abs(n.z) <= 55;
         if (named && Env.streetSign) addGroup(Env.streetSign(st, ave), x, z, Math.atan2(sx, sz) + Math.PI);
-        else putProp('streetsign2', 0, x, z, YS, Math.atan2(sx, sz) + Math.PI);
+        else putProp('streetsign2', (Math.abs(n.x + n.z) / 55) % 4, x, z, YS, Math.atan2(sx, sz) + Math.PI);
       }
       // out to the city edge: the street with a crosswalk, then narrowing over 8 m to the two lane country road
       if (n.exit) {
@@ -1290,8 +1290,14 @@ const World = (() => {
 
     /* a block: old concrete between and behind the buildings, then each lot, then the alleys */
     function cityBlock(b, M) {
-      const X0 = CT.x + b.x, Z0 = CT.z + b.z, r = cityRng(b.c, b.r, 77);
-      paveRect(M.alley || M.sidewalk, X0 - HB, Z0 - HB, X0 + HB, Z0 + HB, YS, mUV(uvSize('alley', 4)));
+      const X0 = CT.x + b.x, Z0 = CT.z + b.z, r = cityRng(b.c, b.r, 77), A = M.alley || M.sidewalk;
+      // the alleys through the block (the drain line runs down the middle), the corners under and around the buildings plain
+      paveRect(A, X0 - 2, Z0 - HB, X0 + 2, Z0 + HB, YS, (x, z) => [(x - X0) / 4 + 0.5, z / 6]);
+      for (const sx of [-1, 1]) {
+        const xa = sx < 0 ? X0 - HB : X0 + 2, xb = sx < 0 ? X0 - 2 : X0 + HB;
+        paveRect(A, xa, Z0 - 2, xb, Z0 + 2, YS, (x, z) => [(z - Z0) / 4 + 0.5, x / 6]);
+        for (const sz of [-1, 1]) paveRect(M.sidewalk, xa, sz < 0 ? Z0 - HB : Z0 + 2, xb, sz < 0 ? Z0 - 2 : Z0 + HB, YS);
+      }
       for (const lot of b.lots) {
         if (lot.building) cityBuilding(lot, r);
         else if (lot.type === 'parking') parkingLot(lot, M, r);
@@ -1328,31 +1334,35 @@ const World = (() => {
     /* a parking lot: two rows of stalls with an aisle between, cars, wheel stops, tall lights; a booth on a big one */
     function parkingLot(lot, M, r) {
       const x = CT.x + lot.x, z = CT.z + lot.z, hu = lotHU(lot), hv = lotHV(lot), co = Math.cos(lot.rot), si = Math.sin(lot.rot);
-      const SW = 2.6, SD = 5.5, n = Math.floor((hu * 2 - 0.4) / SW), u0 = -(n - 1) / 2 * SW;
-      // the stall lines: u across stalls (one stall a repeat), v down a row (0 at the aisle, 1 at the end of the stall)
-      const ps = (M.parking && M.parking.userData && M.parking.userData.stall) || { w: SW, d: SD };
-      const uv = (X, Z) => { const dx = X - x, dz = Z - z, lu = dx * co - dz * si, lv = dx * si + dz * co; return [(lu - u0 + SW / 2) / ps.w, (Math.abs(lv) - (hv - SD)) / ps.d]; };
-      paveRect(M.parking || M.alley || M.sidewalk, x - lot.hw, z - lot.hd, x + lot.hw, z + lot.hd, YS + 0.003, uv);
+      // the street kit paints stalls 2.6 m wide in modules of four (10.4 m) and 18 m deep (a row, a 7.2 m aisle, a row);
+      // the lot is 15 m deep, so the back half and the front half each take their own end of the module
+      const SW = 2.6, n = Math.floor((hu * 2 - 0.4) / SW), u0 = -(n - 1) / 2 * SW, uS = u0 - SW / 2;
+      const lp = (lu, lv) => [x + lu * co + lv * si, z - lu * si + lv * co];
+      const half = (v0, v1, t0, t1) => {
+        const P = [[-hu, v0], [hu, v0], [hu, v1], [-hu, v1]].map(([lu, lv]) => { const [px, pz] = lp(lu, lv); return [px, YS + 0.003, pz]; });
+        quad(M.parking || M.alley || M.sidewalk, P, [[(-hu - uS) / 10.4, t0], [(hu - uS) / 10.4, t0], [(hu - uS) / 10.4, t1], [(-hu - uS) / 10.4, t1]]);
+      };
+      half(-hv, 0, 0, hv / 18); half(0, hv, 1 - hv / 18, 1);
       for (const row of [1, -1]) {
-        const vc = row * (hv - SD / 2);
+        const vc = row * (hv - 2.95);
         for (let i = 0; i < n; i++) {
           const u = u0 + i * SW;
           if (row > 0 && i === 0) continue;                     // the way in from the street
           if (row > 0 && i === 1 && n > 6) { const [bx, bz] = lotP(lot, u, vc + 0.6); putProp('parkbooth', 0, bx, bz, YS, lot.rot + Math.PI / 2); continue; }
-          { const [wx, wz] = lotP(lot, u, row * (hv - 0.55)); putProp('wheelstop', 0, wx, wz, YS, lot.rot, 1, false); }
+          { const [wx, wz] = lotP(lot, u, row * (hv - 0.75)); putProp('wheelstop', (r() * 2) | 0, wx, wz, YS, lot.rot, 1, false); }
           if (r() > 0.68) continue;
-          const back = r() < 0.2, [cx, cz] = lotP(lot, u + (r() - 0.5) * 0.25, vc + row * 0.15);
-          parkCar(cx, cz, lot.rot + (row > 0 ? 0 : Math.PI) + (back ? Math.PI : 0) + (r() - 0.5) * 0.06, r, YS + 0.003);
+          const back = r() < 0.2, [cx, cz] = lotP(lot, u + (r() - 0.5) * 0.2, vc + (r() - 0.5) * 0.2);
+          parkCar(cx, cz, lot.rot + (row > 0 ? 0 : Math.PI) + (back ? Math.PI : 0) + (r() - 0.5) * 0.05, r, YS + 0.003);
         }
       }
-      for (const u of n > 6 ? [-hu + 0.45, hu - 0.45] : [hu - 0.45]) { const [lx, lz] = lotP(lot, u, 0); putProp('lotlight', 0, lx, lz, YS, lot.rot); }
+      for (const u of n > 6 ? [-hu + 0.45, hu - 0.45] : [hu - 0.45]) { const [lx, lz] = lotP(lot, u, 0); putProp('lotlight', n > 6 ? 0 : 1, lx, lz, YS, lot.rot); }
       { const [sx, sz] = lotP(lot, u0 - 1.0, hv - 0.35); putProp('parkingsign', 0, sx, sz, YS, lot.rot); }
       if (r() < 0.5) { const [px, pz] = lotP(lot, (r() - 0.5) * hu, (r() - 0.5) * 2); puddle(M, px, pz, YS + 0.009, 2 + r() * 1.5, r() * 3); }
     }
     /* a small plaza: stone paving, trees in grates, benches, a food cart, cafe tables, a statue or planters */
     function plazaLot(lot, M, r, b) {
       const x = CT.x + lot.x, z = CT.z + lot.z, hu = lotHU(lot), hv = lotHV(lot), y = YS + 0.003;
-      paveRect(M.plaza || M.paving || M.sidewalk, x - lot.hw, z - lot.hd, x + lot.hw, z + lot.hd, y, mUV(uvSize('plaza', 3)));
+      paveRect(M.plaza || M.paving || M.sidewalk, x - lot.hw, z - lot.hd, x + lot.hw, z + lot.hd, y, mUV(3.6));
       const put = (type, v, u, vv, rot, col = true) => { const [px, pz] = lotP(lot, u, vv); putProp(type, v, px, pz, y, lot.rot + rot, 1, col); };
       for (const su of [-1, 1]) {
         const [tx, tz] = lotP(lot, su * (hu - 2.6), -(hv - 2.6));
@@ -1375,7 +1385,9 @@ const World = (() => {
     function cityAlleys(b, M, r) {
       const X0 = CT.x + b.x, Z0 = CT.z + b.z, lotAt = (at) => b.lots.find((q) => q.at === at);
       const arms = { n: [0, -1, 'nw', 'ne'], s: [0, 1, 'sw', 'se'], w: [-1, 0, 'nw', 'sw'], e: [1, 0, 'ne', 'se'] };
-      const STUFF = [['dumpster', 2, 1.0, 1], ['trashbags', 2, 0.6, 0], ['recycling', 1, 0.55, 1], ['pallet', 1, 0.45, 0], ['crates', 1, 0.6, 1], ['acunit', 1, 0.55, 1], ['gaspipe', 1, 0.25, 0]];
+      // type, variant, how far its middle stands off the wall, solid (gas meters and the wall unit hang on the wall itself)
+      const STUFF = [['dumpster', 0, 1.0, 1], ['dumpster', 1, 1.0, 1], ['trashbags', 0, 0.6, 0], ['trashbags', 1, 0.6, 0], ['recycling', 0, 0.55, 1], ['pallet', 0, 0.3, 0],
+        ['crates', 0, 0.6, 1], ['crates', 1, 0.5, 1], ['acunit', 0, 0.55, 1], ['acunit', 1, 0.0, 0], ['gaspipe', 0, 0.0, 0], ['gaspipe', 1, 0.0, 0]];
       let any = false;
       for (const k in arms) {
         if (!b.open[k]) continue;
@@ -1389,15 +1401,15 @@ const World = (() => {
           let t = 3.2 + r() * 2;
           const yaw = Math.atan2(-tx * side, -tz * side);   // facing out of the wall
           while (t < 15.5) {
-            const [type, nv, depth, solid] = STUFF[(r() * STUFF.length) | 0];
+            const [type, v, depth, solid] = STUFF[(r() * STUFF.length) | 0];
             const [px, pz] = pos(t, side, depth);
-            if (hasProp(type)) putProp(type, (r() * nv) | 0, px, pz, YS, yaw + (type === 'trashbags' || type === 'crates' ? r() * 2 : 0), 1, !!solid);
+            if (hasProp(type)) putProp(type, v, px, pz, YS, yaw + (type === 'trashbags' ? r() * 2 : type === 'crates' ? (r() - 0.5) * 0.6 : 0), 1, !!solid);
             t += type === 'dumpster' ? 3.4 : 1.6 + r() * 2.4;
           }
         }
         if (r() < 0.45) { const t = 4 + r() * 10; puddle(M, X0 + dx * t, Z0 + dz * t, YS + 0.006, 1.6 + r() * 1.4, dx ? 0 : Math.PI / 2); }
         // now and then a fence across part of the alley mouth
-        if (r() < 0.22) { const t = HB - 0.3, [px, pz] = pos(t, r() < 0.5 ? -1 : 1, 1.55); putProp('fence8', 0, px, pz, YS, Math.atan2(dx, dz) + Math.PI / 2); }
+        if (r() < 0.22) { const t = HB - 0.3, [px, pz] = pos(t, r() < 0.5 ? -1 : 1, 1.55); putProp('fence8', (r() * 2) | 0, px, pz, YS, Math.atan2(-dx, -dz)); }
       }
       if (any && r() < 0.5) puddle(M, X0 + (r() - 0.5), Z0 + (r() - 0.5), YS + 0.006, 2.2 + r(), r() * 3);
       // a cat that lives in the alleys of some blocks

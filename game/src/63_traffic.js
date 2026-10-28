@@ -5,7 +5,8 @@
 const Traffic = (() => {
   const CAP = 34;                         // cars of one kind drawn at once
   // kind, variant, how common, only in the city
-  const KINDS = [['sedan', 0, 0.2], ['sedan', 1, 0.14], ['hatch', 0, 0.13], ['suv', 0, 0.14], ['van', 0, 0.07], ['pickup', 0, 0.1], ['taxi', 0, 0.1, true], ['truck', 0, 0.07], ['animalvan', 0, 0.03]];
+  const KINDS = [['sedan', 0, 0.2], ['sedan', 1, 0.14], ['hatch', 0, 0.13], ['suv', 0, 0.14], ['van', 0, 0.07], ['pickup', 0, 0.1], ['taxi', 0, 0.1, true], ['truck', 0, 0.07], ['animalvan', 0, 0.03],
+    ['wagon', 0, 0.08], ['coupe', 0, 0.07], ['motorcycle', 0, 0.035], ['motorcycle', 1, 0.03]].filter((k) => typeof Env === 'undefined' || !Env.VEHICLES || Env.VEHICLES[k[0]]);
   const PAINT = [0xe9e9e6, 0x1b1c1f, 0xaaaeb3, 0x5b5f65, 0x1e3451, 0x8f1d1d, 0x5b1f27, 0x2f4b37, 0xcab99b, 0x3b608b, 0xd9d3c1, 0x6d7f8c];
   const ckey = (x, z) => Math.round(x) + ',' + Math.round(z);
   const T = { on: false, net: null, cars: [], buses: [], ims: null, sigT: 0, spawnT: 0, id: 1, stats: { spawned: 0, honks: 0 } };
@@ -160,7 +161,9 @@ const Traffic = (() => {
       const k = kind + ':' + variant;
       if (out[k] || !Env.vehicle) continue;
       const V = Env.vehicle(kind, variant);
-      const parts = V.parts.map((p) => {
+      // a motorcycle carries its rider
+      const vparts = V.rider ? V.parts.concat([{ geometry: V.rider.geometry, material: V.rider.material, tint: false }]) : V.parts;
+      const parts = vparts.map((p) => {
         const im = new THREE.InstancedMesh(p.geometry, p.material, CAP);
         im.count = 0; im.frustumCulled = false; im.castShadow = true; im.receiveShadow = true;
         if (p.tint) { im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(CAP * 3).fill(1), 3); }
@@ -170,7 +173,7 @@ const Traffic = (() => {
       const wh = new THREE.InstancedMesh(V.wheel.geometry, V.wheel.material, CAP * (V.wheels.length || 4));
       wh.count = 0; wh.frustumCulled = false; wh.castShadow = true; wh.receiveShadow = true; parent.add(wh);
       // the far version: one simple mesh
-      const lo = Env._k ? new THREE.InstancedMesh(lowCar(kind, V), lowMat(), CAP) : null;
+      const lo = Env._k && kind !== 'motorcycle' ? new THREE.InstancedMesh(lowCar(kind, V), lowMat(), CAP) : null;
       if (lo) { lo.count = 0; lo.frustumCulled = false; lo.castShadow = true; lo.receiveShadow = true; lo.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(CAP * 3).fill(1), 3); parent.add(lo); }
       out[k] = { V, parts, wh, lo, n: 0, nw: 0, nl: 0, kind };
     }
