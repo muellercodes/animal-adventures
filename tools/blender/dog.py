@@ -109,8 +109,14 @@ TAIL = [(0.507, -0.36, 0.028), (0.5, -0.39, 0.026), (0.477, -0.435, 0.0235), (0.
         (0.38, -0.565, 0.017), (0.345, -0.61, 0.0145), (0.318, -0.645, 0.0115), (0.304, -0.663, 0.0065)]
 
 
+# the flag: the feathering under the tail is part of the sculpt (a deep fin of coat, deepest in the middle), the fur
+# shells and a few wisps (cards) along its lower edge finish it
+FLAG = [0.0, 0.006, 0.018, 0.028, 0.034, 0.034, 0.029, 0.018, 0.0]
+
+
 def _tail_keys():
-    return [(y, z, r, r * 0.95, r, 2.0, 2.0) for y, z, r in TAIL]
+    # the section's 'top' side is the underside for a tail going back and down
+    return [(y, z, r + f, r * 0.95, r, 1.8 if f > 0.003 else 2.0, 2.0) for (y, z, r), f in zip(TAIL, FLAG)]
 
 
 def _tail_poly(n=80):
@@ -392,7 +398,7 @@ def lowpoly_fix(bm, hi):
         MX.rings(bm, tr, a, b, 0.05, lambda c, p0, r: r < 0.12 and c.z > 0.2 and c.y > 0.42)
     pts = [V(0, y, z) for y, z, _ in TAIL]
     for a, b in zip(pts[:-1], pts[1:]):
-        MX.rings(bm, tr, a, b, 0.038, lambda c, p0, r: r < 0.04 and c.z < -0.375)
+        MX.rings(bm, tr, a, b, 0.038, lambda c, p0, r: r < 0.065 and c.z < -0.375)
     MX.finish(bm, 2e-8)
 
 
@@ -463,7 +469,7 @@ def fix_weights(W, wpos, names, G, weld):
             W[neg, r] += W[neg, l]; W[neg, l] = 0
     # the tail: by position along its middle line, blending into the rump at its root
     tt, td = tail_t(Pm)
-    on = (z < -0.37) & (td < 0.05) & (y > 0.25)
+    on = (z < -0.37) & (td < 0.075) & (y > 0.2)
     if on.any():
         tw = tail_weights(tt[on])
         k = sstep(-0.37, -0.4, z[on])[:, None]
@@ -687,7 +693,7 @@ def fur(P, N, c):
     er = R['ear']
     ln = ln * (1 - er) + er * (0.012 + 0.012 * sstep(0.3, 0.7, R['ea'] / EAR_L) + 0.008 * sstep(EAR_W * 0.5, EAR_W, np.abs(R['ec'])))
     tl = R['tail']
-    ln = ln * (1 - tl) + tl * (0.026 + 0.026 * sstep(0.2, -0.5, N[:, 1]) * sstep(0.05, 0.3, R['tt']) - 0.012 * sstep(0.85, 1.0, R['tt']))
+    ln = ln * (1 - tl) + tl * (0.026 + 0.018 * sstep(0.2, -0.5, N[:, 1]) * sstep(0.05, 0.3, R['tt']) - 0.012 * sstep(0.85, 1.0, R['tt']))
     ln = ln * (1 - R['paw'] * 0.6)
     ln = ln * (1 - R['nose']) * (1 - R['lip']) * (1 - R['claw']) * (1 - R['pad'] * R['paw']) * sstep(EYE.r + 0.003, EYE.r + 0.009, R['eyeD'])
     dens = np.ones(len(P), F) * (1 - 0.3 * hd * sstep(0.15, 0.2, L[:, 2]))
@@ -790,7 +796,7 @@ def _tail_bone_weights(p):
 def _tail_cards():
     """the flag: locks along the underside and the sides of the tail, hanging down and back, longest in the middle"""
     out = []
-    n = 40
+    n = 30
     for i in range(n):
         t = 0.1 + 0.85 * ((i * 0.618034) % 1.0)
         q = min(int(t * (len(_TP) - 1)), len(_TP) - 2)
@@ -799,10 +805,12 @@ def _tail_cards():
         U = nrm(np.cross(T, X))          # the path normal: down and back for a tail going back and down
         down = U if U[1] < 0 else -U
         side = 1 if i % 2 else -1
-        ang = (0.15 + 0.75 * rnd(i, 3)) * side          # 0 straight down, toward the side
+        ang = (0.05 + 0.5 * rnd(i, 3)) * side          # 0 straight down, toward the side
         radial = nrm(down * np.cos(ang) + X * np.sin(ang))
         r0 = np.interp(t, np.linspace(0, 1, len(TAIL)), [k[2] for k in TAIL])
-        ln = (0.045 + 0.05 * np.sin(np.pi * min(1.0, t * 1.1)) ** 0.8) * (0.8 + 0.35 * rnd(i, 5))
+        fl = np.interp(t, np.linspace(0, 1, len(TAIL)), FLAG) * np.cos(ang) ** 2
+        r0 = r0 + fl
+        ln = (0.03 + 0.03 * np.sin(np.pi * min(1.0, t * 1.1)) ** 0.8) * (0.8 + 0.35 * rnd(i, 5))
         k = 4
         ts = np.linspace(0, 1, k)
         root = C + radial * r0 * 0.8

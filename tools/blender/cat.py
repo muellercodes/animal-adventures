@@ -537,7 +537,7 @@ def _tabby(R, Pm, N):
     up = np.clip(N[:, 1], -1, 1)
     # mackerel: narrow bars down the sides, about 15 mm apart, leaning back as they go down, broken here and there
     bodyz = (z + 0.035 * (1 - up)) / 0.0155
-    mack = _bars(bodyz, 0.17 + 0.05 * w2, 0.35 * w1 + 0.2 * w2) * sstep(-0.55, -0.15, up) * sstep(0.95, 0.75, up)
+    mack = _bars(bodyz, 0.15 + 0.05 * w2, 0.35 * w1 + 0.2 * w2) * sstep(-0.55, -0.15, up) * sstep(0.95, 0.75, up) * 0.9
     mack = mack * sstep(0.35, 0.6, fbm(Pm * 70, 2, 53) + 0.25) * sstep(-0.205, -0.18, z) * sstep(0.115, 0.09, z) * trunk
     mack = np.clip(mack, 0, 1)
     # the dark band along the spine (three lines run together), on to the tail

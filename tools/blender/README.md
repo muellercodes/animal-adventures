@@ -355,8 +355,11 @@ A golden retriever (with a little yellow Labrador in it) and a brown mackerel ta
 - The dog's drop ears (`drop_ear()`): a leaf shaped plate hanging from the fold along `EAR_A`, cupped around the
   cheek, its lower part a little off it, thick at the fold and thinner at the tip and edges; weighted to the ear bones
   from the fold down. Its fringe is only longer fur shells: cards along its lower edge hung off it like a comb, and on a
-  puppy they stood out as orange flaps. The tail's feathering cards are wide (30 to 38 mm) and overlap; narrow ones read
-  as separate strips. Their newborn points shrink to 0.2 of their length.
+  puppy they stood out as orange flaps.
+- The tail's feathering (the flag) is sculpted: the sweep's section is deeper on the underside (`FLAG`, the 'top' side
+  for a path going back and down) with a pointed exponent, under longer fur shells, and only a few wide, short cards
+  hang from its lower edge as wisps. Cards alone, however many, hung under the tail like a comb. The tail's rings and
+  skin weights reach the bottom of the flag (`r < 0.065`, `td < 0.075`).
 - Paint masks for pale regions must leave out the ears: the throat mask (normals facing forward and down) also caught
   the ears' forward edges and drew a cream stripe down each ear.
 - The tabby pattern is painted from 3D masks (`_tabby()`): mackerel bars about 15 mm apart down the flanks (from the
@@ -436,11 +439,11 @@ spine cards and the whiskers), 8.9k in all; 768 color and normal maps, 384 fur m
 strand textures (spines, the hoglets' pale spines): 80 KB mesh and cards + 64 + 18 + 7 + 5 + 18 + 18 KB, about 286 KB in
 the page. Fur shells (face, belly, skirt) at detail 2: 3 layers, 9k triangles.
 
-Dog (`VOXEL=0.004 TRIS=5000 TEX=1024`, then rings across the body and neck and along the tail): 7.3k triangles plus 304
-in the cards (40 locks of tail feathering and the whiskers); 1024 color and normal maps, 512 fur and puppy color maps,
-256 x 256 strand texture: 71 KB mesh and cards + 58 + 24 + 13 + 8 + 38 KB, about 287 KB in the page. Fur shells at detail
+Dog (`VOXEL=0.004 TRIS=5000 TEX=1024`, then rings across the body and neck and along the tail): 7.4k triangles plus 244
+in the cards (30 wisps of tail feathering and the whiskers); 1024 color and normal maps, 512 fur and puppy color maps,
+256 x 256 strand texture: 72 KB mesh and cards + 57 + 25 + 13 + 8 + 38 KB, about 289 KB in the page. Fur shells at detail
 2: 5 layers. About 30 minutes on the shared machine (the coat strokes make `texture` take 12 of them).
 
 Cat (`VOXEL=0.0025 TRIS=4200 TEX=1024`, then rings across the body and neck and along the tail): 6.9k triangles plus 192
 in the whiskers; 1024 color and normal maps, 512 fur map, 384 kitten color map, 96 x 128 strand texture: 67 KB mesh and
-cards + 63 + 27 + 14 + 14 + 6 KB, about 259 KB in the page. Fur shells at detail 2: 4 layers.
+cards + 62 + 27 + 13 + 14 + 6 KB, about 258 KB in the page. Fur shells at detail 2: 4 layers.
