@@ -361,8 +361,8 @@ const Traffic = (() => {
     }
     for (const k in T.ims) {
       const D = T.ims[k];
-      for (const part of D.parts) { part.im.count = D.n; part.im.instanceMatrix.needsUpdate = true; if (part.im.instanceColor) part.im.instanceColor.needsUpdate = true; }
-      D.wh.count = D.nw; D.wh.instanceMatrix.needsUpdate = true;
+      for (const part of D.parts) { part.im.count = D.n; part.im.visible = D.n > 0; part.im.instanceMatrix.needsUpdate = true; if (part.im.instanceColor) part.im.instanceColor.needsUpdate = true; }
+      D.wh.count = D.nw; D.wh.visible = D.nw > 0; D.wh.instanceMatrix.needsUpdate = true;
     }
     // the traffic light heads the world put up
     const w = G.world;

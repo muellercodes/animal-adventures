@@ -771,7 +771,8 @@ const Folk = {
     p.crouch = damp(p.crouch, crouch, 5, dt); p.reach = damp(p.reach, reach, 5, dt);
     const r = p.rig.root; r.position.copy(p.pos); r.rotation.y = p.yaw;
     const dist = Math.hypot(p.pos.x - camPos.x, p.pos.z - camPos.z);
-    r.visible = !p.away && dist < 160;
+    r.visible = !p.away && dist < 140;
+    if (p.rig.lod) p.rig.lod(dist);
     if (dist < 80) { const st = p.st; st.t = G.t; st.speed = p.speed; st.crouch = p.crouch; st.reach = p.reach; st.sit = p.sit || 0; st.seatY = p.seatY; p.rig.update(dt, st); }
   },
   // a visitor at the pound comes to your kennel, kneels and holds out a hand; walk out to them to go home with them

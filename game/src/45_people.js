@@ -586,7 +586,8 @@ const People = (() => {
     }
     body.updateMatrixWorld(true);
     const skel = new THREE.Skeleton(list);
-    const addSkinned = (geo, m) => { const s = new THREE.SkinnedMesh(geo, m); s.castShadow = true; s.receiveShadow = false; body.add(s); s.bind(skel); return s; };
+    const skinned = [];
+    const addSkinned = (geo, m) => { const s = new THREE.SkinnedMesh(geo, m); s.castShadow = true; s.receiveShadow = false; body.add(s); s.bind(skel); skinned.push(s); return s; };
     addSkinned(T.skin, mat('skin', look.skin));
     addSkinned(T.shirt, mat('shirt', look.shirt));
     addSkinned(T.pants, mat('pants', look.pants));
@@ -602,7 +603,7 @@ const People = (() => {
     const mouth = new THREE.Mesh(T.mouth, mat('lip', look.skin));
     mouth.position.copy(T.rest.head).negate();
     B.head.add(mouth);
-    for (const m of [eyes, mouth]) { m.castShadow = true; m.receiveShadow = false; }
+    for (const m of [eyes, mouth]) { m.castShadow = false; m.receiveShadow = false; }
     for (const nm in B) B[nm].userData.p0 = B[nm].position.clone();
     for (const nm of ['head', 'neck', 'chest', 'spine', 'hips', 'hairT']) B[nm].rotation.order = 'YXZ';
     count++;
@@ -748,6 +749,12 @@ const People = (() => {
       stride: 0.8 * height,
       update,
       setVisible(v) { root.visible = !!v; },
+      // far away: no face (too small to see) and no shadow, which saves draws in a busy town
+      lod(d) {
+        const face = d < 18, shadow = d < 34;
+        if (face !== this.lodFace) { this.lodFace = face; eyes.visible = face; mouth.visible = face; }
+        if (shadow !== this.lodShadow) { this.lodShadow = shadow; for (const m of skinned) m.castShadow = shadow; }
+      },
       // hold something in the left hand (a pet carrier, a net, a basket, a book); null puts it away
       hold(obj) {
         if (this.held) B.handL.remove(this.held);

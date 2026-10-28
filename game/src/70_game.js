@@ -551,7 +551,8 @@ function updateHud() {
   if (h.name !== nameKey) { h.name = nameKey; $('meImg').src = meIcon(S.animal); $('meName').textContent = S.names[S.animal] ? S.names[S.animal] : (stage || sp.name); }
   const status = S.sick > 0 ? 'Has a cold' : S.hunger <= 0 ? 'Hungry!' : (S.names[S.animal] && stage) ? stage : '';
   if (h.status !== status) { h.status = status; $('meStatus').textContent = status; $('meStatus').hidden = !status; }
-  const where = b.room ? (b.room.pound ? 'Animal pound' : b.room.barn ? 'Barn' : b.room.school ? 'School' : (Homes.homeOf(b.sp) && Homes.homeOf(b.sp).room === b.room ? 'Home' : 'A house')) : World.META[S.world].name;
+  const shopName = (rm) => { const n = (rm.house && rm.house.name || 'the shop').replace(/^the /, ''); return n[0].toUpperCase() + n.slice(1); };
+  const where = b.room ? (b.room.pound ? 'Animal pound' : b.room.barn ? 'Barn' : b.room.school ? 'School' : b.room.store ? shopName(b.room) : (Homes.homeOf(b.sp) && Homes.homeOf(b.sp).room === b.room ? 'Home' : 'A house')) : (S.world === 'land' && Plan.placeName(b.pos.x, b.pos.z)) || World.META[S.world].name;
   if (h.where !== where) { h.where = where; $('wherePill').textContent = where; }
   const ct = fmt(di.left);
   if (h.clock !== ct || h.night !== di.night) {

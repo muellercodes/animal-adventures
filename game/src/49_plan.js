@@ -333,5 +333,14 @@ const Plan = (() => {
     for (let i = 0; i < n; i++) { const s0 = (i / n) * r.len, s1 = ((i + 1) / n) * r.len, [x, z] = roadAt(r, (s0 + s1) / 2); PLACES.push({ kind: 'road', key: r.key + '-' + i, road: r, s0, s1, x, z, reach: (s1 - s0) / 2 + 10 }); }
   }
 
-  return { PI, TOWN, CITY, TOWNS, ROADS, PLACES, BUS, SPOTS, RW, ST_W, TY, CY, init, H, busy, reserved, paint, grass, streetD, inCity, inPark, roadAt, roadY, roadNear, rectD, inR };
+  // the name of the place you are in, for the top bar
+  function placeName(x, z) {
+    if (inPark(x, z, 2)) return 'City park';
+    if (inCity(x, z, 6)) return 'The city';
+    if (inR(TOWN.area, x, z, 4)) return 'Maple Town';
+    for (const t of TOWNS) if (inR(t.rect, x, z, 6)) return t.name;
+    return null;
+  }
+
+  return { placeName, PI, TOWN, CITY, TOWNS, ROADS, PLACES, BUS, SPOTS, RW, ST_W, TY, CY, init, H, busy, reserved, paint, grass, streetD, inCity, inPark, roadAt, roadY, roadNear, rectD, inR };
 })();

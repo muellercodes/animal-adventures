@@ -7,6 +7,7 @@ const World = (() => {
   const DYN_X = ROOM_X + 4000;  // the inside of a building out in the wilds (one at a time)
   const SHADOW_R = 48;          // plants closer than this cast shadows
   const SMALL = { rock: 1, fern: 1, mushroom: 1, stump: 1, log: 1, cattail: 1, lily: 1, pumpkin: 1, cornstalk: 1, hay: 1 };
+  const BIG = { apartment: 1, office: 1, midrise: 1, storefront: 1 };   // city buildings: one draw each, always with shadows
   const dummy = new THREE.Object3D();
 
   /* ---- shape helpers ---- */
@@ -95,7 +96,7 @@ const World = (() => {
       const away = (x, z, d = 3) => Math.hypot(x - BARN.x, z - BARN.z) > 28 && !inGarden(x, z, 4) && !inPen(x, z, 3) && pathDist(x, z, PATH) > d && roadD(x, z) > d + 1 && !inVillage(x, z, 3) && pathDist(x, z, LAKEPATH) > d
         && !inRect(SCHOOLYARD, x, z, 3) && !inRect(FAIR, x, z, 4) && !inLots(x, z, 0) && !Plan.busy(x, z, 2);
       return {
-        name: 'Land', blurb: 'A farm, a village with houses to visit, ponds and lakes, and it goes on and on.', spawn: [10, -2],
+        name: 'Land', blurb: 'A farm, Maple Town, a big city with a park, cars and buses, small towns, ponds and lakes, and it goes on and on.', spawn: [10, -2],
         H, fog: [60, 260], water: {}, people: 8, village: true,
         places: Plan.PLACES, reserved: Plan.reserved, busy: Plan.busy,
         grassH: [0.09, 0.22], grassTint: [0.2, 0.3, 0.55, 0.85], flowerColors: [0xffffff, 0xffe066, 0xc9a0ff, 0xff9ec4, 0xffffff],
@@ -1153,7 +1154,10 @@ const World = (() => {
           const sv = Math.max(0, (Env.STORE_KINDS || []).indexOf(lot.store)), sf = Env.prop('storefront', sv);
           const fx = Math.sin(lot.rot), fz = Math.cos(lot.rot), dd = (pr.d || 15) / 2 - 0.6;
           const sx = x + fx * dd, sz = z + fz * dd;
-          pushInst(w.own, 'storefront', sv, sx, y0, sz, lot.rot, 1);
+          // each store front is one of a kind, so it is merged with the others nearby instead of drawn instanced
+          const sg = new THREE.Group();
+          for (const part of sf.parts) { const m = new THREE.Mesh(part.geometry, part.material); m.castShadow = part.castShadow !== false; m.receiveShadow = true; if (part.depthMaterial) m.customDepthMaterial = part.depthMaterial; sg.add(m); }
+          sg.userData.bake = 1; w.addObj(sg, sx, sz, lot.rot, y0);
           const [dx, dz] = toWorld(sx, sz, lot.rot, sf.door ? sf.door.x : 0, sf.door ? sf.door.z : 1.8);
           w.houses.push({ id: w.houses.length, kind: 'store', store: lot.store, x: sx, z: sz, rot: lot.rot, group: null, name: 'the ' + STORE_NAME(lot.store), door: { x: dx, z: dz, yaw: lot.rot }, doorMesh: null, room: null, own: w.own, lazy: 'store', city: true, street: 'Main Street', town: 'the city' });
         }
@@ -1224,7 +1228,7 @@ const World = (() => {
       }
       // downtown: sidewalks in front of the Maple Street shops
       for (const sd of [-1, 1]) {
-        const z0 = -55 + sd * R, z1 = -55 + sd * (R + 2.6);
+        const z0 = -55 + sd * R, z1 = -55 + sd * (R + 4.6);   // up to the shop fronts
         for (const [x0, x1] of [[139, 191.5], [198.5, 252.5]]) {
           if (sd > 0 && x0 > 195) continue;   // the green is there
           paveRect(M.sidewalk, x0, Math.min(z0, z1), x1, Math.max(z0, z1), y + 0.03);
@@ -1513,7 +1517,7 @@ const World = (() => {
             if (Math.abs(dx) > lm || Math.abs(dz) > lm) continue;
             const d = Math.hypot(dx, dz); if (d > lm) continue;
             if (d > 40 && (dx * fx + dz * fz) < -0.3 * d) continue;
-            (d < SHADOW_R ? L.near : L.far).push(e.ms, i * 16);
+            (d < SHADOW_R || BIG[e.type] ? L.near : L.far).push(e.ms, i * 16);
           }
         }
       };
@@ -1527,13 +1531,13 @@ const World = (() => {
         const need = Math.max(nN, nF);
         if (need > p.cap) {
           p.cap = Math.ceil(need * 1.4) + 8;
-          for (const q of p.parts) { if (q.near) { out.remove(q.near); q.near.dispose(); out.remove(q.far); q.far.dispose(); } q.near = makeIM(q.part, p.cap, true); q.far = makeIM(q.part, p.cap, false); }
+          for (const q of p.parts) { if (q.near) { out.remove(q.near); q.near.dispose(); out.remove(q.far); q.far.dispose(); } q.near = makeIM(q.part, p.cap, true); q.far = makeIM(q.part, p.cap, false); q.near.name = q.far.name = key; }
         }
         for (const q of p.parts) {
           for (const [im, arr] of [[q.near, L.near], [q.far, L.far]]) {
             const a = im.instanceMatrix.array;
             for (let i = 0, n = 0; i < arr.length; i += 2, n++) a.set(arr[i].subarray(arr[i + 1], arr[i + 1] + 16), n * 16);
-            im.count = arr.length / 2; im.instanceMatrix.needsUpdate = true;
+            im.count = arr.length / 2; im.instanceMatrix.needsUpdate = true; im.visible = im.count > 0;   // an empty one would still cost a draw
           }
         }
       }
