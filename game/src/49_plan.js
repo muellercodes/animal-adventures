@@ -111,7 +111,8 @@ const Plan = (() => {
     const turn = {};
     const pickVariant = (type, cls, tall, c, r) => {
       const all = (PIECES[type] || []).filter((p) => p.lot === cls);
-      let L = tall ? all.filter((p) => p.h >= 60) : all.filter((p) => type !== 'apartment' || p.h < 70 || (c + r) % 3 === 0);
+      // the skyscrapers (over 100 m) only where the plan names them; the tallest apartments now and then
+      let L = tall ? all.filter((p) => p.h >= 60) : all.filter((p) => p.h < 100 && (type !== 'apartment' || p.h < 70 || (c + r) % 3 === 0));
       if (!L.length) L = all;
       if (!L.length) return 0;
       const k = type + ':' + cls + (tall ? 'T' : ''), n = (turn[k] = (turn[k] || 0) + 1);
