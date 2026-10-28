@@ -401,6 +401,8 @@ const Wild = {
       const near = dCam < 85;
       b.rig.root.visible = dCam < 170 && (!b.caged || (P && P.room === b.room));
       if (b.rig.setDetail) { const lv = dCam < 22 ? 1 : 0; if (b.lod !== lv) { b.lod = lv; b.rig.setDetail(lv); } }
+      // a dog on a walk far from you just keeps up with its person
+      if (!near && b.state === 'leash' && b.walker) { const pe = b.walker, sd = b.slot || 1; b.pos.set(pe.pos.x + Math.cos(pe.yaw) * 0.8 * sd, pe.pos.y, pe.pos.z - Math.sin(pe.yaw) * 0.8 * sd); b.yaw = pe.yaw; poseBody(b, dt, false); continue; }
       if (!near || (b.caged && !b.rig.root.visible)) continue;
       const sp = SPECIES[b.sp], m = b.m;
       b.callT = (b.callT === undefined ? 5 + Math.random() * 40 : b.callT) - dt;
@@ -471,7 +473,9 @@ const Wild = {
             if (d > 0.3) { c.dx = dx; c.dz = dz; c.want = clamp(d * 1.8, 0, d > 2.5 ? m.run : Math.max(ps * 1.05, m.walk * 0.5)); }
             else if (ps > 0.2) { c.dx = fx; c.dz = fz; c.want = ps; }
           }
-          if (d > 12) b.pos.set(tx, G.world.H(tx, tz), tz);
+          // caught on something (a lamp post, a bench) and falling behind: catch up in a hop
+          b.leashFar = d > 3 ? (b.leashFar || 0) + dt : 0;
+          if (d > 12 || b.leashFar > 1.2) { b.pos.set(tx, G.world.H(tx, tz), tz); b.leashFar = 0; }
           if (ps < 0.1 && d < 0.7 && !(b.eat > 0) && Math.random() < dt * 0.25) b.eat = 0.001;
           if (b.eat > 0) { b.eat += dt / 1.6; if (b.eat >= 1) b.eat = 0; }
           break;
