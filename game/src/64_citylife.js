@@ -86,9 +86,9 @@ const CityLife = (() => {
     const w = G.world, r = Math.random(), here = nearestNode(p.pos.x, p.pos.z);
     const stores = w.houses.filter((h) => h.city && h.own && w.feats.has(h.own.key));
     let goal = null, kind = 'walk';
-    if (r < 0.38 && stores.length && G.night < 0.6) { const h = pick(stores); goal = storeNode(h); kind = 'store'; p.storeH = h; }
+    if (r < 0.38 && stores.length && G.night < 0.6 && !p.dog) { const h = pick(stores); goal = storeNode(h); kind = 'store'; p.storeH = h; }
     else if (r < 0.58) { const free = w.benches.filter((q) => !q.busy); if (free.length) { const bn = pick(free); goal = nearestNode(bn.x, bn.z, true); kind = 'bench'; p.bench = bn; } }
-    else if (r < 0.7 && C.g.stops.length) { goal = pick(C.g.stops); kind = 'bus'; }
+    else if (r < 0.7 && C.g.stops.length && !p.dog) { goal = pick(C.g.stops); kind = 'bus'; }
     if (!goal) { goal = pick(C.g.nodes); kind = 'walk'; }
     const path = route(here, goal);
     if (!path || path.length < 1) { p.path = [goal]; } else p.path = path;
@@ -113,12 +113,20 @@ const CityLife = (() => {
     if (p) { p.name = Town.freeName(); p.pos.set(n.x, G.world.H(n.x, n.z), n.z); G.scene.add(p.rig.root); Folk.list.push(p); Object.assign(p, { state: 'look', away: false, friend: false, owns: null, cool: 6, room: null, speed: 0 }); p.rig.setVisible(true); }
     else p = Folk.make(Town.freeName(), Folk.randomLook(Math.random() < 0.15), n.x, n.z, { city: true, cool: 6 });
     p.city = true; p.cs = 'walk'; p.storeH = null; p.bench = null; p.sitT = 0; p.pace = 1.05 + Math.random() * 0.35;
+    // now and then someone is out walking their dog
+    p.dog = null;
+    if (SPECIES.dog && !n.stop && Math.random() < 0.3 && C.list.filter((q) => q.dog).length < 6) {
+      p.dog = Wild.make('dog', 0.8 + Math.random() * 0.2, n.x + 0.8, n.z + 0.6, { state: 'leash', walker: p, home: { x: n.x, z: n.z }, range: 3, slot: Math.random() < 0.5 ? -1 : 1 });
+      if (!p.leashH) p.leashH = new THREE.Object3D();
+      if (p.rig.hold) p.rig.hold(p.leashH);
+    }
     C.list.push(p); C.stats.spawned++;
     newGoal(p);
     return p;
   }
   function dropWalker(p) {
     if (p.bench && p.bench.busy === p) p.bench.busy = null;
+    if (p.dog) { if (Wild.list.includes(p.dog)) Wild.remove(p.dog); p.dog = null; if (p.rig.hold) p.rig.hold(null); }
     const i = C.list.indexOf(p); if (i >= 0) C.list.splice(i, 1);
     if (Folk.list.includes(p)) Folk.remove(p);
     if (C.pool.length < 12 && !p.friend && !p.owns) C.pool.push(p);
@@ -226,11 +234,39 @@ const CityLife = (() => {
   }
 
   /* ---- each frame ---- */
-  C.init = (w) => { C.on = !!(w.def.places && w.id === 'land'); C.list = []; C.pool = []; C.room = null; C.inside = []; for (const t of Plan.TOWNS) t.folk = null; if (C.on && !C.g) C.g = build(); if (C.g) C.g.stores = new Map(); };
+  C.init = (w) => {
+    C.on = !!(w.def.places && w.id === 'land'); C.list = []; C.pool = []; C.room = null; C.inside = []; for (const t of Plan.TOWNS) t.folk = null; if (C.on && !C.g) C.g = build(); if (C.g) C.g.stores = new Map();
+    // the dog leashes: one set of line pieces for all of them
+    C.leash = null;
+    if (C.on) {
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(8 * 6 * 3), 3)); g.setDrawRange(0, 0);
+      C.leash = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x5a1f1a })); C.leash.frustumCulled = false; C.leash.name = 'leashes';
+      w.out.add(C.leash);
+    }
+  };
+  // a leash hangs from the hand to the collar in a little curve (three pieces)
+  const _h = new THREE.Vector3();
+  function drawLeashes() {
+    if (!C.leash) return;
+    const a = C.leash.geometry.attributes.position.array;
+    let n = 0;
+    for (const p of C.list) {
+      const d = p.dog;
+      if (!d || !p.leashH || n >= 8 || !Wild.list.includes(d) || !p.rig.root.visible) continue;
+      p.leashH.getWorldPosition(_h);
+      const m = d.m, f = m.length * 0.36, cx = d.pos.x + Math.sin(d.yaw) * f, cz = d.pos.z + Math.cos(d.yaw) * f, cy = d.pos.y + m.height * 0.72;
+      const L = Math.hypot(cx - _h.x, cy - _h.y, cz - _h.z), sag = Math.max(0, 1.7 - L) * 0.35;
+      const P = [0, 1 / 3, 2 / 3, 1].map((t) => [_h.x + (cx - _h.x) * t, _h.y + (cy - _h.y) * t - Math.sin(t * Math.PI) * sag, _h.z + (cz - _h.z) * t]);
+      for (let k = 0; k < 3; k++) { a.set(P[k], (n * 6 + k * 2) * 3); a.set(P[k + 1], (n * 6 + k * 2 + 1) * 3); }
+      n++;
+    }
+    C.leash.geometry.setDrawRange(0, n * 6); C.leash.geometry.attributes.position.needsUpdate = true; C.leash.visible = n > 0;
+  }
   C.update = (dt, P) => {
     if (!C.on || !P) return;
     storePeople(P);
     townWalkers(P);
+    drawLeashes();
     if (P.room) return;   // inside: everyone outside carries on where they were
     const inCity = Plan.inCity(P.pos.x, P.pos.z, 70);
     // too far away: go

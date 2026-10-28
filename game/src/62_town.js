@@ -9,7 +9,7 @@ const BIG = { horse: 1, moose: 1, deer: 1, swan: 1 };
 // the school day, in seconds after sunrise (a day lasts 720 seconds)
 const T_LEAVE = 20, T_BELL = 70, T_RECESS = 280, T_CLASS2 = 340, T_OUT = 450, T_HOME = 560;
 const NO_POSE = { crouch: 0, reach: 0 };
-const FAIR_ANIMALS = ['otter', 'snake', 'weasel', 'hedgehog', 'bunny', 'turtle', 'raccoon', 'squirrel', 'fox', 'lizard'];
+const FAIR_ANIMALS = ['otter', 'snake', 'weasel', 'hedgehog', 'bunny', 'turtle', 'raccoon', 'squirrel', 'fox', 'lizard', 'dog', 'cat', 'dog', 'cat'].filter((s) => SPECIES[s]);
 const hexNum = (h) => (typeof h === 'string' ? parseInt(h.replace('#', ''), 16) : h) || 0x3e8e6e;
 const rnd = (a) => a[(Math.random() * a.length) | 0];
 

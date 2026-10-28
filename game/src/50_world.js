@@ -1400,6 +1400,8 @@ const World = (() => {
         if (r() < 0.22) { const t = HB - 0.3, [px, pz] = pos(t, r() < 0.5 ? -1 : 1, 1.55); putProp('fence8', 0, px, pz, YS, Math.atan2(dx, dz) + Math.PI / 2); }
       }
       if (any && r() < 0.5) puddle(M, X0 + (r() - 0.5), Z0 + (r() - 0.5), YS + 0.006, 2.2 + r(), r() * 3);
+      // a cat that lives in the alleys of some blocks
+      if (typeof SPECIES !== 'undefined' && SPECIES.cat && b.open.n && b.open.s && b.open.w && b.open.e && hash2(b.c, b.r, 31) < 0.6) w.events.push({ kind: 'home', own: w.own.key, sp: 'cat', n: 1, home: [X0, Z0], range: 9 });
     }
 
     /* the city park: paths, the fountain, the pond, a bandstand, a playground, trees, benches and lamps */

@@ -336,6 +336,7 @@ const Wild = {
     const w = G.world, def = w.def;
     for (const ev of w.events.splice(0)) {
       if (ev.kind === 'pen') this.group(w, { sp: ev.sp, n: ev.n, kids: ev.kids, pen: ev.pen }, ev.own);
+      else if (ev.kind === 'home') this.group(w, { sp: ev.sp, n: ev.n, kids: ev.kids, home: ev.home, range: ev.range }, ev.own);
       else if (ev.kind === 'gone') for (const b of this.list.filter((q) => q.own === ev.own && q.state !== 'follow')) this.remove(b);
     }
     if (!P || P.room || !def.ambient) return;
@@ -408,7 +409,7 @@ const Wild = {
       const sleepy = night ? !NOCTURNAL[b.sp] : (b.sp === 'owl' || b.sp === 'raccoon');
       // think a few times a second
       b.think -= dt;
-      if (P && b.think <= 0 && !b.caged && b.state !== 'kid' && b.state !== 'trapped') {
+      if (P && b.think <= 0 && !b.caged && b.state !== 'kid' && b.state !== 'trapped' && b.state !== 'leash') {
         b.think = 0.3;
         const d = Math.hypot(b.pos.x - P.pos.x, b.pos.z - P.pos.z);
         const psp = SPECIES[P.sp], pAir = P.mode === 'fly' && P.pos.y - G.world.H(P.pos.x, P.pos.z) > 3;
@@ -455,6 +456,24 @@ const Wild = {
           }
           if (b.eat > 0) { b.eat += dt / 1.2; if (b.eat >= 1) b.eat = 0; }
           if (d > 25) { b.pos.set(tx, G.world.H(tx, tz), tz); }
+          break;
+        }
+        case 'leash': {
+          // a dog out for a walk: beside its person, a little ahead; it sniffs when they stop and lies down when they sit
+          const pe = b.walker;
+          if (!pe || pe.dog !== b || !Folk.list.includes(pe)) { b.state = 'idle'; b.walker = null; break; }
+          const fx = Math.sin(pe.yaw), fz = Math.cos(pe.yaw), sd = b.slot || 1;
+          const tx = pe.pos.x + fx * 0.45 + fz * 0.8 * sd, tz = pe.pos.z + fz * 0.45 - fx * 0.8 * sd;
+          const dx = tx - b.pos.x, dz = tz - b.pos.z, d = Math.hypot(dx, dz), ps = pe.speed || 0;
+          if (pe.cs === 'sit' && d < 0.8) { if (b.mode === 'ground' && Math.random() < dt * 0.5) b.mode = 'sleep'; }
+          else {
+            if (b.mode === 'sleep') b.mode = 'ground';
+            if (d > 0.3) { c.dx = dx; c.dz = dz; c.want = clamp(d * 1.8, 0, d > 2.5 ? m.run : Math.max(ps * 1.05, m.walk * 0.5)); }
+            else if (ps > 0.2) { c.dx = fx; c.dz = fz; c.want = ps; }
+          }
+          if (d > 12) b.pos.set(tx, G.world.H(tx, tz), tz);
+          if (ps < 0.1 && d < 0.7 && !(b.eat > 0) && Math.random() < dt * 0.25) b.eat = 0.001;
+          if (b.eat > 0) { b.eat += dt / 1.6; if (b.eat >= 1) b.eat = 0; }
           break;
         }
         case 'idle':
