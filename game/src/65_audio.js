@@ -217,6 +217,8 @@ const Sound = (() => {
     ring() { if (!ac || !on) return; const t = now(); for (let i = 0; i < 4; i++) { tone({ t: t + i * 0.42, f: 880, dur: 0.16, type: 'triangle', vol: 0.12, vib: 20, vibAmt: 30 }); tone({ t: t + i * 0.42 + 0.18, f: 880, dur: 0.16, type: 'triangle', vol: 0.12, vib: 20, vibAmt: 30 }); } },
     // the school bell
     bell(d) { if (!ac || !on) return; const v = clamp(1 - (d || 0) / 120, 0.08, 1), t = now(); for (let i = 0; i < 5; i++) { tone({ t: t + i * 0.32, f: 1318, dur: 1.2, type: 'sine', vol: 0.16 * v }); tone({ t: t + i * 0.32, f: 2637, dur: 0.6, type: 'sine', vol: 0.05 * v }); } },
+    // a car horn: two notes together; the bus has a lower, longer one
+    honk(d, big) { if (!ac || !on) return; const v = clamp(1 - (d || 0) / 90, 0.1, 1), t = now(); for (const f of big ? [233, 294] : [415, 523]) { tone({ t, f, dur: big ? 0.55 : 0.32, type: 'square', bp: big ? 900 : 1500, q: 2, vol: 0.07 * v }); tone({ t: t + (big ? 0.7 : 0.42), f, dur: big ? 0.4 : 0.22, type: 'square', bp: big ? 900 : 1500, q: 2, vol: 0.07 * v }); } },
     knock() { if (!ac || !on) return; const t = now(); for (let i = 0; i < 3; i++) { tone({ t: t + i * 0.22, f: 190, f2: 120, dur: 0.08, vol: 0.4 }); noise({ t: t + i * 0.22, f: 500, q: 2, dur: 0.05, vol: 0.2 }); } },
     crack() { if (!ac || !on) return; noise({ f: 3000, type: 'highpass', dur: 0.06, vol: 0.3 }); tone({ f: 900, f2: 600, dur: 0.05, vol: 0.12 }); },
     tummy() { if (ac && on) tone({ f: 70, f2: 55, dur: 0.9, vol: 0.25, vib: 6, vibAmt: 10 }); },

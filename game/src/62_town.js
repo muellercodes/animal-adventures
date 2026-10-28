@@ -15,7 +15,7 @@ const rnd = (a) => a[(Math.random() * a.length) | 0];
 
 /* ---- where people can walk: a 1 m grid over the middle of Land, and A* paths on it ---- */
 const Nav = {
-  X0: -100, Z0: -132, W: 272, D: 212, g: null, row: 0, ready: false,
+  X0: -100, Z0: -132, W: 366, D: 214, g: null, row: 0, ready: false,
   build() {
     const N = this.W * this.D;
     this.g = new Uint8Array(N); this.fs = new Float32Array(N); this.gs = new Float32Array(N); this.from = new Int32Array(N); this.mark = new Uint32Array(N); this.stamp = 0;
