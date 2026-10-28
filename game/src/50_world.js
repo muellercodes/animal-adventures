@@ -1137,6 +1137,12 @@ const World = (() => {
       const c = Math.cos(rot), si = Math.sin(rot), hx = s * 0.5, hz = s * 0.36, P = (u, v) => [x + u * c + v * si, y, z - u * si + v * c];
       quad(M.puddle, [P(-hx, -hz), P(-hx, hz), P(hx, hz), P(hx, -hz)], [[0, 0], [0, 1], [1, 1], [1, 0]]);
     }
+    // a cafe table; its chairs become seats people can come and sit on
+    function cafeTable(v, x, z, y, rot) {
+      if (!hasProp('cafetable')) return;
+      putProp('cafetable', v, x, z, y, rot);
+      for (const st of Env.prop('cafetable', v).seats || []) { const [sx, sz] = toWorld(x, z, rot, st.x, st.z); w.benches.push({ x: sx, z: sz, rot: rot + (st.ry || 0), own: w.own, busy: null, chair: true }); }
+    }
     // a parked car from the street kit (an instanced prop, painted per car): solid, and you can stand on its roof
     function parkCar(x, z, rot, r, y = YR) {
       if (!hasProp('parked')) return;
@@ -1207,7 +1213,7 @@ const World = (() => {
           parkCar(x, z, drive(sd) + (r() - 0.5) * 0.04, r);
         }
         // benches with their backs to the park, and on Main Street
-        if (pk || main) for (const al of [15, len - 15]) put('bench', 0, al, Wk - 0.7);
+        if (pk || main) for (const al of [15, len - 15]) { const [x, z] = at(al, sd, Wk - 0.7); putProp('bench', 0, x, z, YS, face(sd)); w.benches.push({ x, z, rot: face(sd), own: w.own, busy: null }); }
         if (main) {
           put('newsbox', (r() * 3) | 0, mid + 4, Wk - 0.5);
           if (sd > 0) { put('bikerack', 0, mid - 9.5, 0.9, face(sd) + Math.PI / 2); for (const k of [-0.8, 0.8]) if (r() < 0.75) put('bicycle', (r() * 2) | 0, mid - 9.5 + k, 1.05, face(sd) + Math.PI / 2 + 0.05, false); }
@@ -1325,7 +1331,7 @@ const World = (() => {
       // a sign board on the sidewalk, and little tables against the window where they sell food
       const fr = (pr.d || 15) / 2, side = r() < 0.5 ? -1 : 1;
       { const [bx, bz] = toWorld(x, z, lot.rot, side * 3.0, fr + 0.75); putProp('sandwichboard', 0, bx, bz, YS, lot.rot + (r() - 0.5) * 0.6); }
-      if (FOOD_STORES[lot.store]) for (const u of [-4.7, 4.7]) { if (Math.sign(u) === side && r() < 0.5) continue; const [tx, tz] = toWorld(x, z, lot.rot, u, fr + 0.95); putProp('cafetable', u > 0 ? 1 : 0, tx, tz, YS, lot.rot + r() * 1.5); }
+      if (FOOD_STORES[lot.store]) for (const u of [-4.7, 4.7]) { if (Math.sign(u) === side && r() < 0.5) continue; const [tx, tz] = toWorld(x, z, lot.rot, u, fr + 0.95); cafeTable(u > 0 ? 1 : 0, tx, tz, YS, lot.rot + (r() < 0.5 ? 0 : Math.PI / 2)); }
     }
 
     // a point in a lot: u along its front (to the right looking out), v from its middle toward the street
@@ -1368,13 +1374,13 @@ const World = (() => {
         const [tx, tz] = lotP(lot, su * (hu - 2.6), -(hv - 2.6));
         putProp('treegrate', 0, tx, tz, y + 0.002, lot.rot, 1, false);
         putTree(r() < 0.5 ? 'maple' : 'birch', (r() * 2) | 0, tx, tz, 0.8 + r() * 0.15, r() * 6);
-        put('bench', 0, su * (hu - 1.0), 0.6, su > 0 ? -Math.PI / 2 : Math.PI / 2);
+        { const [bx, bz] = lotP(lot, su * (hu - 1.0), 0.6), br = lot.rot + (su > 0 ? -Math.PI / 2 : Math.PI / 2); putProp('bench', 0, bx, bz, y, br); w.benches.push({ x: bx, z: bz, rot: br, own: w.own, busy: null }); }
         put('parklamp', 0, su * (hu - 0.7), hv - 0.9, 0);
       }
       put('bench', 0, 0, -(hv - 1.0), 0);
       if ((b.c + b.r) % 2) put('statue', b.c % 2, 0, -0.6, Math.PI);
       else { put('planterbox', 0, -2.2, -0.8, 0); put('planterbox', 0, 2.2, -0.8, 0); }
-      put('cafetable', 0, -3.2, 3.0, r()); put('cafetable', 1, 3.0, 3.4, r());
+      for (const [v, u, vv] of [[0, -3.2, 3.0], [1, 3.0, 3.4]]) { const [tx, tz] = lotP(lot, u, vv); cafeTable(v, tx, tz, y, lot.rot + r() * 3); }
       put('foodcart', (r() * 2) | 0, hu - 3.0, hv - 2.4, Math.PI / 2);
       put('trashcan', 0, -(hu - 0.8), hv - 0.9, 0);
       put('drinking', 0, -(hu - 3.6), -(hv - 0.8), 0);

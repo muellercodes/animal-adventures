@@ -87,14 +87,14 @@ const CityLife = (() => {
     const stores = w.houses.filter((h) => h.city && h.own && w.feats.has(h.own.key));
     let goal = null, kind = 'walk';
     if (r < 0.38 && stores.length && G.night < 0.6 && !p.dog) { const h = pick(stores); goal = storeNode(h); kind = 'store'; p.storeH = h; }
-    else if (r < 0.58) { const free = w.benches.filter((q) => !q.busy); if (free.length) { const bn = pick(free); goal = nearestNode(bn.x, bn.z, true); kind = 'bench'; p.bench = bn; } }
+    else if (r < 0.58) { const free = w.benches.filter((q) => !q.busy && (!q.chair || !p.dog)); if (free.length) { const bn = pick(free); goal = bn.node || (bn.node = Plan.inPark(bn.x, bn.z, 0) ? nearestNode(bn.x, bn.z, true) : C.g.hook(bn.x, bn.z, { seat: bn })); kind = 'bench'; p.bench = bn; } }
     else if (r < 0.7 && C.g.stops.length && !p.dog) { goal = pick(C.g.stops); kind = 'bus'; }
     if (!goal) { goal = pick(C.g.nodes); kind = 'walk'; }
     const path = route(here, goal);
     if (!path || path.length < 1) { p.path = [goal]; } else p.path = path;
     p.pi = 0; p.goalKind = kind; p.cs = 'walk'; p.waitT = 0;
     // the last steps off the path: up to the bench
-    if (kind === 'bench' && p.bench) { p.bench.busy = p; p.path.push({ x: p.bench.x + Math.sin(p.bench.rot) * 0.9, z: p.bench.z + Math.cos(p.bench.rot) * 0.9 }); }
+    if (kind === 'bench' && p.bench) { const k = p.bench.chair ? -0.75 : 0.9; p.bench.busy = p; p.path.push({ x: p.bench.x + Math.sin(p.bench.rot) * k, z: p.bench.z + Math.cos(p.bench.rot) * k }); }
   }
   function nearestNode(x, z, park) {
     let best = null, bd = 1e9;
@@ -167,7 +167,7 @@ const CityLife = (() => {
         const b = p.bench;
         p.speed = 0; p.sitT -= dt;
         if (b) { p.pos.x = b.x; p.pos.z = b.z; p.yaw = b.rot; }
-        if (p.sitT <= 0 || !b || !w.benches.includes(b)) { if (b && b.busy === p) b.busy = null; p.bench = null; const fx = b ? Math.sin(b.rot) : 0, fz = b ? Math.cos(b.rot) : 0; if (b) Folk.teleport(p, b.x + fx * 0.8, b.z + fz * 0.8); newGoal(p); break; }
+        if (p.sitT <= 0 || !b || !w.benches.includes(b)) { if (b && b.busy === p) b.busy = null; p.bench = null; const k = b && b.chair ? -0.8 : 0.8, fx = b ? Math.sin(b.rot) : 0, fz = b ? Math.cos(b.rot) : 0; if (b) Folk.teleport(p, b.x + fx * k, b.z + fz * k); newGoal(p); break; }
         return { crouch: 0, reach: 0, sit: 1, seatY: 0.46 };
       }
       case 'still':
