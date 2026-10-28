@@ -739,7 +739,9 @@ float cityLit(float glow, vec2 cb) {
       tx = texture2D(map, auv); gx = texture2D(emissiveMap, auv);
       #endif
       if (win > 1.5 && tx.a < 0.5) discard;
-      diffuseColor.rgb = tx.rgb * (win > 1.5 || mod(LF.w, 2.0) > 0.5 ? vColor : vec3(1.0));
+      // punched windows sit back in the wall and are a little shaded by it; curtain wall glass is flush
+      float shade = win < 1.5 && (vLw.y - vLw.x < 0.49 || vLw.w - vLw.z < 0.99) ? 0.84 : 1.0;
+      diffuseColor.rgb = tx.rgb * shade * (win > 1.5 || mod(LF.w, 2.0) > 0.5 ? vColor : vec3(1.0));
       lodGlow = gx.rgb * lit * envNight;
     } else diffuseColor.rgb = vColor * (mod(floor(LF.w * 0.5), 2.0) > 0.5 ? texture2D(wallMap, vWallUV).rgb : vec3(1.0));
     totalEmissiveRadiance = emissive * lodGlow;
@@ -783,7 +785,7 @@ float cityLit(float glow, vec2 cb) {
   function grime(base, amt = 1, seed = 0) {
     return (x, y, z) => {
       const n = fbm(x * 0.11 + 7 + seed, y * 0.045, z * 0.11 - 3 + seed, 2), m = fbm(x * 0.6 + seed, y * 0.08, z * 0.6, 1);
-      return mulc(base, 1 - amt * (0.16 * (1 - smooth(0, 3.5, y)) + 0.14 * n + 0.05 * m + 0.04));
+      return mulc(base, 1 - amt * (0.2 * (1 - smooth(0, 3.0, y)) + 0.14 * n + 0.05 * m + 0.04));
     };
   }
   const _v = new V3();
@@ -924,7 +926,7 @@ float cityLit(float glow, vec2 cb) {
         const below = holes.filter((q) => q !== h && q.x1 > h.x0 && q.x0 < h.x1 && q.y1 <= h.y0 + 1e-3).reduce((m, q) => Math.max(m, q.y1 + 0.4), y0);
         const top = h.y0 - (o.sill ? 0.075 : 0.0), len = Math.min(0.8 + r() * 1.8, top - below);
         if (len > 0.3) {
-          const xa = h.x0 + 0.06 + r() * 0.12, xb = h.x1 - 0.06 - r() * 0.12, zz = 0.008, k = 0.52 + r() * 0.16;
+          const xa = h.x0 + 0.06 + r() * 0.12, xb = h.x1 - 0.06 - r() * 0.12, zz = 0.008, k = 0.44 + r() * 0.16;
           acc.quadC([xa, top - len, zz], [xb, top - len, zz], [xb, top, zz], [xa, top, zz],
             [colAt(col, F, xa, top - len, 0), colAt(col, F, xb, top - len, 0), mulc(colAt(col, F, xb, top, 0), k), mulc(colAt(col, F, xa, top, 0), k)]);
         }
@@ -988,6 +990,13 @@ float cityLit(float glow, vec2 cb) {
       Lq.quad([h.x0, h.y0, 0], [h.x0, h.y0, z], [h.x0, h.y1, z], [h.x0, h.y1, 0], mulc(vc, 0.8));
       Lq.quad([h.x1, h.y0, z], [h.x1, h.y0, 0], [h.x1, h.y1, 0], [h.x1, h.y1, z], mulc(vc, 0.8));
       Lq.quad([h.x0, h.y1, z], [h.x1, h.y1, z], [h.x1, h.y1, 0], [h.x0, h.y1, 0], mulc(vc, 0.55));
+      if (h.lodCell != null) {
+        // a glass wall at the back of a deep recess (a lobby behind columns): panes of about 3 m
+        const n = Math.max(1, Math.round((h.x1 - h.x0) / 3.2)), pw = (h.x1 - h.x0) / n;
+        Lq.setL(null, [0, -1, 1.2, 0]);
+        for (let k = 0; k < n; k++) Lq.quad([h.x0 + k * pw, h.y0, z], [h.x0 + (k + 1) * pw, h.y0, z], [h.x0 + (k + 1) * pw, h.y1, z], [h.x0 + k * pw, h.y1, z], [1, 1, 1], winCellUV(h.lodCell));
+        continue;
+      }
       if (h.cell != null) Lq.setL(null, [0, -1, h.glow == null ? seedOf(B, h.cell) : h.glow, 0]);
       Lq.quad([h.x0, h.y0, z], [h.x1, h.y0, z], [h.x1, h.y1, z], [h.x0, h.y1, z], h.cell != null ? [1, 1, 1] : (h.back || DARK), h.cell != null ? winCellUV(h.cell) : null);
     }
@@ -1129,7 +1138,7 @@ float cityLit(float glow, vec2 cb) {
       const stop = hit.reduce((m, h) => Math.max(m, h.y1 + 0.35), y0);
       const len = Math.min(2 + r() * 6, y1 - stop);
       if (len < 0.8) continue;
-      const kk = 0.5 + r() * 0.16, zz = 0.009;
+      const kk = 0.42 + r() * 0.16, zz = 0.009;
       acc.quadC([x, y1 - len, zz], [x + w, y1 - len, zz], [x + w, y1, zz], [x, y1, zz],
         [colAt(col, F, x, y1 - len, 0), colAt(col, F, x + w, y1 - len, 0), mulc(colAt(col, F, x + w, y1, 0), kk), mulc(colAt(col, F, x, y1, 0), kk)]);
     }
@@ -1439,9 +1448,9 @@ float cityLit(float glow, vec2 cb) {
       const n = Math.max(1, Math.round(Math.max(x1 - x0, z1 - z0) / 0.9)), alongX = x1 - x0 > z1 - z0;
       for (let k = 0; k < n; k++) {
         const t = (k + 0.5) / n, x = lerp(x0 + 0.4, x1 - 0.4, alongX ? t : 0.5), z = lerp(z0 + 0.4, z1 - 0.4, alongX ? 0.5 : t);
-        T.geo(ico(0.42 + r() * 0.2, 1, x, y + 0.95, z, mulc(L(0x3e6a2c), 0.8 + r() * 0.4), 1, 0.85, 1));
+        T.geo(ico(0.42 + r() * 0.2, 0, x, y + 0.95, z, mulc(L(0x3e6a2c), 0.8 + r() * 0.4), 1, 0.85, 1));
       }
-      if (trees) for (let k = 0; k < trees; k++) { const x = lerp(x0, x1, (k + 0.5) / trees), z = (z0 + z1) / 2; T.geo(cyl(0.07, 0.1, 1.6, 5, x, y + 0.65, z, L(0x5a4030))); T.geo(ico(0.9, 1, x, y + 2.6, z, mulc(L(0x4a7a30), 0.85 + r() * 0.3), 1, 1.1, 1)); lodBox(B, x - 0.7, x + 0.7, y + 1.9, y + 3.3, z - 0.7, z + 0.7, [0.06, 0.12, 0.04], 'tflrk'); }
+      if (trees) for (let k = 0; k < trees; k++) { const x = lerp(x0, x1, (k + 0.5) / trees), z = (z0 + z1) / 2; T.geo(cyl(0.07, 0.1, 1.6, 5, x, y + 0.65, z, L(0x5a4030))); T.geo(ico(0.9, 0, x, y + 2.6, z, mulc(L(0x4a7a30), 0.85 + r() * 0.3), 1, 1.1, 1)); T.geo(ico(0.6, 0, x + 0.3, y + 3.1, z - 0.2, mulc(L(0x4a7a30), 0.95), 1, 1, 1)); lodBox(B, x - 0.7, x + 0.7, y + 1.9, y + 3.3, z - 0.7, z + 0.7, [0.06, 0.12, 0.04], 'tflrk'); }
       lodBox(B, x0, x1, y, y + 1.2, z0, z1, [0.07, 0.12, 0.05], 'tflrk');
     }
   }
@@ -1715,7 +1724,7 @@ float cityLit(float glow, vec2 cb) {
     // painted brick tenement on a deep lot, 6 floors: fire escapes on the narrow front and one long side, flower boxes,
     // capped window hoods, a green bracketed cornice, chimneys
     const B = newB(5505, 'painted'), hw = 7.5, hd = 15.5, G = 3.8, fh = 3.1, nU = 5, top = G + nU * fh, r = B.r;
-    B.detailY = top;
+    B.detailY = G + 2 * fh + 0.5;
     const F = tierFaces(0, 0, hw, hd), tint = L(0xd8d2b4), wc = grime(tint, 1.2, 6), white = L(0xf2f0ea), corn = L(0x3a4a3e);
     const lob = doorway(B, F[0], 0, 1.8, 2.9, { stone: white, vest: L(0x6a6258), rec: 1.0, steps: 2, number: 4, pw: 0.3 });
     facade(B, F[0], 0, G, [lob, grid(B, [-5.4, -3.6, 3.6, 5.4], [1.0], 1.15, 1.75, W_BARRED)], { col: wc, sill: white, streak: 0.3 });
@@ -1748,7 +1757,7 @@ float cityLit(float glow, vec2 cb) {
     // red brick on a two story stone base, wide lot, 10 floors: stone quoins, keystone lintels, window air conditioners,
     // fire escapes on the back, a raised parapet panel over the entrance
     const B = newB(5606, 'brickDark'), hw = 15.5, hd = 7.5, G = 4.2, fh = 3.1, nU = 9, top = G + nU * fh, r = B.r;
-    B.detailY = 11;
+    B.detailY = 8.0;
     const F = tierFaces(0, 0, hw, hd), stone = L(0xc8bca6), base = grime(stone, 0.9, 7), wc = grime([1, 1, 1], 0.9, 8);
     const xs = spread(31, 10, 1.1), xsS = spread(15, 4, 1.3), yb = G + fh;
     const lob = doorway(B, F[0], 0, 2.8, 3.3, { stone, number: 5, rec: 1.1, steps: 2 });
@@ -1892,7 +1901,7 @@ float cityLit(float glow, vec2 cb) {
     B.detailY = 9;
     const F = tierFaces(0, 0, hw, hd), tint = L(0xfaf6ee), wc = grime(tint, 0.8, 41), conc = L(0xe2ded6), blue = L(0x5a7a96);
     // ground floor: the lobby recessed 2.4 m behind six columns, glass, side walls of brick
-    const lobby = { x0: -9.5, x1: 9.5, y0: 0, y1: G - 0.4, rec: 2.4, vest: conc, back: false, floor: L(0xa8a49a) };
+    const lobby = { x0: -9.5, x1: 9.5, y0: 0, y1: G - 0.4, rec: 2.4, vest: conc, back: false, lodCell: W_SIDE, floor: L(0xa8a49a) };
     facade(B, F[0], 0, G, [lobby, grid(B, [-13.0, 13.0], [0.9], 2.2, 2.4, W_SIDE)], { col: wc });
     const Fb = subFace(F[0], 'lobbyback', 19, 0, -2.4, 0);
     facade(B, Fb, 0, G - 0.4, [{ x0: -1.6, x1: 1.6, y0: 0, y1: 3.2, cell: W_LOBBY }, ...spread(19, 5, 0.6).filter((x) => Math.abs(x) > 2).map((x) => ({ x0: x - 1.6, x1: x + 1.6, y0: 0.3, y1: 3.4, cell: W_SIDE }))], { acc: B.trim, col: conc, lod: false });
@@ -1922,6 +1931,9 @@ float cityLit(float glow, vec2 cb) {
     B.trim.setM(F[2].M);
     for (const y of ys) for (const x of bays) B.trim.box(x - 1.45, x + 1.45, y - 0.62, y - 0.02, -0.02, 0.03, blue, 'f');
     B.trim.setM(null);
+    // far: the blue bands under the windows and the two dark stacks of loggias, which set this front apart
+    for (const f of [F[0], F[2]]) for (const y of ys) lodBox(B, -15.0, 15.0, y - 0.62, y - 0.02, -0.02, 0.035, tav(blue), 'f', f.M);
+    for (const x of lg) lodBox(B, x - 1.35, x + 1.35, G + 0.05, top, -0.02, 0.04, [0.05, 0.05, 0.05], 'f', F[0].M);
     roofParapet(B, 0, 0, hw, hd, top, 0.6, { coping: conc });
     // the elevator and stair bulkhead with a ribbon of windows, antennas, a cooling tower, vents
     const EF = tierFaces(-2, -1.5, 3.5, 3.0);
@@ -2014,7 +2026,7 @@ float cityLit(float glow, vec2 cb) {
   /* a colonnade: the ground floor of a face recessed dep behind square columns, with a glass wall at the back
      (x0..x1 across the face, height h); returns the recess hole for the facade */
   function colonnade(B, F, x0, x1, h, dep, n, colC, o = {}) {
-    const hole = { x0, x1, y0: 0, y1: h, rec: dep, vest: colC, back: false, floor: o.floor || L(0x9a968e) };
+    const hole = { x0, x1, y0: 0, y1: h, rec: dep, vest: colC, back: false, lodCell: W_SIDE, floor: o.floor || L(0x9a968e) };
     const W = x1 - x0, Fb = subFace(F, F.name + 'col', W, (x0 + x1) / 2, -dep, 0), dw = o.door || 4.0;
     const side = (W - dw) / 2, np = Math.max(1, Math.round(side / 3.2)), pw = side / np, items = [{ x0: -dw / 2, x1: dw / 2, y0: 0, y1: Math.min(h - 0.3, 4.6), cell: W_OLOBBY }];
     for (let k = 0; k < np; k++) for (const s of [-1, 1]) { const a = s < 0 ? -W / 2 + k * pw : dw / 2 + k * pw; items.push({ x0: a + 0.06, x1: a + pw - 0.06, y0: 0.1, y1: h - 0.25, cell: W_SIDE }); }
@@ -2189,6 +2201,8 @@ float cityLit(float glow, vec2 cb) {
       curtain(B, f, yt, 1, 1.4, 3.1, 31, { dark: true, tint });
     }
     band(B, F, y1 - 0.1, 0.2, 0.15, bronze, true); band(B, F, y2 - 0.1, 0.2, 0.15, bronze, true);
+    // far: the bronze mullions darken the whole shaft from an angle, so they stay (one tall fin per joint)
+    for (const f of F) { const k = Math.max(1, Math.round(f.W / 3.1)), w = f.W / k; for (let i = 0; i <= k; i++) lodBox(B, -f.W / 2 + i * w - 0.07, -f.W / 2 + i * w + 0.07, G, y2, 0, 0.3, tav(bronze), 'flr', f.M); }
     roofParapet(B, 0, 0, hw, hd, yt, 0);
     bmu(B, -4, yt, 0, 8.0, 0);
     coolingTower(B, 9.0, yt, -2.5, 6.0, 4.0, 2.6);
