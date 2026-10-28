@@ -1043,7 +1043,7 @@ vec3 stSky(vec3 nV, vec3 vV, float base) {
     { const cx = 704, cy = 636, Rh = 94; c.fillStyle = '#3a3634'; c.fillRect(cx - Rh, cy - Rh, Rh * 2, Rh * 2);
       for (let i = 0; i < 700; i++) { const x = cx - Rh + r() * Rh * 2, y = cy - Rh + r() * Rh * 2; c.fillStyle = r() < 0.5 ? 'rgba(120,70,40,0.35)' : 'rgba(20,20,20,0.3)'; c.fillRect(x, y, 2, 2); }
       c.strokeStyle = '#4a4440'; c.lineWidth = 3; c.strokeRect(cx - Rh + 2, cy - Rh + 2, Rh * 2 - 4, Rh * 2 - 4);
-      c.globalCompositeOperation = 'destination-out';
+      c.globalCompositeOperation = 'destination-out'; c.fillStyle = '#000';
       c.beginPath(); c.arc(cx, cy, 30, 0, TAU); c.fill();
       for (const [r0, r1, n] of [[36, 54, 18], [60, 78, 26]]) for (let k = 0; k < n; k++) {
         const a0 = k / n * TAU + 0.04, a1 = (k + 1) / n * TAU - 0.04;
@@ -1065,7 +1065,7 @@ vec3 stSky(vec3 nV, vec3 vV, float base) {
     box(258, 668, 124, 60, '#6a6e70'); for (let x = 258; x < 382; x += 2) box(x, 668, 1, 60, '#3a3e40');
     c.strokeStyle = '#2a2c2e'; c.lineWidth = 1.5; for (let x = 262; x < 382; x += 10) { c.beginPath(); c.moveTo(x, 668); c.lineTo(x, 728); c.stroke(); } for (let y = 672; y < 728; y += 10) { c.beginPath(); c.moveTo(258, y); c.lineTo(382, y); c.stroke(); }
     // milk crate side (alpha): white plastic grid, vertex colors tint it
-    { c.fillStyle = '#ecece8'; K.rrect(c, 802, 700, 124, 92, 6); c.fill(); c.globalCompositeOperation = 'destination-out';
+    { c.fillStyle = '#ecece8'; K.rrect(c, 802, 700, 124, 92, 6); c.fill(); c.globalCompositeOperation = 'destination-out'; c.fillStyle = '#000';
       for (let i = 0; i < 6; i++) for (let j = 0; j < 4; j++) { K.rrect(c, 810 + i * 19.5, 716 + j * 18, 14, 13, 3); c.fill(); }
       K.rrect(c, 846, 704, 32, 9, 4); c.fill(); c.globalCompositeOperation = 'source-over'; }
     // barricade stripes: orange and white, diagonal
@@ -1335,8 +1335,8 @@ vec3 stSky(vec3 nV, vec3 vV, float base) {
   // a stack of three pallets and one leaning on the wall behind (the prop's back, -z, goes against a wall)
   function makePallet() {
     const r = rng(4411), g = [];
-    for (let i = 0; i < 3; i++) g.push(place(palletGeo(r, i === 1 ? C3(0x9a8a70) : C3(0xb09a76)), (r() - 0.5) * 0.08, i * 0.1235, 0.12 + (r() - 0.5) * 0.06, 0, (r() - 0.5) * 0.1, 0));
-    g.push(place(palletGeo(r, C3(0x8a7a62)), 0.05, 0.53, -0.62, 1.35, 0.04, 0));
+    for (let i = 0; i < 3; i++) g.push(place(palletGeo(r, i === 1 ? C3(0x857a66) : C3(0x9c8a6c)), (r() - 0.5) * 0.08, i * 0.1235, 0.12 + (r() - 0.5) * 0.06, 0, (r() - 0.5) * 0.1, 0));
+    g.push(place(palletGeo(r, C3(0x7e7262)), 0.05, 0.53, -0.62, 1.35, 0.04, 0));
     return {
       parts: [{ geometry: boxUV(merge(g), 1.6), material: M.wood(), castShadow: true }],
       radius: 0, colliders: [{ x: -0.32, z: 0.1, r: 0.55 }, { x: 0.32, z: 0.1, r: 0.55 }, { x: 0, z: -0.62, r: 0.35 }],
@@ -1849,7 +1849,7 @@ vec3 stSky(vec3 nV, vec3 vV, float base) {
       const lx = ax + dx * 0.3, lz = az + dz * 0.3;
       lens.push(setGlow(bx(dx ? 0.56 : 0.4, 0.012, dx ? 0.4 : 0.56, lx, y - 0.075, lz, C3(0xf4f0e6)), 1.8));
       lights.push({ x: lx, y: y - 0.09, z: lz });
-      pools.push(poolPart(poolGeo(9.5, lx, lz, 0.03, 1), 0.14));
+      pools.push(poolPart(poolGeo(9.5, lx, lz, 0.03, 1), 0.09));
     }
     return {
       parts: [
