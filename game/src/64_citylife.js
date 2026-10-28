@@ -37,10 +37,11 @@ const CityLife = (() => {
     join(ring[0], mid[1]); join(mid[1], ring[1]); join(ring[1], mid[2]); join(mid[2], ring[2]); join(ring[2], mid[3]); join(mid[3], ring[3]); join(ring[3], mid[0]); join(mid[0], ring[0]);
     join(mid[0], plaza[0]); join(mid[1], plaza[2]); join(mid[2], plaza[1]); join(mid[3], plaza[3]);
     const gate = (gx, gz, lx, lz, ks, m2) => { const g = add(gx, gz, { park: true }); const c = corner.get(nodeAt(lx, lz)); if (c) for (const k of ks) join(g, c[k]); join(g, m2); };
-    gate(cx - hw - 0.5, cz, 0, 0, ['ne', 'se'], mid[0]);
-    gate(cx + hw + 0.5, cz, 100, 0, ['nw', 'sw'], mid[2]);
-    gate(cx, cz - hd - 0.5, 50, -50, ['sw', 'se'], mid[1]);
-    gate(cx, cz + hd + 0.5, 50, 50, ['nw', 'ne'], mid[3]);
+    const GT = CT.gates;
+    gate(cx - hw - 0.5, cz, GT.w[0], GT.w[1], ['ne', 'se'], mid[0]);
+    gate(cx + hw + 0.5, cz, GT.e[0], GT.e[1], ['nw', 'sw'], mid[2]);
+    gate(cx, cz - hd - 0.5, GT.n[0], GT.n[1], ['sw', 'se'], mid[1]);
+    gate(cx, cz + hd + 0.5, GT.s[0], GT.s[1], ['nw', 'ne'], mid[3]);
     // a node beside the nearest sidewalk for a spot (a store door, a bus stop)
     const hook = (x, z, o) => {
       let best = null, bd = 1e9;

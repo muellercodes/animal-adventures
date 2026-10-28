@@ -6,7 +6,14 @@ const World = (() => {
   const ROOM_X = 50000;         // the insides of houses and barns live far away at x >= ROOM_X
   const DYN_X = ROOM_X + 4000;  // the inside of a building out in the wilds (one at a time)
   const SHADOW_R = 48;          // plants closer than this cast shadows
-  const SMALL = { rock: 1, fern: 1, mushroom: 1, stump: 1, log: 1, cattail: 1, lily: 1, pumpkin: 1, cornstalk: 1, hay: 1 };
+  const SMALL = { rock: 1, fern: 1, mushroom: 1, stump: 1, log: 1, cattail: 1, lily: 1, pumpkin: 1, cornstalk: 1, hay: 1,
+    // street things you only notice up close
+    hydrant: 1, trashcan: 1, newsbox: 1, bikerack: 1, bollard: 1, mailbox: 1, parkingmeter: 1, cone: 1, barrier: 1, sandwichboard: 1, cafetable: 1, trashbags: 1,
+    recycling: 1, pallet: 1, crates: 1, acunit: 1, gaspipe: 1, wheelstop: 1, treegrate: 1, bicycle: 1, drinking: 1, flowerbed: 1, planter: 1, noparking: 1, parkingsign: 1 };
+  // drawn out to a middle distance (parked cars, signs and the like)
+  const MID = { parked: 1, stopsign: 1, streetsign2: 1, oneway: 1, speedlimit: 1, busstopsign: 1, crosswalksign: 1, dumpster: 1, fence8: 1, foodcart: 1, phonebooth: 1,
+    streetclock: 1, planterbox: 1, parkbooth: 1, bench: 1, parkbench: 1, picnic: 1, busstop: 1, statue: 1, trafficpole: 1 };
+  const LOD_D = 120;            // towers farther than this are drawn with their simple version
   const BIG = { apartment: 1, office: 1, midrise: 1, storefront: 1 };   // city buildings: one draw each, always with shadows
   const dummy = new THREE.Object3D();
 
@@ -184,8 +191,8 @@ const World = (() => {
           { sp: 'hedgehog', n: 2, home: [30, -40], range: 30 },
           // the city park: ducks on the pond, squirrels and bunnies in the trees and lawns
           { sp: 'duck', n: 3, kids: 3, home: [Plan.CITY.x + Plan.CITY.pond.x, Plan.CITY.z + Plan.CITY.pond.z], range: 10, water: true },
-          { sp: 'squirrel', n: 3, home: [Plan.CITY.x + 40, Plan.CITY.z - 15], range: 26 },
-          { sp: 'bunny', n: 2, kids: 1, home: [Plan.CITY.x + 30, Plan.CITY.z + 25], range: 18 },
+          { sp: 'squirrel', n: 3, home: [Plan.CITY.x + 45, Plan.CITY.z - 15], range: 28 },
+          { sp: 'bunny', n: 2, kids: 1, home: [Plan.CITY.x + 75, Plan.CITY.z - 25], range: 18 },
           // pests that sneak into the farmer's garden for carrots
           { sp: 'weasel', n: 2, home: [-8, -84], range: 22 },
           { sp: 'bunny', n: 2, home: [-2, -66], range: 18 },
@@ -702,15 +709,18 @@ const World = (() => {
     function markPlaced(x, z, gap) { const k = gkey(Math.floor(x / 6), Math.floor(z / 6)); let a = w.placed.get(k); if (!a) w.placed.set(k, (a = [])); a.push({ x, z, gap }); }
 
     /* plants and props are stored per owner (the middle, a tile, a landmark) as instance matrices */
-    function pushInst(owner, type, variant, x, y, z, rot, s, sy) {
+    // color: an optional [r, g, b] for the parts that take a tint (parked cars)
+    function pushInst(owner, type, variant, x, y, z, rot, s, sy, color) {
       const key = type + ':' + variant;
       let e = owner.items.get(key);
-      if (!e) owner.items.set(key, (e = { type, variant, small: !!SMALL[type], xs: [], zs: [], ms: [] }));
+      if (!e) owner.items.set(key, (e = { type, variant, small: !!SMALL[type], mid: !!MID[type], xs: [], zs: [], ms: [], cs: null }));
       dummy.position.set(x, y, z); dummy.rotation.set(0, rot, 0); dummy.scale.set(s, sy || s, s); dummy.updateMatrix();
+      if (color && !e.cs) { e.cs = []; for (let i = 0; i < e.xs.length; i++) e.cs.push(1, 1, 1); }
+      if (e.cs) { if (color) e.cs.push(color[0], color[1], color[2]); else e.cs.push(1, 1, 1); }
       e.xs.push(x); e.zs.push(z);
       const m = dummy.matrix.elements; for (let i = 0; i < 16; i++) e.ms.push(m[i]);
     }
-    function finishOwner(o) { for (const e of o.items.values()) if (!(e.ms instanceof Float32Array)) e.ms = new Float32Array(e.ms); poolDirty = true; }
+    function finishOwner(o) { for (const e of o.items.values()) { if (!(e.ms instanceof Float32Array)) e.ms = new Float32Array(e.ms); if (e.cs && !(e.cs instanceof Float32Array)) e.cs = new Float32Array(e.cs); } poolDirty = true; }
     function placeProp(owner, o, type, variant, x, z, h, s, rot) {
       const y = o.water ? WATER + 0.005 : h - (o.sink || 0.05) * s;
       pushInst(owner, type, variant, x, y, z, rot, s);
@@ -1032,7 +1042,7 @@ const World = (() => {
     const streetMats = () => {
       if (SM) return SM;
       SM = Env.streetMaterials ? Env.streetMaterials() : {};
-      const off = { road: 2, country: 2, junction: 3, sidewalk: 2, curb: 2, paving: 2, zebra: 5 };
+      const off = { road: 2, country: 2, junction: 3, sidewalk: 2, curb: 2, paving: 2, zebra: 5, alley: 2, parking: 3, plaza: 3, puddle: 6 };
       for (const k in SM) { const m = SM[k]; if (!m || m.userData.aaOffset) continue; m.polygonOffset = true; m.polygonOffsetFactor = -(off[k] || 2); m.polygonOffsetUnits = -(off[k] || 2) * 2; m.userData.aaOffset = 1; }
       return SM;
     };
@@ -1113,97 +1123,283 @@ const World = (() => {
     w.signals = []; w.benches = [];
 
     /* the city */
-    const CT = Plan.CITY;
+    const CT = Plan.CITY, R7 = CT.road / 2, WK = CT.walk, HB = CT.blk / 2;
+    const YR = Plan.CY + 0.03, YS = Plan.CY + 0.07;             // the tops of the roads and the sidewalks
+    // texture size of a street kit ground surface (meters per repeat), from the material when it says
+    const uvSize = (k, d) => { const m = streetMats()[k]; return (m && m.userData && m.userData.uvSize) || d; };
+    const mUV = (S) => (x, z) => [x / S, z / S];
+    const cityRng = (a, b, c) => rng(hash2(a, b, c) * 4294967296);
+    const FOOD_STORES = { cafe: 1, bakery: 1, pizza: 1, deli: 1, icecream: 1 };
+    const DOWNTOWN = { 'Main Street': 1, 'Park Avenue': 1, 'Park Street': 1, 'Garden Street': 1, 'Fifth Avenue': 1, 'Third Avenue': 1 };
+    // a flat decal (a puddle) on a surface at height y
+    function puddle(M, x, z, y, s, rot) {
+      if (!M.puddle) return;
+      const c = Math.cos(rot), si = Math.sin(rot), hx = s * 0.5, hz = s * 0.36, P = (u, v) => [x + u * c + v * si, y, z - u * si + v * c];
+      quad(M.puddle, [P(-hx, -hz), P(-hx, hz), P(hx, hz), P(hx, -hz)], [[0, 0], [0, 1], [1, 1], [1, 0]]);
+    }
+    // a parked car from the street kit (an instanced prop, painted per car): solid, and you can stand on its roof
+    function parkCar(x, z, rot, r, y = YR) {
+      if (!hasProp('parked')) return;
+      const n = Env._k.VARIANTS.parked || 1, v = Math.min(n - 1, (r() * n) | 0), pr = Env.prop('parked', v);
+      pushInst(w.own, 'parked', v, x, y, z, rot, 1, 1, pr.paint ? pr.paint(r()) : null);
+      addCollider({ box: true, x, z, hw: (pr.wid || 1.85) / 2 + 0.05, hd: (pr.len || 4.6) / 2 + 0.05, rot, y0: y, roof: { flat: (pr.h || 1.45) - 0.04 } });
+    }
     function buildCityPart(f) {
       const part = f.part, M = streetMats();
       for (const s of CT.segs) if (s.part === part.key) citySeg(s, M);
       for (const n of CT.nodes) if (n.part === part.key) cityNode(n, M);
-      if (part.blocks) for (const b of CT.blocks) if (part.blocks(b)) cityBlock(b);
-      for (const st of Plan.BUS.stops) if (st.part === part.key) putProp('busstop', 0, st.sx, st.sz, Plan.CY + 0.07, st.rot);
+      if (part.blocks) for (const b of CT.blocks) if (part.blocks(b)) cityBlock(b, M);
+      cityStops(part.key);
     }
+    function cityStops(key) { for (const st of Plan.BUS.stops) if (st.part === key) putProp('busstop', 0, st.sx, st.sz, YS, st.rot); }
+
+    /* a street between two crossings: the road with its parking lanes, crosswalks, sidewalks, curbs, and everything on them */
     function citySeg(s, M) {
       const ex = s.dir === 'x', a = ex ? s.ax : s.az, b = ex ? s.bx : s.bz, c = ex ? s.az : s.ax;
-      const R = CT.road / 2, Wk = CT.walk, y0 = Plan.CY, yr = y0 + 0.03, ys = y0 + 0.07;
+      const R = R7, Wk = WK, len = b - a - 2 * R, a0 = a + R;
+      // P(along, across, y): along runs from a to b, across is +z on east-west streets and +x on north-south ones
       const P = (al, cr, yy) => (ex ? [CT.x + al, yy, CT.z + cr] : [CT.x + cr, yy, CT.z + al]);
-      const len = b - a - 2 * R;
-      // the road, crosswalks at both ends
-      quad(M.road, [P(a + R, c - R, yr), P(b - R, c - R, yr), P(b - R, c + R, yr), P(a + R, c + R, yr)], [[ex ? 0 : 1, 0], [ex ? 0 : 1, len / 12], [ex ? 1 : 0, len / 12], [ex ? 1 : 0, 0]]);
-      for (const [p0, p1] of [[a + R, a + R + 3], [b - R - 3, b - R]]) quad(M.zebra, [P(p0, c - R, yr + 0.004), P(p1, c - R, yr + 0.004), P(p1, c + R, yr + 0.004), P(p0, c + R, yr + 0.004)], [[0, 0], [0, 1], [1, 1], [1, 0]]);
+      quad(M.road, [P(a + R, c - R, YR), P(b - R, c - R, YR), P(b - R, c + R, YR), P(a + R, c + R, YR)], [[ex ? 0 : 1, 0], [ex ? 0 : 1, len / 12], [ex ? 1 : 0, len / 12], [ex ? 1 : 0, 0]]);
+      for (const [p0, p1] of [[a + R, a + R + 3], [b - R - 3, b - R]]) quad(M.zebra, [P(p0, c - R, YR + 0.004), P(p1, c - R, YR + 0.004), P(p1, c + R, YR + 0.004), P(p0, c + R, YR + 0.004)], [[0, 0], [0, 1], [1, 1], [1, 0]]);
       // sidewalks: the east-west ones run over the corners, the north-south ones stop at them
       const s0 = ex ? a + R : a + R + Wk, s1 = ex ? b - R : b - R - Wk;
       for (const sd of [-1, 1]) {
         const c0 = c + sd * R, c1 = c + sd * (R + Wk);
-        const pts = [P(s0, Math.min(c0, c1), ys), P(s1, Math.min(c0, c1), ys), P(s1, Math.max(c0, c1), ys), P(s0, Math.max(c0, c1), ys)];
+        const pts = [P(s0, Math.min(c0, c1), YS), P(s1, Math.min(c0, c1), YS), P(s1, Math.max(c0, c1), YS), P(s0, Math.max(c0, c1), YS)];
         quad(M.sidewalk, pts, pts.map((q) => [q[0] / 1.5, q[2] / 1.5]));
         const A = P(a + R, c0, 0), B = P(b - R, c0, 0);
-        curb(A[0], A[2], B[0], B[2], ex ? 0 : -sd, ex ? -sd : 0, yr, ys);
+        curb(A[0], A[2], B[0], B[2], ex ? 0 : -sd, ex ? -sd : 0, YR, YS);
       }
-      // lamps, street trees, a hydrant, a trash can, benches facing the park and on Main Street
-      const at = (al, sd, off) => { const q = P(al, c + sd * (R + off), 0); return [q[0], q[2]]; };
+      // things along the sidewalks; al is meters from the end of the first crossing (the crosswalk is 0 to 3)
+      const at = (al, sd, off) => { const q = P(a0 + al, c + sd * (R + off), 0); return [q[0], q[2]]; };
       const face = (sd) => (ex ? (sd > 0 ? Math.PI : 0) : (sd > 0 ? -Math.PI / 2 : Math.PI / 2));   // toward the road
+      const drive = (sd) => (ex ? (sd > 0 ? Math.PI / 2 : -Math.PI / 2) : (sd > 0 ? Math.PI : 0));  // the way traffic goes on that side
+      const mid = len / 2, down = !!DOWNTOWN[s.name], main = s.name === 'Main Street' && b <= 0;
+      const parkSide = (sd) => { const [x, z] = at(mid, sd, Wk + 3); return Plan.inPark(x, z, 0); };
+      const stopNear = (al, sd) => { const [x, z] = at(al, sd, Wk - 0.9); return Plan.BUS.stops.some((st) => !st.town && Math.hypot(st.sx - x, st.sz - z) < 9.5); };
       for (const sd of [-1, 1]) {
-        for (const al of [a + R + 10, b - R - 10]) { const [x, z] = at(al, sd, 0.7); putProp('streetlamp', 0, x, z, ys, face(sd)); }
-        { const [x, z] = at((a + b) / 2, sd, 1.1); putTree('maple', ((a + b + sd) & 3) % 3, x, z, 0.78, a + sd); }
+        const r = cityRng(s.ax * 7 + s.az * 3 + sd, s.bx * 5 + s.bz * 11, 41), pk = parkSide(sd);
+        const put = (type, v, al, off, rot, col = true) => { const [x, z] = at(al, sd, off); putProp(type, v, x, z, YS, rot === undefined ? face(sd) : rot, 1, col); };
+        // lamps and street trees in iron grates, alternating
+        const lamps = sd < 0 ? [8, len - 8] : [mid];
+        for (const al of lamps) put('streetlamp', 0, al, 0.7);
+        const trees = sd < 0 ? [mid - 6.5] : [len - 12.5];
+        for (const al of trees) {
+          if (stopNear(al, sd)) continue;
+          const [x, z] = at(al, sd, 1.15);
+          putProp('treegrate', 0, x, z, YS + 0.002, ex ? 0 : Math.PI / 2, 1, false);
+          const mp = r() < 0.65, tv = r();
+          putTree(mp ? 'maple' : 'birch', (tv * (mp ? 3 : 2)) | 0, x, z, 0.72 + r() * 0.12, r() * 6);
+        }
+        // a hydrant near the start, a trash can near the end, a parking sign in the middle
+        if (sd > 0) { put('hydrant', 0, 4.6, 0.55); put('noparking', 0, 6.4, 0.35, face(sd) + Math.PI / 2); }
+        else put('trashcan', 0, len - 4.2, 0.6);
+        if (!pk && r() < 0.6) put('parkingsign', 0, mid + (sd > 0 ? 3.2 : -3.2), 0.35, face(sd) + Math.PI / 2);
+        // parked cars along the curb (none by the corners, the hydrant or a bus stop), with meters downtown
+        const fill = down ? 0.78 : 0.6;
+        let cone = !down && sd > 0 && r() < 0.08;
+        for (const al of [9.6, 16.2, 22.8, 29.4]) {
+          if (al + 3 > len - 6 || stopNear(al, sd)) continue;
+          if (down) put('parkingmeter', 0, al - 2.9, 0.42, face(sd) + Math.PI);
+          if (cone) { cone = false; for (const k of [-1.8, 0, 1.8]) { const [x, z] = at(al + k, sd, -1.8); putProp('cone', 0, x, z, YR, r() * 3, 1, false); } const [bx, bz] = at(al, sd, -0.9); putProp('barrier', 0, bx, bz, YR, drive(sd) + Math.PI / 2); continue; }
+          if (r() > fill) continue;
+          const [x, z] = at(al + (r() - 0.5) * 0.8, sd, -1.72 + (r() - 0.5) * 0.15);
+          parkCar(x, z, drive(sd) + (r() - 0.5) * 0.04, r);
+        }
+        // benches with their backs to the park, and on Main Street
+        if (pk || main) for (const al of [15, len - 15]) put('bench', 0, al, Wk - 0.7);
+        if (main) {
+          put('newsbox', (r() * 3) | 0, mid + 4, Wk - 0.5);
+          if (sd > 0) { put('bikerack', 0, mid - 9.5, 0.9, face(sd) + Math.PI / 2); for (const k of [-0.8, 0.8]) if (r() < 0.75) put('bicycle', (r() * 2) | 0, mid - 9.5 + k, 1.05, face(sd) + Math.PI / 2 + 0.05, false); }
+          else put('mailbox', 0, 3.6, 0.6);
+        }
+        // a puddle in the gutter now and then, and one on the sidewalk
+        if (r() < 0.35) { const [x, z] = at(5 + r() * (len - 10), sd, -0.9); puddle(M, x, z, YR + 0.006, 1.8 + r() * 1.6, ex ? Math.PI / 2 : 0); }
+        if (r() < 0.12) { const [x, z] = at(5 + r() * (len - 10), sd, 1.6); puddle(M, x, z, YS + 0.006, 1.4 + r(), r() * 3); }
       }
-      { const [x, z] = at(a + R + 4.5, 1, 0.55); putProp('hydrant', 0, x, z, ys, face(1)); }
-      { const [x, z] = at(b - R - 3, -1, 0.6); putProp('trashcan', 0, x, z, ys, face(-1)); }
-      const main = ex && c === 0 && b <= 0, parkSide = (sd) => (ex ? (a >= 0 && ((c === -50 && sd > 0) || (c === 50 && sd < 0))) : (b <= 50 && a >= -50 && ((c === 0 && sd > 0) || (c === 100 && sd < 0))));
-      for (const sd of [-1, 1]) if (main || parkSide(sd)) for (const al of [a + R + 16, b - R - 16]) { const [x, z] = at(al, sd, Wk - 0.7); putProp('bench', 0, x, z, ys, face(sd)); }
-      if (main) for (const sd of [-1, 1]) { const [x, z] = at((a + b) / 2 + 4, sd, Wk - 0.5); putProp('newsbox', (a + sd + 9) % 3, x, z, ys, face(sd)); }
+      // one phone booth and a street clock on Main Street, food carts by the park
+      if (main && a === -110) { const [x, z] = at(mid + 2, -1, WK - 0.9); putProp('streetclock', 0, x, z, YS, 0); }
+      if (main && a === -165) { const [x, z] = at(mid - 4, 1, WK - 0.8); putProp('phonebooth', 0, x, z, YS, face(1) + Math.PI); }
+      for (const sd of [-1, 1]) if (parkSide(sd) && hash2(s.ax, s.az, sd) < 0.5) { const [x, z] = at(mid + 8, sd, WK - 1.3); putProp('foodcart', (hash2(s.bx, s.bz, 3) * 2) | 0, x, z, YS, face(sd)); }
+      // speed limit signs where the country roads come in
+      for (const [nx, nz, end] of [[s.ax, s.az, 0], [s.bx, s.bz, 1]]) {
+        const n = CT.nodes.find((q) => q.x === nx && q.z === nz && q.exit);
+        if (!n) continue;
+        const sd = end ? -1 : 1, al = end ? len - 14 : 14, [x, z] = at(al, sd, 0.4);
+        putProp('speedlimit', 0, x, z, YS, drive(sd) + Math.PI);
+      }
     }
+
+    /* a crossing: the junction square, corner sidewalks, lights or stop signs, a street sign, and where a country road
+       leaves the city, the street running out to the edge and narrowing down to the road */
     function cityNode(n, M) {
-      const R = CT.road / 2, Wk = CT.walk, y0 = Plan.CY, yr = y0 + 0.03, ys = y0 + 0.07, X = CT.x + n.x, Z = CT.z + n.z; void y0;
-      quad(M.junction, [[X - R, yr, Z - R], [X - R, yr, Z + R], [X + R, yr, Z + R], [X + R, yr, Z - R]], [[(X - R) / 10, (Z - R) / 10], [(X - R) / 10, (Z + R) / 10], [(X + R) / 10, (Z + R) / 10], [(X + R) / 10, (Z - R) / 10]]);
-      // sidewalk where no street goes on (but not where a country road leaves), and the corners not covered
+      const R = R7, Wk = WK, X = CT.x + n.x, Z = CT.z + n.z;
+      quad(M.junction, [[X - R, YR, Z - R], [X - R, YR, Z + R], [X + R, YR, Z + R], [X + R, YR, Z - R]], [[(X - R) / 10, (Z - R) / 10], [(X - R) / 10, (Z + R) / 10], [(X + R) / 10, (Z + R) / 10], [(X + R) / 10, (Z - R) / 10]]);
       const dirs = { n: [0, -1], s: [0, 1], e: [1, 0], w: [-1, 0] };
       for (const [d, [dx, dz]] of Object.entries(dirs)) {
         if (n.open[d] || n.exit === d) continue;
         const x0 = dx ? X + dx * R : X - R, x1 = dx ? X + dx * (R + Wk) : X + R, z0 = dz ? Z + dz * R : Z - R, z1 = dz ? Z + dz * (R + Wk) : Z + R;
-        paveRect(M.sidewalk, Math.min(x0, x1), Math.min(z0, z1), Math.max(x0, x1), Math.max(z0, z1), ys);
-        if (dx) curb(X + dx * R, Z - R, X + dx * R, Z + R, -dx, 0, yr, ys); else curb(X - R, Z + dz * R, X + R, Z + dz * R, 0, -dz, yr, ys);
+        paveRect(M.sidewalk, Math.min(x0, x1), Math.min(z0, z1), Math.max(x0, x1), Math.max(z0, z1), YS);
+        if (dx) curb(X + dx * R, Z - R, X + dx * R, Z + R, -dx, 0, YR, YS); else curb(X - R, Z + dz * R, X + R, Z + dz * R, 0, -dz, YR, YS);
       }
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
         if (n.open[sx > 0 ? 'e' : 'w']) continue;   // the east-west sidewalk covers this corner
         const x0 = X + sx * R, x1 = X + sx * (R + Wk), z0 = Z + sz * R, z1 = Z + sz * (R + Wk);
-        paveRect(M.sidewalk, Math.min(x0, x1), Math.min(z0, z1), Math.max(x0, x1), Math.max(z0, z1), ys);
+        paveRect(M.sidewalk, Math.min(x0, x1), Math.min(z0, z1), Math.max(x0, x1), Math.max(z0, z1), YS);
       }
-      // traffic lights where three or four streets meet inside the city
-      if (n.deg >= 3 && !n.outer && Env.signalHead) {
+      // the ways cars come in: from each open side, and from a country road
+      const ins = Object.entries(dirs).filter(([d]) => n.open[d] || n.exit === d);
+      if (n.signal && Env.signalHead) {
         const sig = { x: X, z: Z, heads: [], part: n.part };
-        for (const [d, [dx, dz]] of Object.entries(dirs)) {
+        for (const [d, [dx, dz]] of ins) {
           if (!n.open[d]) continue;
           const Fx = -dx, Fz = -dz, Rx = -Fz, Rz = Fx;                       // cars coming in from side d drive along F
-          const px = X + Fx * 6.6 + Rx * 6.6, pz = Z + Fz * 6.6 + Rz * 6.6;
-          putProp('trafficpole', 0, px, pz, ys, Math.atan2(Rz, -Rx));
+          const px = X + Fx * (R + 1.2) + Rx * (R + 1.2), pz = Z + Fz * (R + 1.2) + Rz * (R + 1.2);
+          putProp('trafficpole', 0, px, pz, YS, Math.atan2(Rz, -Rx));
           const mt = (hasProp('trafficpole') && Env.prop('trafficpole', 0).mounts) || { arm: [{ x: 4.2, y: 5.3 }] }, am = mt.arm[mt.arm.length - 1];
-          const hd = Env.signalHead(); hd.position.set(px - Rx * am.x, ys + am.y, pz - Rz * am.x); hd.rotation.y = Math.atan2(-Fx, -Fz);
+          const hd = Env.signalHead(); hd.position.set(px - Rx * am.x, YS + am.y, pz - Rz * am.x); hd.rotation.y = Math.atan2(-Fx, -Fz);
           out.add(hd); w.own.objs.push(hd);
           sig.heads.push({ obj: hd, axis: dx ? 'x' : 'z' });
         }
         sig.own = w.own;
         w.signals.push(sig);
+      } else if (n.deg + (n.exit ? 1 : 0) >= 3) {
+        // an all way stop: a sign on the right before each crosswalk
+        for (const [, [dx, dz]] of ins) putProp('stopsign', 0, X + dx * (R + 3.6) + dz * (R + 0.6), Z + dz * (R + 3.6) - dx * (R + 0.6), YS, Math.atan2(dx, dz));
+      }
+      // the street sign on one corner: with names on Main Street, around the park and where you come in; plain elsewhere
+      {
+        const ave = CT.lineName('x', n.x), st = CT.lineName('z', n.z), sx = n.open.e || n.exit === 'e' ? 1 : -1, sz = n.open.n || n.exit === 'n' ? -1 : 1;
+        const x = X + sx * (R + 0.9), z = Z + sz * (R + 0.9);
+        const named = n.z === 0 || n.exit || Math.abs(n.x - (CT.gates.n[0])) <= 55.5 && Math.abs(n.z) <= 55;
+        if (named && Env.streetSign) addGroup(Env.streetSign(st, ave), x, z, Math.atan2(sx, sz) + Math.PI);
+        else putProp('streetsign2', 0, x, z, YS, Math.atan2(sx, sz) + Math.PI);
+      }
+      // out to the city edge: the street with a crosswalk, then narrowing over 8 m to the two lane country road
+      if (n.exit) {
+        const [dx, dz] = dirs[n.exit], tx = -dz, tz = dx;
+        const Q = (al, cr, y) => [X + dx * al + tx * cr, y, Z + dz * al + tz * cr];
+        const e0 = R + Wk, e1 = e0 + 8, yE = H(X + dx * e1, Z + dz * e1) + 0.04;
+        quad(M.road, [Q(R, -R, YR), Q(e0, -R, YR), Q(e0, R, YR), Q(R, R, YR)], [[0, 0], [0, Wk / 12], [1, Wk / 12], [1, 0]]);
+        quad(M.zebra, [Q(R, -R, YR + 0.004), Q(R + 3, -R, YR + 0.004), Q(R + 3, R, YR + 0.004), Q(R, R, YR + 0.004)], [[0, 0], [0, 1], [1, 1], [1, 0]]);
+        const rw = Plan.RW / 2;
+        quad(M.country || M.road, [Q(e0, -R, YR), Q(e1, -rw, yE), Q(e1, rw, yE), Q(e0, R, YR)], [[1, 0], [1, 8 / 12], [0, 8 / 12], [0, 0]]);
+        for (const sd of [-1, 1]) curb(Q(R, sd * R, 0)[0], Q(R, sd * R, 0)[2], Q(e0, sd * R, 0)[0], Q(e0, sd * R, 0)[2], -tx * sd, -tz * sd, YR, YS);
       }
     }
-    function cityBlock(b) {
-      const y0 = Plan.CY;
+
+    /* a block: old concrete between and behind the buildings, then each lot, then the alleys */
+    function cityBlock(b, M) {
+      const X0 = CT.x + b.x, Z0 = CT.z + b.z, r = cityRng(b.c, b.r, 77);
+      paveRect(M.alley || M.sidewalk, X0 - HB, Z0 - HB, X0 + HB, Z0 + HB, YS, mUV(uvSize('alley', 4)));
       for (const lot of b.lots) {
-        if (!hasProp(lot.type)) continue;
-        const pr = Env.prop(lot.type, lot.variant), x = CT.x + lot.x, z = CT.z + lot.z;
-        pushInst(w.own, lot.type, lot.variant, x, y0, z, lot.rot, 1);
-        addCollider({ box: true, x, z, hw: (pr.w || 15) / 2 + 0.05, hd: (pr.d || 15) / 2 + 0.05, rot: lot.rot, y0, roof: roofOf({ roof: pr.roof, roofParts: pr.roofParts, h: (pr.h || 20) - 1.5 }) });
-        blockBox(x, y0, z, pr.w || 15, pr.h || 20, pr.d || 15, lot.rot);
-        if (lot.store && hasProp('storefront')) {
-          const sv = Math.max(0, (Env.STORE_KINDS || []).indexOf(lot.store)), sf = Env.prop('storefront', sv);
-          const fx = Math.sin(lot.rot), fz = Math.cos(lot.rot), dd = (pr.d || 15) / 2 - 0.6;
-          const sx = x + fx * dd, sz = z + fz * dd;
-          // each store front is one of a kind, so it is merged with the others nearby instead of drawn instanced
-          const sg = new THREE.Group();
-          for (const part of sf.parts) { const m = new THREE.Mesh(part.geometry, part.material); m.castShadow = part.castShadow !== false; m.receiveShadow = true; if (part.depthMaterial) m.customDepthMaterial = part.depthMaterial; sg.add(m); }
-          sg.userData.bake = 1; w.addObj(sg, sx, sz, lot.rot, y0);
-          const [dx, dz] = toWorld(sx, sz, lot.rot, sf.door ? sf.door.x : 0, sf.door ? sf.door.z : 1.8);
-          w.houses.push({ id: w.houses.length, kind: 'store', store: lot.store, x: sx, z: sz, rot: lot.rot, group: null, name: 'the ' + STORE_NAME(lot.store), door: { x: dx, z: dz, yaw: lot.rot }, doorMesh: null, room: null, own: w.own, lazy: 'store', city: true, street: 'Main Street', town: 'the city' });
+        if (lot.building) cityBuilding(lot, r);
+        else if (lot.type === 'parking') parkingLot(lot, M, r);
+        else plazaLot(lot, M, r, b);
+      }
+      cityAlleys(b, M, r);
+    }
+    function cityBuilding(lot, r) {
+      if (!hasProp(lot.type)) return;
+      const y0 = Plan.CY, pr = Env.prop(lot.type, lot.variant), x = CT.x + lot.x, z = CT.z + lot.z;
+      pushInst(w.own, lot.type, lot.variant, x, y0, z, lot.rot, 1);
+      addCollider({ box: true, x, z, hw: (pr.w || 15) / 2 + 0.05, hd: (pr.d || 15) / 2 + 0.05, rot: lot.rot, y0, roof: roofOf({ roof: pr.roof, roofParts: pr.roofParts, h: (pr.h || 20) - 1.5 }) });
+      blockBox(x, y0, z, pr.w || 15, pr.h || 20, pr.d || 15, lot.rot);
+      if (!lot.store || !hasProp('storefront')) return;
+      const sv = (Env.STORE_KINDS || []).indexOf(lot.store);
+      if (sv < 0) return;
+      const sf = Env.prop('storefront', sv), pc = Env.cityPieces && Env.cityPieces[lot.type] && Env.cityPieces[lot.type][lot.variant];
+      const dd = pc && pc.bay ? pc.bay.z : (pr.d || 15) / 2 - 0.6, sx = x + lot.fx * dd, sz = z + lot.fz * dd;
+      // each store front is one of a kind, so it is merged with the others nearby instead of drawn instanced
+      const sg = new THREE.Group();
+      for (const part of sf.parts) { const m = new THREE.Mesh(part.geometry, part.material); m.castShadow = part.castShadow !== false; m.receiveShadow = true; if (part.depthMaterial) m.customDepthMaterial = part.depthMaterial; sg.add(m); }
+      sg.userData.bake = 1; w.addObj(sg, sx, sz, lot.rot, y0);
+      const [dx, dz] = toWorld(sx, sz, lot.rot, sf.door ? sf.door.x : 0, sf.door ? sf.door.z : 1.8);
+      w.houses.push({ id: w.houses.length, kind: 'store', store: lot.store, x: sx, z: sz, rot: lot.rot, group: null, name: 'the ' + STORE_NAME(lot.store), door: { x: dx, z: dz, yaw: lot.rot }, doorMesh: null, room: null, own: w.own, lazy: 'store', city: true, street: lot.street, town: 'the city' });
+      // a sign board on the sidewalk, and little tables against the window where they sell food
+      const fr = (pr.d || 15) / 2, side = r() < 0.5 ? -1 : 1;
+      { const [bx, bz] = toWorld(x, z, lot.rot, side * 3.0, fr + 0.75); putProp('sandwichboard', 0, bx, bz, YS, lot.rot + (r() - 0.5) * 0.6); }
+      if (FOOD_STORES[lot.store]) for (const u of [-4.7, 4.7]) { if (Math.sign(u) === side && r() < 0.5) continue; const [tx, tz] = toWorld(x, z, lot.rot, u, fr + 0.95); putProp('cafetable', u > 0 ? 1 : 0, tx, tz, YS, lot.rot + r() * 1.5); }
+    }
+
+    // a point in a lot: u along its front (to the right looking out), v from its middle toward the street
+    const lotP = (lot, u, v) => toWorld(CT.x + lot.x, CT.z + lot.z, lot.rot, u, v);
+    const lotHU = (lot) => (lot.fz ? lot.hw : lot.hd), lotHV = (lot) => (lot.fz ? lot.hd : lot.hw);
+    /* a parking lot: two rows of stalls with an aisle between, cars, wheel stops, tall lights; a booth on a big one */
+    function parkingLot(lot, M, r) {
+      const x = CT.x + lot.x, z = CT.z + lot.z, hu = lotHU(lot), hv = lotHV(lot), co = Math.cos(lot.rot), si = Math.sin(lot.rot);
+      const SW = 2.6, SD = 5.5, n = Math.floor((hu * 2 - 0.4) / SW), u0 = -(n - 1) / 2 * SW;
+      // the stall lines: u across stalls (one stall a repeat), v down a row (0 at the aisle, 1 at the end of the stall)
+      const ps = (M.parking && M.parking.userData && M.parking.userData.stall) || { w: SW, d: SD };
+      const uv = (X, Z) => { const dx = X - x, dz = Z - z, lu = dx * co - dz * si, lv = dx * si + dz * co; return [(lu - u0 + SW / 2) / ps.w, (Math.abs(lv) - (hv - SD)) / ps.d]; };
+      paveRect(M.parking || M.alley || M.sidewalk, x - lot.hw, z - lot.hd, x + lot.hw, z + lot.hd, YS + 0.003, uv);
+      for (const row of [1, -1]) {
+        const vc = row * (hv - SD / 2);
+        for (let i = 0; i < n; i++) {
+          const u = u0 + i * SW;
+          if (row > 0 && i === 0) continue;                     // the way in from the street
+          if (row > 0 && i === 1 && n > 6) { const [bx, bz] = lotP(lot, u, vc + 0.6); putProp('parkbooth', 0, bx, bz, YS, lot.rot + Math.PI / 2); continue; }
+          { const [wx, wz] = lotP(lot, u, row * (hv - 0.55)); putProp('wheelstop', 0, wx, wz, YS, lot.rot, 1, false); }
+          if (r() > 0.68) continue;
+          const back = r() < 0.2, [cx, cz] = lotP(lot, u + (r() - 0.5) * 0.25, vc + row * 0.15);
+          parkCar(cx, cz, lot.rot + (row > 0 ? 0 : Math.PI) + (back ? Math.PI : 0) + (r() - 0.5) * 0.06, r, YS + 0.003);
         }
       }
+      for (const u of n > 6 ? [-hu + 0.45, hu - 0.45] : [hu - 0.45]) { const [lx, lz] = lotP(lot, u, 0); putProp('lotlight', 0, lx, lz, YS, lot.rot); }
+      { const [sx, sz] = lotP(lot, u0 - 1.0, hv - 0.35); putProp('parkingsign', 0, sx, sz, YS, lot.rot); }
+      if (r() < 0.5) { const [px, pz] = lotP(lot, (r() - 0.5) * hu, (r() - 0.5) * 2); puddle(M, px, pz, YS + 0.009, 2 + r() * 1.5, r() * 3); }
+    }
+    /* a small plaza: stone paving, trees in grates, benches, a food cart, cafe tables, a statue or planters */
+    function plazaLot(lot, M, r, b) {
+      const x = CT.x + lot.x, z = CT.z + lot.z, hu = lotHU(lot), hv = lotHV(lot), y = YS + 0.003;
+      paveRect(M.plaza || M.paving || M.sidewalk, x - lot.hw, z - lot.hd, x + lot.hw, z + lot.hd, y, mUV(uvSize('plaza', 3)));
+      const put = (type, v, u, vv, rot, col = true) => { const [px, pz] = lotP(lot, u, vv); putProp(type, v, px, pz, y, lot.rot + rot, 1, col); };
+      for (const su of [-1, 1]) {
+        const [tx, tz] = lotP(lot, su * (hu - 2.6), -(hv - 2.6));
+        putProp('treegrate', 0, tx, tz, y + 0.002, lot.rot, 1, false);
+        putTree(r() < 0.5 ? 'maple' : 'birch', (r() * 2) | 0, tx, tz, 0.8 + r() * 0.15, r() * 6);
+        put('bench', 0, su * (hu - 1.0), 0.6, su > 0 ? -Math.PI / 2 : Math.PI / 2);
+        put('parklamp', 0, su * (hu - 0.7), hv - 0.9, 0);
+      }
+      put('bench', 0, 0, -(hv - 1.0), 0);
+      if ((b.c + b.r) % 2) put('statue', b.c % 2, 0, -0.6, Math.PI);
+      else { put('planterbox', 0, -2.2, -0.8, 0); put('planterbox', 0, 2.2, -0.8, 0); }
+      put('cafetable', 0, -3.2, 3.0, r()); put('cafetable', 1, 3.0, 3.4, r());
+      put('foodcart', (r() * 2) | 0, hu - 3.0, hv - 2.4, Math.PI / 2);
+      put('trashcan', 0, -(hu - 0.8), hv - 0.9, 0);
+      put('drinking', 0, -(hu - 3.6), -(hv - 0.8), 0);
+      // where Main Street meets the park: a clock to meet by
+      if (lot.street === 'Park Avenue' && b.r === 2) put('streetclock', 0, -(hu - 2.2), hv - 2.0, 0);
+    }
+    /* the alleys between the quarter lots: dumpsters, bags, bins, pallets and crates against the walls, a puddle or two */
+    function cityAlleys(b, M, r) {
+      const X0 = CT.x + b.x, Z0 = CT.z + b.z, lotAt = (at) => b.lots.find((q) => q.at === at);
+      const arms = { n: [0, -1, 'nw', 'ne'], s: [0, 1, 'sw', 'se'], w: [-1, 0, 'nw', 'sw'], e: [1, 0, 'ne', 'se'] };
+      const STUFF = [['dumpster', 2, 1.0, 1], ['trashbags', 2, 0.6, 0], ['recycling', 1, 0.55, 1], ['pallet', 1, 0.45, 0], ['crates', 1, 0.6, 1], ['acunit', 1, 0.55, 1], ['gaspipe', 1, 0.25, 0]];
+      let any = false;
+      for (const k in arms) {
+        if (!b.open[k]) continue;
+        any = true;
+        const [dx, dz, la, lb] = arms[k], A = lotAt(la), B = lotAt(lb), tx = -dz, tz = dx;
+        // along the arm from the middle of the block (t = 2) out to the street (t = 17)
+        const pos = (t, side, off) => [X0 + dx * t + tx * side * (2 - off), Z0 + dz * t + tz * side * (2 - off)];
+        for (const side of [-1, 1]) {
+          const L = [A, B].find((q) => q && Math.sign((q.x - b.x) * tx + (q.z - b.z) * tz) === side);
+          if (!L || !L.building) continue;
+          let t = 3.2 + r() * 2;
+          const yaw = Math.atan2(-tx * side, -tz * side);   // facing out of the wall
+          while (t < 15.5) {
+            const [type, nv, depth, solid] = STUFF[(r() * STUFF.length) | 0];
+            const [px, pz] = pos(t, side, depth);
+            if (hasProp(type)) putProp(type, (r() * nv) | 0, px, pz, YS, yaw + (type === 'trashbags' || type === 'crates' ? r() * 2 : 0), 1, !!solid);
+            t += type === 'dumpster' ? 3.4 : 1.6 + r() * 2.4;
+          }
+        }
+        if (r() < 0.45) { const t = 4 + r() * 10; puddle(M, X0 + dx * t, Z0 + dz * t, YS + 0.006, 1.6 + r() * 1.4, dx ? 0 : Math.PI / 2); }
+        // now and then a fence across part of the alley mouth
+        if (r() < 0.22) { const t = HB - 0.3, [px, pz] = pos(t, r() < 0.5 ? -1 : 1, 1.55); putProp('fence8', 0, px, pz, YS, Math.atan2(dx, dz) + Math.PI / 2); }
+      }
+      if (any && r() < 0.5) puddle(M, X0 + (r() - 0.5), Z0 + (r() - 0.5), YS + 0.006, 2.2 + r(), r() * 3);
     }
 
     /* the city park: paths, the fountain, the pond, a bandstand, a playground, trees, benches and lamps */
@@ -1224,7 +1420,7 @@ const World = (() => {
       if (Env.fountain) { const fg = addGroup(Env.fountain(), cx, cz, 0, y0); for (const c of (fg && fg.userData.rim) || []) addCollider({ x: cx + c.x, z: cz + c.z, r: c.r }); }
       const onPath = (x, z, pad) => paths.some(([ax, az, bx, bz, wd]) => segDist(x, z, ax, az, bx, bz) < wd / 2 + pad) || Math.hypot(x - cx, z - cz) < 10 + pad;
       // the bandstand by the pond, the playground in the north west corner, a statue at the Main Street gate
-      const gz = { x: cx - 20, z: cz + 22 }; putProp('gazebo', 0, gz.x, gz.z, y0, Math.PI / 8);
+      const gz = { x: CT.x + CT.gazebo.x, z: CT.z + CT.gazebo.z }; putProp('gazebo', 0, gz.x, gz.z, y0, Math.PI / 8);
       if (Env.playground) w.addPlayground({ x: cx - 22, z: cz - 22, rot: 0, extra: true });
       putProp('statue', 0, cx - hw + 4, cz - 6, y0, -Math.PI / 2);
       putProp('statue', 1, cx - hw + 4, cz + 6, y0, -Math.PI / 2);
@@ -1241,16 +1437,17 @@ const World = (() => {
       // trees on the lawns, not on paths, the pond, the plaza, the bandstand or the playground
       const rr = rng(4242);
       let n = 0;
-      for (let k = 0; k < 400 && n < 46; k++) {
+      for (let k = 0; k < 500 && n < 60; k++) {
         const x = cx + (rr() * 2 - 1) * (hw - 2), z = cz + (rr() * 2 - 1) * (hd - 2);
         if (onPath(x, z, 3.2) || Math.hypot(x - pond.x, z - pond.z) < pond.r + 4.5 || Math.hypot(x - gz.x, z - gz.z) < 8 || (Math.abs(x - (cx - 22)) < 10 && Math.abs(z - (cz - 22)) < 8)) continue;
         if (!gapOK(x, z, 6)) continue;
         const kind = rr(), sc = 0.9 + rr() * 0.35;
-        putTree(kind < 0.4 ? 'oak' : kind < 0.75 ? 'maple' : 'birch', (rr() * 3) | 0 % (kind < 0.75 ? 3 : 2), x, z, sc, rr() * TAU);
+        putTree(kind < 0.4 ? 'oak' : kind < 0.75 ? 'maple' : 'birch', (rr() * (kind < 0.75 ? 3 : 2)) | 0, x, z, sc, rr() * TAU);
         markPlaced(x, z, 6); n++;
       }
       // a willow leaning over the pond
       putTree('willow', 0, pond.x + pond.r + 2.5, pond.z + 3, 1.1, 1.2);
+      cityStops('city-park');
     }
 
     /* Maple Town: paved streets, a downtown sidewalk on Maple Street, lamps, street trees, the town green */
@@ -1541,6 +1738,7 @@ const World = (() => {
       const im = new THREE.InstancedMesh(part.geometry, part.material, cap);
       im.frustumCulled = false; im.count = 0; im.castShadow = shadow && !!part.castShadow; im.receiveShadow = true;
       if (part.depthMaterial) im.customDepthMaterial = part.depthMaterial;
+      if (part.tint) im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cap * 3).fill(1), 3);
       out.add(im);
       return im;
     }
@@ -1548,40 +1746,52 @@ const World = (() => {
     // plants within reach and not behind the camera (a wide cone, so turning around doesn't show gaps before the next rebuild)
     function rebuildPools(px, pz, far, fx, fz) {
       poolX = px; poolZ = pz; poolFX = fx; poolFZ = fz; poolDirty = false; poolT = 0;
-      const lim = far + 15, limS = 75;
-      for (const L of lists.values()) { L.near.length = 0; L.far.length = 0; }
+      const lim = far + 15, limS = 75, limM = Math.min(lim, 150);
+      for (const L of lists.values()) { L.near.length = 0; L.far.length = 0; L.lod.length = 0; }
       const add = (o) => {
         for (const [key, e] of o.items) {
-          let L = lists.get(key); if (!L) lists.set(key, (L = { e, near: [], far: [] }));
-          const lm = e.small ? limS : lim;
+          let L = lists.get(key);
+          if (!L) { const pr = Env.prop(e.type, e.variant); lists.set(key, (L = { e, near: [], far: [], lod: [], hasLod: !!(pr.lod && pr.lod.parts && (BIG[e.type] || pr.lodD)), lodD: pr.lodD || LOD_D })); }
+          const lm = e.small ? limS : e.mid ? limM : lim;
           for (let i = 0; i < e.xs.length; i++) {
             const dx = e.xs[i] - px, dz = e.zs[i] - pz;
             if (Math.abs(dx) > lm || Math.abs(dz) > lm) continue;
             const d = Math.hypot(dx, dz); if (d > lm) continue;
             if (d > 40 && (dx * fx + dz * fz) < -0.3 * d) continue;
-            (d < SHADOW_R || BIG[e.type] ? L.near : L.far).push(e.ms, i * 16);
+            (L.hasLod && d > L.lodD ? L.lod : BIG[e.type] || d < SHADOW_R ? L.near : L.far).push(e, i);
           }
         }
       };
       add(w.stat);
       for (const t of w.tiles.values()) add(t);
       for (const o of w.feats.values()) add(o);
+      const fill = (im, arr, tint) => {
+        const a = im.instanceMatrix.array, ca = tint && im.instanceColor ? im.instanceColor.array : null;
+        for (let i = 0, n = 0; i < arr.length; i += 2, n++) {
+          const e = arr[i], j = arr[i + 1];
+          a.set(e.ms.subarray(j * 16, j * 16 + 16), n * 16);
+          if (ca) { if (e.cs) ca.set(e.cs.subarray(j * 3, j * 3 + 3), n * 3); else ca.fill(1, n * 3, n * 3 + 3); }
+        }
+        im.count = arr.length / 2; im.instanceMatrix.needsUpdate = true; if (ca) im.instanceColor.needsUpdate = true;
+        im.visible = im.count > 0;   // an empty one would still cost a draw
+      };
       for (const [key, L] of lists) {
-        const nN = L.near.length / 2, nF = L.far.length / 2;
+        const nN = L.near.length / 2, nF = L.far.length / 2, nL = L.lod.length / 2;
         let p = pools.get(key);
-        if (!p) { if (!nN && !nF) continue; const pr = Env.prop(L.e.type, L.e.variant); p = { cap: 0, parts: pr.parts.map((part) => ({ part, near: null, far: null })) }; pools.set(key, p); }
-        const need = Math.max(nN, nF);
+        if (!p) {
+          if (!nN && !nF && !nL) continue;
+          const pr = Env.prop(L.e.type, L.e.variant);
+          p = { cap: 0, parts: pr.parts.map((part) => ({ part, near: null, far: null })), lod: L.hasLod ? pr.lod.parts.map((part) => ({ part, im: null })) : [] };
+          pools.set(key, p);
+        }
+        const need = Math.max(nN, nF, nL);
         if (need > p.cap) {
           p.cap = Math.ceil(need * 1.4) + 8;
           for (const q of p.parts) { if (q.near) { out.remove(q.near); q.near.dispose(); out.remove(q.far); q.far.dispose(); } q.near = makeIM(q.part, p.cap, true); q.far = makeIM(q.part, p.cap, false); q.near.name = q.far.name = key; }
+          for (const q of p.lod) { if (q.im) { out.remove(q.im); q.im.dispose(); } q.im = makeIM(q.part, p.cap, true); q.im.name = key + ':lod'; }
         }
-        for (const q of p.parts) {
-          for (const [im, arr] of [[q.near, L.near], [q.far, L.far]]) {
-            const a = im.instanceMatrix.array;
-            for (let i = 0, n = 0; i < arr.length; i += 2, n++) a.set(arr[i].subarray(arr[i + 1], arr[i + 1] + 16), n * 16);
-            im.count = arr.length / 2; im.instanceMatrix.needsUpdate = true; im.visible = im.count > 0;   // an empty one would still cost a draw
-          }
-        }
+        for (const q of p.parts) { fill(q.near, L.near, q.part.tint); fill(q.far, L.far, q.part.tint); }
+        for (const q of p.lod) fill(q.im, L.lod, q.part.tint);
       }
     }
 
@@ -1802,7 +2012,7 @@ const World = (() => {
       for (const t of w.tiles.values()) for (const m of t.meshes) m.geometry.dispose();
       for (const d of w.disposables) d.dispose();
       for (const c of w.cover) c.mesh.dispose();
-      for (const p of pools.values()) for (const q of p.parts) { if (q.near) { q.near.dispose(); q.far.dispose(); } }
+      for (const p of pools.values()) { for (const q of p.parts) { if (q.near) { q.near.dispose(); q.far.dispose(); } } for (const q of p.lod || []) if (q.im) q.im.dispose(); }
     };
 
     /* random ground spots for food and wandering */
