@@ -4206,7 +4206,9 @@ const Animals = (() => {
         cmix(C, hex(0xE8C893), 0.45 * (P.part === 'ear' ? 0.5 : 1));
         C.fl = Math.min(1, C.fl * 1.3 + 0.1);
       },
-      baby: { head: 1.42, muzzle: 0.6, eye: 1.15, ear: 1.1, neck: [0.7, 1.15], body: [1.12, 1.1, 0.8], leg: [0.72, 1.2], tail: 0.5 },
+      baby: { head: 1.55, muzzle: 0.46, eye: 1.18, ear: 1.1, neck: [0.65, 1.2], body: [1.12, 1.12, 0.78], leg: [0.7, 1.28], tail: 0.45 },
+      // the sculpted eyes sit in sockets that already grow with the head
+      modelSpec: { baby: { eye: 1.08, leg: [0.7, 1.12] } },
       anim: {
         type: 'legged', walk: 1.2, trot: 2.6, run: 6.0, stride: 0.72, strideMax: 2.4,
         duty: [0.62, 0.45, 0.32], lift: [0.06, 0.055], flexF: 1.5, flexH: 0.9,
@@ -4219,9 +4221,9 @@ const Animals = (() => {
         tailSway: 0.1, tailWalk: 0.12, tailHappy: 0.5, wag: 0.8,
         ears: ['earL', 'earR'], earBack: 0.35, earDroop: 0.08, earSick: 0.3,
         floatDepth: 0.47, swimHead: -0.45, paddleR: 0.25,
-        sleep: { style: 'curl', neck: [2.0, 0.55], tail: [1.9, 0.1] },
+        sleep: { style: 'curl', neck: [2.3, 2.1], tail: [1.9, 0.1], front: [0.3, 0.3, 0.6], roll: 0.45 },
         // sits down after a while standing still (or when asked to with st.sit)
-        sit: { idle: 6, pitch: 0.62, drop: 0.36, rump: 0.5, front: [0.12, 0.0], hind: [0.38, 0.05, 0.0], neck: [0.1, 0.05, 0.0], tail: [0.9, 0.2, 0.1], tailYaw: [0.3, 0.4, 0.3] },
+        sit: { idle: 6, pitch: 0.8, drop: 0.6, rump: 0.4, chest: 0.1, front: [0.08, 0.0], hind: [0.3, 0.05, 0.0], neck: [0.0, 0.05, 0.0], tail: [0.9, 0.2, 0.1], tailYaw: [0.3, 0.4, 0.3] },
       },
     };
   };
@@ -4385,7 +4387,8 @@ const Animals = (() => {
         cmix(C, hex(0x8A8070), 0.3);
         C.fl = Math.min(1, C.fl * 1.4 + 0.15);
       },
-      baby: { head: 1.5, muzzle: 0.6, eye: 1.25, ear: 1.15, neck: [0.7, 1.15], body: [1.1, 1.1, 0.8], leg: [0.75, 1.2], tail: 0.55, fluff: 0.002 },
+      baby: { head: 1.65, muzzle: 0.6, eye: 1.25, ear: 1.3, neck: [0.68, 1.15], body: [1.1, 1.1, 0.78], leg: [0.72, 1.18], tail: 0.55, fluff: 0.002 },
+      modelSpec: { baby: { eye: 1.06, fluff: 0, leg: [0.72, 1.06] } },
       anim: {
         type: 'legged', walk: 0.75, trot: 1.6, run: 4.5, stride: 0.34, strideMax: 2.4, maxRate: 9,
         duty: [0.64, 0.46, 0.3], lift: [0.025, 0.03], flexF: 1.5, flexH: 0.9,
@@ -4400,8 +4403,8 @@ const Animals = (() => {
         ears: ['earL', 'earR'], earBack: 0.5, lookAmp: 0.8,
         floatDepth: 0.17, swimHead: -0.4,
         climb: { splay: 0.55, drop: 0.55, reach: 0.25, neck: -0.35, tail: [-0.3, -0.05, 0], flex: 0.2, toe: 0.8 },
-        sleep: { style: 'curl', neck: [2.6, 0.5], tail: [2.5, 0.0], bend: 1.3, roll: 0.3, rumpBend: 0.5 },
-        sit: { idle: 3, pitch: 0.75, drop: 0.42, rump: 0.6, front: [0.1, 0.0], hind: [0.42, 0.05, 0.0], neck: [0.15, 0.05, 0.0], tail: [1.0, 0.3, 0.2], tailYaw: [0.4, 0.6, 0.5] },
+        sleep: { style: 'curl', neck: [2.6, 1.1], tail: [2.5, 0.0], bend: 1.3, roll: 0.3, rumpBend: 0.5 },
+        sit: { idle: 3, pitch: 0.62, drop: 0.6, rump: 0.5, chest: 0.25, front: [0.06, 0.0], hind: [0.3, 0.05, 0.0], neck: [-0.15, 0.0, 0.0], tail: [1.0, 0.25, 0.15], tailYaw: [0.6, 1.0, 1.0] },
       },
     };
   };
@@ -4760,6 +4763,7 @@ const Animals = (() => {
         S.lean * 0.06 + (SL.bend || 0) * sleepSide * sl, -roll * 0.6 * (1 - sl));
       if (rump) rump.rotation.set(lerp(-flex * (P.rumpFlex == null ? 0.5 : P.rumpFlex) + sitUp * (P.sitRump || 0), sp1 ? sp1[4] || 0 : 0, sl), -(SL.rumpBend || 0) * sleepSide * sl * (1 - swim), 0);
       if (rump && SI) rump.rotation.x -= sit * (SI.rump || 0);
+      if (chest && SI) chest.rotation.x -= sit * (SI.chest || 0);
       // lateral body wave (sprawlers): spine bones yaw with a traveling wave
       S.wave = damp(S.wave, (P.wave || 0) * (S.move * (1 - air) + swim * 0.8) * (1 - sl), 4, dt);
       for (let i = 0; i < spine.length; i++) {
@@ -6806,6 +6810,8 @@ const Animals = (() => {
       age: 1,
       autoSneeze: true, onSneeze: null,
       mouthWorld(out) { R.mouth.updateWorldMatrix(true, false); return out.setFromMatrixPosition(R.mouth.matrixWorld); },
+      // where a leash clips on: the collar's ring (the tag's pivot under the throat), world space; null without a collar
+      leashWorld(out) { const b = R.bones.ctag; if (!b || !A.cplan) return null; b.updateWorldMatrix(true, false); return out.setFromMatrixPosition(b.matrixWorld); },
       update(dt, st) {
         R.autoSneeze = rig.autoSneeze; R.onSneeze = rig.onSneeze; upd(dt, st || {});
         if (R.collarC != null && R.detail > 0) collarUpdate(R, A, clamp(dt || 0, 0, 0.1), st);
