@@ -244,8 +244,8 @@ const CityLife = (() => {
     }
     C.spawnT -= dt;
     if (inCity && C.spawnT <= 0) {
-      C.spawnT = 0.8;
-      const want = G.night > 0.6 ? 4 : 12;
+      C.spawnT = 0.5;
+      const want = G.night > 0.6 ? 7 : 22;
       if (C.list.length < want) {
         for (let k = 0; k < 8; k++) {
           const n = pick(C.g.nodes), d = Math.hypot(n.x - P.pos.x, n.z - P.pos.z);
