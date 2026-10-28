@@ -476,7 +476,8 @@ const World = (() => {
   const SEEDS = { land: 11, forest: 23, swamp: 37, jungle: 41, meadow: 53, sky: 67 };
   const META = {}; for (const id of WORLD_ORDER) { const d = DEFS[id](SEEDS[id]); META[id] = { name: d.name, blurb: d.blurb, needsFly: !!d.needsFly }; }
   const HOUSE_COLORS = ['white', 'yellow', 'blue', 'brick', 'gray'];
-  const SHOP_NAMES = { general: 'general store', bakery: 'bakery', cafe: 'cafe', post: 'post office', library: 'library', icecream: 'ice cream shop', diner: 'diner', hardware: 'hardware store', flower: 'flower shop', toy: 'toy store', pet: 'pet store', books: 'bookstore', vet: 'vet', grocery: 'grocery store', clothes: 'clothes store' };
+  const SHOP_NAMES = { general: 'general store', bakery: 'bakery', cafe: 'cafe', post: 'post office', library: 'library', icecream: 'ice cream shop', diner: 'diner', hardware: 'hardware store', flower: 'flower shop', toy: 'toy store', pet: 'pet store', books: 'bookstore', vet: 'vet', grocery: 'grocery store', clothes: 'clothes store',
+    pizza: 'pizza place', pharmacy: 'pharmacy', music: 'music store', shoes: 'shoe store', barber: 'barber shop', deli: 'deli' };
   const BUILT = { farm: 1, giant: 1, orchard: 1 };   // landmarks that place things (lakes and ponds only shape the ground)
 
   /* ---- shared textures ---- */
@@ -765,6 +766,8 @@ const World = (() => {
       if (!ud) return null;
       const r = ud.roof;
       if (r && (r.pos || r.flat !== undefined)) return r;
+      // a gabled shop: the ridge runs front to back over x = 0 and the roof falls to the eaves slopeHW out
+      if (r && r.sloped && r.ridge !== undefined) return { across: 'x', pos: [[0, r.ridge], [r.slopeHW || 1, r.y]] };
       if (r && r.y !== undefined) return { flat: r.y, parts: (ud.roofParts || []).map((q) => ({ x: q.x, z: q.z, hw: q.hw, hd: q.hd, y: q.y })) };
       return ud.h ? { flat: ud.h * 0.9 } : null;
     };

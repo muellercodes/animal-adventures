@@ -90,14 +90,15 @@ const Plan = (() => {
   {
     /* the blocks, row by row from the north. Each lot: 'where type facing [store]'.
        where: nw ne sw se (quarter lots), n s w e (half the block), c (the whole block).
-       type: A apartment, O office, T a tall office, M a shop building with a store on the ground floor, P parking, Z plaza.
+       type: A apartment, O office, T a tall office, M a shop building with a store on the ground floor, P parking, Z plaza;
+       a number after the letter picks that building variant (when it fits the lot).
        facing: the street the front faces. A store kind names the store; other shop buildings get a store from the list. */
     const SPEC = [
       ['n A n', 'sw A w', 'se P s'], ['nw A n', 'ne A n', 'sw M s', 'se M s'], ['w O n', 'ne A n', 'se A e'], ['n P n', 'sw A s', 'se A s'], ['nw A n', 'ne M e', 's A s'], ['nw M n', 'ne A e', 'sw P w', 'se A e'],
-      ['nw M w', 'ne M n', 'sw A w', 'se Z s'], ['n O n', 'sw M s barber', 'se M s shoes'], ['c T s'], ['nw O n', 'ne O n', 's A s'], ['w O w', 'ne T n', 'se Z s'], ['nw A n', 'ne A e', 'sw M s', 'se P e'],
-      ['nw A w', 'ne P n', 'sw M s pet', 'se M s vet'], ['nw O n', 'ne A n', 'sw M s flower', 'se M s bakery'], ['n T n', 'sw M s toy', 'se Z e'], null, null, ['w A w', 'ne M e', 'se M e'],
+      ['nw M w', 'ne M n', 'sw A w', 'se Z s'], ['n O n', 'sw M s barber', 'se M s shoes'], ['c T5 s'], ['nw O n', 'ne O n', 's A s'], ['w O w', 'ne T0 n', 'se Z s'], ['nw A n', 'ne A e', 'sw M s', 'se P e'],
+      ['nw A w', 'ne P n', 'sw M s pet', 'se M s vet'], ['nw O n', 'ne A n', 'sw M s flower', 'se M s bakery'], ['n T4 n', 'sw M s toy', 'se Z e'], null, null, ['w A w', 'ne M e', 'se M e'],
       ['nw M n grocery', 'ne M n icecream', 'sw A w', 'se A s'], ['nw M n cafe', 'ne M n books', 'sw P s', 'se A s'], ['nw M n clothes', 'ne M n pizza', 's O s'], null, null, ['w A w', 'ne P e', 'se A e'],
-      ['nw A w', 'ne M n deli', 'sw A w', 'se M s'], ['nw O n', 'ne O n', 's P s'], ['nw T n', 'ne Z e', 'sw O w', 'se A s'], ['n T n', 'sw A s', 'se M s music'], ['nw O n', 'ne O e', 'sw P s', 'se A s'], ['nw A w', 'ne M e', 'sw A s', 'se M s'],
+      ['nw A w', 'ne M n deli', 'sw A w', 'se M s'], ['nw O n', 'ne O n', 's P s'], ['nw A6 n', 'ne Z e', 'sw O w', 'se A s'], ['n T1 n', 'sw A s', 'se M s music'], ['nw O n', 'ne O e', 'sw P s', 'se A s'], ['nw A w', 'ne M e', 'sw A s', 'se M s'],
       ['nw A w', 'ne A n', 's A s'], ['w A s', 'ne M n pharmacy', 'se P s'], ['nw M n', 'ne A n', 'sw A s', 'se A s'], ['nw A n', 'ne P n', 'sw M s', 'se M s'], ['n A n', 'sw A s', 'se Z s'], ['nw A n', 'ne A e', 'sw M s', 'se A e'],
     ];
     // stores for the shop buildings that do not name one, in turn
@@ -123,14 +124,15 @@ const Plan = (() => {
       const bx = (LINES[c] + LINES[c + 1]) / 2, bz = (LINES[r] + LINES[r + 1]) / 2;
       const blk = { c, r, x: bx, z: bz, lots: [], open: { n: true, s: true, w: true, e: true } };
       for (const item of spec) {
-        const [at, t, f, store0] = item.split(' ');
+        const [at, tv, f, store0] = item.split(' '), t = tv[0], want = tv.length > 1 ? +tv.slice(1) : null;
         const [ox, oz, shape] = AT[at], [fx, fz] = F[f], type = TYPE[t];
         // the building's size class: its front is along the street it faces
         const cls = shape === 'quarter' ? 'quarter' : shape === 'full' ? 'full' : shape === 'ns' ? (fz ? 'wide' : 'deep') : (fx ? 'wide' : 'deep');
         const hw = shape === 'quarter' ? 7.5 : shape === 'ns' ? 15.5 : shape === 'we' ? 7.5 : 15.5, hd = shape === 'quarter' ? 7.5 : shape === 'ns' ? 7.5 : 15.5;
         let store = store0 || null;
         if (t === 'M' && !store) { store = MORE[more % MORE.length]; more++; }
-        const variant = TYPE[t] && (type === 'apartment' || type === 'office' || type === 'midrise') ? pickVariant(type, cls, t === 'T', c, r) : 0;
+        const fits = want !== null && (PIECES[type] || []).some((q) => q.variant === want && q.lot === cls);
+        const variant = fits ? want : type === 'apartment' || type === 'office' || type === 'midrise' ? pickVariant(type, cls, t === 'T', c, r) : 0;
         const street = f === 'n' || f === 's' ? STS[r + (f === 's' ? 1 : 0)] : AVES[c + (f === 'e' ? 1 : 0)];
         blk.lots.push({ type, variant, cls, at, x: bx + ox, z: bz + oz, hw, hd, rot: Math.atan2(fx, fz), fx, fz, f, store, street, building: type !== 'parking' && type !== 'plaza' });
         // the cross shaped alley through the block is open where quarter lots (or lots without buildings) meet
