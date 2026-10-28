@@ -758,7 +758,8 @@ const World = (() => {
     };
 
     /* buildings and fences */
-    const shade = (g) => { g.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } }); return g; };
+    // static things put in the world: cast and take shadows, and may be hidden past the fog (cullFar)
+    const shade = (g) => { g.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } }); g.userData.cull = 1; return g; };
     const addBlocker = (o, x, z, rad) => w.blockers.push({ o, x, z, r: rad, own: w.own });
     // a building's walkable roof from its userData: a pitched roof shape, a flat deck ({ y, ... } and roofParts), or
     // a flat top at most of its height when nothing is known
@@ -771,7 +772,7 @@ const World = (() => {
       if (r && r.y !== undefined) return { flat: r.y, parts: (ud.roofParts || []).map((q) => ({ x: q.x, z: q.z, hw: q.hw, hd: q.hd, y: q.y })) };
       return ud.h ? { flat: ud.h * 0.9 } : null;
     };
-    w.addObj = (g, x, z, rot, y) => { g.position.set(x, y !== undefined ? y : H(x, z), z); g.rotation.y = rot || 0; out.add(shade(g)); if (w.own) w.own.objs.push(g); return g; };
+    w.addObj = (g, x, z, rot, y) => { g.position.set(x, y !== undefined ? y : H(x, z), z); g.rotation.y = rot || 0; out.add(shade(g)); g.userData.cull = 1; if (w.own) w.own.objs.push(g); return g; };
     let slot = 0;
     // build an inside for a house, barn or pound record, at room position ox
     function makeRoom(rec, ig, ox) {
@@ -1072,7 +1073,7 @@ const World = (() => {
         g.setAttribute('uv', new THREE.Float32BufferAttribute(q.uv, 2));
         g.computeBoundingSphere();
         const m = new THREE.Mesh(g, mat); m.receiveShadow = true; m.castShadow = false; m.matrixAutoUpdate = false; m.updateMatrix();
-        out.add(m);
+        m.userData.cull = 1; out.add(m);
         if (own) own.meshes.push(m); else w.disposables.push(g);
       }
       o.surf = null;
@@ -1274,7 +1275,7 @@ const World = (() => {
           putProp('trafficpole', 0, px, pz, YS, Math.atan2(Rz, -Rx));
           const mt = (hasProp('trafficpole') && Env.prop('trafficpole', 0).mounts) || { arm: [{ x: 4.2, y: 5.3 }] }, am = mt.arm[mt.arm.length - 1];
           const hd = Env.signalHead(); hd.position.set(px - Rx * am.x, YS + am.y, pz - Rz * am.x); hd.rotation.y = Math.atan2(-Fx, -Fz);
-          out.add(hd); w.own.objs.push(hd);
+          hd.userData.cull = 1; out.add(hd); w.own.objs.push(hd);
           sig.heads.push({ obj: hd, axis: dx ? 'x' : 'z' });
         }
         sig.own = w.own;
@@ -1775,8 +1776,24 @@ const World = (() => {
     }
     const lists = new Map();
     // plants within reach and not behind the camera (a wide cone, so turning around doesn't show gaps before the next rebuild)
+    // things past the fog are hidden, so they cost no draws (merged buildings, surfaces, gates and the like)
+    const _cb = new THREE.Box3(), _cs = new THREE.Sphere();
+    function cullFar(px, pz, far) {
+      const lim = far + 40;
+      for (const o of out.children) {
+        const u = o.userData;
+        if (!u.cull) continue;
+        if (!u.cs) {
+          if (o.isMesh && !o.matrixAutoUpdate && o.geometry.boundingSphere) { o.updateMatrixWorld(true); _cs.copy(o.geometry.boundingSphere).applyMatrix4(o.matrixWorld); }
+          else { o.updateMatrixWorld(true); _cb.setFromObject(o); if (_cb.isEmpty()) _cs.set(o.getWorldPosition(new THREE.Vector3()), 2); else _cb.getBoundingSphere(_cs); }
+          u.cs = [_cs.center.x, _cs.center.z, _cs.radius];
+        }
+        o.visible = Math.hypot(u.cs[0] - px, u.cs[1] - pz) - u.cs[2] < lim;
+      }
+    }
     function rebuildPools(px, pz, far, fx, fz) {
       poolX = px; poolZ = pz; poolFX = fx; poolFZ = fz; poolDirty = false; poolT = 0;
+      cullFar(px, pz, far);
       const lim = far + 15, limS = 75, limM = Math.min(lim, 150);
       for (const L of lists.values()) { L.near.length = 0; L.far.length = 0; L.lod.length = 0; }
       const add = (o) => {
@@ -1980,7 +1997,7 @@ const World = (() => {
           const o = d && d.obj; if (!o || !o.parent) continue;
           const hold = new THREE.Group(); hold.matrixAutoUpdate = false; hold.matrix.copy(o.parent.matrixWorld);
           hold.matrixWorld.copy(hold.matrix);
-          o.parent.remove(o); hold.add(o); out.add(hold); if (own) own.objs.push(hold);
+          o.parent.remove(o); hold.add(o); hold.userData.cull = 1; out.add(hold); if (own) own.objs.push(hold);
           o.traverse((m) => skip.add(m));
         }
         let ok = true;
@@ -2031,7 +2048,7 @@ const World = (() => {
         const mesh = new THREE.Mesh(bg, c.mat);
         mesh.castShadow = c.cast; mesh.receiveShadow = c.recv; if (c.depth) mesh.customDepthMaterial = c.depth;
         mesh.matrixAutoUpdate = false; mesh.updateMatrixWorld(true);
-        out.add(mesh);
+        mesh.userData.cull = 1; out.add(mesh);
         if (own) own.meshes.push(mesh); else w.disposables.push(bg);
         nOut++;
       }
