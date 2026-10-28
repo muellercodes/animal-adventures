@@ -4060,6 +4060,352 @@ const Animals = (() => {
     };
   };
 
+  // ===== DOG (a friendly golden retriever and yellow Labrador mix) =====
+  ids.push('dog', 'cat');
+  SPEC.dog = () => {
+    const xF = 0.075, xH = 0.08;
+    const K = {
+      gold: hex(0xD39A55), back: hex(0xB97D3E), light: hex(0xE6C089), cream: hex(0xF0DDB2), ear: hex(0xA96E33),
+      muzzle: hex(0xE2B676), pad: hex(0x2C2420), lip: hex(0x2A1E1A),
+    };
+    return {
+      size: { length: 1.3, height: 0.76, radius: 0.24, eyeHeight: 0.7 },
+      tex: [256, 512], rough: 0.85,
+      detail: { kind: 'fur', tile: 0.03, amt: 0.2, bump: 0.35, sheen: 0.35 },
+      shell: { parts: ['body', 'head', 'tail', 'ear'], d1: ['tail'], n1: 2, len: 0.02, n: 4 },
+      bones: [
+        ['hips', null, 0, 0.5, -0.14],
+        ['rump', 'hips', 0, 0.495, -0.26],
+        ['chest', 'hips', 0, 0.48, 0.13],
+        ['neck', 'chest', 0, 0.52, 0.25],
+        ['neck2', 'neck', 0, 0.6, 0.31],
+        ['head', 'neck2', 0, 0.68, 0.35],
+        ['tail1', 'rump', 0, 0.5, -0.37],
+        ['tail2', 'tail1', 0, 0.445, -0.47],
+        ['tail3', 'tail2', 0, 0.38, -0.565],
+        ['thighL', 'rump', xH, 0.46, -0.26, 1],
+        ['shinL', 'thighL', xH, 0.3, -0.165, 1],
+        ['hmetaL', 'shinL', xH, 0.15, -0.305, 1],
+        ['hpawL', 'hmetaL', xH, 0.03, -0.278, 1],
+        ['armL', 'chest', xF, 0.43, 0.212, 1],
+        ['foreL', 'armL', xF, 0.29, 0.128, 1],
+        ['fmetaL', 'foreL', xF, 0.09, 0.152, 1],
+        ['fpawL', 'fmetaL', xF, 0.03, 0.17, 1],
+        ['earL', 'head', 0.052, 0.735, 0.375, 1],
+      ],
+      fur: [
+        // deep chest, level back, tuck-up at the loin, a strong neck carried at about 50 degrees
+        { name: 'body', bones: ['rump', 'hips', 'chest', 'neck', 'neck2', 'head'], blend: 0.05, segs: 14, cap0: 3, capLen0: 0.8, keys: [
+          [0, 0.505, -0.4, 0.045, 0.04, 0.045],
+          [0, 0.505, -0.37, 0.085, 0.06, 0.085],
+          [0, 0.5, -0.3, 0.105, 0.065, 0.105],
+          [0, 0.495, -0.2, 0.098, 0.062, 0.095],
+          [0, 0.485, -0.08, 0.118, 0.072, 0.138],
+          [0, 0.475, 0.04, 0.13, 0.085, 0.172],
+          [0, 0.475, 0.14, 0.125, 0.09, 0.175],
+          [0, 0.49, 0.22, 0.108, 0.08, 0.155],
+          [0, 0.53, 0.27, 0.075, 0.065, 0.1],
+          [0, 0.59, 0.31, 0.062, 0.058, 0.068],
+          [0, 0.65, 0.34, 0.055, 0.05, 0.055],
+          [0, 0.69, 0.355, 0.048, 0.045, 0.045],
+        ] },
+        // broad skull, a clear stop, a long deep muzzle
+        { name: 'head', bones: ['head'], segs: 14, cap0: 2, cap1: 2, capLen1: 0.6, keys: [
+          [0, 0.7, 0.33, 0.042, 0.035, 0.04],
+          [0, 0.708, 0.36, 0.06, 0.05, 0.058],
+          [0, 0.705, 0.4, 0.064, 0.052, 0.062],
+          [0, 0.698, 0.44, 0.054, 0.045, 0.058],
+          [0, 0.682, 0.465, 0.044, 0.032, 0.054],
+          [0, 0.668, 0.5, 0.04, 0.028, 0.048],
+          [0, 0.66, 0.535, 0.037, 0.026, 0.042],
+          [0, 0.656, 0.562, 0.029, 0.021, 0.032],
+        ] },
+        // feathered tail hanging in a gentle curve, the feathering on its underside
+        { name: 'tail', bones: ['rump', 'tail1', 'tail2', 'tail3'], blend: 0.04, segs: 12, cap1: 3, capLen1: 1.0, fuzz: 0.12, keys: [
+          [0, 0.505, -0.34, 0.03, 0.03, 0.03],
+          [0, 0.497, -0.38, 0.032, 0.034, 0.03],
+          [0, 0.465, -0.44, 0.032, 0.045, 0.026],
+          [0, 0.425, -0.51, 0.03, 0.048, 0.024],
+          [0, 0.38, -0.575, 0.026, 0.042, 0.02],
+          [0, 0.335, -0.635, 0.018, 0.028, 0.015],
+          [0, 0.31, -0.67, 0.008, 0.01, 0.008],
+        ] },
+        { name: 'hleg', mirror: true, bones: ['rump', 'thighL', 'shinL', 'hmetaL', 'hpawL'], blend: 0.03, segs: 10, cap1: 2, keys: [
+          [xH - 0.014, 0.51, -0.27, 0.056, 0.0896, 0.0952],
+          [xH, 0.45, -0.25, 0.06272, 0.1008, 0.0896],
+          [xH, 0.37, -0.2, 0.05152, 0.0672, 0.084],
+          [xH, 0.3, -0.17, 0.03808, 0.0392, 0.0616],
+          [xH, 0.23, -0.225, 0.02912, 0.02912, 0.0448],
+          [xH, 0.15, -0.3, 0.0224, 0.02016, 0.02912],
+          [xH, 0.09, -0.295, 0.02016, 0.02016, 0.02016],
+          [xH, 0.045, -0.285, 0.02128, 0.02128, 0.02128],
+          [xH, 0.028, -0.27, 0.028, 0.02352, 0.02128],
+          [xH, 0.022, -0.24, 0.02576, 0.01568, 0.01456],
+        ] },
+        { name: 'fleg', mirror: true, bones: ['chest', 'armL', 'foreL', 'fmetaL', 'fpawL'], blend: 0.03, segs: 10, cap1: 2, keys: [
+          [xF - 0.012, 0.47, 0.2, 0.0448, 0.0728, 0.0672],
+          [xF, 0.43, 0.205, 0.04704, 0.0672, 0.0616],
+          [xF, 0.36, 0.17, 0.04032, 0.0504, 0.0616],
+          [xF, 0.29, 0.135, 0.03136, 0.0336, 0.0504],
+          [xF, 0.22, 0.142, 0.028, 0.03024, 0.0336],
+          [xF, 0.14, 0.15, 0.02352, 0.02352, 0.02688],
+          [xF, 0.09, 0.155, 0.02128, 0.02128, 0.0224],
+          [xF, 0.05, 0.163, 0.02128, 0.02128, 0.02128],
+          [xF, 0.028, 0.175, 0.02912, 0.02464, 0.0224],
+          [xF, 0.022, 0.205, 0.02688, 0.0168, 0.01568],
+        ] },
+        // soft drop ears hanging beside the cheeks (thin across x, wide front to back)
+        { name: 'ear', mirror: true, bones: ['earL'], segs: 10, sub: 3, cap1: 2, capLen1: 0.7, keys: [
+          [0.05, 0.738, 0.372, 0.01, 0.026, 0.022],
+          [0.066, 0.715, 0.385, 0.009, 0.036, 0.03],
+          [0.072, 0.68, 0.392, 0.008, 0.038, 0.032],
+          [0.072, 0.645, 0.395, 0.007, 0.03, 0.026],
+          [0.068, 0.618, 0.396, 0.005, 0.015, 0.014],
+        ] },
+      ],
+      accent: [
+        { kind: 'sphere', bone: 'head', c: [0, 0.67, 0.57], r: 0.0145, s: [1.2, 0.8, 0.72], col: 0x1C1614 },
+      ],
+      accentRough: 0.35,
+      eyes: [{ bone: 'head', p: [0.042, 0.712, 0.448], r: 0.0105, dir: [0.45, 0.14, 0.88], iris: 0x4A2A14, irisR: 0.9, pupilR: 0.5 }],
+      mouth: [0, 0.634, 0.552],
+      paint(P, C) {
+        const fine = noise(P.x * 500, P.y * 500, P.z * 500);
+        cset(C, K.gold);
+        cmix(C, K.back, sstep(0.35, 0.9, P.ny) * 0.55);
+        cmix(C, K.light, sstep(-0.1, -0.6, P.ny) * 0.6);
+        switch (P.part) {
+          case 'body':
+            // pale chest and belly, the long feathering under the chest
+            cmix(C, K.cream, sstep(-0.45, -0.85, P.ny) * 0.7 + sstep(0.15, 0.24, P.z) * sstep(0.1, -0.5, P.ny) * sstep(0.62, 0.5, P.y) * 0.5);
+            break;
+          case 'head':
+            // a paler muzzle and brows, black lips and a darker crown
+            cmix(C, K.muzzle, sstep(0.47, 0.52, P.z) * 0.6);
+            cmix(C, K.light, sstep(-0.2, -0.6, P.ny) * sstep(0.38, 0.45, P.z) * 0.5);
+            cmix(C, K.lip, sstep(0.008, 0.002, Math.abs(P.y - (0.638 - (P.z - 0.5) * 0.12))) * sstep(0.47, 0.5, P.z) * sstep(0.12, 0.4, Math.abs(P.nx)));
+            break;
+          case 'tail':
+            cmix(C, K.cream, sstep(0.0, -0.6, P.ny) * 0.65);
+            break;
+          case 'hleg': case 'fleg':
+            // feathering down the back of the legs; dark pads underneath
+            cmix(C, K.cream, sstep(0.1, -0.7, P.nz) * sstep(0.08, 0.2, P.y) * 0.45);
+            cmix(C, K.pad, sstep(-0.6, -0.9, P.ny) * sstep(0.03, 0.015, P.y));
+            break;
+          case 'ear':
+            cset(C, K.ear); cmix(C, K.gold, sstep(0.0, 0.05, P.arc) * 0.3);
+            break;
+        }
+        cmul(C, 0.93 + 0.12 * grain(P, 110, 35) + 0.04 * (fine - 0.5));
+        C.ro = 0.86;
+        C.fl = P.part === 'tail' ? 1 : P.part === 'body' ? 0.7 : P.part === 'ear' ? 0.75 : P.part === 'head' ? 0.3 : 0.35;
+      },
+      // puppies: a softer, paler cream coat
+      babyPaint(P, C) {
+        cmix(C, hex(0xE8C893), 0.45 * (P.part === 'ear' ? 0.5 : 1));
+        C.fl = Math.min(1, C.fl * 1.3 + 0.1);
+      },
+      baby: { head: 1.42, muzzle: 0.6, eye: 1.15, ear: 1.1, neck: [0.7, 1.15], body: [1.12, 1.1, 0.8], leg: [0.72, 1.2], tail: 0.5 },
+      anim: {
+        type: 'legged', walk: 1.2, trot: 2.6, run: 6.0, stride: 0.72, strideMax: 2.4,
+        duty: [0.62, 0.45, 0.32], lift: [0.06, 0.055], flexF: 1.5, flexH: 0.9,
+        // a rotary gallop: the hind feet strike one after the other, then the front feet
+        gaits: { g: [0.55, 0.45, 0.0, 0.1] },
+        bob: [0.007, 0.018, 0.035], pitchRun: 0.1, flexRun: 0.2, rumpFlex: 0.8, roll: 0.03,
+        neck: ['neck', 'neck2', 'head'], neckDist: [0.45, 0.35, 0.2], nod: 0.04, runNeck: 0.22, trotNeck: 0.08,
+        eatPitch: 0.2, eatDrop: 0.04, eatElev: [-55, -80, -100], eatSplay: [0.06, 0.08], chestEat: 0.1, chew: 0.07, chewRate: 8,
+        tail: ['tail1', 'tail2', 'tail3'], tailIdle: [-0.1, 0.05, 0.1], tailRun: [0.35, 0.1, 0.05], tailWalkLift: [0.35, 0.05, 0.05],
+        tailSway: 0.1, tailWalk: 0.12, tailHappy: 0.5, wag: 0.8,
+        ears: ['earL', 'earR'], earBack: 0.35, earDroop: 0.08, earSick: 0.3,
+        floatDepth: 0.47, swimHead: -0.45, paddleR: 0.25,
+        sleep: { style: 'curl', neck: [2.0, 0.55], tail: [1.9, 0.1] },
+        // sits down after a while standing still (or when asked to with st.sit)
+        sit: { idle: 6, pitch: 0.62, drop: 0.36, rump: 0.5, front: [0.12, 0.0], hind: [0.38, 0.05, 0.0], neck: [0.1, 0.05, 0.0], tail: [0.9, 0.2, 0.1], tailYaw: [0.3, 0.4, 0.3] },
+      },
+    };
+  };
+
+  // ===== CAT (brown mackerel tabby) =====
+  SPEC.cat = () => {
+    const xF = 0.038, xH = 0.04;
+    const K = {
+      ground: hex(0x8C7759), warm: hex(0xA78A62), stripe: hex(0x2E241B), belly: hex(0xCDBB98), white: hex(0xEDE6D6),
+      ear: hex(0x5E4A38), earIn: hex(0xC9A493), nose: 0xB27066, pad: hex(0x3A2A26),
+    };
+    // whiskers: four a side from the whisker pads
+    const wh = [[0.0, 0.0, 0.05], [0.003, -0.002, 0.047], [0.006, -0.004, 0.043], [0.009, -0.006, 0.038]].map((w) => ({
+      kind: 'tube', bone: 'head', mirror: true, segs: 3, col: 0xE8E2D6,
+      pts: [[0.011, 0.271 + w[1], 0.262], [0.011 + w[2] * 0.5, 0.272 + w[1] + w[0], 0.258 - w[2] * 0.2], [0.011 + w[2], 0.271 + w[1] + w[0] * 2 - w[2] * 0.15, 0.252 - w[2] * 0.45]],
+      radii: [0.0005, 0.00035, 0.00015],
+    }));
+    // tabby stripes: mackerel bars down the flanks from a dark line along the spine
+    const bars = (P, f, w) => sstep(w * 0.1, w * 0.6, Math.abs(fract(f + 0.08 * noise(P.x * 60, P.y * 60, P.z * 60)) - 0.5) - (0.5 - w));
+    return {
+      size: { length: 0.74, height: 0.35, radius: 0.1, eyeHeight: 0.29 },
+      tex: [256, 512], rough: 0.85,
+      detail: { kind: 'fur', tile: 0.012, amt: 0.16, bump: 0.3, sheen: 0.32 },
+      shell: { parts: ['body', 'head', 'tail'], len: 0.008, n: 4, lean: 0.9, babyLen: 1.6 },
+      bones: [
+        ['hips', null, 0, 0.21, -0.07],
+        ['rump', 'hips', 0, 0.205, -0.135],
+        ['chest', 'hips', 0, 0.195, 0.085],
+        ['neck', 'chest', 0, 0.215, 0.145],
+        ['neck2', 'neck', 0, 0.245, 0.175],
+        ['head', 'neck2', 0, 0.275, 0.195],
+        ['tail1', 'rump', 0, 0.205, -0.19],
+        ['tail2', 'tail1', 0, 0.185, -0.28],
+        ['tail3', 'tail2', 0, 0.15, -0.36],
+        ['thighL', 'rump', xH, 0.19, -0.14, 1],
+        ['shinL', 'thighL', xH, 0.115, -0.088, 1],
+        ['hmetaL', 'shinL', xH, 0.062, -0.178, 1],
+        ['hpawL', 'hmetaL', xH, 0.012, -0.16, 1],
+        ['armL', 'chest', xF, 0.18, 0.118, 1],
+        ['foreL', 'armL', xF, 0.11, 0.072, 1],
+        ['fmetaL', 'foreL', xF, 0.03, 0.09, 1],
+        ['fpawL', 'fmetaL', xF, 0.012, 0.102, 1],
+        ['earL', 'head', 0.022, 0.305, 0.198, 1],
+      ],
+      fur: [
+        // supple body, the loin a little higher than the shoulders, a loose belly flap
+        { name: 'body', bones: ['rump', 'hips', 'chest', 'neck', 'neck2', 'head'], blend: 0.022, segs: 14, cap0: 3, capLen0: 0.8, keys: [
+          [0, 0.21, -0.215, 0.022, 0.02, 0.022],
+          [0, 0.208, -0.195, 0.045, 0.036, 0.045],
+          [0, 0.205, -0.15, 0.055, 0.04, 0.058],
+          [0, 0.207, -0.09, 0.052, 0.042, 0.058],
+          [0, 0.203, -0.02, 0.055, 0.042, 0.07],
+          [0, 0.195, 0.05, 0.056, 0.045, 0.078],
+          [0, 0.195, 0.1, 0.05, 0.045, 0.075],
+          [0, 0.205, 0.135, 0.042, 0.04, 0.06],
+          [0, 0.228, 0.16, 0.034, 0.032, 0.04],
+          [0, 0.255, 0.18, 0.03, 0.03, 0.032],
+          [0, 0.278, 0.195, 0.028, 0.028, 0.028],
+        ] },
+        // round head, wide cheeks and whisker pads, a short muzzle
+        { name: 'head', bones: ['head'], segs: 14, cap0: 2, cap1: 3, capLen1: 0.6, keys: [
+          [0, 0.285, 0.175, 0.026, 0.024, 0.024],
+          [0, 0.288, 0.195, 0.038, 0.032, 0.033],
+          [0, 0.284, 0.218, 0.04, 0.03, 0.036],
+          [0, 0.278, 0.24, 0.033, 0.025, 0.033],
+          [0, 0.27, 0.258, 0.022, 0.016, 0.026],
+          [0, 0.266, 0.27, 0.014, 0.011, 0.016],
+        ] },
+        { name: 'tail', bones: ['rump', 'tail1', 'tail2', 'tail3'], blend: 0.02, segs: 10, cap1: 3, capLen1: 1.0, keys: [
+          [0, 0.207, -0.18, 0.016, 0.016, 0.016],
+          [0, 0.204, -0.2, 0.015, 0.015, 0.015],
+          [0, 0.185, -0.275, 0.014, 0.014, 0.014],
+          [0, 0.15, -0.355, 0.013, 0.013, 0.013],
+          [0, 0.12, -0.415, 0.012, 0.012, 0.012],
+          [0, 0.108, -0.44, 0.009, 0.009, 0.009],
+        ] },
+        { name: 'hleg', mirror: true, bones: ['rump', 'thighL', 'shinL', 'hmetaL', 'hpawL'], blend: 0.012, segs: 10, cap1: 2, keys: [
+          [xH - 0.008, 0.21, -0.145, 0.03, 0.045, 0.045],
+          [xH, 0.18, -0.13, 0.032, 0.05, 0.042],
+          [xH, 0.145, -0.105, 0.025, 0.032, 0.035],
+          [xH, 0.115, -0.088, 0.018, 0.018, 0.026],
+          [xH, 0.085, -0.13, 0.013, 0.013, 0.02],
+          [xH, 0.062, -0.178, 0.01, 0.009, 0.013],
+          [xH, 0.035, -0.17, 0.009, 0.009, 0.009],
+          [xH, 0.016, -0.162, 0.012, 0.011, 0.01],
+          [xH, 0.01, -0.145, 0.012, 0.008, 0.007],
+        ] },
+        { name: 'fleg', mirror: true, bones: ['chest', 'armL', 'foreL', 'fmetaL', 'fpawL'], blend: 0.012, segs: 10, cap1: 2, keys: [
+          [xF - 0.008, 0.2, 0.115, 0.022, 0.03, 0.03],
+          [xF, 0.18, 0.118, 0.022, 0.028, 0.026],
+          [xF, 0.145, 0.095, 0.018, 0.022, 0.024],
+          [xF, 0.11, 0.072, 0.014, 0.016, 0.02],
+          [xF, 0.075, 0.08, 0.012, 0.012, 0.013],
+          [xF, 0.04, 0.088, 0.01, 0.01, 0.01],
+          [xF, 0.02, 0.096, 0.011, 0.011, 0.011],
+          [xF, 0.012, 0.105, 0.014, 0.011, 0.01],
+          [xF, 0.01, 0.118, 0.012, 0.008, 0.007],
+        ] },
+        // upright triangular ears, wide at the base
+        { name: 'ear', mirror: true, bones: ['earL'], segs: 8, sub: 3, keys: [
+          [0.02, 0.304, 0.203, 0.017, 0.005, 0.004],
+          [0.026, 0.322, 0.2, 0.014, 0.004, 0.003],
+          [0.031, 0.337, 0.198, 0.008, 0.003, 0.002],
+          [0.034, 0.347, 0.197, 0.001, 0.001, 0.001],
+        ] },
+      ],
+      accent: [
+        // brick pink nose leather
+        { kind: 'sphere', bone: 'head', c: [0, 0.281, 0.271], r: 0.0052, s: [1.2, 0.8, 0.75], col: K.nose },
+        ...wh,
+      ],
+      accentRough: 0.35,
+      eyes: [{ bone: 'head', p: [0.0175, 0.292, 0.243], r: 0.0088, dir: [0.36, 0.1, 0.93], iris: 0x9AA03C, irisR: 0.95, pupil: 'v', pupilR: 0.42, rim: 0x3A3010 }],
+      mouth: [0, 0.262, 0.265],
+      paint(P, C) {
+        const fine = noise(P.x * 900, P.y * 900, P.z * 900);
+        cset(C, K.ground);
+        cmix(C, K.warm, sstep(0.0, -0.5, P.ny) * 0.4);
+        switch (P.part) {
+          case 'body': {
+            // dark line along the spine, mackerel bars down the sides, a pale spotted belly, necklace bars on the chest
+            cmix(C, K.stripe, sstep(0.8, 0.95, P.up) * 0.85);
+            const side = sstep(0.9, 0.2, P.up) * sstep(-0.75, -0.3, P.up);
+            cmix(C, K.stripe, bars(P, P.z / 0.028 + P.up * 0.6, 0.18) * side * 0.85 * sstep(0.16, 0.12, P.z));
+            cmix(C, K.belly, sstep(-0.55, -0.85, P.up) * 0.8);
+            cmix(C, K.stripe, sstep(0.55, 0.75, noise(P.x * 120, P.y * 120, P.z * 120)) * sstep(-0.6, -0.85, P.up) * 0.5);
+            cmix(C, K.stripe, bars(P, P.y / 0.022, 0.18) * sstep(0.12, 0.15, P.z) * sstep(0.0, -0.5, P.up) * 0.6);
+            break;
+          }
+          case 'head': {
+            // the M on the forehead, a line back from the outer corner of each eye, a white chin and muzzle
+            const ax = Math.abs(P.x);
+            cmix(C, K.stripe, bars(P, ax / 0.007 + 0.25, 0.2) * sstep(0.45, 0.75, P.ny) * sstep(0.195, 0.21, P.z) * sstep(0.245, 0.23, P.z) * 0.85);
+            cmix(C, K.stripe, sstep(0.004, 0.0015, Math.abs(P.y - 0.29 + (P.z - 0.235) * 0.6)) * sstep(0.235, 0.215, P.z) * sstep(0.02, 0.03, ax) * 0.9);
+            cmix(C, K.warm, sstep(0.245, 0.26, P.z) * 0.4);
+            cmix(C, K.white, sstep(0.25, 0.262, P.z) * sstep(0.1, -0.3, P.ny) * 0.8 + sstep(-0.3, -0.7, P.ny) * 0.75);
+            break;
+          }
+          case 'tail':
+            // rings and a dark tip
+            cmix(C, K.stripe, bars(P, P.arc / 0.03, 0.22) * 0.85);
+            cmix(C, K.stripe, sstep(P.len - 0.035, P.len - 0.02, P.arc));
+            break;
+          case 'hleg': case 'fleg':
+            cmix(C, K.stripe, bars(P, P.y / 0.024, 0.2) * sstep(0.17, 0.12, P.y) * sstep(0.025, 0.04, P.y) * 0.7);
+            cmix(C, K.belly, sstep(0.0, -0.6, P.nx * (P.x > 0 ? 1 : -1)) * 0.4);
+            // dark brown backs of the hind feet, pads
+            if (P.part === 'hleg') cmix(C, K.stripe, sstep(0.07, 0.04, P.y) * sstep(-0.2, -0.7, P.nz) * 0.85);
+            cmix(C, K.pad, sstep(-0.6, -0.9, P.ny) * sstep(0.012, 0.006, P.y));
+            break;
+          case 'ear':
+            cset(C, K.ear); cmix(C, K.earIn, sstep(0.0, 0.6, P.nz) * 0.85);
+            break;
+        }
+        cmul(C, 0.92 + 0.14 * grain(P, 260, 80) + 0.05 * (fine - 0.5));
+        C.ro = 0.84;
+        C.fl = P.part === 'tail' ? 0.8 : P.part === 'body' ? 0.8 : P.part === 'head' ? 0.4 : 0.3;
+      },
+      // kittens: fluffy, grayer, the stripes softer
+      babyPaint(P, C) {
+        cmix(C, hex(0x8A8070), 0.3);
+        C.fl = Math.min(1, C.fl * 1.4 + 0.15);
+      },
+      baby: { head: 1.5, muzzle: 0.6, eye: 1.25, ear: 1.15, neck: [0.7, 1.15], body: [1.1, 1.1, 0.8], leg: [0.75, 1.2], tail: 0.55, fluff: 0.002 },
+      anim: {
+        type: 'legged', walk: 0.75, trot: 1.6, run: 4.5, stride: 0.34, strideMax: 2.4, maxRate: 9,
+        duty: [0.64, 0.46, 0.3], lift: [0.025, 0.03], flexF: 1.5, flexH: 0.9,
+        gaits: { g: [0.48, 0.56, 0.0, 0.07] },
+        // light, smooth steps
+        bob: [0.002, 0.006, 0.02], pitchRun: 0.16, flexRun: 0.32, rumpFlex: 0.9, roll: 0.015,
+        neck: ['neck', 'neck2', 'head'], neckDist: [0.45, 0.35, 0.2], nod: 0.025, runNeck: 0.15, trotNeck: 0.05,
+        eatPitch: 0.15, eatDrop: 0.02, eatY: 0.015, eatElev: [-50, -70, -90], chestEat: 0.08, chew: 0.05, chewRate: 9,
+        // the tail goes up when it walks, hooked at the tip; hangs in a curve when it stands
+        tail: ['tail1', 'tail2', 'tail3'], tailIdle: [-0.35, 0.25, 0.45], tailRun: [0.15, 0.0, 0.0], tailWalkLift: [1.7, -0.25, -0.55],
+        tailSway: 0.1, tailWalk: 0.05, tailFlick: 0.25, wag: 0.15,
+        ears: ['earL', 'earR'], earBack: 0.5, lookAmp: 0.8,
+        floatDepth: 0.17, swimHead: -0.4,
+        climb: { splay: 0.55, drop: 0.55, reach: 0.25, neck: -0.35, tail: [-0.3, -0.05, 0], flex: 0.2, toe: 0.8 },
+        sleep: { style: 'curl', neck: [2.6, 0.5], tail: [2.5, 0.0], bend: 1.3, roll: 0.3, rumpBend: 0.5 },
+        sit: { idle: 3, pitch: 0.75, drop: 0.42, rump: 0.6, front: [0.1, 0.0], hind: [0.42, 0.05, 0.0], neck: [0.15, 0.05, 0.0], tail: [1.0, 0.3, 0.2], tailYaw: [0.4, 0.6, 0.5] },
+      },
+    };
+  };
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -4307,6 +4653,9 @@ const Animals = (() => {
     const neck0 = neck.length ? neck[0].userData.p0 : null;
     const nose = B.nose;
     const hop = P.hop, CL = P.climb || null, BF = P.backFloat || null;
+    // sit (cats and dogs): see the sit block in update()
+    const SI = P.sit || null;
+    if (SI) S.sit = 0;
     const SL = Object.assign({}, SLEEP_DEF[(P.sleep && P.sleep.style) || 'curl'], P.sleep || {});
     const sleepSide = R.rnd < 0.5 ? 1 : -1;
     const K = { legH: 0.3 };
@@ -4374,8 +4723,17 @@ const Animals = (() => {
       let sitUp = (P.sitUp || 0) * still * ground * (1 - S.eat) * (1 - sl) * (1 - sick) * (0.7 + 0.3 * sstep(-0.3, 0.6, Math.sin(it * 0.21 + R.rnd * 40)));
       // sitSome (s): only stands up now and then while idle, once every s seconds or so
       if (P.sitSome) { const f = fract(it / P.sitSome + R.rnd * 5); sitUp *= sstep(1.0, 2.0, st.idle || 0) * sstep(0.0, 0.07, f) * (1 - sstep(0.38, 0.46, f)); }
+      // sit (P.sit): haunches on the ground, front legs straight, the tail around the paws. It sits by itself after
+      // P.sit.idle seconds standing still; st.sit (0..1) asks for it, and st.sit = 0 keeps it standing
+      let sit = 0;
+      if (SI) {
+        const want = st.sit != null ? sat(+st.sit || 0) : sstep(SI.idle, SI.idle + 1, st.idle || 0);
+        sit = spring(S, 'sit', want * still * ground * (1 - S.eat) * (1 - sl), SI.rate || 2.5, dt);
+        sit = sat(sit);
+      }
       const eatP = S.eat * (P.eatPitch || 0) * ground;
       pitch += hp - sitUp + eatP + swim * (P.swimPitch == null ? -0.08 : P.swimPitch) * (1 - back);
+      if (SI) pitch -= sit * SI.pitch;
       // swimming otter: vertical undulation travels down the body
       const sw = P.swimWave ? P.swimWave * swim * (1 - back) * (0.35 + 0.65 * S.move) : 0;
       // sleeping: belly on the ground
@@ -4386,6 +4744,7 @@ const Animals = (() => {
       drop += sick * 0.06 * legH * (1 - sl) - happyBounce;
       drop += clb * R.belly.y * (CL ? CL.drop : 0.6);
       if (P.pushups) drop -= P.pushups * ground * still * (1 - sl) * sstep(0.6, 0.9, Math.sin(it * 0.5 + R.rnd * 20)) * Math.max(0, Math.sin(it * 9));
+      if (SI) drop += sit * SI.drop * legH;
       drop = lerp(drop, lieDrop, sl * (1 - swim));
       if (SL.style === 'ball') drop = lerp(drop, (SL.ballDrop || 0) * legH, sl);
       hips.position.set(hip0.x, hip0.y + bob + breathe * 0.5 - drop, hip0.z);
@@ -4400,6 +4759,7 @@ const Animals = (() => {
         lerp(flex + breathe * 0.6 + (P.chestEat || 0) * S.eat, sp1 ? sp1[1] : 0, sl) + sw * Math.sin(S.sph * TAU - 1.2) * 0.8 + breathe * 2 * sl,
         S.lean * 0.06 + (SL.bend || 0) * sleepSide * sl, -roll * 0.6 * (1 - sl));
       if (rump) rump.rotation.set(lerp(-flex * (P.rumpFlex == null ? 0.5 : P.rumpFlex) + sitUp * (P.sitRump || 0), sp1 ? sp1[4] || 0 : 0, sl), -(SL.rumpBend || 0) * sleepSide * sl * (1 - swim), 0);
+      if (rump && SI) rump.rotation.x -= sit * (SI.rump || 0);
       // lateral body wave (sprawlers): spine bones yaw with a traveling wave
       S.wave = damp(S.wave, (P.wave || 0) * (S.move * (1 - air) + swim * 0.8) * (1 - sl), 4, dt);
       for (let i = 0; i < spine.length; i++) {
@@ -4535,6 +4895,12 @@ const Animals = (() => {
           const k = sitUp / P.sitUp, sp2 = P.sitPaws;
           tx = lerp(tx, lg.Pp.x * 0.8, k); ty = lerp(ty, Hp.y - legH * sp2[0], k); tz = lerp(tz, Hp.z + legH * sp2[1], k); flx = lerp(flx, sp2[2], k);
         }
+        // sitting: front paws on the ground under the shoulders, hind feet flat (hock on the ground) under the haunches
+        if (sit > 0.001) {
+          rootPos(lg.bs[0], root, Hp);
+          if (lg.front) { tx = lerp(tx, lg.Pp.x, sit); ty = lerp(ty, lg.Pp.y, sit); tz = lerp(tz, Hp.z + SI.front[0] * legH, sit); flx = lerp(flx, SI.front[1], sit); tq = lerp(tq, 0, sit); }
+          else { tx = lerp(tx, lg.Pp.x + side * SI.hind[1] * legH, sit); ty = lerp(ty, lg.Pp.y + 0.002, sit); tz = lerp(tz, Hp.z + SI.hind[0] * legH, sit); flx = lerp(flx, lg.a0 + SI.hind[2], sit); tq = lerp(tq, 0.1, sit); }
+        }
         solveLeg(lg, root, tx, ty, tz, flx, tq);
       }
 
@@ -4554,6 +4920,7 @@ const Animals = (() => {
         let px = eatRot * S.eat + (runLow + nod + hopNeck) * d - (pitch + flex) * (i === 0 ? 1 : 0) * (1 - S.eat);
         px += swim * (P.swimHead == null ? -0.3 : P.swimHead) * d * (1 - S.eat) * (1 - back);
         px += S.lookP * d + sitUp * (P.sitNeckD ? P.sitNeckD[i] : (P.sitNeck || 0.5) * d);
+        if (SI) px -= sit * SI.neck[i];
         px += (sick * 0.38 + sn * (last ? 0.7 : 0.3) / Math.max(d, 0.2)) * d;
         px += clb * (CL && CL.neck != null ? CL.neck : -0.3) * d;
         px += back * (BF ? BF.neck : 0.5) * d;
@@ -4587,7 +4954,11 @@ const Animals = (() => {
         lift += (P.tailHappy || 0) * hap2 * (i === 0 ? 1 : 0);
         // tailFlex: the tail base keeps level while the rump arches (bounding gait)
         if (P.tailFlex && i === 0) lift += P.tailFlex * flex;
+        // tailWalkLift: carried up while walking and trotting (a cat's tail), not at a gallop
+        if (P.tailWalkLift) lift += P.tailWalkLift[i] * gaitOn * (1 - gw);
         let tx2 = lift + bob * 2 * (1 + k), ty2 = sway - S.lean * 0.05;
+        // sitting: the tail lies back along the ground and curls around to one side
+        if (sit > 0.001) { tx2 += sit * (SI.tail[i] - (P.tailIdle ? P.tailIdle[i] * still : 0)); ty2 += sit * SI.tailYaw[i] * sleepSide; }
         if (clb > 0.001) { tx2 = lerp(tx2, CL.tail ? CL.tail[i] || 0 : 0.1, clb); ty2 *= 1 - clb * 0.7; }
         if (sl > 0.001) { const ss = sl * (1 - swim); tx2 = lerp(tx2, SL.tail[1], ss); ty2 = lerp(ty2, -SL.tail[0] * sleepSide / nT + Math.sin(it * 0.7) * 0.02, ss); }
         tail[i].rotation.set(tx2, ty2, 0);
@@ -5841,7 +6212,7 @@ const Animals = (() => {
     bunny: { at: ['neck', 'head', 0.5] }, squirrel: { at: ['neck', 'head', 0.45] },
     horse: { at: ['neck2', 'head', 0.4], r: 0.8 }, pig: { at: ['neck', 'head', 0.5], r: 0.7 }, goat: { at: ['neck2', 'head', 0.4] },
     otter: { at: ['neck', 'head', 0.3] }, hedgehog: { part: 'head', at: ['neck', 'head', 1.0], r: 0.8, w: 0.75 }, raccoon: { at: ['neck', 'head', 0.3] },
-    weasel: { at: ['neck2', 'head', 0.55] },
+    weasel: { at: ['neck2', 'head', 0.55] }, dog: { at: ['neck', 'neck2', 0.75] }, cat: { at: ['neck', 'neck2', 0.8], r: 0.9 },
     duck: { at: ['neck', 'neck2', 0.6] }, swan: { at: ['neck', 'neck2', 0.5] }, chicken: { at: ['neck', 'neck2', 0.5] },
     owl: { at: ['hips', 'neck', 0.97], w: 0.6, r: 0.55 }, parrot: { at: ['neck', 'head', 0.4] },
     frog: { at: ['chest', 'head', 0.7], tag: PI * 0.62, w: 0.6, r: 0.75 }, lizard: { at: ['neck', 'head', 0.3], tag: PI * 0.6 },
