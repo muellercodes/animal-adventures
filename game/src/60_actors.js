@@ -64,14 +64,15 @@ function moveBody(b, dt, c) {
       if (H(nx, p.z) >= lim) nz = p.z; else if (H(p.x, nz) >= lim) nx = p.x; else { nx = p.x; nz = p.z; b.speed *= 0.5; }
     }
   }
-  if (b.mode !== 'fly' || p.y - H(nx, nz) < 6) {
+  {
+    // high in the air only buildings are in the way (their roofs are solid), not trees and fences
     tmpV.set(nx, 0, nz);
-    if (w.collide(tmpV, m.radius * 0.8, p.y, !b.player)) b.blocked = true;
+    if (w.collide(tmpV, m.radius * 0.8, p.y, !b.player, b.mode === 'fly' && p.y - H(nx, nz) >= 6)) b.blocked = true;
     nx = tmpV.x; nz = tmpV.z;
   }
   p.x = nx; p.z = nz;
 
-  const h = H(p.x, p.z), sY = WATER - m.float, hasGround = h > -100;
+  const h = w.groundAt && !b.room ? w.groundAt(p.x, p.z, p.y) : H(p.x, p.z), sY = WATER - m.float, hasGround = h > -100;
   const deep = !b.room && swim && hasGround && h < sY - 0.02, overWater = !b.room && hasGround && h < WATER && !!w.def.water;
   if (c.jump && b.eat <= 0) {
     if ((b.mode === 'ground' || b.mode === 'swim') && !sp.noJump) { b.vy = jumpV(b); b.mode = 'air'; b.hopping = false; }
@@ -83,6 +84,7 @@ function moveBody(b, dt, c) {
     case 'ground':
       if (deep) b.mode = 'swim';
       else if (!hasGround) { b.mode = fly ? 'fly' : 'air'; b.vy = 0; }
+      else if (p.y - h > 0.5) { b.mode = 'air'; b.vy = 0; }   // walked off a roof (or a ledge): fall
       else {
         p.y = h;
         if (sp.hop && b.speed > 0.3 * b.k && b.eat <= 0) {

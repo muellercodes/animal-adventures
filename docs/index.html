@@ -2627,6 +2627,7 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     }
     grp.userData.radius = Math.hypot(W, D) / 2;
     grp.userData.size = { w: W, d: D, h: H };
+    grp.userData.roof = { across: 'x', pos: [[0, H], [W / 2 - 1.5, wallH + 2.5], [W / 2, wallH]] };
     grp.userData.outside = { x: 0, z: rz0 + land + rampL + 0.6 };
     grp.userData.ramp = { x: 0, z: rz0 + (land + rampL) / 2, hw: rampW / 2, hd: (land + rampL) / 2, h: found };
     grp.userData.doors = doorDefs;
@@ -2874,9 +2875,10 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     // stone foundation
     out.stone.push(boxUV(paint(prep(new THREE.BoxGeometry(W + 0.16, F + 0.1, D + 0.16)).translate(0, (F + 0.1) / 2 - 0.1, 0), (x, y, z) => mixc(L(0x8a8580), L(0xaaa59c), fbm(x * 2, y * 2, z * 2, 2) + 0.5)), 1.1));
     // walls: sides, back, front with the door opening
-    let yr, roofParts, ybk = eave;
+    let yr, roofParts, ybk = eave, roof;
     if (frontGable) {
       yr = eave + S.rise;
+      roof = { across: 'x', pos: [[0, yr], [W / 2, eave]] };
       out.siding.push(wallQuadX(-D / 2, D / 2, F, eave, W / 2, 1, wallC), wallQuadX(-D / 2, D / 2, F, eave, -W / 2, -1, wallC));
       out.siding.push(polyZ([[W / 2, F], [-W / 2, F], [-W / 2, eave], [0, yr], [W / 2, eave]], -D / 2, -1, wallC));
       out.siding.push(polyZ([[-W / 2, eave], [W / 2, eave], [0, yr]], D / 2, 1, wallC));
@@ -2888,6 +2890,7 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
       let yf = eave, yb = eave, zr = 0;
       yr = eave + S.rise;
       if (v === 4) { zr = 0.9; yb = F + 1.9; ybk = yb; }
+      roof = v === 3 ? { across: 'z', pos: [[0, yr], [D / 2, eave]], hip: Math.max(0, W / 2 - D / 2) } : { across: 'z', c: zr, pos: [[0, yr], [D / 2 - zr, yf]], neg: [[0, yr], [D / 2 + zr, yb]] };
       if (v === 3) {
         roofParts = roofHip(W, D, eave, yr, 0.45, roofC, trimC);
       } else {
@@ -3025,7 +3028,8 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     door.position.set(doorX - dw / 2, F, D / 2 + 0.01);
     door.castShadow = true; door.receiveShadow = true;
     grp.add(door);
-    grp.userData = { w: W, d: D, h: yr + 0.9, hw: W / 2 + 0.1, hd: D / 2 + 0.1, outside: { x: doorX, z: D / 2 + porchD + 1.2 }, floorY: F, variant: v, name: S.name, porchD, doors: [doorRec('door', 'swing', 1.45)] };
+    // roof: the walkable roof shape (height above the base across the ridge), so animals can land on it
+    grp.userData = { w: W, d: D, h: yr + 0.9, hw: W / 2 + 0.1, hd: D / 2 + 0.1, outside: { x: doorX, z: D / 2 + porchD + 1.2 }, floorY: F, variant: v, name: S.name, porchD, doors: [doorRec('door', 'swing', 1.45)], roof };
     return grp;
   }
   function house(variant = 0) {
@@ -3592,7 +3596,7 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     door.position.set(doorX - dw / 2, F, D / 2 + 0.01);
     door.castShadow = true; door.receiveShadow = true;
     grp.add(door);
-    grp.userData = { w: W, d: D, h: yr + 1.9, hw: W / 2 + 0.1, hd: D / 2 + 0.1, outside: { x: doorX, z: D / 2 + 2.6 + 1.2 }, floorY: F, name: 'pound', doors: [doorRec('door', 'swing', 1.45)] };
+    grp.userData = { w: W, d: D, h: yr + 1.9, hw: W / 2 + 0.1, hd: D / 2 + 0.1, outside: { x: doorX, z: D / 2 + 2.6 + 1.2 }, floorY: F, name: 'pound', doors: [doorRec('door', 'swing', 1.45)], roof: { across: 'z', pos: [[0, yr], [D / 2, eave]] } };
     return grp;
   }
   function pound() {
@@ -6828,7 +6832,7 @@ void main() {`);
     door.position.set(doorX - dw / 2, F, D / 2 + 0.01);
     door.castShadow = true; door.receiveShadow = true;
     grp.add(door);
-    grp.userData = { w: W, d: D, h: by1 + 1.35, hw: W / 2 + 0.1, hd: D / 2 + 0.1, outside: { x: doorX, z: D / 2 + porchD + 1.2 }, floorY: F, name: 'school', porchD, doors: [doorRec('door', 'swing', 1.45)] };
+    grp.userData = { w: W, d: D, h: by1 + 1.35, hw: W / 2 + 0.1, hd: D / 2 + 0.1, outside: { x: doorX, z: D / 2 + porchD + 1.2 }, floorY: F, name: 'school', porchD, doors: [doorRec('door', 'swing', 1.45)], roof: { across: 'x', pos: [[0, yr], [W / 2, eave]] } };
     return grp;
   }
   /* userData = { w, d, h, hw, hd, outside: { x, z }, floorY, name, porchD, doors, door } */
@@ -21429,15 +21433,48 @@ const World = (() => {
     function removeCollider(c) { gridCells(c, (k) => { const a = w.grid.get(k); if (a) { const i = a.indexOf(c); if (i >= 0) a.splice(i, 1); if (!a.length) w.grid.delete(k); } }); }
     w.addCollider = addCollider; w.removeCollider = removeCollider;
     // a box collider's co/si are cos/sin of its rotation.y (local to world: x' = x*co + z*si, z' = -x*si + z*co)
-    w.collide = (pos, rad, y, wild) => {
+    /* roofs you can stand on: a collider with a roof shape (see roofY) is solid below its roof and walkable on top */
+    const lerpProf = (pr, d) => { if (d <= pr[0][0]) return pr[0][1]; for (let i = 1; i < pr.length; i++) if (d <= pr[i][0]) { const t = (d - pr[i - 1][0]) / ((pr[i][0] - pr[i - 1][0]) || 1); return pr[i - 1][1] + (pr[i][1] - pr[i - 1][1]) * t; } return pr[pr.length - 1][1]; };
+    // roof height above the building's base at a local point: a flat deck (with boxes standing on it), or a pitched roof
+    // given as a profile of heights by distance from the ridge (across x or z), optionally hipped
+    function roofY(r, lx, lz) {
+      if (r.flat !== undefined) {
+        let y = r.flat;
+        for (const q of r.parts || []) if (Math.abs(lx - q.x) <= q.hw && Math.abs(lz - q.z) <= q.hd) y = Math.max(y, q.y);
+        return y;
+      }
+      const a = r.across === 'z' ? lz - (r.c || 0) : lx - (r.c || 0), o = r.across === 'z' ? lx : lz;
+      let y = lerpProf(a >= 0 ? r.pos : (r.neg || r.pos), Math.abs(a));
+      if (r.hip != null) y = Math.min(y, lerpProf(r.pos, Math.max(0, Math.abs(o) - r.hip)));
+      return y;
+    }
+    w.roofY = roofY;
+    const STEP_UP = 0.45;
+    // the ground under (x, z) for something at height y: the terrain, or a roof it is on (or just above)
+    w.groundAt = (x, z, y) => {
+      let h = H(x, z);
+      if (y === undefined || x > ROOM_X - 20) return h;
+      const a = w.grid.get(gkey(Math.floor(x / 8), Math.floor(z / 8)));
+      if (a) for (const c of a) {
+        if (!c.roof || c.off) continue;
+        const dx = x - c.x, dz = z - c.z, lx = dx * c.co - dz * c.si, lz = dx * c.si + dz * c.co;
+        if (Math.abs(lx) > c.hw || Math.abs(lz) > c.hd) continue;
+        const t = c.y0 + roofY(c.roof, lx, lz);
+        if (t > h && t <= y + STEP_UP) h = t;
+      }
+      return h;
+    };
+    w.collide = (pos, rad, y, wild, high) => {
       const a = w.grid.get(gkey(Math.floor(pos.x / 8), Math.floor(pos.z / 8)));
       let hit = false;
       if (a) for (const c of a) {
-        if (c.off || (c.wild && !wild)) continue;
+        if (c.off || (c.wild && !wild) || (high && !c.roof)) continue;
         if (c.h && y !== undefined && y > c.y0 + c.h) continue;
         if (c.box) {
           const dx = pos.x - c.x, dz = pos.z - c.z, lx = dx * c.co - dz * c.si, lz = dx * c.si + dz * c.co;
           const qx = clamp(lx, -c.hw, c.hw), qz = clamp(lz, -c.hd, c.hd), ex = lx - qx, ez = lz - qz, d = Math.hypot(ex, ez);
+          // up on the roof: no wall here
+          if (c.roof && y !== undefined && y > c.y0 + roofY(c.roof, qx, qz) - STEP_UP) continue;
           if (d < rad) {
             let nx, nz, push;
             if (d > 1e-4) { nx = ex / d; nz = ez / d; push = rad - d; }
@@ -21529,6 +21566,15 @@ const World = (() => {
     /* buildings and fences */
     const shade = (g) => { g.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } }); return g; };
     const addBlocker = (o, x, z, rad) => w.blockers.push({ o, x, z, r: rad, own: w.own });
+    // a building's walkable roof from its userData: a pitched roof shape, a flat deck ({ y, ... } and roofParts), or
+    // a flat top at most of its height when nothing is known
+    const roofOf = (ud) => {
+      if (!ud) return null;
+      const r = ud.roof;
+      if (r && (r.pos || r.flat !== undefined)) return r;
+      if (r && r.y !== undefined) return { flat: r.y, parts: (ud.roofParts || []).map((q) => ({ x: q.x, z: q.z, hw: q.hw, hd: q.hd, y: q.y })) };
+      return ud.h ? { flat: ud.h * 0.9 } : null;
+    };
     w.addObj = (g, x, z, rot, y) => { g.position.set(x, y !== undefined ? y : H(x, z), z); g.rotation.y = rot || 0; out.add(shade(g)); if (w.own) w.own.objs.push(g); return g; };
     let slot = 0;
     // build an inside for a house, barn or pound record, at room position ox
@@ -21582,7 +21628,7 @@ const World = (() => {
       g.position.set(B.x, y - 0.05, B.z); g.rotation.y = B.rot; out.add(shade(g)); if (w.own) w.own.objs.push(g);
       const sz = g.userData.size || { w: 10, d: 14 };
       addBlocker(g, B.x, B.z, Math.hypot(sz.w, sz.d) / 2 + 1);
-      addCollider({ box: true, x: B.x, z: B.z, hw: sz.w / 2 + 0.1, hd: sz.d / 2 + 0.1, co: Math.cos(B.rot), si: Math.sin(B.rot) });
+      addCollider({ box: true, x: B.x, z: B.z, hw: sz.w / 2 + 0.1, hd: sz.d / 2 + 0.1, co: Math.cos(B.rot), si: Math.sin(B.rot), y0: y - 0.05, roof: g.userData.roof || null });
       if (!w.own) markPlaced(B.x, B.z, 18);
       const outP = g.userData.outside || { x: 0, z: sz.d / 2 + 1.5 };
       const [dx, dz] = toWorld(B.x, B.z, B.rot, outP.x, outP.z);
@@ -21676,7 +21722,7 @@ const World = (() => {
       const ud = g.userData, y = H(spec.x, spec.z);
       ud.bake = 1;
       g.position.set(spec.x, y - 0.03, spec.z); g.rotation.y = spec.rot; out.add(shade(g)); if (w.own) w.own.objs.push(g);
-      addCollider({ box: true, x: spec.x, z: spec.z, hw: ud.hw, hd: ud.hd, co: Math.cos(spec.rot), si: Math.sin(spec.rot) });
+      addCollider({ box: true, x: spec.x, z: spec.z, hw: ud.hw, hd: ud.hd, co: Math.cos(spec.rot), si: Math.sin(spec.rot), y0: y - 0.03, roof: roofOf(ud) });
       addBlocker(g, spec.x, spec.z, Math.hypot(ud.w, ud.d) / 2 + 1);
       if (!w.own) markPlaced(spec.x, spec.z, Math.max(ud.w, ud.d) + 4);
       const [dx, dz] = toWorld(spec.x, spec.z, spec.rot, ud.outside.x, ud.outside.z);
@@ -21961,7 +22007,7 @@ const World = (() => {
         if (!hasProp(lot.type)) continue;
         const pr = Env.prop(lot.type, lot.variant), x = CT.x + lot.x, z = CT.z + lot.z;
         pushInst(w.own, lot.type, lot.variant, x, y0, z, lot.rot, 1);
-        addCollider({ box: true, x, z, hw: (pr.w || 15) / 2 + 0.05, hd: (pr.d || 15) / 2 + 0.05, rot: lot.rot });
+        addCollider({ box: true, x, z, hw: (pr.w || 15) / 2 + 0.05, hd: (pr.d || 15) / 2 + 0.05, rot: lot.rot, y0, roof: roofOf({ roof: pr.roof, roofParts: pr.roofParts, h: (pr.h || 20) - 1.5 }) });
         blockBox(x, y0, z, pr.w || 15, pr.h || 20, pr.d || 15, lot.rot);
         if (lot.store && hasProp('storefront')) {
           const sv = Math.max(0, (Env.STORE_KINDS || []).indexOf(lot.store)), sf = Env.prop('storefront', sv);
@@ -22749,14 +22795,15 @@ function moveBody(b, dt, c) {
       if (H(nx, p.z) >= lim) nz = p.z; else if (H(p.x, nz) >= lim) nx = p.x; else { nx = p.x; nz = p.z; b.speed *= 0.5; }
     }
   }
-  if (b.mode !== 'fly' || p.y - H(nx, nz) < 6) {
+  {
+    // high in the air only buildings are in the way (their roofs are solid), not trees and fences
     tmpV.set(nx, 0, nz);
-    if (w.collide(tmpV, m.radius * 0.8, p.y, !b.player)) b.blocked = true;
+    if (w.collide(tmpV, m.radius * 0.8, p.y, !b.player, b.mode === 'fly' && p.y - H(nx, nz) >= 6)) b.blocked = true;
     nx = tmpV.x; nz = tmpV.z;
   }
   p.x = nx; p.z = nz;
 
-  const h = H(p.x, p.z), sY = WATER - m.float, hasGround = h > -100;
+  const h = w.groundAt && !b.room ? w.groundAt(p.x, p.z, p.y) : H(p.x, p.z), sY = WATER - m.float, hasGround = h > -100;
   const deep = !b.room && swim && hasGround && h < sY - 0.02, overWater = !b.room && hasGround && h < WATER && !!w.def.water;
   if (c.jump && b.eat <= 0) {
     if ((b.mode === 'ground' || b.mode === 'swim') && !sp.noJump) { b.vy = jumpV(b); b.mode = 'air'; b.hopping = false; }
@@ -22768,6 +22815,7 @@ function moveBody(b, dt, c) {
     case 'ground':
       if (deep) b.mode = 'swim';
       else if (!hasGround) { b.mode = fly ? 'fly' : 'air'; b.vy = 0; }
+      else if (p.y - h > 0.5) { b.mode = 'air'; b.vy = 0; }   // walked off a roof (or a ledge): fall
       else {
         p.y = h;
         if (sp.hop && b.speed > 0.3 * b.k && b.eat <= 0) {
@@ -25783,7 +25831,7 @@ function followCamera(dt) {
     x = clamp(x, room.ox - room.w / 2 + 0.3, room.ox + room.w / 2 - 0.3); z = clamp(z, room.oz - room.d / 2 + 0.3, room.oz + room.d / 2 - 0.3);
     y = clamp(y, 0.3, room.wallH - 0.25);
   } else {
-    const gh = H(x, z), floor = Math.max(gh > -100 ? gh : -1e9, G.world.def.water ? WATER : -1e9) + Math.max(0.12, m.height * 0.45);
+    const gh = G.world.groundAt ? G.world.groundAt(x, z, Cam.target.y + 1) : H(x, z), floor = Math.max(gh > -100 ? gh : -1e9, G.world.def.water ? WATER : -1e9) + Math.max(0.12, m.height * 0.45);
     if (y < floor) y = floor;
     const k = camBlock(x, y, z, dist);
     Cam.block = k < (Cam.block || 1) ? k : damp(Cam.block || 1, k, 2.5, dt);
