@@ -170,6 +170,13 @@ const CityLife = (() => {
         if (p.sitT <= 0 || !b || !w.benches.includes(b)) { if (b && b.busy === p) b.busy = null; p.bench = null; const k = b && b.chair ? -0.8 : 0.8, fx = b ? Math.sin(b.rot) : 0, fz = b ? Math.cos(b.rot) : 0; if (b) Folk.teleport(p, b.x + fx * k, b.z + fz * k); newGoal(p); break; }
         return { crouch: 0, reach: 0, sit: 1, seatY: 0.46 };
       }
+      case 'vendor': {
+        // selling from a food cart: stays put, looks at you when you come close
+        const v = p.vendor;
+        p.speed = 0;
+        if (v) { p.pos.x = v.x; p.pos.z = v.z; if (P && dP < 6) Folk.face(p, dt, P.pos.x, P.pos.z); else p.yaw = v.yaw; }
+        return NO_POSE;
+      }
       case 'still':
         p.speed = 0;
         if (P && dP < 6) Folk.face(p, dt, P.pos.x, P.pos.z);
@@ -268,6 +275,14 @@ const CityLife = (() => {
     townWalkers(P);
     drawLeashes();
     if (P.room) return;   // inside: everyone outside carries on where they were
+    // sellers at the food carts near you
+    const vs = G.world.vendors || [];
+    for (const p of Folk.list.slice()) if (p.cs === 'vendor' && (!vs.includes(p.vendor) || Math.hypot(p.vendor.x - P.pos.x, p.vendor.z - P.pos.z) > 110)) { if (p.vendor) p.vendor.p = null; Folk.remove(p); }
+    for (const v of vs) {
+      if (v.p || Math.hypot(v.x - P.pos.x, v.z - P.pos.z) > 70) continue;
+      const p = Folk.make(Town.freeName(), Folk.randomLook(false), v.x, v.z, { city: true, cool: 6 });
+      p.cs = 'vendor'; p.vendor = v; p.yaw = v.yaw; v.p = p;
+    }
     const inCity = Plan.inCity(P.pos.x, P.pos.z, 70);
     // too far away: go
     for (const p of C.list.slice()) if (!inCity || Math.hypot(p.pos.x - P.pos.x, p.pos.z - P.pos.z) > 120) dropWalker(p);

@@ -1120,7 +1120,7 @@ const World = (() => {
     const putTree = (type, variant, x, z, s, rot) => { const h = H(x, z); placeProp(w.own || w.stat, { spot: type === 'oak' ? 'acorn' : null, spotR: 3, sink: 0.05 }, type, variant, x, z, h, s, rot); };
     const addGroup = (g, x, z, rot, y) => { if (!g) return null; w.addObj(g, x, z, rot, y); g.userData.bake = 1; for (const c of g.userData.colliders || []) addCollider(colTo(x, z, rot, c)); return g; };
     const STORE_NAME = (k) => SHOP_NAMES[k] || k;
-    w.signals = []; w.benches = [];
+    w.signals = []; w.benches = []; w.vendors = [];
 
     /* the city */
     const CT = Plan.CITY, R7 = CT.road / 2, WK = CT.walk, HB = CT.blk / 2;
@@ -1142,6 +1142,13 @@ const World = (() => {
       if (!hasProp('cafetable')) return;
       putProp('cafetable', v, x, z, y, rot);
       for (const st of Env.prop('cafetable', v).seats || []) { const [sx, sz] = toWorld(x, z, rot, st.x, st.z); w.benches.push({ x: sx, z: sz, rot: rot + (st.ry || 0), own: w.own, busy: null, chair: true }); }
+    }
+    // a food cart, with a spot for its seller (city life puts someone there)
+    function foodCart(v, x, z, y, rot) {
+      if (!hasProp('foodcart')) return;
+      putProp('foodcart', v, x, z, y, rot);
+      const vd = Env.prop('foodcart', v).vendor;
+      if (vd) { const [vx, vz] = toWorld(x, z, rot, vd.x, vd.z); w.vendors.push({ x: vx, z: vz, yaw: rot + (vd.ry || 0), own: w.own, p: null }); }
     }
     // a parked car from the street kit (an instanced prop, painted per car): solid, and you can stand on its roof
     function parkCar(x, z, rot, r, y = YR) {
@@ -1226,7 +1233,7 @@ const World = (() => {
       // one phone booth and a street clock on Main Street, food carts by the park
       if (main && a === -110) { const [x, z] = at(mid + 2, -1, WK - 0.9); putProp('streetclock', 0, x, z, YS, 0); }
       if (main && a === -165) { const [x, z] = at(mid - 4, 1, WK - 0.8); putProp('phonebooth', 0, x, z, YS, face(1) + Math.PI); }
-      for (const sd of [-1, 1]) if (parkSide(sd) && hash2(s.ax, s.az, sd) < 0.5) { const [x, z] = at(mid + 8, sd, WK - 1.3); putProp('foodcart', (hash2(s.bx, s.bz, 3) * 2) | 0, x, z, YS, face(sd)); }
+      for (const sd of [-1, 1]) if (parkSide(sd) && hash2(s.ax, s.az, sd) < 0.5) { const [x, z] = at(mid + 8, sd, WK - 1.3); foodCart((hash2(s.bx, s.bz, 3) * 2) | 0, x, z, YS, face(sd)); }
       // speed limit signs where the country roads come in
       for (const [nx, nz, end] of [[s.ax, s.az, 0], [s.bx, s.bz, 1]]) {
         const n = CT.nodes.find((q) => q.x === nx && q.z === nz && q.exit);
@@ -1381,7 +1388,7 @@ const World = (() => {
       if ((b.c + b.r) % 2) put('statue', b.c % 2, 0, -0.6, Math.PI);
       else { put('planterbox', 0, -2.2, -0.8, 0); put('planterbox', 0, 2.2, -0.8, 0); }
       for (const [v, u, vv] of [[0, -3.2, 3.0], [1, 3.0, 3.4]]) { const [tx, tz] = lotP(lot, u, vv); cafeTable(v, tx, tz, y, lot.rot + r() * 3); }
-      put('foodcart', (r() * 2) | 0, hu - 3.0, hv - 2.4, Math.PI / 2);
+      { const [fx, fz] = lotP(lot, hu - 3.0, hv - 2.4); foodCart((r() * 2) | 0, fx, fz, y, lot.rot + Math.PI / 2); }
       put('trashcan', 0, -(hu - 0.8), hv - 0.9, 0);
       put('drinking', 0, -(hu - 3.6), -(hv - 0.8), 0);
       // where Main Street meets the park: a clock to meet by
@@ -1744,6 +1751,7 @@ const World = (() => {
       w.fishTraps = w.fishTraps.filter((t) => t.own !== own);
       w.signals = w.signals.filter((q) => q.own !== own);
       w.benches = w.benches.filter((q) => q.own !== own);
+      w.vendors = w.vendors.filter((q) => q.own !== own);
       for (const h of w.houses.filter((q) => q.own === own)) { if (h.room && h.room === w.dynRoom) { dropRoom(h.room); w.dynRoom = null; } }
       w.houses = w.houses.filter((h) => h.own !== own);
       w.lanterns = w.lanterns.filter((l) => !own.objs.includes(l));
