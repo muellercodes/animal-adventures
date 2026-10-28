@@ -195,6 +195,30 @@ const People = (() => {
     g.boundingSphere.radius *= 1.4;
     return g;
   }
+  function mergeParts(list) {
+    const A = { position: [], normal: [], uv: [], color: [], skinIndex: [], skinWeight: [], part: [] }, idx = [];
+    let base = 0;
+    for (const [g, id, vc] of list) {
+      const n = g.attributes.position.count;
+      for (const k of ['position', 'normal', 'uv', 'skinIndex', 'skinWeight']) { const a = g.attributes[k].array; for (let i = 0; i < a.length; i++) A[k].push(a[i]); }
+      const c = g.attributes.color.array; for (let i = 0; i < n * 3; i++) A.color.push(vc ? c[i] : 1);
+      for (let i = 0; i < n; i++) A.part.push(id);
+      const ix = g.index.array; for (let i = 0; i < ix.length; i++) idx.push(ix[i] + base);
+      base += n;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(A.position, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(A.normal, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(A.uv, 2));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(A.color, 3));
+    g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(A.skinIndex, 4));
+    g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(A.skinWeight, 4));
+    g.setAttribute('part', new THREE.Float32BufferAttribute(A.part, 1));
+    g.setIndex(idx);
+    g.computeBoundingSphere();
+    g.boundingSphere.radius *= 1.4;
+    return g;
+  }
   function loftPart(def, rest) {
     const L = buildLoft(def);
     const W = def.bones.length > 1 ? skinLoft(L, def.bones, rest, def.blend || 0.02) : null;
@@ -505,13 +529,17 @@ const People = (() => {
     }
     const eyeGeo = toGeometry(eyes, false);
     const mo = onHead(P, 0, PI / 2 + 0.5 + P.eyeV * 0.35, -0.005);
-    const mouthGeo = toGeometry((() => { const b = newBatch(); const m = ellipsoid([mo.p.x, mo.p.y, mo.p.z], [0.11 * hh, 0.022 * hh, 0.03 * hh], 10, 5); m.weights = () => [['head', 1]]; push(b, m, boneIndex, false); return b; })(), false);
+    const mouthB = (() => { const b = newBatch(); const m = ellipsoid([mo.p.x, mo.p.y, mo.p.z], [0.11 * hh, 0.022 * hh, 0.03 * hh], 10, 5); m.weights = () => [['head', 1]]; push(b, m, boneIndex, false); return b; })();
+    const mouthGeo = toGeometry(mouthB, false);
 
     const T = {
       P, defs, rest, boneIndex,
       skin: toGeometry(skin, true), shirt: toGeometry(shirt, true), pants: toGeometry(pants, true), shoes: toGeometry(shoes, true), hair: toGeometry(hair, true),
       eyes: eyeGeo, mouth: mouthGeo, eyeCenter: eyeCenters[0].y,
     };
+    // the whole body in one skinned geometry (one draw a person): a part attribute says which piece each vertex is,
+    // and the pieces that had no vertex colors get white ones
+    T.body = mergeParts([[T.skin, 0, true], [T.shirt, 1, false], [T.pants, 2, false], [T.shoes, 3, true], [T.hair, 4, false], [toGeometry(mouthB, true), 5, false]]);
     cache[key] = T;
     return T;
   }
@@ -531,6 +559,35 @@ const People = (() => {
       case 'hair': m = new THREE.MeshStandardMaterial({ color: cssColor(css, '#5A3A22'), map: getHair(), roughness: 0.55, metalness: 0, side: THREE.DoubleSide }); break;
       default: m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.12, metalness: 0 });
     }
+    mats[key] = m;
+    return m;
+  }
+
+  // one material for a whole person: the part attribute picks the color, roughness and texture of each piece
+  function bodyMat(look) {
+    const key = 'body|' + [look.skin, look.shirt, look.pants, look.shoes, look.hair].join('|');
+    if (mats[key]) return mats[key];
+    const skin = cssColor(look.skin, '#E7B48F'), lip = skin.clone(); lip.r *= 0.72; lip.g *= 0.45; lip.b *= 0.42;
+    const cols = [skin, cssColor(look.shirt, '#3F7FD8'), cssColor(look.pants, '#2F3E66'), cssColor(look.shoes, '#3A3A3A'), cssColor(look.hair, '#5A3A22'), lip];
+    const m = new THREE.MeshStandardMaterial({ map: getFabric(), vertexColors: true, roughness: 0.7, metalness: 0, side: THREE.DoubleSide });
+    const U = { pCol: { value: cols }, pRough: { value: [0.62, 0.9, 0.88, 0.55, 0.55, 0.45] }, pHair: { value: getHair() } };
+    m.onBeforeCompile = (sh) => {
+      Object.assign(sh.uniforms, U);
+      sh.vertexShader = sh.vertexShader.replace('void main() {', 'attribute float part;\nvarying float vPart;\nvarying vec2 vRawUv;\nvoid main() {\n  vPart = part; vRawUv = uv;');
+      sh.fragmentShader = sh.fragmentShader.replace('void main() {', 'uniform vec3 pCol[6];\nuniform float pRough[6];\nuniform sampler2D pHair;\nvarying float vPart;\nvarying vec2 vRawUv;\nvoid main() {');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', `
+  int pi = int(vPart + 0.5);
+  vec3 pc = pCol[0], tx = vec3(1.0);
+  float pr = pRough[0];
+  if (pi == 1) { pc = pCol[1]; pr = pRough[1]; tx = texture2D(map, vUv).rgb; }
+  else if (pi == 2) { pc = pCol[2]; pr = pRough[2]; tx = texture2D(map, vUv).rgb; }
+  else if (pi == 3) { pc = pCol[3]; pr = pRough[3]; }
+  else if (pi == 4) { pc = pCol[4]; pr = pRough[4]; tx = texture2D(pHair, vRawUv).rgb; }
+  else if (pi == 5) { pc = pCol[5]; pr = pRough[5]; }
+  diffuseColor.rgb *= pc * tx;`);
+      sh.fragmentShader = sh.fragmentShader.replace('#include <roughnessmap_fragment>', 'float roughnessFactor = pr;');
+    };
+    m.customProgramCacheKey = () => 'person-body';
     mats[key] = m;
     return m;
   }
@@ -588,11 +645,7 @@ const People = (() => {
     const skel = new THREE.Skeleton(list);
     const skinned = [];
     const addSkinned = (geo, m) => { const s = new THREE.SkinnedMesh(geo, m); s.castShadow = true; s.receiveShadow = false; body.add(s); s.bind(skel); skinned.push(s); return s; };
-    addSkinned(T.skin, mat('skin', look.skin));
-    addSkinned(T.shirt, mat('shirt', look.shirt));
-    addSkinned(T.pants, mat('pants', look.pants));
-    addSkinned(T.shoes, mat('shoes', look.shoes));
-    addSkinned(T.hair, mat('hair', look.hair));
+    addSkinned(T.body, bodyMat(look));
     // eyes pivot at eye level so blinking squashes them in place
     const eyePiv = new THREE.Group();
     eyePiv.position.set(0, T.eyeCenter, 0).sub(T.rest.head);
@@ -600,10 +653,7 @@ const People = (() => {
     const eyes = new THREE.Mesh(T.eyes, mat('eyes', ''));
     eyes.position.set(0, -T.eyeCenter, 0);
     eyePiv.add(eyes);
-    const mouth = new THREE.Mesh(T.mouth, mat('lip', look.skin));
-    mouth.position.copy(T.rest.head).negate();
-    B.head.add(mouth);
-    for (const m of [eyes, mouth]) { m.castShadow = false; m.receiveShadow = false; }
+    eyes.castShadow = false; eyes.receiveShadow = false;
     for (const nm in B) B[nm].userData.p0 = B[nm].position.clone();
     for (const nm of ['head', 'neck', 'chest', 'spine', 'hips', 'hairT']) B[nm].rotation.order = 'YXZ';
     count++;
@@ -752,7 +802,7 @@ const People = (() => {
       // far away: no face (too small to see) and no shadow, which saves draws in a busy town
       lod(d) {
         const face = d < 18, shadow = d < 34;
-        if (face !== this.lodFace) { this.lodFace = face; eyes.visible = face; mouth.visible = face; }
+        if (face !== this.lodFace) { this.lodFace = face; eyes.visible = face; }
         if (shadow !== this.lodShadow) { this.lodShadow = shadow; for (const m of skinned) m.castShadow = shadow; }
       },
       // hold something in the left hand (a pet carrier, a net, a basket, a book); null puts it away

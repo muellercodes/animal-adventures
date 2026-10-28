@@ -48,93 +48,149 @@ const Plan = (() => {
     L.push({ kind: 'pound', x: 236, z: 67, rot: PI, street: 'Birch Street', town: 'Maple Town' });
   }
 
-  /* ---------- the city: a grid of blocks around a big park, east of Maple Town along Maple Street ---------- */
+  /* ---------- the city: a 6 x 6 grid of blocks around a big park, east of Maple Town along Maple Street ----------
+     Streets are 14 m curb to curb (two travel lanes and a parking lane on each side) with 3.5 m sidewalks, so a block is
+     34 x 34 m. A block holds lots: quarter lots (15 x 15) at the corners with 4 m alleys between them, wide lots
+     (31 x 15) along one side, deep lots (15 x 31) and full lots (31 x 31). A lot is a building, a parking lot or a plaza. */
   const CY = 1.4;                                     // flat city ground (low, so the park pond sits near the water level)
-  const CX = 440, CZ = -55;                          // city middle; Main Street (local z 0) lines up with Maple Street
-  const PITCH = 50, ROAD = 10, WALK = 3.5, HALF = ROAD / 2 + WALK;   // block pitch, street width, sidewalks
-  const LINES = [-100, -50, 0, 50, 100];             // street center lines, local x and z
+  const CX = 475, CZ = -55;                          // city middle; Main Street (local z 0) lines up with Maple Street
+  const PITCH = 55, ROAD = 14, WALK = 3.5, HALF = ROAD / 2 + WALK;   // block pitch, street width, sidewalks
+  const NB = 6, EDGE = PITCH * NB / 2, BLK = PITCH - 2 * HALF, QO = 9.5;   // blocks a side, outer street line, block size, quarter lot offset
+  const LINES = []; for (let i = 0; i <= NB; i++) LINES.push(-EDGE + PITCH * i);   // street center lines, local x and z
+  const PARK = { c0: 3, c1: 4, r0: 2, r1: 3 };       // the park takes these blocks
+  const PX0 = LINES[PARK.c0], PX1 = LINES[PARK.c1 + 1], PZ0 = LINES[PARK.r0], PZ1 = LINES[PARK.r1 + 1];
+  // street names: avenues run north-south (x lines), streets east-west (z lines)
+  const AVES = ['First Avenue', 'Second Avenue', 'Third Avenue', 'Park Avenue', 'Fourth Avenue', 'Fifth Avenue', 'Sixth Avenue'];
+  const STS = ['North Street', 'Hill Street', 'Park Street', 'Main Street', 'Garden Street', 'Lake Street', 'South Street'];
   const CITY = {
-    x: CX, z: CZ, y: CY, pitch: PITCH, road: ROAD, walk: WALK, half: HALF, lines: LINES,
-    rect: { x: CX, z: CZ, hw: 100 + HALF, hd: 100 + HALF },
-    flat: { x: CX, z: CZ, hw: 100 + HALF + 4, hd: 100 + HALF + 4, soft: 34 },
-    // the park fills the four blocks east of Main Street's end
-    park: { x0: 0 + HALF, x1: 100 - HALF, z0: -50 + HALF, z1: 50 - HALF },
-    pond: { x: 72, z: 16, r: 13 },                     // local
+    x: CX, z: CZ, y: CY, pitch: PITCH, road: ROAD, walk: WALK, half: HALF, lines: LINES, edge: EDGE, blk: BLK,
+    rect: { x: CX, z: CZ, hw: EDGE + HALF, hd: EDGE + HALF },
+    flat: { x: CX, z: CZ, hw: EDGE + HALF + 6, hd: EDGE + HALF + 6, soft: 30 },
+    park: { x0: PX0 + HALF, x1: PX1 - HALF, z0: PZ0 + HALF, z1: PZ1 - HALF },
+    pond: { x: 73, z: 18, r: 9.5 },                    // local, in the park's south east quarter
+    gazebo: { x: 33, z: 24 },                          // local, the bandstand in the south west quarter
+    // the park gates: the crossing each one opens to
+    gates: { w: [PX0, 0], e: [PX1, 0], n: [(PX0 + PX1) / 2, PZ0], s: [(PX0 + PX1) / 2, PZ1] },
+    // crossings with traffic lights (the rest have stop signs)
+    major: { x: [-55, 0, 110], z: [-55, 0, 55] },
+    aves: AVES, sts: STS,
     blocks: [],
     stores: [],
   };
-  CITY.parkRect = { x: CX + 50, z: CZ, hw: 50 - HALF, hd: 50 - HALF };
+  CITY.parkRect = { x: CX + (PX0 + PX1) / 2, z: CZ + (PZ0 + PZ1) / 2, hw: (PX1 - PX0) / 2 - HALF, hd: (PZ1 - PZ0) / 2 - HALF };
   const toW = (lx, lz) => [CX + lx, CZ + lz];
   CITY.toW = toW;
+  const lineName = (axis, v) => { const i = LINES.indexOf(v); return i < 0 ? null : axis === 'x' ? AVES[i] : STS[i]; };
+  CITY.lineName = lineName;
   // is this street segment open? (no streets through the park)
   CITY.segOpen = (ax, az, bx, bz) => {
     const mx = (ax + bx) / 2, mz = (az + bz) / 2;
-    return !(mx > 0.5 && mx < 99.5 && mz > -49.5 && mz < 49.5);
+    return !(mx > PX0 + 0.5 && mx < PX1 - 0.5 && mz > PZ0 + 0.5 && mz < PZ1 - 0.5);
   };
   {
-    // lot spots in a block: quarter lots at the corners, half lots, or the whole block; f = the street the front faces
-    const Q = { nw: [-9, -9], ne: [9, -9], sw: [-9, 9], se: [9, 9], n: [0, -9], s: [0, 9], w: [-9, 0], e: [9, 0], c: [0, 0] };
+    /* the blocks, row by row from the north. Each lot: 'where type facing [store]'.
+       where: nw ne sw se (quarter lots), n s w e (half the block), c (the whole block).
+       type: A apartment, O office, T a tall office, M a shop building with a store on the ground floor, P parking, Z plaza;
+       a number after the letter picks that building variant (when it fits the lot).
+       facing: the street the front faces. A store kind names the store; other shop buildings get a store from the list. */
+    const SPEC = [
+      ['n A n', 'sw A w', 'se P s'], ['nw A n', 'ne A n', 'sw M s', 'se M s'], ['w O n', 'ne A n', 'se A e'], ['n P n', 'sw A s', 'se A s'], ['nw A n', 'ne M e', 's A s'], ['nw M n', 'ne A e', 'sw P w', 'se A e'],
+      ['nw M w', 'ne M n', 'sw A w', 'se Z s'], ['n O n', 'sw M s barber', 'se M s shoes'], ['c T5 s'], ['nw O n', 'ne O n', 's A s'], ['w O w', 'ne T0 n', 'se Z s'], ['nw A n', 'ne A e', 'sw M s', 'se P e'],
+      ['nw A w', 'ne P n', 'sw M s pet', 'se M s vet'], ['nw O n', 'ne A n', 'sw M s flower', 'se M s bakery'], ['n T4 n', 'sw M s toy', 'se Z e'], null, null, ['w A w', 'ne M e', 'se M e'],
+      ['nw M n grocery', 'ne M n icecream', 'sw A w', 'se A s'], ['nw M n cafe', 'ne M n books', 'sw P s', 'se A s'], ['nw M n clothes', 'ne M n pizza', 's O s'], null, null, ['w A w', 'ne P e', 'se A e'],
+      ['nw A w', 'ne M n deli', 'sw A w', 'se M s'], ['nw O n', 'ne O n', 's P s'], ['nw A6 n', 'ne Z e', 'sw O w', 'se A s'], ['n T1 n', 'sw A s', 'se M s music'], ['nw O n', 'ne O e', 'sw P s', 'se A s'], ['nw A w', 'ne M e', 'sw A s', 'se M s'],
+      ['nw A w', 'ne A n', 's A s'], ['w A s', 'ne M n pharmacy', 'se P s'], ['nw M n', 'ne A n', 'sw A s', 'se A s'], ['nw A n', 'ne P n', 'sw M s', 'se M s'], ['n A n', 'sw A s', 'se Z s'], ['nw A n', 'ne A e', 'sw M s', 'se A e'],
+    ];
+    // stores for the shop buildings that do not name one, in turn
+    const MORE = ['cafe', 'pizza', 'deli', 'barber', 'grocery', 'flower', 'pharmacy', 'bakery', 'shoes', 'books', 'icecream', 'clothes', 'music', 'pet', 'toy'];
+    const AT = { nw: [-QO, -QO, 'quarter'], ne: [QO, -QO, 'quarter'], sw: [-QO, QO, 'quarter'], se: [QO, QO, 'quarter'], n: [0, -QO, 'ns'], s: [0, QO, 'ns'], w: [-QO, 0, 'we'], e: [QO, 0, 'we'], c: [0, 0, 'full'] };
     const F = { n: [0, -1], s: [0, 1], w: [-1, 0], e: [1, 0] };
-    const B = (c, r, list) => {
-      const bx = -75 + PITCH * c, bz = -75 + PITCH * r;
-      const blk = { c, r, x: bx, z: bz, lots: [] };
-      for (const [at, f, type, variant, store] of list) {
-        const [ox, oz] = Q[at], [fx, fz] = F[f];
-        blk.lots.push({ type, variant, x: bx + ox, z: bz + oz, rot: Math.atan2(fx, fz), fx, fz, store: store || null });
+    const TYPE = { A: 'apartment', O: 'office', T: 'office', M: 'midrise', P: 'parking', Z: 'plaza' };
+    // building variants by lot size, from the city kit (36_city) when it is there
+    const PIECES = (typeof Env !== 'undefined' && Env.cityPieces) || {};
+    const turn = {};
+    const pickVariant = (type, cls, tall, c, r) => {
+      const all = (PIECES[type] || []).filter((p) => p.lot === cls);
+      // the skyscrapers (over 100 m) only where the plan names them; the tallest apartments now and then
+      let L = tall ? all.filter((p) => p.h >= 60) : all.filter((p) => p.h < 100 && (type !== 'apartment' || p.h < 70 || (c + r) % 3 === 0));
+      if (!L.length) L = all;
+      if (!L.length) return 0;
+      const k = type + ':' + cls + (tall ? 'T' : ''), n = (turn[k] = (turn[k] || 0) + 1);
+      return L[(n * 5 + c * 3 + r) % L.length].variant;
+    };
+    let more = 0;
+    for (let r = 0; r < NB; r++) for (let c = 0; c < NB; c++) {
+      const spec = SPEC[r * NB + c];
+      if (!spec) continue;
+      const bx = (LINES[c] + LINES[c + 1]) / 2, bz = (LINES[r] + LINES[r + 1]) / 2;
+      const blk = { c, r, x: bx, z: bz, lots: [], open: { n: true, s: true, w: true, e: true } };
+      for (const item of spec) {
+        const [at, tv, f, store0] = item.split(' '), t = tv[0], want = tv.length > 1 ? +tv.slice(1) : null;
+        const [ox, oz, shape] = AT[at], [fx, fz] = F[f], type = TYPE[t];
+        // the building's size class: its front is along the street it faces
+        const cls = shape === 'quarter' ? 'quarter' : shape === 'full' ? 'full' : shape === 'ns' ? (fz ? 'wide' : 'deep') : (fx ? 'wide' : 'deep');
+        const hw = shape === 'quarter' ? 7.5 : shape === 'ns' ? 15.5 : shape === 'we' ? 7.5 : 15.5, hd = shape === 'quarter' ? 7.5 : shape === 'ns' ? 7.5 : 15.5;
+        let store = store0 || null;
+        if (t === 'M' && !store) { store = MORE[more % MORE.length]; more++; }
+        const fits = want !== null && (PIECES[type] || []).some((q) => q.variant === want && q.lot === cls);
+        const variant = fits ? want : type === 'apartment' || type === 'office' || type === 'midrise' ? pickVariant(type, cls, t === 'T', c, r) : 0;
+        const street = f === 'n' || f === 's' ? STS[r + (f === 's' ? 1 : 0)] : AVES[c + (f === 'e' ? 1 : 0)];
+        blk.lots.push({ type, variant, cls, at, x: bx + ox, z: bz + oz, hw, hd, rot: Math.atan2(fx, fz), fx, fz, f, store, street, building: type !== 'parking' && type !== 'plaza' });
+        // the cross shaped alley through the block is open where quarter lots (or lots without buildings) meet
+        if (shape !== 'quarter') { if (at === 'n' || at === 'c') blk.open.n = false; if (at === 's' || at === 'c') blk.open.s = false; if (at === 'w' || at === 'c') blk.open.w = false; if (at === 'e' || at === 'c') blk.open.e = false; }
       }
       CITY.blocks.push(blk);
-    };
-    B(0, 0, [['n', 'n', 'apartment', 3], ['sw', 'w', 'apartment', 0], ['se', 's', 'apartment', 2]]);
-    B(1, 0, [['w', 'w', 'apartment', 4], ['e', 'e', 'office', 2]]);
-    B(2, 0, [['c', 's', 'office', 3]]);
-    B(3, 0, [['n', 'n', 'office', 1], ['s', 's', 'apartment', 5]]);
-    B(0, 1, [['nw', 'n', 'apartment', 1], ['ne', 'n', 'apartment', 0], ['sw', 's', 'midrise', 0, 'pet'], ['se', 's', 'midrise', 1, 'vet']]);
-    B(1, 1, [['nw', 'n', 'apartment', 2], ['ne', 'e', 'midrise', 3, 'flower'], ['sw', 's', 'midrise', 2, 'bakery'], ['se', 's', 'midrise', 0, 'toy']]);
-    B(0, 2, [['nw', 'n', 'midrise', 1, 'grocery'], ['ne', 'n', 'midrise', 2, 'icecream'], ['sw', 's', 'apartment', 0], ['se', 's', 'apartment', 1]]);
-    B(1, 2, [['nw', 'n', 'midrise', 3, 'cafe'], ['ne', 'n', 'midrise', 1, 'books'], ['se', 'e', 'midrise', 0, 'clothes'], ['sw', 's', 'apartment', 2]]);
-    B(0, 3, [['w', 'w', 'apartment', 4], ['ne', 'n', 'apartment', 0], ['se', 's', 'office', 0]]);
-    B(1, 3, [['n', 'n', 'apartment', 5], ['s', 's', 'apartment', 3]]);
-    B(2, 3, [['n', 'n', 'office', 1], ['s', 's', 'office', 1]]);
-    B(3, 3, [['c', 'n', 'office', 3]]);
+    }
     for (const b of CITY.blocks) for (const l of b.lots) if (l.store) CITY.stores.push(l);
   }
   // city streets: the open segments between neighboring crossings, and the crossings with their open sides
-  const partOf = (x, z) => (x <= 0 ? (z <= 0 ? 'city-nw' : 'city-sw') : z <= -50 ? 'city-ne' : z >= 50 ? 'city-se' : 'city-park');
+  const partOf = (x, z) => (x <= 0 ? (z <= 0 ? 'city-nw' : 'city-sw') : z <= PZ0 ? 'city-ne' : z >= PZ1 ? 'city-se' : x >= PX1 ? (z <= 0 ? 'city-ne' : 'city-se') : 'city-park');
   CITY.segs = []; CITY.nodes = [];
-  for (const z of LINES) for (let i = 0; i < 4; i++) { const ax = LINES[i], bx = LINES[i + 1]; if (CITY.segOpen(ax, z, bx, z)) CITY.segs.push({ ax, az: z, bx, bz: z, dir: 'x', part: partOf((ax + bx) / 2, z) }); }
-  for (const x of LINES) for (let j = 0; j < 4; j++) { const az = LINES[j], bz = LINES[j + 1]; if (CITY.segOpen(x, az, x, bz)) CITY.segs.push({ ax: x, az, bx: x, bz, dir: 'z', part: partOf(x, (az + bz) / 2) }); }
+  for (const z of LINES) for (let i = 0; i < NB; i++) { const ax = LINES[i], bx = LINES[i + 1]; if (CITY.segOpen(ax, z, bx, z)) CITY.segs.push({ ax, az: z, bx, bz: z, dir: 'x', part: partOf((ax + bx) / 2, z), name: lineName('z', z) }); }
+  for (const x of LINES) for (let j = 0; j < NB; j++) { const az = LINES[j], bz = LINES[j + 1]; if (CITY.segOpen(x, az, x, bz)) CITY.segs.push({ ax: x, az, bx: x, bz, dir: 'z', part: partOf(x, (az + bz) / 2), name: lineName('x', x) }); }
   // where the country roads leave the city (crossing, side)
-  const EXITS = { '-100,0': 'w', '0,-100': 'n', '0,100': 's', '100,0': 'e', '100,-100': 'e', '100,100': 'e' };
+  const EXITS = {}; EXITS[-EDGE + ',0'] = 'w'; EXITS['0,' + -EDGE] = 'n'; EXITS['0,' + EDGE] = 's'; EXITS[EDGE + ',0'] = 'e'; EXITS[EDGE + ',' + -EDGE] = 'e'; EXITS[EDGE + ',' + EDGE] = 'e';
   for (const x of LINES) for (const z of LINES) {
     const has = (d) => CITY.segs.some((q) => (d === 'e' && q.dir === 'x' && q.ax === x && q.az === z) || (d === 'w' && q.dir === 'x' && q.bx === x && q.bz === z) || (d === 's' && q.dir === 'z' && q.ax === x && q.az === z) || (d === 'n' && q.dir === 'z' && q.bx === x && q.bz === z));
     const open = { n: has('n'), s: has('s'), e: has('e'), w: has('w') }, deg = open.n + open.s + open.e + open.w;
     if (!deg) continue;
-    CITY.nodes.push({ x, z, open, deg, exit: EXITS[x + ',' + z] || null, outer: Math.abs(x) === 100 || Math.abs(z) === 100, part: partOf(x, z) });
+    const outer = Math.abs(x) === EDGE || Math.abs(z) === EDGE;
+    const signal = !outer && deg >= 3 && ((CITY.major.x.includes(x) && CITY.major.z.includes(z)) || z === 0);
+    CITY.nodes.push({ x, z, open, deg, exit: EXITS[x + ',' + z] || null, outer, signal, part: partOf(x, z) });
   }
   CITY.partOf = partOf;
   function partOfW(x, z) { return partOf(x - CX, z - CZ); }
+  // the name of the city street at a spot (local), or null
+  CITY.streetAt = (lx, lz) => {
+    let bx = null, bdx = 1e9, bz = null, bdz = 1e9;
+    for (const v of LINES) { const dx = Math.abs(lx - v), dz = Math.abs(lz - v); if (dx < bdx) { bdx = dx; bx = v; } if (dz < bdz) { bdz = dz; bz = v; } }
+    if (bdx <= ROAD / 2 + WALK + 0.5 && bdx <= bdz && CITY.segs.some((q) => q.dir === 'z' && q.ax === bx && lz >= q.az - HALF && lz <= q.bz + HALF)) return AVES[LINES.indexOf(bx)];
+    if (bdz <= ROAD / 2 + WALK + 0.5 && CITY.segs.some((q) => q.dir === 'x' && q.az === bz && lx >= q.ax - HALF && lx <= q.bx + HALF)) return STS[LINES.indexOf(bz)];
+    return null;
+  };
 
   // the city in four quarters plus the park, each made when you come near
+  const inPk = (b) => b.c >= PARK.c0 && b.c <= PARK.c1 + 1 && b.r >= PARK.r0 && b.r <= PARK.r1;
   CITY.parts = [
-    { key: 'city-nw', x: CX - 50, z: CZ - 50, blocks: (b) => b.c <= 1 && b.r <= 1 },
-    { key: 'city-ne', x: CX + 50, z: CZ - 75, blocks: (b) => b.c >= 2 && b.r <= 0 },
-    { key: 'city-sw', x: CX - 50, z: CZ + 50, blocks: (b) => b.c <= 1 && b.r >= 2 },
-    { key: 'city-se', x: CX + 50, z: CZ + 75, blocks: (b) => b.c >= 2 && b.r >= 3 },
-    { key: 'city-park', x: CX + 50, z: CZ, park: true },
+    { key: 'city-nw', x: CX - EDGE / 2, z: CZ - EDGE / 2, blocks: (b) => b.c < PARK.c0 && b.r < PARK.r1 },
+    { key: 'city-sw', x: CX - EDGE / 2, z: CZ + EDGE / 2, blocks: (b) => b.c < PARK.c0 && b.r >= PARK.r1 },
+    { key: 'city-ne', x: CX + EDGE / 2, z: CZ - EDGE / 2 - 10, blocks: (b) => b.c >= PARK.c0 && (b.r < PARK.r0 || (inPk(b) && b.r === PARK.r0)) },
+    { key: 'city-se', x: CX + EDGE / 2, z: CZ + EDGE / 2 + 10, blocks: (b) => b.c >= PARK.c0 && (b.r > PARK.r1 || (inPk(b) && b.r === PARK.r1)) },
+    { key: 'city-park', x: CX + (PX0 + PX1) / 2, z: CZ + (PZ0 + PZ1) / 2, park: true },
   ];
 
-  /* ---------- the bus: a loop from the Maple Town green to the city and around the park ---------- */
+  /* ---------- the bus: a loop from the Maple Town green along Main Street and around the park ---------- */
   const BUS = {
-    route: [[256, -55], [256, 2], [195, 2], [195, -55], [256, -55], toW(-100, 0), toW(-50, 0), toW(0, 0), toW(0, -50), toW(50, -50), toW(100, -50), toW(100, 0), toW(100, 50), toW(50, 50), toW(0, 50), toW(0, 0), toW(-50, 0), toW(-100, 0)],
+    route: [[256, -55], [256, 2], [195, 2], [195, -55], [256, -55], toW(-165, 0), toW(-110, 0), toW(-55, 0), toW(0, 0), toW(0, -55), toW(55, -55), toW(110, -55), toW(110, 0), toW(110, 55), toW(55, 55), toW(0, 55), toW(0, 0), toW(-55, 0), toW(-110, 0), toW(-165, 0)],
     // stops: on the street from a to b, t of the way along, on the right hand side
     stops: [
       { name: 'Maple Town', a: [195, -55], b: [256, -55], t: 31 / 61, town: true },
-      { name: 'Main Street', a: toW(-100, 0), b: toW(-50, 0), t: 0.55 },
-      { name: 'Park West', a: toW(0, 0), b: toW(0, -50), t: 0.5 },
-      { name: 'Park North', a: toW(50, -50), b: toW(100, -50), t: 0.5 },
-      { name: 'Park East', a: toW(100, -50), b: toW(100, 0), t: 0.5 },
-      { name: 'Park South', a: toW(100, 50), b: toW(50, 50), t: 0.5 },
-      { name: 'Main Street', a: toW(0, 0), b: toW(-50, 0), t: 0.45 },
+      { name: 'Main Street', a: toW(-110, 0), b: toW(-55, 0), t: 0.5 },
+      { name: 'Park West', a: toW(0, 0), b: toW(0, -55), t: 0.5 },
+      { name: 'Park North', a: toW(55, -55), b: toW(110, -55), t: 0.5 },
+      { name: 'Park East', a: toW(110, -55), b: toW(110, 0), t: 0.5 },
+      { name: 'Park South', a: toW(110, 55), b: toW(55, 55), t: 0.5 },
+      { name: 'Main Street', a: toW(-55, 0), b: toW(-110, 0), t: 0.5 },
     ],
   };
   for (const st of BUS.stops) {
@@ -148,8 +204,8 @@ const Plan = (() => {
 
   /* ---------- small towns all around the city ---------- */
   const TOWNS = [
-    { name: 'Pinecrest', x: 440, z: -392, axis: 'x', len: 140, shops: ['general', 'bakery'] },
-    { name: 'Willow Creek', x: 440, z: 282, axis: 'x', len: 140, shops: ['general', 'diner'] },
+    { name: 'Pinecrest', x: 475, z: -392, axis: 'x', len: 140, shops: ['general', 'bakery'] },
+    { name: 'Willow Creek', x: 475, z: 282, axis: 'x', len: 140, shops: ['general', 'diner'] },
     { name: 'Fox Hollow', x: 802, z: -55, axis: 'z', len: 140, shops: ['general', 'icecream'] },
     { name: 'Bramble', x: 724, z: -336, axis: 'x', len: 140, shops: ['general', 'cafe'] },
     { name: 'Clover', x: 724, z: 236, axis: 'x', len: 140, shops: ['general', 'post'] },
@@ -179,13 +235,14 @@ const Plan = (() => {
 
   /* ---------- country roads between the towns and the city ---------- */
   const RW = 7;
+  // each road starts where the city street narrows down to it (18.5 m out from the edge crossing)
   const ROADS = [
-    { key: 'r-city', pts: [[256, -55], [335, -55]] },
-    { key: 'r-north', pts: [[440, -160], [440, -268], [440, -388.5]] },
-    { key: 'r-south', pts: [[440, 50], [440, 160], [440, 278.5]] },
-    { key: 'r-east', pts: [[545, -55], [660, -55], [798.5, -55]] },
-    { key: 'r-ne', pts: [[545, -155], [598, -184], [664, -262], [724, -332.5]] },
-    { key: 'r-se', pts: [[545, 45], [598, 76], [664, 158], [724, 232.5]] },
+    { key: 'r-city', pts: [[256, -55], [291.5, -55]] },
+    { key: 'r-north', pts: [[475, -238.5], [475, -300], [475, -388.5]] },
+    { key: 'r-south', pts: [[475, 128.5], [475, 200], [475, 278.5]] },
+    { key: 'r-east', pts: [[658.5, -55], [720, -55], [798.5, -55]] },
+    { key: 'r-ne', pts: [[658.5, -220], [690, -232], [716, -262], [724, -296], [724, -332.5]] },
+    { key: 'r-se', pts: [[658.5, 110], [690, 122], [716, 152], [724, 196], [724, 232.5]] },
   ];
   for (const r of ROADS) {
     let x0 = 1e9, z0 = 1e9, x1 = -1e9, z1 = -1e9;
@@ -196,7 +253,7 @@ const Plan = (() => {
   }
 
   // the bandstands on the town green and in the park
-  const GAZEBOS = [{ x: TOWN.green.x, z: TOWN.green.z }, { x: CX + 50 - 20, z: CZ + 22 }];
+  const GAZEBOS = [{ x: TOWN.green.x, z: TOWN.green.z }, { x: CX + CITY.gazebo.x, z: CZ + CITY.gazebo.z }];
 
   /* ---------- ground shape ---------- */
   let flatH = null;          // the ground with the town and city flats but no roads (for the road profiles)
@@ -261,11 +318,11 @@ const Plan = (() => {
     for (const g of GAZEBOS) { const d = Math.hypot(x - g.x, z - g.z); if (d < 3.9) h += 0.33 * (1 - sm((d - 3.0) / 0.8)); }
     // the park pond: a gentle bank down to the water, then a bowl below it
     const P = CITY.pond, px = CX + P.x, pz = CZ + P.z;
-    if (Math.abs(x - px) < P.r * 1.2 + 9 && Math.abs(z - pz) < P.r * 1.2 + 9) {
+    if (Math.abs(x - px) < P.r * 1.2 + 6 && Math.abs(z - pz) < P.r * 1.2 + 6) {
       const a = Math.atan2(z - pz, x - px), rr = P.r * (1 + 0.12 * Math.sin(a * 3 + 1) + 0.06 * Math.sin(a * 5 + 2));
       const d = Math.hypot(x - px, z - pz);
       if (d < rr) h = -1.6 + (0.3 + 1.6) * sm((d - rr * 0.55) / (rr * 0.45));
-      else if (d < rr + 8) h = 0.3 + (h - 0.3) * sm((d - rr) / 8);
+      else if (d < rr + 4.5) h = 0.3 + (h - 0.3) * sm((d - rr) / 4.5);
     }
     return h;
   }
@@ -318,14 +375,14 @@ const Plan = (() => {
   const SPOTS = [
     { name: 'The farm', d: 'Where you started', x: 10, z: -2 },
     { name: 'Maple Town', d: 'Shops, houses and the town green', x: 150, z: -59.6 },
-    { name: 'The city', d: 'Main Street stores and tall buildings', x: CX - 82, z: CZ - HALF + 1.7 },
-    { name: 'City park', d: 'The fountain, the pond and the bandstand', x: CX + 36, z: CZ },
+    { name: 'The city', d: 'Main Street stores and tall buildings', x: CX - 140, z: CZ - HALF + 1.7 },
+    { name: 'City park', d: 'The fountain, the pond and the bandstand', x: CITY.parkRect.x - 14, z: CZ },
   ];
   for (const t of TOWNS) SPOTS.push({ name: t.name, d: 'A small town', x: t.axis === 'x' ? t.x + 8 : t.x - t.roadSide * 4.6, z: t.axis === 'x' ? t.z - t.roadSide * 4.6 : t.z + 8 });
 
   /* ---------- places made when you come near (50_world streams them like landmarks) ---------- */
   const PLACES = [];
-  for (const p of CITY.parts) PLACES.push({ kind: p.park ? 'park' : 'city', key: p.key, part: p, x: p.x, z: p.z, reach: p.park ? 60 : 80 });
+  for (const p of CITY.parts) PLACES.push({ kind: p.park ? 'park' : 'city', key: p.key, part: p, x: p.x, z: p.z, reach: p.park ? 70 : 120 });
   for (const t of TOWNS) PLACES.push({ kind: 'stown', key: t.key, town: t, x: t.x, z: t.z, reach: Math.max(t.rect.hw, t.rect.hd) + 10 });
   // roads in pieces of about 100 m
   for (const r of ROADS) {
@@ -336,7 +393,7 @@ const Plan = (() => {
   // the name of the place you are in, for the top bar
   function placeName(x, z) {
     if (inPark(x, z, 2)) return 'City park';
-    if (inCity(x, z, 6)) return 'The city';
+    if (inCity(x, z, 6)) return CITY.streetAt(x - CX, z - CZ) || 'The city';
     if (inR(TOWN.area, x, z, 4)) return 'Maple Town';
     for (const t of TOWNS) if (inR(t.rect, x, z, 6)) return t.name;
     return null;

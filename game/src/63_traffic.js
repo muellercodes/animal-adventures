@@ -3,9 +3,10 @@
    stop for animals and people in front of them (and honk if you just sit there). Only the cars near you are made; the
    buses always run their loop from the Maple Town green to the city and around the park. */
 const Traffic = (() => {
-  const CAP = 26;                         // cars of one kind drawn at once
+  const CAP = 34;                         // cars of one kind drawn at once
   // kind, variant, how common, only in the city
-  const KINDS = [['sedan', 0, 0.2], ['sedan', 1, 0.14], ['hatch', 0, 0.13], ['suv', 0, 0.14], ['van', 0, 0.07], ['pickup', 0, 0.1], ['taxi', 0, 0.1, true], ['truck', 0, 0.07], ['animalvan', 0, 0.03]];
+  const KINDS = [['sedan', 0, 0.2], ['sedan', 1, 0.14], ['hatch', 0, 0.13], ['suv', 0, 0.14], ['van', 0, 0.07], ['pickup', 0, 0.1], ['taxi', 0, 0.1, true], ['truck', 0, 0.07], ['animalvan', 0, 0.03],
+    ['wagon', 0, 0.08], ['coupe', 0, 0.07], ['motorcycle', 0, 0.035], ['motorcycle', 1, 0.03]].filter((k) => typeof Env === 'undefined' || !Env.VEHICLES || Env.VEHICLES[k[0]]);
   const PAINT = [0xe9e9e6, 0x1b1c1f, 0xaaaeb3, 0x5b5f65, 0x1e3451, 0x8f1d1d, 0x5b1f27, 0x2f4b37, 0xcab99b, 0x3b608b, 0xd9d3c1, 0x6d7f8c];
   const ckey = (x, z) => Math.round(x) + ',' + Math.round(z);
   const T = { on: false, net: null, cars: [], buses: [], ims: null, sigT: 0, spawnT: 0, id: 1, stats: { spawned: 0, honks: 0 } };
@@ -39,8 +40,9 @@ const Traffic = (() => {
     };
     // the city grid
     const C = Plan.CITY;
-    for (const n of C.nodes) node(C.x + n.x, C.z + n.z, C.road / 2, n.deg >= 3 && !n.outer);
-    for (const s of C.segs) { const ax = C.x + s.ax, az = C.z + s.az, bx = C.x + s.bx, bz = C.z + s.bz; link(node(ax, az), node(bx, bz), [[ax, az], [bx, bz]], 2.4, 9, 'city'); }
+    for (const n of C.nodes) node(C.x + n.x, C.z + n.z, C.road / 2, n.signal);
+    // city lanes are 3.5 m wide beside the center line (the parking lanes are outside them)
+    for (const s of C.segs) { const ax = C.x + s.ax, az = C.z + s.az, bx = C.x + s.bx, bz = C.z + s.bz; link(node(ax, az), node(bx, bz), [[ax, az], [bx, bz]], 1.85, 9, 'city'); }
     // Maple Town: each street cut at its crossings
     const TW = Plan.TOWN, tr = Plan.ST_W / 2;
     for (const s of TW.streets) {
@@ -66,7 +68,7 @@ const Traffic = (() => {
     // country roads, joined to the crossings at both ends
     for (const r of Plan.ROADS) {
       const pts = r.pts.slice();
-      const A = near(pts[0][0], pts[0][1], 9), B = near(pts[pts.length - 1][0], pts[pts.length - 1][1], 9);
+      const A = near(pts[0][0], pts[0][1], 20), B = near(pts[pts.length - 1][0], pts[pts.length - 1][1], 20);
       if (!A || !B) continue;
       if (Math.hypot(A.x - pts[0][0], A.z - pts[0][1]) > 0.5) pts.unshift([A.x, A.z]);
       if (Math.hypot(B.x - pts[pts.length - 1][0], B.z - pts[pts.length - 1][1]) > 0.5) pts.push([B.x, B.z]);
@@ -95,6 +97,63 @@ const Traffic = (() => {
   }
   T.light = (x, z, axis) => { const n = T.net && T.net.find(x, z); return n && n.signal ? lightOf(n, axis) : null; };
 
+  // a simple car of boxes in the car's size: body, cabin with dark windows, wheels, lights (tint 1 = takes the paint)
+  const CAB = { truck: [0.2, 0.49, 0.24, 0.45, 0.55, -0.5, 0.17], animalvan: [-0.49, 0.33, -0.48, 0.22, 0.5], taxi: [-0.3, 0.2, -0.2, 0.06, 0.6], sedan: [-0.3, 0.2, -0.2, 0.06, 0.6], coupe: [-0.26, 0.17, -0.13, 0.03, 0.62], hatch: [-0.43, 0.18, -0.39, 0.04, 0.6], wagon: [-0.46, 0.18, -0.45, 0.04, 0.6],
+    suv: [-0.45, 0.22, -0.44, 0.09, 0.56], van: [-0.49, 0.33, -0.48, 0.22, 0.5], pickup: [-0.06, 0.22, -0.04, 0.12, 0.6] };
+  function lowCar(kind, V) {
+    const P = [], N = [], C = [], T = [], L = V.len, W = V.wid, H = V.h, c = CAB[kind] || CAB.sedan;
+    const v3 = new THREE.Vector3(), a = new THREE.Vector3(), b = new THREE.Vector3();
+    const tri = (p0, p1, p2, col, t) => { a.subVectors(p1, p0); b.subVectors(p2, p0); v3.crossVectors(a, b).normalize(); for (const q of [p0, p1, p2]) { P.push(q.x, q.y, q.z); N.push(v3.x, v3.y, v3.z); C.push(col[0], col[1], col[2]); T.push(t); } };
+    const quad = (p0, p1, p2, p3, col, t) => { tri(p0, p1, p2, col, t); tri(p0, p2, p3, col, t); };
+    const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+    // a six sided solid from its bottom (x half width, z0, z1, y) and top rings, with per face colors
+    const solid = (wb, zb0, zb1, yb, wt, zt0, zt1, yt, col, t, glass) => {
+      const b0 = V3(-wb, yb, zb0), b1 = V3(wb, yb, zb0), b2 = V3(wb, yb, zb1), b3 = V3(-wb, yb, zb1);
+      const t0 = V3(-wt, yt, zt0), t1 = V3(wt, yt, zt0), t2 = V3(wt, yt, zt1), t3 = V3(-wt, yt, zt1);
+      const side = glass || col, ts = glass ? 0 : t;
+      quad(t0, t3, t2, t1, col, t);                 // top
+      quad(b3, b2, t2, t3, side, ts);               // front (+z)
+      quad(b1, b0, t0, t1, side, ts);               // back
+      quad(b2, b1, t1, t2, side, ts);               // right (+x)
+      quad(b0, b3, t3, t0, side, ts);               // left
+    };
+    const white = [1, 1, 1], glassC = [0.05, 0.07, 0.09], tire = [0.03, 0.03, 0.03];
+    const wr = (V.wheels[0] && V.wheels[0].r) || 0.34, sill = wr * 0.85, belt = H * c[4];
+    // the body: the lower part, a little narrower at the top edge
+    solid(W / 2, -L / 2, L / 2, sill, W / 2 - 0.04, -L / 2 + 0.12, L / 2 - 0.1, belt, white, 1, null);
+    // under the body, dark
+    quad(V3(-W / 2 + 0.1, sill, -L / 2 + 0.3), V3(W / 2 - 0.1, sill, -L / 2 + 0.3), V3(W / 2 - 0.1, sill, L / 2 - 0.3), V3(-W / 2 + 0.1, sill, L / 2 - 0.3), tire, 0);
+    // the cabin: painted roof, dark glass all round
+    solid(W / 2 - 0.08, c[0] * L, c[1] * L, belt, W / 2 - 0.2, c[2] * L, c[3] * L, H, white, 1, glassC);
+    // a box truck's cargo box
+    if (c[5] !== undefined) solid(W / 2 + 0.05, c[5] * L, c[6] * L, sill, W / 2 + 0.05, c[5] * L, c[6] * L, H + 0.35, white, 1, null);
+    // wheels: eight sided, the axle across x
+    for (const q of V.wheels) {
+      const n = 8, hw = 0.12, x0 = q.x - hw * Math.sign(q.x || 1) * 0.0;
+      const ring = (x) => { const r = []; for (let i = 0; i < n; i++) { const t = (i + 0.5) / n * Math.PI * 2; r.push(V3(x, q.y + Math.cos(t) * q.r, q.z + Math.sin(t) * q.r)); } return r; };
+      const A = ring(x0 - hw), B = ring(x0 + hw);
+      for (let i = 0; i < n; i++) { const j = (i + 1) % n; quad(A[i], A[j], B[j], B[i], tire, 0); }
+      const outer = q.x >= 0 ? B : A;
+      for (let i = 1; i < n - 1; i++) (q.x >= 0 ? tri(outer[0], outer[i], outer[i + 1], [0.25, 0.25, 0.26], 0) : tri(outer[0], outer[i + 1], outer[i], [0.25, 0.25, 0.26], 0));
+    }
+    // lights
+    const yl = belt - 0.14;
+    for (const sx of [-1, 1]) {
+      quad(V3(sx * (W / 2 - 0.12) - 0.16, yl - 0.07, L / 2 + 0.005), V3(sx * (W / 2 - 0.12) + 0.16, yl - 0.07, L / 2 + 0.005), V3(sx * (W / 2 - 0.12) + 0.16, yl + 0.07, L / 2 + 0.005), V3(sx * (W / 2 - 0.12) - 0.16, yl + 0.07, L / 2 + 0.005), [0.9, 0.9, 0.85], 0);
+      quad(V3(sx * (W / 2 - 0.12) + 0.16, yl - 0.07, -L / 2 - 0.005), V3(sx * (W / 2 - 0.12) - 0.16, yl - 0.07, -L / 2 - 0.005), V3(sx * (W / 2 - 0.12) - 0.16, yl + 0.07, -L / 2 - 0.005), V3(sx * (W / 2 - 0.12) + 0.16, yl + 0.07, -L / 2 - 0.005), [0.55, 0.04, 0.03], 0);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
+    g.setAttribute('tint', new THREE.Float32BufferAttribute(T, 1));
+    g.computeBoundingSphere();
+    return g;
+  }
+  const lowMat = () => Env._k.mat('carLow', { std: true, roughness: 0.42, metalness: 0.1, tinted: true });
+  const FIXED = { taxi: 0xf2c118, truck: 0xf4f4f0, animalvan: 0xf4f4f0 };
+  const LOW_D = 45;                       // cars farther than this are drawn simple
+
   /* ---- drawing: one InstancedMesh per vehicle part and kind ---- */
   function makeIMs(parent) {
     const out = {};
@@ -102,7 +161,9 @@ const Traffic = (() => {
       const k = kind + ':' + variant;
       if (out[k] || !Env.vehicle) continue;
       const V = Env.vehicle(kind, variant);
-      const parts = V.parts.map((p) => {
+      // a motorcycle carries its rider
+      const vparts = V.rider ? V.parts.concat([{ geometry: V.rider.geometry, material: V.rider.material, tint: false }]) : V.parts;
+      const parts = vparts.map((p) => {
         const im = new THREE.InstancedMesh(p.geometry, p.material, CAP);
         im.count = 0; im.frustumCulled = false; im.castShadow = true; im.receiveShadow = true;
         if (p.tint) { im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(CAP * 3).fill(1), 3); }
@@ -111,7 +172,10 @@ const Traffic = (() => {
       });
       const wh = new THREE.InstancedMesh(V.wheel.geometry, V.wheel.material, CAP * (V.wheels.length || 4));
       wh.count = 0; wh.frustumCulled = false; wh.castShadow = true; wh.receiveShadow = true; parent.add(wh);
-      out[k] = { V, parts, wh, n: 0, nw: 0 };
+      // the far version: one simple mesh
+      const lo = Env._k && kind !== 'motorcycle' ? new THREE.InstancedMesh(lowCar(kind, V), lowMat(), CAP) : null;
+      if (lo) { lo.count = 0; lo.frustumCulled = false; lo.castShadow = true; lo.receiveShadow = true; lo.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(CAP * 3).fill(1), 3); parent.add(lo); }
+      out[k] = { V, parts, wh, lo, n: 0, nw: 0, nl: 0, kind };
     }
     return out;
   }
@@ -270,7 +334,7 @@ const Traffic = (() => {
   function want(P) {
     if (!P || P.room) return 0;
     const x = P.pos.x, z = P.pos.z;
-    if (Plan.inCity(x, z, 90)) return G.night > 0.6 ? 9 : 18;
+    if (Plan.inCity(x, z, 90)) return G.night > 0.6 ? 12 : 28;
     if (Plan.inR(Plan.TOWN.area, x, z, 40)) return G.night > 0.6 ? 2 : 5;
     if (Plan.streetD(x, z) < 80) return G.night > 0.6 ? 2 : 4;
     return 0;
@@ -346,11 +410,12 @@ const Traffic = (() => {
     draw(P);
   };
   function draw(P) {
-    for (const k in T.ims) { T.ims[k].n = 0; T.ims[k].nw = 0; }
+    for (const k in T.ims) { T.ims[k].n = 0; T.ims[k].nw = 0; T.ims[k].nl = 0; }
     for (const c of T.cars) {
       _e.set(c.pitch, c.yaw, 0); _q.setFromEuler(_e); _p.set(c.x, c.y, c.z); _m.compose(_p, _q, _s);
       if (c.bus) { c.bus.position.set(c.x, c.y, c.z); c.bus.rotation.set(c.pitch, c.yaw, 0, 'YXZ'); c.bus.visible = !P || Math.hypot(c.x - P.pos.x, c.z - P.pos.z) < 300; for (const nm of c.bus.userData.wheels || []) { const wm = c.bus.getObjectByName(nm); if (wm) wm.rotation.x = c.wheel; } continue; }
       const D = T.ims[c.key]; if (!D || D.n >= CAP) continue;
+      if (D.lo && P && Math.hypot(c.x - P.pos.x, c.z - P.pos.z) > LOW_D) { D.lo.setMatrixAt(D.nl, _m); D.lo.setColorAt(D.nl, _c.setHex(FIXED[D.kind] || c.color)); D.nl++; continue; }
       for (const part of D.parts) { part.im.setMatrixAt(D.n, _m); if (part.tint) part.im.setColorAt(D.n, _c.setHex(c.color)); }
       for (const wv of D.V.wheels) {
         _wl.makeRotationX(c.wheel); _wl.setPosition(wv.x, wv.y, wv.z);
@@ -363,6 +428,7 @@ const Traffic = (() => {
       const D = T.ims[k];
       for (const part of D.parts) { part.im.count = D.n; part.im.visible = D.n > 0; part.im.instanceMatrix.needsUpdate = true; if (part.im.instanceColor) part.im.instanceColor.needsUpdate = true; }
       D.wh.count = D.nw; D.wh.visible = D.nw > 0; D.wh.instanceMatrix.needsUpdate = true;
+      if (D.lo) { D.lo.count = D.nl; D.lo.visible = D.nl > 0; D.lo.instanceMatrix.needsUpdate = true; if (D.lo.instanceColor) D.lo.instanceColor.needsUpdate = true; }
     }
     // the traffic light heads the world put up
     const w = G.world;
@@ -395,5 +461,22 @@ const Traffic = (() => {
     b.pos.set(c.x + lx * co + lz * si, c.y + fy, c.z - lx * si + lz * co);
     b.yaw = c.yaw - Math.PI / 2;   // looking out of the window
   };
+  /* ---- parked cars: the street kit's cars as an instanced prop for the world, one variant per kind, painted per car ---- */
+  if (Env._k && Env.vehicle) {
+    const PARKED = [['sedan', 0], ['sedan', 1], ['hatch', 0], ['suv', 0], ['pickup', 0], ['van', 0], ['wagon', 0], ['coupe', 0]].filter(([k]) => !Env.VEHICLES || Env.VEHICLES[k]);
+    const pc = new THREE.Color();
+    Env._k.PROPS.parked = (v) => {
+      const [kind, variant] = PARKED[v % PARKED.length], V = Env.vehicle(kind, variant);
+      const wheels = Env._k.merge(V.wheels.map((q) => V.wheel.geometry.clone().translate(q.x, q.y, q.z)));
+      const parts = V.parts.slice(0, 3).map((q) => ({ geometry: q.geometry, material: q.material, tint: !!q.tint, castShadow: q.castShadow !== false }));
+      parts.push({ geometry: wheels, material: V.wheel.material, castShadow: true });
+      // paint: a color from the same list the moving cars use, as linear rgb for the instance
+      const paint = (u) => { pc.setHex(PAINT[Math.min(PAINT.length - 1, (u * PAINT.length) | 0)]); return [pc.r, pc.g, pc.b]; };
+      // farther than lodD the simple version is drawn: one part, a few hundred triangles
+      return { parts, radius: 0, len: V.len, wid: V.wid, h: V.h, kind, paint, lodD: 26, lod: { parts: [{ geometry: lowCar(kind, V), material: lowMat(), tint: true, castShadow: true }] } };
+    };
+    Env._k.VARIANTS.parked = PARKED.length;
+  }
+
   return T;
 })();

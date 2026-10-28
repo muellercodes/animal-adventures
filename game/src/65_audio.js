@@ -137,6 +137,10 @@ const Sound = (() => {
       case 'parrot': T({ t, f: 1150, f2: 1500, dur: 0.12, type: 'sawtooth', bp: 2000, q: 2, vib: 30, vibAmt: 150 }); T({ t: t + 0.18, f: 1400, f2: 1000, dur: 0.18, type: 'sawtooth', bp: 2100, q: 2, vib: 25, vibAmt: 120 }); break;
       case 'horse': T({ t, f: 650 * k, f2: 300 * k, dur: 1.1, type: 'sawtooth', bp: 1200, q: 1.5, vib: 13, vibAmt: 60 }); break;
       case 'moose': T({ t, f: 120 * k, f2: 90 * k, dur: 1.2, type: 'sawtooth', lp: 650, vol: vol * 1.2 }); break;
+      // woof woof: two short barks, a voiced drop with a puff of breath (a puppy's are higher and yappier)
+      case 'dog': for (let i = 0; i < 2; i++) { const t0 = t + i * 0.32; T({ t: t0, f: 330 * k, f2: 210 * k, dur: 0.16, type: 'sawtooth', bp: 800 * k, q: 1.6, vol: vol * 1.2 }); T({ t: t0, f: 660 * k, f2: 380 * k, dur: 0.1, type: 'square', bp: 1400 * k, q: 2, vol: vol * 0.35 }); noise({ t: t0, f: 900 * k, q: 1.2, dur: 0.09, vol: vol * 0.4, pan }); } break;
+      // meow: rising into the "ee", then a long falling "ow"
+      case 'cat': T({ t, f: 520 * k, f2: 760 * k, dur: 0.2, type: 'sawtooth', bp: 1500 * k, q: 1.8, vib: 6, vibAmt: 12, vol: vol * 0.8 }); T({ t: t + 0.18, f: 760 * k, f2: 470 * k, dur: 0.42, a: 0.03, type: 'sawtooth', bp: 1100 * k, q: 1.8, vib: 6, vibAmt: 14, vol: vol * 0.8 }); break;
     }
   }
 

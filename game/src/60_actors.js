@@ -5,7 +5,7 @@ const tmpV = new V3();
 const canEat = (sp, type) => type === 'candy' || SPECIES[sp].eats.includes(type);
 const UPRIGHT = { duck: 1, swan: 1, chicken: 1, owl: 1, parrot: 1 };
 const FEAR = { chicken: 3, duck: 4.5, swan: 3, frog: 2.5, lizard: 3, snake: 2, bunny: 5, squirrel: 4.5, turtle: 1.5, fox: 6, owl: 5, deer: 10, parrot: 4, moose: 0,
-  horse: 6, pig: 3, goat: 4, otter: 4, hedgehog: 2, raccoon: 4, weasel: 4 };
+  horse: 6, pig: 3, goat: 4, otter: 4, hedgehog: 2, raccoon: 4, weasel: 4, dog: 1.5, cat: 4 };
 const NOCTURNAL = { owl: 1, frog: 1, fox: 1, raccoon: 1, hedgehog: 1 };
 const nightNo = () => Math.floor(S.time / CYCLE);
 
@@ -64,14 +64,15 @@ function moveBody(b, dt, c) {
       if (H(nx, p.z) >= lim) nz = p.z; else if (H(p.x, nz) >= lim) nx = p.x; else { nx = p.x; nz = p.z; b.speed *= 0.5; }
     }
   }
-  if (b.mode !== 'fly' || p.y - H(nx, nz) < 6) {
+  {
+    // high in the air only buildings are in the way (their roofs are solid), not trees and fences
     tmpV.set(nx, 0, nz);
-    if (w.collide(tmpV, m.radius * 0.8, p.y, !b.player)) b.blocked = true;
+    if (w.collide(tmpV, m.radius * 0.8, p.y, !b.player, b.mode === 'fly' && p.y - H(nx, nz) >= 6)) b.blocked = true;
     nx = tmpV.x; nz = tmpV.z;
   }
   p.x = nx; p.z = nz;
 
-  const h = H(p.x, p.z), sY = WATER - m.float, hasGround = h > -100;
+  const h = w.groundAt && !b.room ? w.groundAt(p.x, p.z, p.y) : H(p.x, p.z), sY = WATER - m.float, hasGround = h > -100;
   const deep = !b.room && swim && hasGround && h < sY - 0.02, overWater = !b.room && hasGround && h < WATER && !!w.def.water;
   if (c.jump && b.eat <= 0) {
     if ((b.mode === 'ground' || b.mode === 'swim') && !sp.noJump) { b.vy = jumpV(b); b.mode = 'air'; b.hopping = false; }
@@ -83,6 +84,7 @@ function moveBody(b, dt, c) {
     case 'ground':
       if (deep) b.mode = 'swim';
       else if (!hasGround) { b.mode = fly ? 'fly' : 'air'; b.vy = 0; }
+      else if (p.y - h > 0.5) { b.mode = 'air'; b.vy = 0; }   // walked off a roof (or a ledge): fall
       else {
         p.y = h;
         if (sp.hop && b.speed > 0.3 * b.k && b.eat <= 0) {
@@ -334,6 +336,7 @@ const Wild = {
     const w = G.world, def = w.def;
     for (const ev of w.events.splice(0)) {
       if (ev.kind === 'pen') this.group(w, { sp: ev.sp, n: ev.n, kids: ev.kids, pen: ev.pen }, ev.own);
+      else if (ev.kind === 'home') this.group(w, { sp: ev.sp, n: ev.n, kids: ev.kids, home: ev.home, range: ev.range }, ev.own);
       else if (ev.kind === 'gone') for (const b of this.list.filter((q) => q.own === ev.own && q.state !== 'follow')) this.remove(b);
     }
     if (!P || P.room || !def.ambient) return;
@@ -398,6 +401,8 @@ const Wild = {
       const near = dCam < 85;
       b.rig.root.visible = dCam < 170 && (!b.caged || (P && P.room === b.room));
       if (b.rig.setDetail) { const lv = dCam < 22 ? 1 : 0; if (b.lod !== lv) { b.lod = lv; b.rig.setDetail(lv); } }
+      // a dog on a walk far from you just keeps up with its person
+      if (!near && b.state === 'leash' && b.walker) { const pe = b.walker, sd = b.slot || 1; b.pos.set(pe.pos.x + Math.cos(pe.yaw) * 0.8 * sd, pe.pos.y, pe.pos.z - Math.sin(pe.yaw) * 0.8 * sd); b.yaw = pe.yaw; poseBody(b, dt, false); continue; }
       if (!near || (b.caged && !b.rig.root.visible)) continue;
       const sp = SPECIES[b.sp], m = b.m;
       b.callT = (b.callT === undefined ? 5 + Math.random() * 40 : b.callT) - dt;
@@ -406,7 +411,7 @@ const Wild = {
       const sleepy = night ? !NOCTURNAL[b.sp] : (b.sp === 'owl' || b.sp === 'raccoon');
       // think a few times a second
       b.think -= dt;
-      if (P && b.think <= 0 && !b.caged && b.state !== 'kid' && b.state !== 'trapped') {
+      if (P && b.think <= 0 && !b.caged && b.state !== 'kid' && b.state !== 'trapped' && b.state !== 'leash') {
         b.think = 0.3;
         const d = Math.hypot(b.pos.x - P.pos.x, b.pos.z - P.pos.z);
         const psp = SPECIES[P.sp], pAir = P.mode === 'fly' && P.pos.y - G.world.H(P.pos.x, P.pos.z) > 3;
@@ -453,6 +458,26 @@ const Wild = {
           }
           if (b.eat > 0) { b.eat += dt / 1.2; if (b.eat >= 1) b.eat = 0; }
           if (d > 25) { b.pos.set(tx, G.world.H(tx, tz), tz); }
+          break;
+        }
+        case 'leash': {
+          // a dog out for a walk: beside its person, a little ahead; it sniffs when they stop and lies down when they sit
+          const pe = b.walker;
+          if (!pe || pe.dog !== b || !Folk.list.includes(pe)) { b.state = 'idle'; b.walker = null; break; }
+          const fx = Math.sin(pe.yaw), fz = Math.cos(pe.yaw), sd = b.slot || 1;
+          const tx = pe.pos.x + fx * 0.45 + fz * 0.8 * sd, tz = pe.pos.z + fz * 0.45 - fx * 0.8 * sd;
+          const dx = tx - b.pos.x, dz = tz - b.pos.z, d = Math.hypot(dx, dz), ps = pe.speed || 0;
+          if (pe.cs === 'sit' && d < 0.8) { if (b.mode === 'ground' && Math.random() < dt * 0.5) b.mode = 'sleep'; }
+          else {
+            if (b.mode === 'sleep') b.mode = 'ground';
+            if (d > 0.3) { c.dx = dx; c.dz = dz; c.want = clamp(d * 1.8, 0, d > 2.5 ? m.run : Math.max(ps * 1.05, m.walk * 0.5)); }
+            else if (ps > 0.2) { c.dx = fx; c.dz = fz; c.want = ps; }
+          }
+          // caught on something (a lamp post, a bench) and falling behind: catch up in a hop
+          b.leashFar = d > 3 ? (b.leashFar || 0) + dt : 0;
+          if (d > 12 || b.leashFar > 1.2) { b.pos.set(tx, G.world.H(tx, tz), tz); b.leashFar = 0; }
+          if (ps < 0.1 && d < 0.7 && !(b.eat > 0) && Math.random() < dt * 0.25) b.eat = 0.001;
+          if (b.eat > 0) { b.eat += dt / 1.6; if (b.eat >= 1) b.eat = 0; }
           break;
         }
         case 'idle':

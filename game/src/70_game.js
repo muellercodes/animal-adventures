@@ -113,7 +113,7 @@ function followCamera(dt) {
     x = clamp(x, room.ox - room.w / 2 + 0.3, room.ox + room.w / 2 - 0.3); z = clamp(z, room.oz - room.d / 2 + 0.3, room.oz + room.d / 2 - 0.3);
     y = clamp(y, 0.3, room.wallH - 0.25);
   } else {
-    const gh = H(x, z), floor = Math.max(gh > -100 ? gh : -1e9, G.world.def.water ? WATER : -1e9) + Math.max(0.12, m.height * 0.45);
+    const gh = G.world.groundAt ? G.world.groundAt(x, z, Cam.target.y + 1) : H(x, z), floor = Math.max(gh > -100 ? gh : -1e9, G.world.def.water ? WATER : -1e9) + Math.max(0.12, m.height * 0.45);
     if (y < floor) y = floor;
     const k = camBlock(x, y, z, dist);
     Cam.block = k < (Cam.block || 1) ? k : damp(Cam.block || 1, k, 2.5, dt);

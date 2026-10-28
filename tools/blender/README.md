@@ -4,8 +4,8 @@ Makes a realistic body for one species with Blender, fitted to the skeleton the 
 `game/models/<id>.*`. `build.mjs` embeds those files in the page and `game/src/40_animals.js` uses the model instead of
 the procedural loft body. Everything else (bones, walk/run/eat/sleep animation, baby proportions, eyes and blinking,
 collar, moods, swimming) keeps working through the same rig API. Models so far: the pig, frog, lizard, turtle,
-snake, horse, duck, hen, macaw, owl, fox, raccoon, otter, weasel, deer, goat, moose, bunny, squirrel and hedgehog
-(every animal but the swan). `horse.py` is the example for furry animals, `carnivore.py` has the parts the small
+snake, horse, duck, hen, macaw, owl, fox, raccoon, otter, weasel, deer, goat, moose, bunny, squirrel, hedgehog, dog and
+cat (every animal but the swan). `horse.py` is the example for furry animals, `carnivore.py` has the parts the small
 carnivores share (the bunny, squirrel and hedgehog use it too, with `smallfur.py`), `ungulate.py` the hooved animals'
 (`deer.py` for antlers), and `bird.py` the birds'. A baby with its own coat colors writes a second color map (`baby_paint()` or
 `paint_baby()`), stored as the `babyColor` map.
@@ -338,6 +338,44 @@ tapering spines. A species uses it through `hair_texture()` (export.py writes th
 - Small animals: the game camera's near plane is 5 cm, so close-up test cameras must stay farther than that (the
   carnivore helper's eye shots clipped into the bunny's head).
 
+## The pets (`dog.py`, `cat.py`)
+
+A golden retriever (with a little yellow Labrador in it) and a brown mackerel tabby, the last two that use
+`carnivore.py` (eyes, paws, ears, coat strokes, whiskers). Things that are new or that took a few tries:
+- People know exactly what a dog's and a cat's face look like, so look at the head from the front, the side and 3/4
+  (the `headfront`, `head3q` and `headside` preview views) before anything else. The dog's head read as a hound or a
+  Great Dane until the skull was clearly wider than the muzzle from above (the loft narrows sharply in front of the
+  eyes, then the muzzle runs nearly parallel), the forehead rose steeply at the stop, the muzzle got shorter and deeper
+  with the flews hanging at the sides, and the nose became a flat fronted superellipsoid (as an ellipsoid it was a shiny
+  black ball). The cat's nose leather is a small rounded triangle (an ellipsoid squeezed in x toward its bottom), not a
+  prism; its eyes sit far back in their sockets (`sink` 0.42) or the game's eye balls bulge out of the face.
+- `flat_cone()` (in both files): a round cone flattened across x, for the thigh and the upper arm, which are wide from
+  the side and flat from the front. Ellipsoids there read as balls stuck to the legs. A flank fold (another flat cone
+  from the belly to the stifle) stops the notch between the belly and the thigh.
+- The dog's drop ears (`drop_ear()`): a leaf shaped plate hanging from the fold along `EAR_A`, cupped around the
+  cheek, its lower part a little off it, thick at the fold and thinner at the tip and edges; weighted to the ear bones
+  from the fold down. Its fringe is only longer fur shells: cards along its lower edge hung off it like a comb, and on a
+  puppy they stood out as orange flaps.
+- The tail's feathering (the flag) is sculpted: the sweep's section is deeper on the underside (`FLAG`, the 'top' side
+  for a path going back and down) with a pointed exponent, under longer fur shells, and only a few wide, short cards
+  hang from its lower edge as wisps. Cards alone, however many, hung under the tail like a comb. The tail's rings and
+  skin weights reach the bottom of the flag (`r < 0.065`, `td < 0.075`).
+- Paint masks for pale regions must leave out the ears: the throat mask (normals facing forward and down) also caught
+  the ears' forward edges and drew a cream stripe down each ear.
+- The tabby pattern is painted from 3D masks (`_tabby()`): mackerel bars about 15 mm apart down the flanks (from the
+  height on the body, leaning back as they go down, broken by noise), the dark spine line, bars on the legs, the dark
+  backs of the hind feet, rings on the tail and its dark tip, the M on the forehead, two lines over each cheek, belly
+  spots from a Worley grid, necklaces, plus ticking (dark tipped coat strokes). Fine stripes everywhere look busy; a few
+  wide ones and soft ticking read better.
+- Babies: both have `baby_offset()` (the trunk walks onto an egg, as the pig's does, so the puppy and the kitten get a
+  round barrel and a full little belly). Keep the egg's top at the adult back line, or the back gets a hump where the
+  weight mask fades, and the egg as long as the trunk, or the rump gets a lump. `modelSpec.baby.eye` stays near 1:
+  the sculpted sockets already grow with the head, and the procedural factor (1.18, 1.25) made the eyes poke out.
+  `fluff` must be 0 for the cat's model (the kitten's fur shells are its fluff; the procedural fluff made lumps).
+  Kittens have blue eyes (`babyIris`).
+- Cards for ear furnishings (pale tufts inside the cat's ears) read as white spikes at game distance; the coat inside
+  the ear does the job.
+
 ## Budget
 
 Pig: about 6.3k triangles, 4.8k vertices, 1024 x 1024 color and normal maps: 38 KB mesh (format 2; 136 KB before) +
@@ -400,3 +438,12 @@ Hedgehog (`VOXEL=0.001 TRIS=3400 TEX=768`, then rings across the dome): 6.2k tri
 spine cards and the whiskers), 8.9k in all; 768 color and normal maps, 384 fur map, 256 hoglet color map, two 432 x 192
 strand textures (spines, the hoglets' pale spines): 80 KB mesh and cards + 64 + 18 + 7 + 5 + 18 + 18 KB, about 286 KB in
 the page. Fur shells (face, belly, skirt) at detail 2: 3 layers, 9k triangles.
+
+Dog (`VOXEL=0.004 TRIS=5000 TEX=1024`, then rings across the body and neck and along the tail): 7.4k triangles plus 244
+in the cards (30 wisps of tail feathering and the whiskers); 1024 color and normal maps, 512 fur and puppy color maps,
+256 x 256 strand texture: 72 KB mesh and cards + 57 + 25 + 13 + 8 + 38 KB, about 289 KB in the page. Fur shells at detail
+2: 5 layers. About 30 minutes on the shared machine (the coat strokes make `texture` take 12 of them).
+
+Cat (`VOXEL=0.0025 TRIS=4200 TEX=1024`, then rings across the body and neck and along the tail): 6.9k triangles plus 192
+in the whiskers; 1024 color and normal maps, 512 fur map, 384 kitten color map, 96 x 128 strand texture: 67 KB mesh and
+cards + 62 + 27 + 13 + 14 + 6 KB, about 258 KB in the page. Fur shells at detail 2: 4 layers.

@@ -37,10 +37,11 @@ const CityLife = (() => {
     join(ring[0], mid[1]); join(mid[1], ring[1]); join(ring[1], mid[2]); join(mid[2], ring[2]); join(ring[2], mid[3]); join(mid[3], ring[3]); join(ring[3], mid[0]); join(mid[0], ring[0]);
     join(mid[0], plaza[0]); join(mid[1], plaza[2]); join(mid[2], plaza[1]); join(mid[3], plaza[3]);
     const gate = (gx, gz, lx, lz, ks, m2) => { const g = add(gx, gz, { park: true }); const c = corner.get(nodeAt(lx, lz)); if (c) for (const k of ks) join(g, c[k]); join(g, m2); };
-    gate(cx - hw - 0.5, cz, 0, 0, ['ne', 'se'], mid[0]);
-    gate(cx + hw + 0.5, cz, 100, 0, ['nw', 'sw'], mid[2]);
-    gate(cx, cz - hd - 0.5, 50, -50, ['sw', 'se'], mid[1]);
-    gate(cx, cz + hd + 0.5, 50, 50, ['nw', 'ne'], mid[3]);
+    const GT = CT.gates;
+    gate(cx - hw - 0.5, cz, GT.w[0], GT.w[1], ['ne', 'se'], mid[0]);
+    gate(cx + hw + 0.5, cz, GT.e[0], GT.e[1], ['nw', 'sw'], mid[2]);
+    gate(cx, cz - hd - 0.5, GT.n[0], GT.n[1], ['sw', 'se'], mid[1]);
+    gate(cx, cz + hd + 0.5, GT.s[0], GT.s[1], ['nw', 'ne'], mid[3]);
     // a node beside the nearest sidewalk for a spot (a store door, a bus stop)
     const hook = (x, z, o) => {
       let best = null, bd = 1e9;
@@ -85,15 +86,15 @@ const CityLife = (() => {
     const w = G.world, r = Math.random(), here = nearestNode(p.pos.x, p.pos.z);
     const stores = w.houses.filter((h) => h.city && h.own && w.feats.has(h.own.key));
     let goal = null, kind = 'walk';
-    if (r < 0.38 && stores.length && G.night < 0.6) { const h = pick(stores); goal = storeNode(h); kind = 'store'; p.storeH = h; }
-    else if (r < 0.58) { const free = w.benches.filter((q) => !q.busy); if (free.length) { const bn = pick(free); goal = nearestNode(bn.x, bn.z, true); kind = 'bench'; p.bench = bn; } }
-    else if (r < 0.7 && C.g.stops.length) { goal = pick(C.g.stops); kind = 'bus'; }
+    if (r < 0.38 && stores.length && G.night < 0.6 && !p.dog) { const h = pick(stores); goal = storeNode(h); kind = 'store'; p.storeH = h; }
+    else if (r < 0.58) { const free = w.benches.filter((q) => !q.busy && (!q.chair || !p.dog)); if (free.length) { const bn = pick(free); goal = bn.node || (bn.node = Plan.inPark(bn.x, bn.z, 0) ? nearestNode(bn.x, bn.z, true) : C.g.hook(bn.x, bn.z, { seat: bn })); kind = 'bench'; p.bench = bn; } }
+    else if (r < 0.7 && C.g.stops.length && !p.dog) { goal = pick(C.g.stops); kind = 'bus'; }
     if (!goal) { goal = pick(C.g.nodes); kind = 'walk'; }
     const path = route(here, goal);
     if (!path || path.length < 1) { p.path = [goal]; } else p.path = path;
     p.pi = 0; p.goalKind = kind; p.cs = 'walk'; p.waitT = 0;
     // the last steps off the path: up to the bench
-    if (kind === 'bench' && p.bench) { p.bench.busy = p; p.path.push({ x: p.bench.x + Math.sin(p.bench.rot) * 0.9, z: p.bench.z + Math.cos(p.bench.rot) * 0.9 }); }
+    if (kind === 'bench' && p.bench) { const k = p.bench.chair ? -0.75 : 0.9; p.bench.busy = p; p.path.push({ x: p.bench.x + Math.sin(p.bench.rot) * k, z: p.bench.z + Math.cos(p.bench.rot) * k }); }
   }
   function nearestNode(x, z, park) {
     let best = null, bd = 1e9;
@@ -112,12 +113,21 @@ const CityLife = (() => {
     if (p) { p.name = Town.freeName(); p.pos.set(n.x, G.world.H(n.x, n.z), n.z); G.scene.add(p.rig.root); Folk.list.push(p); Object.assign(p, { state: 'look', away: false, friend: false, owns: null, cool: 6, room: null, speed: 0 }); p.rig.setVisible(true); }
     else p = Folk.make(Town.freeName(), Folk.randomLook(Math.random() < 0.15), n.x, n.z, { city: true, cool: 6 });
     p.city = true; p.cs = 'walk'; p.storeH = null; p.bench = null; p.sitT = 0; p.pace = 1.05 + Math.random() * 0.35;
+    // now and then someone is out walking their dog
+    p.dog = null;
+    if (SPECIES.dog && !n.stop && Math.random() < 0.3 && C.list.filter((q) => q.dog).length < 6) {
+      p.dog = Wild.make('dog', 0.8 + Math.random() * 0.2, n.x + 0.8, n.z + 0.6, { state: 'leash', walker: p, home: { x: n.x, z: n.z }, range: 3, slot: Math.random() < 0.5 ? -1 : 1 });
+      if (p.dog.rig.setCollar) p.dog.rig.setCollar([0xb02a2a, 0x2a4fb0, 0x2a8a4a, 0xd08a20, 0x6a2a8a][(Math.random() * 5) | 0]);
+      if (!p.leashH) p.leashH = new THREE.Object3D();
+      if (p.rig.hold) p.rig.hold(p.leashH);
+    }
     C.list.push(p); C.stats.spawned++;
     newGoal(p);
     return p;
   }
   function dropWalker(p) {
     if (p.bench && p.bench.busy === p) p.bench.busy = null;
+    if (p.dog) { if (Wild.list.includes(p.dog)) Wild.remove(p.dog); p.dog = null; if (p.rig.hold) p.rig.hold(null); }
     const i = C.list.indexOf(p); if (i >= 0) C.list.splice(i, 1);
     if (Folk.list.includes(p)) Folk.remove(p);
     if (C.pool.length < 12 && !p.friend && !p.owns) C.pool.push(p);
@@ -158,8 +168,15 @@ const CityLife = (() => {
         const b = p.bench;
         p.speed = 0; p.sitT -= dt;
         if (b) { p.pos.x = b.x; p.pos.z = b.z; p.yaw = b.rot; }
-        if (p.sitT <= 0 || !b || !w.benches.includes(b)) { if (b && b.busy === p) b.busy = null; p.bench = null; const fx = b ? Math.sin(b.rot) : 0, fz = b ? Math.cos(b.rot) : 0; if (b) Folk.teleport(p, b.x + fx * 0.8, b.z + fz * 0.8); newGoal(p); break; }
+        if (p.sitT <= 0 || !b || !w.benches.includes(b)) { if (b && b.busy === p) b.busy = null; p.bench = null; const k = b && b.chair ? -0.8 : 0.8, fx = b ? Math.sin(b.rot) : 0, fz = b ? Math.cos(b.rot) : 0; if (b) Folk.teleport(p, b.x + fx * k, b.z + fz * k); newGoal(p); break; }
         return { crouch: 0, reach: 0, sit: 1, seatY: 0.46 };
+      }
+      case 'vendor': {
+        // selling from a food cart: stays put, looks at you when you come close
+        const v = p.vendor;
+        p.speed = 0;
+        if (v) { p.pos.x = v.x; p.pos.z = v.z; if (P && dP < 6) Folk.face(p, dt, P.pos.x, P.pos.z); else p.yaw = v.yaw; }
+        return NO_POSE;
       }
       case 'still':
         p.speed = 0;
@@ -225,12 +242,51 @@ const CityLife = (() => {
   }
 
   /* ---- each frame ---- */
-  C.init = (w) => { C.on = !!(w.def.places && w.id === 'land'); C.list = []; C.pool = []; C.room = null; C.inside = []; for (const t of Plan.TOWNS) t.folk = null; if (C.on && !C.g) C.g = build(); if (C.g) C.g.stores = new Map(); };
+  C.init = (w) => {
+    C.on = !!(w.def.places && w.id === 'land'); C.list = []; C.pool = []; C.room = null; C.inside = []; for (const t of Plan.TOWNS) t.folk = null; if (C.on && !C.g) C.g = build(); if (C.g) C.g.stores = new Map();
+    // the dog leashes: one set of line pieces for all of them
+    C.leash = null;
+    if (C.on) {
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(8 * 6 * 3), 3)); g.setDrawRange(0, 0);
+      C.leash = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x5a1f1a })); C.leash.frustumCulled = false; C.leash.name = 'leashes';
+      w.out.add(C.leash);
+    }
+  };
+  // a leash hangs from the hand to the collar in a little curve (three pieces)
+  const _h = new THREE.Vector3(), _d = new THREE.Vector3();
+  function drawLeashes() {
+    if (!C.leash) return;
+    const a = C.leash.geometry.attributes.position.array;
+    let n = 0;
+    for (const p of C.list) {
+      const d = p.dog;
+      if (!d || !p.leashH || n >= 8 || !Wild.list.includes(d) || !p.rig.root.visible) continue;
+      p.leashH.getWorldPosition(_h);
+      // the ring on the dog's collar (or about where it would be)
+      let cx, cy, cz;
+      if (d.rig.leashWorld && d.rig.leashWorld(_d)) { cx = _d.x; cy = _d.y; cz = _d.z; }
+      else { const m = d.m, f = m.length * 0.36; cx = d.pos.x + Math.sin(d.yaw) * f; cz = d.pos.z + Math.cos(d.yaw) * f; cy = d.pos.y + m.height * 0.72; }
+      const L = Math.hypot(cx - _h.x, cy - _h.y, cz - _h.z), sag = Math.max(0, 1.7 - L) * 0.35;
+      const P = [0, 1 / 3, 2 / 3, 1].map((t) => [_h.x + (cx - _h.x) * t, _h.y + (cy - _h.y) * t - Math.sin(t * Math.PI) * sag, _h.z + (cz - _h.z) * t]);
+      for (let k = 0; k < 3; k++) { a.set(P[k], (n * 6 + k * 2) * 3); a.set(P[k + 1], (n * 6 + k * 2 + 1) * 3); }
+      n++;
+    }
+    C.leash.geometry.setDrawRange(0, n * 6); C.leash.geometry.attributes.position.needsUpdate = true; C.leash.visible = n > 0;
+  }
   C.update = (dt, P) => {
     if (!C.on || !P) return;
     storePeople(P);
     townWalkers(P);
+    drawLeashes();
     if (P.room) return;   // inside: everyone outside carries on where they were
+    // sellers at the food carts near you
+    const vs = G.world.vendors || [];
+    for (const p of Folk.list.slice()) if (p.cs === 'vendor' && (!vs.includes(p.vendor) || Math.hypot(p.vendor.x - P.pos.x, p.vendor.z - P.pos.z) > 110)) { if (p.vendor) p.vendor.p = null; Folk.remove(p); }
+    for (const v of vs) {
+      if (v.p || Math.hypot(v.x - P.pos.x, v.z - P.pos.z) > 70) continue;
+      const p = Folk.make(Town.freeName(), Folk.randomLook(false), v.x, v.z, { city: true, cool: 6 });
+      p.cs = 'vendor'; p.vendor = v; p.yaw = v.yaw; v.p = p;
+    }
     const inCity = Plan.inCity(P.pos.x, P.pos.z, 70);
     // too far away: go
     for (const p of C.list.slice()) if (!inCity || Math.hypot(p.pos.x - P.pos.x, p.pos.z - P.pos.z) > 120) dropWalker(p);
@@ -243,8 +299,8 @@ const CityLife = (() => {
     }
     C.spawnT -= dt;
     if (inCity && C.spawnT <= 0) {
-      C.spawnT = 0.8;
-      const want = G.night > 0.6 ? 4 : 12;
+      C.spawnT = 0.5;
+      const want = G.night > 0.6 ? 7 : 22;
       if (C.list.length < want) {
         for (let k = 0; k < 8; k++) {
           const n = pick(C.g.nodes), d = Math.hypot(n.x - P.pos.x, n.z - P.pos.z);

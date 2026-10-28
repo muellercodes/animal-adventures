@@ -2177,6 +2177,7 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     }
     grp.userData.radius = Math.hypot(W, D) / 2;
     grp.userData.size = { w: W, d: D, h: H };
+    grp.userData.roof = { across: 'x', pos: [[0, H], [W / 2 - 1.5, wallH + 2.5], [W / 2, wallH]] };
     grp.userData.outside = { x: 0, z: rz0 + land + rampL + 0.6 };
     grp.userData.ramp = { x: 0, z: rz0 + (land + rampL) / 2, hw: rampW / 2, hd: (land + rampL) / 2, h: found };
     grp.userData.doors = doorDefs;
@@ -2424,9 +2425,10 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     // stone foundation
     out.stone.push(boxUV(paint(prep(new THREE.BoxGeometry(W + 0.16, F + 0.1, D + 0.16)).translate(0, (F + 0.1) / 2 - 0.1, 0), (x, y, z) => mixc(L(0x8a8580), L(0xaaa59c), fbm(x * 2, y * 2, z * 2, 2) + 0.5)), 1.1));
     // walls: sides, back, front with the door opening
-    let yr, roofParts, ybk = eave;
+    let yr, roofParts, ybk = eave, roof;
     if (frontGable) {
       yr = eave + S.rise;
+      roof = { across: 'x', pos: [[0, yr], [W / 2, eave]] };
       out.siding.push(wallQuadX(-D / 2, D / 2, F, eave, W / 2, 1, wallC), wallQuadX(-D / 2, D / 2, F, eave, -W / 2, -1, wallC));
       out.siding.push(polyZ([[W / 2, F], [-W / 2, F], [-W / 2, eave], [0, yr], [W / 2, eave]], -D / 2, -1, wallC));
       out.siding.push(polyZ([[-W / 2, eave], [W / 2, eave], [0, yr]], D / 2, 1, wallC));
@@ -2438,6 +2440,7 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
       let yf = eave, yb = eave, zr = 0;
       yr = eave + S.rise;
       if (v === 4) { zr = 0.9; yb = F + 1.9; ybk = yb; }
+      roof = v === 3 ? { across: 'z', pos: [[0, yr], [D / 2, eave]], hip: Math.max(0, W / 2 - D / 2) } : { across: 'z', c: zr, pos: [[0, yr], [D / 2 - zr, yf]], neg: [[0, yr], [D / 2 + zr, yb]] };
       if (v === 3) {
         roofParts = roofHip(W, D, eave, yr, 0.45, roofC, trimC);
       } else {
@@ -2575,7 +2578,8 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     door.position.set(doorX - dw / 2, F, D / 2 + 0.01);
     door.castShadow = true; door.receiveShadow = true;
     grp.add(door);
-    grp.userData = { w: W, d: D, h: yr + 0.9, hw: W / 2 + 0.1, hd: D / 2 + 0.1, outside: { x: doorX, z: D / 2 + porchD + 1.2 }, floorY: F, variant: v, name: S.name, porchD, doors: [doorRec('door', 'swing', 1.45)] };
+    // roof: the walkable roof shape (height above the base across the ridge), so animals can land on it
+    grp.userData = { w: W, d: D, h: yr + 0.9, hw: W / 2 + 0.1, hd: D / 2 + 0.1, outside: { x: doorX, z: D / 2 + porchD + 1.2 }, floorY: F, variant: v, name: S.name, porchD, doors: [doorRec('door', 'swing', 1.45)], roof };
     return grp;
   }
   function house(variant = 0) {
@@ -3142,7 +3146,7 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     door.position.set(doorX - dw / 2, F, D / 2 + 0.01);
     door.castShadow = true; door.receiveShadow = true;
     grp.add(door);
-    grp.userData = { w: W, d: D, h: yr + 1.9, hw: W / 2 + 0.1, hd: D / 2 + 0.1, outside: { x: doorX, z: D / 2 + 2.6 + 1.2 }, floorY: F, name: 'pound', doors: [doorRec('door', 'swing', 1.45)] };
+    grp.userData = { w: W, d: D, h: yr + 1.9, hw: W / 2 + 0.1, hd: D / 2 + 0.1, outside: { x: doorX, z: D / 2 + 2.6 + 1.2 }, floorY: F, name: 'pound', doors: [doorRec('door', 'swing', 1.45)], roof: { across: 'z', pos: [[0, yr], [D / 2, eave]] } };
     return grp;
   }
   function pound() {
@@ -6378,7 +6382,7 @@ void main() {`);
     door.position.set(doorX - dw / 2, F, D / 2 + 0.01);
     door.castShadow = true; door.receiveShadow = true;
     grp.add(door);
-    grp.userData = { w: W, d: D, h: by1 + 1.35, hw: W / 2 + 0.1, hd: D / 2 + 0.1, outside: { x: doorX, z: D / 2 + porchD + 1.2 }, floorY: F, name: 'school', porchD, doors: [doorRec('door', 'swing', 1.45)] };
+    grp.userData = { w: W, d: D, h: by1 + 1.35, hw: W / 2 + 0.1, hd: D / 2 + 0.1, outside: { x: doorX, z: D / 2 + porchD + 1.2 }, floorY: F, name: 'school', porchD, doors: [doorRec('door', 'swing', 1.45)], roof: { across: 'x', pos: [[0, yr], [W / 2, eave]] } };
     return grp;
   }
   /* userData = { w, d, h, hw, hd, outside: { x, z }, floorY, name, porchD, doors, door } */
