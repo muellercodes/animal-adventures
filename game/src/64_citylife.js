@@ -117,6 +117,7 @@ const CityLife = (() => {
     p.dog = null;
     if (SPECIES.dog && !n.stop && Math.random() < 0.3 && C.list.filter((q) => q.dog).length < 6) {
       p.dog = Wild.make('dog', 0.8 + Math.random() * 0.2, n.x + 0.8, n.z + 0.6, { state: 'leash', walker: p, home: { x: n.x, z: n.z }, range: 3, slot: Math.random() < 0.5 ? -1 : 1 });
+      if (p.dog.rig.setCollar) p.dog.rig.setCollar([0xb02a2a, 0x2a4fb0, 0x2a8a4a, 0xd08a20, 0x6a2a8a][(Math.random() * 5) | 0]);
       if (!p.leashH) p.leashH = new THREE.Object3D();
       if (p.rig.hold) p.rig.hold(p.leashH);
     }
@@ -252,7 +253,7 @@ const CityLife = (() => {
     }
   };
   // a leash hangs from the hand to the collar in a little curve (three pieces)
-  const _h = new THREE.Vector3();
+  const _h = new THREE.Vector3(), _d = new THREE.Vector3();
   function drawLeashes() {
     if (!C.leash) return;
     const a = C.leash.geometry.attributes.position.array;
@@ -261,7 +262,10 @@ const CityLife = (() => {
       const d = p.dog;
       if (!d || !p.leashH || n >= 8 || !Wild.list.includes(d) || !p.rig.root.visible) continue;
       p.leashH.getWorldPosition(_h);
-      const m = d.m, f = m.length * 0.36, cx = d.pos.x + Math.sin(d.yaw) * f, cz = d.pos.z + Math.cos(d.yaw) * f, cy = d.pos.y + m.height * 0.72;
+      // the ring on the dog's collar (or about where it would be)
+      let cx, cy, cz;
+      if (d.rig.leashWorld && d.rig.leashWorld(_d)) { cx = _d.x; cy = _d.y; cz = _d.z; }
+      else { const m = d.m, f = m.length * 0.36; cx = d.pos.x + Math.sin(d.yaw) * f; cz = d.pos.z + Math.cos(d.yaw) * f; cy = d.pos.y + m.height * 0.72; }
       const L = Math.hypot(cx - _h.x, cy - _h.y, cz - _h.z), sag = Math.max(0, 1.7 - L) * 0.35;
       const P = [0, 1 / 3, 2 / 3, 1].map((t) => [_h.x + (cx - _h.x) * t, _h.y + (cy - _h.y) * t - Math.sin(t * Math.PI) * sag, _h.z + (cz - _h.z) * t]);
       for (let k = 0; k < 3; k++) { a.set(P[k], (n * 6 + k * 2) * 3); a.set(P[k + 1], (n * 6 + k * 2 + 1) * 3); }
