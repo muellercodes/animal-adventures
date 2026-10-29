@@ -69,6 +69,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--berry);outline-
 .stats{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;min-height:44px;font:900 18px/1 var(--display);font-variant-numeric:tabular-nums;white-space:nowrap}
 button.pill{cursor:pointer}
+.pill.join{font-size:15px;color:#5a2a8a}
 .pill svg{width:24px;height:24px;flex:none}
 .where{font-size:16px}
 .tag.net{font-size:13px;color:#F3E8FF;text-shadow:0 1px 0 #3A1F57,0 0 4px #3A1F57}
@@ -289,6 +290,7 @@ button.pill{cursor:pointer}
         <span id="moonIco" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 3.2A8.8 8.8 0 1 0 20.8 15 7 7 0 0 1 15.5 3.2Z" fill="#F4EBC0" stroke="#1D3124" stroke-width="2" stroke-linejoin="round"/></svg></span>
         <span class="clock-word" id="clockWord">Day</span><span id="clockText">12:00</span>
       </span>
+      <button class="pill online join" type="button" id="netJoin" hidden data-action="playonline" title="Sign in to play with other people"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="#8B4CC4" stroke="#1D3124" stroke-width="1.6"><ellipse cx="12" cy="16" rx="4.6" ry="3.8"/><circle cx="6" cy="11" r="2.1"/><circle cx="9.6" cy="7" r="2.1"/><circle cx="14.4" cy="7" r="2.1"/><circle cx="18" cy="11" r="2.1"/></g></svg><span>Play online</span></button>
       <span class="pill online" id="netPill" hidden title="Other players in this world"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="#8B4CC4" stroke="#1D3124" stroke-width="1.6"><ellipse cx="12" cy="16" rx="4.6" ry="3.8"/><circle cx="6" cy="11" r="2.1"/><circle cx="9.6" cy="7" r="2.1"/><circle cx="14.4" cy="7" r="2.1"/><circle cx="18" cy="11" r="2.1"/></g></svg><span id="netCount">0</span></span>
       <button class="pill gear" type="button" data-action="settings" aria-label="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 2.5h3.4l.5 2.6 1.7.8 2.3-1.4 2.4 2.4-1.4 2.3.8 1.7 2.6.5v3.4l-2.6.5-.8 1.7 1.4 2.3-2.4 2.4-2.3-1.4-1.7.8-.5 2.6h-3.4l-.5-2.6-1.7-.8-2.3 1.4-2.4-2.4 1.4-2.3-.8-1.7-2.6-.5v-3.4l2.6-.5.8-1.7-1.4-2.3 2.4-2.4 2.3 1.4 1.7-.8Z" fill="#FFFFFF" stroke="#1D3124" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.4" fill="#FFC83A" stroke="#1D3124" stroke-width="1.8"/></svg></button>
     </div>
@@ -396,33 +398,37 @@ const FOODS = {
   apple: { name: 'Apples' }, worm: { name: 'Worms' }, smallfish: { name: 'Small fish', water: true }, fish: { name: 'Fish', water: true },
   grass: { name: 'Grass' }, berries: { name: 'Berries' }, carrot: { name: 'Carrots' }, pinecone: { name: 'Pine cones' }, acorn: { name: 'Acorns' },
   pumpkin: { name: 'Pumpkins' },
+  // round 7: more kinds of food (where they show up: 50_world foodPoint)
+  seeds: { name: 'Seeds' }, corn: { name: 'Corn' }, lettuce: { name: 'Lettuce' }, mushroom: { name: 'Mushrooms' }, bugs: { name: 'Bugs' },
+  twigs: { name: 'Leafy twigs' }, watermelon: { name: 'Watermelon' }, banana: { name: 'Bananas' }, bread: { name: 'Bread' },
+  hotdog: { name: 'Hot dogs' }, petfood: { name: 'Pet food' }, hay: { name: 'Hay' },
 };
 // swim/fly/hop/climb are what the animal can do; swimSpeed and flySpeed are m/s
 // egg: hatches from an egg (shell color); outdoor: when adopted it lives in a pen in the yard instead of inside the house
 const SPECIES = {
-  duck: { name: 'Duck', many: 'Ducks', eats: ['worm', 'smallfish', 'grass', 'berries'], fav: 'smallfish', fly: true, swim: true, swimSpeed: 2.4, flySpeed: 10, egg: 0xdfe8d8, outdoor: true, baby: 'Duckling' },
-  swan: { name: 'Swan', many: 'Swans', eats: ['grass', 'smallfish', 'berries'], fav: 'grass', fly: true, swim: true, swimSpeed: 2.4, flySpeed: 9, egg: 0xe8e4da, outdoor: true, baby: 'Cygnet' },
-  chicken: { name: 'Chicken', many: 'Chickens', eats: ['worm', 'berries', 'acorn', 'grass', 'carrot', 'pumpkin'], fav: 'worm', egg: 0xc8946a, outdoor: true, baby: 'Chick' },
-  frog: { name: 'Tree frog', many: 'Tree frogs', eats: ['worm', 'smallfish'], fav: 'worm', swim: true, hop: true, climb: true, swimSpeed: 1.8, hopV: 3.0, egg: 0xb8d8a0, baby: 'Froglet' },
-  lizard: { name: 'Lizard', many: 'Lizards', eats: ['worm', 'berries', 'apple'], fav: 'worm', climb: true, egg: 0xf0ece0, baby: 'Baby lizard' },
-  snake: { name: 'Garter snake', many: 'Garter snakes', eats: ['worm', 'smallfish', 'fish'], fav: 'fish', swim: true, swimSpeed: 1.8, noJump: true, baby: 'Baby snake' },
-  bunny: { name: 'Bunny', many: 'Bunnies', eats: ['grass', 'carrot', 'apple', 'berries'], fav: 'carrot', hop: true, hopV: 3.3, baby: 'Baby bunny' },
-  squirrel: { name: 'Squirrel', many: 'Squirrels', eats: ['acorn', 'pinecone', 'berries', 'apple', 'pumpkin'], fav: 'acorn', hop: true, climb: true, hopV: 2.9, price: 150, baby: 'Baby squirrel' },
-  hedgehog: { name: 'Hedgehog', many: 'Hedgehogs', eats: ['worm', 'berries', 'apple'], fav: 'worm', noJump: true, price: 200, baby: 'Hoglet' },
-  turtle: { name: 'Turtle', many: 'Turtles', eats: ['grass', 'berries', 'worm', 'smallfish'], fav: 'berries', swim: true, swimSpeed: 2.2, noJump: true, price: 250, egg: 0xf2efe6, baby: 'Baby turtle' },
-  pig: { name: 'Pig', many: 'Pigs', eats: ['apple', 'carrot', 'acorn', 'grass', 'pumpkin', 'worm'], fav: 'pumpkin', price: 300, outdoor: true, baby: 'Piglet' },
-  goat: { name: 'Goat', many: 'Goats', eats: ['grass', 'apple', 'carrot', 'berries', 'pumpkin'], fav: 'apple', price: 350, outdoor: true, baby: 'Kid goat' },
-  fox: { name: 'Fox', many: 'Foxes', eats: ['worm', 'berries', 'apple', 'smallfish'], fav: 'berries', price: 400, hunter: true, baby: 'Fox kit' },
-  weasel: { name: 'Weasel', many: 'Weasels', eats: ['worm', 'carrot', 'smallfish', 'berries'], fav: 'carrot', price: 250, baby: 'Weasel kit' },
-  otter: { name: 'Otter', many: 'Otters', eats: ['fish', 'smallfish', 'worm'], fav: 'fish', swim: true, swimSpeed: 4.2, price: 450, baby: 'Otter pup' },
-  raccoon: { name: 'Raccoon', many: 'Raccoons', eats: ['berries', 'apple', 'worm', 'smallfish', 'acorn', 'pumpkin'], fav: 'apple', climb: true, price: 500, baby: 'Raccoon kit' },
-  owl: { name: 'Owl', many: 'Owls', eats: ['worm', 'smallfish'], fav: 'worm', fly: true, nightEyes: true, flySpeed: 8, price: 600, hunter: true, egg: 0xf4f2ee, baby: 'Owlet' },
-  deer: { name: 'Deer', many: 'Deer', eats: ['grass', 'acorn', 'apple', 'carrot', 'pumpkin'], fav: 'apple', price: 800, outdoor: true, baby: 'Fawn' },
-  parrot: { name: 'Parrot', many: 'Parrots', eats: ['berries', 'apple', 'acorn'], fav: 'berries', fly: true, flySpeed: 10, price: 1000, egg: 0xf6f3ec, baby: 'Parrot chick' },
-  horse: { name: 'Horse', many: 'Horses', eats: ['grass', 'apple', 'carrot', 'pumpkin'], fav: 'carrot', price: 1200, outdoor: true, baby: 'Foal' },
-  moose: { name: 'Moose', many: 'Moose', eats: ['grass', 'apple', 'carrot'], fav: 'grass', swim: true, swimSpeed: 2.2, price: 1500, outdoor: true, baby: 'Moose calf' },
-  dog: { name: 'Dog', many: 'Dogs', eats: ['fish', 'apple', 'carrot', 'worm', 'pumpkin'], fav: 'fish', swim: true, swimSpeed: 2.0, price: 350, baby: 'Puppy' },
-  cat: { name: 'Cat', many: 'Cats', eats: ['smallfish', 'fish', 'worm'], fav: 'smallfish', climb: true, price: 300, baby: 'Kitten' },
+  duck: { name: 'Duck', many: 'Ducks', eats: ['worm', 'smallfish', 'grass', 'berries', 'bread', 'seeds', 'bugs', 'corn', 'lettuce'], fav: 'smallfish', fly: true, swim: true, swimSpeed: 2.4, flySpeed: 10, egg: 0xdfe8d8, outdoor: true, baby: 'Duckling' },
+  swan: { name: 'Swan', many: 'Swans', eats: ['grass', 'smallfish', 'berries', 'bread', 'lettuce', 'corn'], fav: 'grass', fly: true, swim: true, swimSpeed: 2.4, flySpeed: 9, egg: 0xe8e4da, outdoor: true, baby: 'Cygnet' },
+  chicken: { name: 'Chicken', many: 'Chickens', eats: ['worm', 'berries', 'acorn', 'grass', 'carrot', 'pumpkin', 'seeds', 'corn', 'bugs', 'bread', 'lettuce', 'watermelon'], fav: 'worm', egg: 0xc8946a, outdoor: true, baby: 'Chick' },
+  frog: { name: 'Tree frog', many: 'Tree frogs', eats: ['worm', 'smallfish', 'bugs'], fav: 'worm', swim: true, hop: true, climb: true, swimSpeed: 1.8, hopV: 3.0, baby: 'Froglet' },
+  lizard: { name: 'Lizard', many: 'Lizards', eats: ['worm', 'berries', 'apple', 'bugs', 'lettuce', 'banana'], fav: 'worm', climb: true, egg: 0xf0ece0, baby: 'Baby lizard' },
+  snake: { name: 'Garter snake', many: 'Garter snakes', eats: ['worm', 'smallfish', 'fish', 'bugs'], fav: 'fish', swim: true, swimSpeed: 1.8, noJump: true, baby: 'Baby snake' },
+  bunny: { name: 'Bunny', many: 'Bunnies', eats: ['grass', 'carrot', 'apple', 'berries', 'lettuce', 'hay', 'corn'], fav: 'carrot', hop: true, hopV: 3.3, baby: 'Baby bunny' },
+  squirrel: { name: 'Squirrel', many: 'Squirrels', eats: ['acorn', 'pinecone', 'berries', 'apple', 'pumpkin', 'seeds', 'corn', 'mushroom'], fav: 'acorn', hop: true, climb: true, hopV: 2.9, price: 150, baby: 'Baby squirrel' },
+  hedgehog: { name: 'Hedgehog', many: 'Hedgehogs', eats: ['worm', 'berries', 'apple', 'bugs', 'petfood', 'mushroom'], fav: 'worm', noJump: true, price: 200, baby: 'Hoglet' },
+  turtle: { name: 'Turtle', many: 'Turtles', eats: ['grass', 'berries', 'worm', 'smallfish', 'lettuce', 'mushroom', 'watermelon', 'bugs', 'banana'], fav: 'berries', swim: true, swimSpeed: 2.2, noJump: true, price: 250, egg: 0xf2efe6, baby: 'Baby turtle' },
+  pig: { name: 'Pig', many: 'Pigs', eats: ['apple', 'carrot', 'acorn', 'grass', 'pumpkin', 'worm', 'corn', 'bread', 'watermelon', 'mushroom', 'lettuce', 'banana'], fav: 'pumpkin', price: 300, outdoor: true, baby: 'Piglet' },
+  goat: { name: 'Goat', many: 'Goats', eats: ['grass', 'apple', 'carrot', 'berries', 'pumpkin', 'hay', 'twigs', 'corn', 'lettuce', 'banana', 'bread'], fav: 'apple', price: 350, outdoor: true, baby: 'Kid goat' },
+  fox: { name: 'Fox', many: 'Foxes', eats: ['worm', 'berries', 'apple', 'smallfish', 'bugs', 'hotdog', 'bread'], fav: 'berries', price: 400, hunter: true, baby: 'Fox kit' },
+  weasel: { name: 'Weasel', many: 'Weasels', eats: ['worm', 'carrot', 'smallfish', 'berries', 'bugs'], fav: 'carrot', price: 250, baby: 'Weasel kit' },
+  otter: { name: 'Otter', many: 'Otters', eats: ['fish', 'smallfish', 'worm', 'bugs'], fav: 'fish', swim: true, swimSpeed: 4.2, price: 450, baby: 'Otter pup' },
+  raccoon: { name: 'Raccoon', many: 'Raccoons', eats: ['berries', 'apple', 'worm', 'smallfish', 'acorn', 'pumpkin', 'corn', 'bread', 'hotdog', 'petfood', 'watermelon', 'banana', 'bugs', 'mushroom'], fav: 'apple', climb: true, price: 500, baby: 'Raccoon kit' },
+  owl: { name: 'Owl', many: 'Owls', eats: ['worm', 'smallfish', 'bugs'], fav: 'worm', fly: true, nightEyes: true, flySpeed: 8, price: 600, hunter: true, egg: 0xf4f2ee, baby: 'Owlet' },
+  deer: { name: 'Deer', many: 'Deer', eats: ['grass', 'acorn', 'apple', 'carrot', 'pumpkin', 'twigs', 'corn', 'mushroom', 'lettuce', 'hay'], fav: 'apple', price: 800, outdoor: true, baby: 'Fawn' },
+  parrot: { name: 'Parrot', many: 'Parrots', eats: ['berries', 'apple', 'acorn', 'seeds', 'banana', 'corn', 'watermelon'], fav: 'berries', fly: true, flySpeed: 10, price: 1000, egg: 0xf6f3ec, baby: 'Parrot chick' },
+  horse: { name: 'Horse', many: 'Horses', eats: ['grass', 'apple', 'carrot', 'pumpkin', 'hay', 'corn', 'watermelon'], fav: 'carrot', price: 1200, outdoor: true, baby: 'Foal' },
+  moose: { name: 'Moose', many: 'Moose', eats: ['grass', 'apple', 'carrot', 'twigs', 'lettuce'], fav: 'grass', swim: true, swimSpeed: 2.2, price: 1500, outdoor: true, baby: 'Moose calf' },
+  dog: { name: 'Dog', many: 'Dogs', eats: ['fish', 'apple', 'carrot', 'worm', 'pumpkin', 'petfood', 'hotdog', 'bread', 'watermelon'], fav: 'fish', swim: true, swimSpeed: 2.0, price: 350, baby: 'Puppy' },
+  cat: { name: 'Cat', many: 'Cats', eats: ['smallfish', 'fish', 'worm', 'bugs', 'petfood'], fav: 'smallfish', climb: true, price: 300, baby: 'Kitten' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
@@ -26731,6 +26737,9 @@ const G = { scene: null, world: null, camera: null, t: 0, night: 0, ui: null, so
 const V3 = THREE.Vector3;
 const tmpV = new V3();
 const canEat = (sp, type) => type === 'candy' || SPECIES[sp].eats.includes(type);
+// foods the scenery kit can make (a food in the list without a model yet is skipped)
+const FOOD_OK = {};
+const foodOK = (type) => { if (FOOD_OK[type] === undefined) { try { Env.food(type); FOOD_OK[type] = true; } catch (e) { FOOD_OK[type] = false; } } return FOOD_OK[type]; };
 const UPRIGHT = { duck: 1, swan: 1, chicken: 1, owl: 1, parrot: 1 };
 const FEAR = { chicken: 3, duck: 4.5, swan: 3, frog: 2.5, lizard: 3, snake: 2, bunny: 5, squirrel: 4.5, turtle: 1.5, fox: 6, owl: 5, deer: 10, parrot: 4, moose: 0,
   horse: 6, pig: 3, goat: 4, otter: 4, hedgehog: 2, raccoon: 4, weasel: 4, dog: 1.5, cat: 4 };
@@ -27476,7 +27485,7 @@ const Folk = {
           p.timer -= dt; crouch = 1; reach = 1; p.speed = damp(p.speed, 0, 8, dt); this.face(p, dt, P.pos.x, P.pos.z);
           if (!p.gave && p.timer < 1.0) {
             p.gave = true; p.offerT = 25;
-            const sp = SPECIES[P.sp], land = sp.eats.filter((f) => !FOODS[f].water);
+            const sp = SPECIES[P.sp], land = sp.eats.filter((f) => !FOODS[f].water && foodOK(f));
             const type = land.includes(sp.fav) ? sp.fav : land[(Math.random() * land.length) | 0];
             const fx = Math.sin(p.yaw), fz = Math.cos(p.yaw), x = p.pos.x + fx * 0.6, z = p.pos.z + fz * 0.6;
             Foods.add(type, x, z, w.H(x, z), true);
@@ -27651,7 +27660,7 @@ const Homes = {
     const day = nightNo();
     if (rm.bowlDay === day || Foods.list.some((f) => f.bowl === rm)) return;
     rm.bowlDay = day;
-    const sp = SPECIES[Player.sp], land = sp.eats.filter((f) => !FOODS[f].water);
+    const sp = SPECIES[Player.sp], land = sp.eats.filter((f) => !FOODS[f].water && foodOK(f));
     const type = land.includes(sp.fav) ? sp.fav : (land[0] || sp.eats[0]);
     const f = Foods.add(type, rm.bowl.x, rm.bowl.z, 0.06, true);
     f.bowl = rm;
@@ -27843,7 +27852,7 @@ const Foods = {
       if (f.gift) continue;
       if (Math.hypot(f.x - P.pos.x, f.z - P.pos.z) > r1 * 1.7) { this.removeObj(f); this.list.splice(i, 1); }
     }
-    const weights = Object.entries(w.def.foods).filter(([, n]) => n > 0);
+    const weights = Object.entries(w.def.foods).filter(([t, n]) => n > 0 && foodOK(t));
     const outdoors = this.list.filter((f) => !f.bowl && f.x < World.ROOM_X - 20);
     const land = outdoors.filter((f) => !f.fish).length, fish = outdoors.length - land;
     const sp = SPECIES[P.sp];
@@ -30239,7 +30248,14 @@ function wakeUp() {
 }
 
 /* ---------- hatching and being born ---------- */
+// an egg that has not hatched yet goes away when you switch animals (that animal hatches next time you pick it)
+function clearHatch() {
+  const h = R.hatch; if (!h) return;
+  scene.remove(h.egg); scene.remove(h.nest); R.hatch = null;
+  if (Player.b) Player.b.rig.setVisible(true);
+}
 function beginLife(sp) {
+  clearHatch();
   const b = Player.b;
   if (SPECIES[sp].egg) {
     b.rig.setVisible(false);
@@ -30443,6 +30459,9 @@ function updateHud() {
   }
   const online = Net.open ? Net.count() : -1;
   if (h.online !== online) { h.online = online; const np = $('netPill'); np.hidden = online < 0; $('netCount').textContent = online; np.setAttribute('aria-label', online === 1 ? '1 other player here' : `${online} other players here`); }
+  // not signed in: a button to sign in and play with other people
+  const join = !!(API && !cloud.user);
+  if (h.join !== join) { h.join = join; $('netJoin').hidden = !join; }
   const hasHome = !!S.homes[S.animal];
   if (h.hasHome !== hasHome) { h.hasHome = hasHome; $('homeBtn').hidden = !hasHome; }
   // action buttons
@@ -30618,6 +30637,7 @@ function goHome() {
 }
 function switchAnimal(id) {
   if (!S.owned.includes(id)) return;
+  clearHatch();
   S.animal = id; hudState.name = null;
   closeSheet();
   for (const p of Folk.list) Folk.cancel(p);
@@ -30825,6 +30845,7 @@ document.addEventListener('click', (e) => {
     case 'map': openSheet('map'); break;
     case 'animals': openSheet('animals'); break;
     case 'settings': R.cloudForm = false; openSheet('settings'); break;
+    case 'playonline': R.cloudForm = true; openSheet('settings'); setTimeout(() => { const i = $('cName'); if (i) i.focus(); }, 50); break;
     case 'home': goHome(); break;
     case 'shop': R.shopTab = v || 'animals'; openSheet('shop'); break;
     case 'tab': R.shopTab = v; renderSheet(); break;
