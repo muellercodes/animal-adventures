@@ -200,9 +200,10 @@ function holdButton(id, on, off) {
 holdButton('btnJump', () => { press.jump = true; press.jumpHeld = true; }, () => { press.jumpHeld = false; });
 holdButton('btnEat', () => { press.eat = true; });
 holdButton('btnLand', () => { press.landHeld = true; }, () => { press.landHeld = false; });
+holdButton('btnDash', () => { press.dashHeld = true; }, () => { press.dashHeld = false; });
 holdButton('btnAct', () => { press.act = true; });
 holdButton('btnCall', () => { press.call = true; });
-const KEYMAP = { KeyW: 'f', ArrowUp: 'f', KeyS: 'b', ArrowDown: 'b', KeyA: 'l', ArrowLeft: 'l', KeyD: 'r', ArrowRight: 'r', ShiftLeft: 'walk', ShiftRight: 'walk', Space: 'jump', KeyE: 'eat', KeyC: 'land', KeyQ: 'land', KeyF: 'act', Enter: 'act', KeyV: 'call' };
+const KEYMAP = { KeyW: 'f', ArrowUp: 'f', KeyS: 'b', ArrowDown: 'b', KeyA: 'l', ArrowLeft: 'l', KeyD: 'r', ArrowRight: 'r', ShiftLeft: 'walk', ShiftRight: 'walk', KeyR: 'dash', Space: 'jump', KeyE: 'eat', KeyC: 'land', KeyQ: 'land', KeyF: 'act', Enter: 'act', KeyV: 'call' };
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && R.sheet) { closeSheet(); return; }
   if (R.mode !== 'play' || R.paused || e.target.tagName === 'INPUT') return;
@@ -212,7 +213,7 @@ window.addEventListener('keydown', (e) => {
   keys[k] = true;
 });
 window.addEventListener('keyup', (e) => { const k = KEYMAP[e.code]; if (k) keys[k] = false; });
-window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; press.jumpHeld = press.landHeld = false; });
+window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; press.jumpHeld = press.landHeld = press.dashHeld = false; });
 function readInput() {
   let ix = 0, iy = 0;
   if (stick.id !== null) { ix = stick.dx / STICK_R; iy = -stick.dy / STICK_R; const m = Math.hypot(ix, iy); if (m < 0.12) { ix = 0; iy = 0; } }
@@ -223,6 +224,7 @@ function readInput() {
   const fx = Math.sin(Cam.yaw), fz = Math.cos(Cam.yaw), rx = -Math.cos(Cam.yaw), rz = Math.sin(Cam.yaw);
   inp.mx = fx * iy + rx * ix; inp.mz = fz * iy + rz * ix; inp.ix = ix; inp.iy = iy;
   inp.walk = !!keys.walk;
+  inp.dash = !!(press.dashHeld || keys.dash) && !R.hatch && !held;
   inp.jump = press.jump && !R.hatch && !held; press.jump = false;
   inp.up = press.jumpHeld || !!keys.jump;
   inp.down = press.landHeld || !!keys.land;
@@ -569,6 +571,9 @@ function updateHud() {
   }
   const online = Net.open ? Net.count() : -1;
   if (h.online !== online) { h.online = online; const np = $('netPill'); np.hidden = online < 0; $('netCount').textContent = online; np.setAttribute('aria-label', online === 1 ? '1 other player here' : `${online} other players here`); }
+  // the dash ring: how much energy is left
+  const en = Math.round((Player.energy === undefined ? 1 : Player.energy) * 40) / 40;
+  if (h.energy !== en) { h.energy = en; const db = $('btnDash'); db.style.setProperty('--e', en); db.classList.toggle('low', !!Player.winded); }
   // not signed in: a button to sign in and play with other people
   const join = !!(API && !cloud.user);
   if (h.join !== join) { h.join = join; $('netJoin').hidden = !join; }

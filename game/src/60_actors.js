@@ -232,11 +232,18 @@ const Player = {
     const tired = S.hunger <= 0 || S.sick > 0;
     const mag = Math.min(1, Math.hypot(inp.mx, inp.mz));
     const walkS = m.walk, runS = tired ? walkS : Math.max(m.run * 0.9, walkS * 1.6);
+    // dash: hold to go much faster for a few seconds; the energy fills back up while you are not dashing
+    if (this.energy === undefined) this.energy = 1;
+    if (this.energy <= 0) this.winded = true; else if (this.energy > 0.3) this.winded = false;
+    const dash = !!inp.dash && !tired && !this.winded && mag > 0.3 && b.mode !== 'climb' && b.mode !== 'perch' && b.mode !== 'sleep' && !b.room;
+    this.dashing = dash;
+    this.energy = clamp(this.energy + (dash ? -dt / 6 : dt / 7), 0, 1);
+    const boost = dash ? (b.mode === 'fly' ? 1.6 : b.mode === 'swim' ? 1.5 : 1.8) : 1;
     let want;
-    if (b.mode === 'fly') want = sp.flySpeed * mag;
-    else if (b.mode === 'swim') want = (sp.swimSpeed || 1.5) * (0.6 + 0.4 * b.k) * mag * (tired ? 0.6 : 1);
+    if (b.mode === 'fly') want = sp.flySpeed * mag * boost;
+    else if (b.mode === 'swim') want = (sp.swimSpeed || 1.5) * (0.6 + 0.4 * b.k) * mag * (tired ? 0.6 : 1) * boost;
     else if (b.mode === 'air') want = b.speed;
-    else { want = mag <= 0.6 ? walkS * (mag / 0.6) : lerp(walkS, runS, (mag - 0.6) / 0.4); if (inp.walk) want = Math.min(want, walkS); }
+    else { want = mag <= 0.6 ? walkS * (mag / 0.6) : lerp(walkS, runS, (mag - 0.6) / 0.4); if (inp.walk) want = Math.min(want, walkS); if (dash) want = Math.max(want, runS) * boost; }
     const c = { dx: inp.mx, dz: inp.mz, want, jump: inp.jump && !(tired && b.mode === 'air'), up: inp.up && !tired, down: inp.down || (tired && b.mode === 'fly'), climbV: inp.iy, around: -inp.ix, letGo: inp.letGo, climb: inp.climb };
     if (b.mode === 'climb' || b.mode === 'perch') { if (inp.jump && b.mode === 'perch') c.letGo = true; }
     // eating: stop, turn to the food, lower the head
@@ -1030,16 +1037,47 @@ const HOUSE_COLOR_NAMES = ['white', 'yellow', 'blue', 'brick', 'gray', 'white'];
 const Foods = {
   list: [], tick: 0,
   glowMat: null,
-  clear() { for (const f of this.list) this.removeObj(f); this.list = []; },
-  removeObj(f) { G.scene.remove(f.obj); if (f.glow) G.scene.remove(f.glow); f.gone = true; },
+  // foods that hold still are drawn instanced, one draw per kind and part; moving ones (worms, fish, bugs) are their own objects
+  kinds: new Map(), dirty: false,
+  kindOf(type) {
+    let k = this.kinds.get(type);
+    if (k) return k;
+    const g = Env.food(type), u = g.userData;
+    k = { type, still: !(u.worm || u.fish || u.tail || u.anim || u.bugs || type === 'bugs'), parts: [], ims: [], cap: 0 };
+    if (k.still) g.traverse((m) => { if (m.isMesh) { m.updateMatrix(); k.parts.push({ geo: m.geometry, mat: m.material, local: m.matrix.clone(), cast: m.castShadow !== false }); } });
+    this.kinds.set(type, k);
+    return k;
+  },
+  draw() {
+    this.dirty = false;
+    const by = new Map();
+    for (const f of this.list) if (f.inst && !f.gone) { let a = by.get(f.type); if (!a) by.set(f.type, (a = [])); a.push(f); }
+    const _m = Foods._m || (Foods._m = new THREE.Matrix4());
+    for (const k of this.kinds.values()) {
+      if (!k.still) continue;
+      const a = by.get(k.type) || [];
+      if (a.length > k.cap) {
+        for (const im of k.ims) { G.scene.remove(im); im.dispose(); }
+        k.cap = Math.max(16, Math.ceil(a.length * 1.5));
+        k.ims = k.parts.map((p) => { const im = new THREE.InstancedMesh(p.geo, p.mat, k.cap); im.frustumCulled = false; im.castShadow = p.cast; im.receiveShadow = true; im.name = 'foods-' + k.type; G.scene.add(im); return im; });
+      }
+      k.parts.forEach((p, j) => {
+        const im = k.ims[j]; if (!im) return;
+        for (let i = 0; i < a.length; i++) { a[i].obj.updateMatrix(); _m.multiplyMatrices(a[i].obj.matrix, p.local); im.setMatrixAt(i, _m); }
+        im.count = a.length; im.visible = a.length > 0; im.instanceMatrix.needsUpdate = true;
+      });
+    }
+  },
+  clear() { for (const f of this.list) this.removeObj(f); this.list = []; this.draw(); },
+  removeObj(f) { if (f.inst) this.dirty = true; else G.scene.remove(f.obj); if (f.glow) G.scene.remove(f.glow); f.gone = true; },
   glowFor() {
     if (!this.glowMat) this.glowMat = new THREE.SpriteMaterial({ map: Env.glowTexture, color: 0xffe9a0, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
     if (!this.giftMat) this.giftMat = new THREE.SpriteMaterial({ map: Env.glowTexture, color: 0xffc23a, transparent: true, opacity: 0.8, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
   },
   add(type, x, z, y, gift) {
     this.glowFor();
-    const obj = Env.food(type);
-    const f = { type, x, y, z, obj, gift: !!gift, edible: false, glow: null, phase: Math.random() * TAU };
+    const kind = this.kindOf(type), obj = kind.still ? new THREE.Object3D() : Env.food(type);
+    const f = { type, x, y, z, obj, inst: kind.still, gift: !!gift, edible: false, glow: null, phase: Math.random() * TAU };
     obj.position.set(x, y, z); obj.rotation.y = Math.random() * TAU;
     if (FOODS[type] && FOODS[type].water) {
       const a = Math.random() * TAU;
@@ -1048,7 +1086,8 @@ const Foods = {
     const glow = new THREE.Sprite(gift ? this.giftMat : this.glowMat);
     glow.renderOrder = 5;
     f.glow = glow;
-    G.scene.add(obj); G.scene.add(glow);
+    if (f.inst) this.dirty = true; else G.scene.add(obj);
+    G.scene.add(glow);
     this.list.push(f);
     this.refreshOne(f);
     return f;
@@ -1098,7 +1137,10 @@ const Foods = {
         f.obj.rotation.y = Math.atan2(-Math.sin(fi.a) * fi.w, Math.cos(fi.a) * fi.w);
         f.x = nx; f.z = nz; f.obj.position.set(nx, f.y + Math.sin(t * 1.3 + f.phase) * 0.03, nz);
       }
-      Env.foodUpdate(f.obj, t + f.phase);
+      if (!f.inst) Env.foodUpdate(f.obj, t + f.phase);
+      // the glow shows only on foods near you (each one is a draw)
+      const near = f.edible && Math.abs(f.x - P.pos.x) < 30 && Math.abs(f.z - P.pos.z) < 30;
+      if (f.glow.visible !== near) f.glow.visible = near;
       if (f.glow.visible) {
         const s = f.glowS * (0.85 + 0.15 * pulse);
         f.glow.scale.set(s, s, s);
@@ -1106,13 +1148,14 @@ const Foods = {
       }
     }
     if (this.glowMat) this.glowMat.opacity = 0.32 + 0.22 * pulse;
+    if (this.dirty) this.draw();
     // keep a ring of food around the player (not indoors)
     this.tick -= dt;
-    if (this.tick <= 0 && !P.room) { this.tick = 0.5; this.fill(3); }
+    if (this.tick <= 0 && !P.room) { this.tick = 0.4; this.fill(4); }
   },
   fill(maxAdd) {
     const P = Player.b, w = G.world; if (!P || P.room) return;
-    const m = P.m, r0 = Math.max(2.2, m.length * 3.5), r1 = clamp(m.length * 26 + 10, 15, 42);
+    const m = P.m, r0 = Math.max(2.2, m.length * 3.5), r1 = clamp(m.length * 26 + 12, 18, 48);
     for (let i = this.list.length - 1; i >= 0; i--) {
       const f = this.list[i];
       if (f.gift) continue;
@@ -1124,8 +1167,8 @@ const Foods = {
     const sp = SPECIES[P.sp];
     let added = 0;
     for (let k = 0; k < 12 && added < maxAdd; k++) {
-      const wantFish = !!w.def.water && fish + added < 6 && Math.random() < 0.35;
-      if (!wantFish && land + added >= 34) break;
+      const wantFish = !!w.def.water && fish + added < 8 && Math.random() < 0.35;
+      if (!wantFish && land + added >= 56) break;
       let pool = weights.filter(([t]) => !!FOODS[t].water === wantFish);
       if (!pool.length) continue;
       if (Math.random() < 0.6) { const ed = pool.filter(([t]) => sp.eats.includes(t)); if (ed.length) pool = ed; }

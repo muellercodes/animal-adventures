@@ -14,6 +14,9 @@ const World = (() => {
   const MID = { parked: 1, stopsign: 1, streetsign2: 1, oneway: 1, speedlimit: 1, busstopsign: 1, crosswalksign: 1, dumpster: 1, fence8: 1, foodcart: 1, phonebooth: 1,
     streetclock: 1, planterbox: 1, parkbooth: 1, bench: 1, parkbench: 1, picnic: 1, busstop: 1, statue: 1, trafficpole: 1 };
   const LOD_D = 120;            // towers farther than this are drawn with their simple version
+  // rules and placements for props that may not exist yet (made by the food kit in 38_food)
+  const HASP = (t) => !!(Env._k && Env._k.PROPS[t]);
+  const R7 = (list) => list.filter((o) => HASP(o.type));
   const BIG = { apartment: 1, office: 1, midrise: 1, storefront: 1 };   // city buildings: one draw each, always with shadows
   const dummy = new THREE.Object3D();
 
@@ -148,6 +151,13 @@ const World = (() => {
           // fish traps in the pond and the lake
           for (const [L, a, d] of [[POND, 0.6, 0.45], [POND, 3.4, 0.5], [LAKE, 1.2, 0.5], [LAKE, 4.3, 0.55]]) w.addFishTrap(L.x + Math.cos(a) * L.r * d, L.z + Math.sin(a) * L.r * d);
           w.scatter({ type: 'hay', n: 6, sample: (r) => { const a = r() * TAU, d = 11 + r() * 8; return [BARN.x + Math.cos(a) * d, BARN.z + Math.sin(a) * d]; }, test: (x, z) => pathDist(x, z, PATH) > 2.5 && !inGarden(x, z, 2) && !inPen(x, z, 1.5), gap: 3 });
+          // round 7: a cornfield and a melon patch by the pumpkin patch, lettuce beds by the garden, sunflowers and a bird feeder
+          const farmOK = (x, z) => pathDist(x, z, PATH) > 2.5 && !inGarden(x, z, 2) && !inRect(PIGPEN, x, z, 2) && !inRect(COOP, x, z, 2) && !inRect(PADDOCK, x, z, 2) && Math.hypot(x - BARN.x, z - BARN.z) > 12;
+          if (HASP('cornrow')) w.scatter({ type: 'cornrow', n: 5, near: PATCH, nearR: PATCH.r + 9, gap: 3.5, test: (x, z) => farmOK(x, z) && Math.hypot(x - PATCH.x, z - PATCH.z) > PATCH.r + 1 });
+          if (HASP('melonpatch')) w.scatter({ type: 'melonpatch', n: 2, near: PATCH, nearR: PATCH.r + 12, gap: 5, test: (x, z) => farmOK(x, z) && Math.hypot(x - PATCH.x, z - PATCH.z) > PATCH.r + 2 });
+          if (HASP('lettucebed')) w.scatter({ type: 'lettucebed', n: 2, near: GARDEN, nearR: 11, gap: 4, test: (x, z) => farmOK(x, z) && !inGarden(x, z, 2.5) });
+          if (HASP('sunflower')) w.scatter({ type: 'sunflower', variants: [0, 1], n: 4, near: PATCH, nearR: PATCH.r + 14, gap: 3, test: farmOK });
+          if (HASP('birdfeeder')) w.scatter({ type: 'birdfeeder', n: 1, near: BARN, nearR: 16, gap: 4, test: farmOK });
           const orchard = []; for (let i = 0; i < 3; i++) for (let j = 0; j < 4; j++) orchard.push([22 + (i - 1) * 10, -92 + j * 10]);
           w.scatter({ type: 'apple', variants: [0, 1], n: orchard.length, sample: (r, k) => [orchard[k][0] + (r() - 0.5) * 2, orchard[k][1] + (r() - 0.5) * 2], gap: 3, spot: 'apple', spotR: 2.6, scale: [1.05, 1.3] });
           const street = []; for (let x = 56; x <= 128; x += 12) street.push([x, -61.5], [x + 6, -48.5]);
@@ -174,6 +184,8 @@ const World = (() => {
           { type: 'willow', variants: [0, 1], per: 0.6, minH: 0.3, maxH: 1.6, gap: 12, test: nearWater, tries: 6 },
           { type: 'cattail', per: 26, minH: -0.35, maxH: 0.22, gap: 1.5, scale: [0.8, 1.25], tries: 4 },
           { type: 'lily', variants: [0, 0, 1], per: 10, minH: -9, maxH: -0.7, water: true, gap: 1.3, scale: [0.9, 1.6], tries: 2 },
+          // round 7: where the new foods grow (only when the street kit has the prop)
+          ...R7([{ type: 'sunflower', variants: [0, 1], per: 0.25, test: away, gap: 6, minH: 0.7 }, { type: 'mushrooms', per: 0.35, test: away, gap: 6, minH: 0.6, mask: woods }]),
         ],
         landmarks: { lake: 3, pond: 3, farm: 4, orchard: 1, giant: 1, none: 3 },
         wildlife: [
@@ -198,7 +210,8 @@ const World = (() => {
           { sp: 'bunny', n: 2, home: [-2, -66], range: 18 },
         ],
         ambient: [{ sp: 'bunny', w: 3, kids: 1 }, { sp: 'deer', w: 2, kids: 1 }, { sp: 'squirrel', w: 2 }, { sp: 'fox', w: 1 }, { sp: 'raccoon', w: 1 }, { sp: 'hedgehog', w: 1 }, { sp: 'weasel', w: 1 }, { sp: 'duck', w: 2, water: true, kids: 3 }, { sp: 'swan', w: 1, water: true }, { sp: 'otter', w: 1, water: true }],
-        foods: { grass: 4, worm: 3, apple: 3, carrot: 3, berries: 3, acorn: 2, pinecone: 1, smallfish: 3, fish: 2, pumpkin: AUTUMN ? 2 : 0 },
+        foods: { grass: 4, worm: 3, apple: 3, carrot: 3, berries: 3, acorn: 2, pinecone: 1, smallfish: 3, fish: 2, pumpkin: AUTUMN ? 2 : 0,
+          seeds: 2, corn: 2, lettuce: 2, mushroom: 1, bugs: 3, twigs: 2, watermelon: 1, hay: 2, bread: 2, hotdog: 2, petfood: 2 },
         walk: [[10, -2], [-30, -12], [18, 16], [25, -70], [-50, -12], [70, -55], [100, -55], [126, -55], [40, 10], [-20, 30], [60, -30], [-60, 40]],
         villageWalk: [[60, -55], [80, -55], [100, -55], [120, -55], [130, -55], [160, -55], [200, -55], [240, -55], [100, 2], [150, 2], [210, 2], [150, 54], [210, 54], [135, -20], [195, 30], [226, -26]],
         // places for town life (jobs, school, the fair)
@@ -253,6 +266,8 @@ const World = (() => {
           { type: 'rock', variants: [0, 1], per: 5, minH: -0.6, maxH: 0.3, gap: 2, scale: [0.6, 1.0], test: stream, tries: 3 },
           { type: 'cattail', per: 18, minH: -0.35, maxH: 0.22, gap: 1.6, test: (x, z) => !stream(x, z), tries: 4 },
           { type: 'lily', variants: [0, 1], per: 8, minH: -9, maxH: -0.7, water: true, gap: 1.3, scale: [0.9, 1.5], test: (x, z) => !stream(x, z), tries: 2 },
+          // round 7: where the new foods grow (only when the street kit has the prop)
+          ...R7([{ type: 'mushrooms', per: 2.2, test: clear, gap: 5, minH: 0.6 }]),
         ],
         landmarks: { lake: 3, pond: 3, giant: 1, none: 4 },
         wildlife: [
@@ -268,7 +283,7 @@ const World = (() => {
           { sp: 'moose', n: 1, home: [LAKE.x - 30, LAKE.z - 20], range: 30 },
         ],
         ambient: [{ sp: 'squirrel', w: 3 }, { sp: 'deer', w: 2, kids: 1 }, { sp: 'fox', w: 2 }, { sp: 'owl', w: 2 }, { sp: 'bunny', w: 2 }, { sp: 'raccoon', w: 1 }, { sp: 'hedgehog', w: 1 }, { sp: 'moose', w: 1 }, { sp: 'otter', w: 1, water: true }],
-        foods: { pinecone: 4, acorn: 2, berries: 3, worm: 3, grass: 1, smallfish: 2, fish: 2 },
+        foods: { pinecone: 4, acorn: 2, berries: 3, worm: 3, grass: 1, smallfish: 2, fish: 2, mushroom: 4, bugs: 3, twigs: 3, seeds: 1 },
         walk: [],
       };
     },
@@ -308,6 +323,8 @@ const World = (() => {
           { type: 'mushroom', per: 1.6, gap: 1.5 },
           { type: 'fern', per: 1.9, gap: 2 },
           { type: 'stump', per: 0.6, test: clear, gap: 4 },
+          // round 7: where the new foods grow (only when the street kit has the prop)
+          ...R7([{ type: 'mushrooms', per: 1.0, test: clear, gap: 5, minH: 0.3 }]),
         ],
         landmarks: { none: 1 },
         wildlife: [
@@ -319,7 +336,7 @@ const World = (() => {
           { sp: 'raccoon', n: 2, home: [20, 50], range: 40 },
         ],
         ambient: [{ sp: 'frog', w: 4 }, { sp: 'turtle', w: 3, water: true }, { sp: 'snake', w: 2 }, { sp: 'duck', w: 2, water: true, kids: 3 }, { sp: 'otter', w: 1, water: true }, { sp: 'raccoon', w: 1 }],
-        foods: { worm: 4, grass: 2, berries: 1, acorn: 1, smallfish: 4, fish: 3 },
+        foods: { worm: 4, grass: 2, berries: 1, acorn: 1, smallfish: 4, fish: 3, bugs: 4, mushroom: 2, twigs: 1 },
         walk: [],
       };
     },
@@ -357,6 +374,8 @@ const World = (() => {
           { type: 'log', per: 0.6, test: clear, gap: 5 },
           { type: 'mushroom', per: 0.8, gap: 2 },
           { type: 'lily', variants: [0, 1], per: 5, minH: -9, maxH: -0.6, water: true, gap: 1.2, scale: [1, 1.6], tries: 2 },
+          // round 7: where the new foods grow (only when the street kit has the prop)
+          ...R7([{ type: 'bananaplant', per: 2.5, test: clear, gap: 6, minH: 0.5 }, { type: 'melonpatch', per: 0.15, test: clear, gap: 10, minH: 0.6 }]),
         ],
         landmarks: { lake: 2, giant: 2, none: 4 },
         wildlife: [
@@ -368,7 +387,7 @@ const World = (() => {
           { sp: 'otter', n: 2, home: [xc(0), 0], range: 40, water: true },
         ],
         ambient: [{ sp: 'parrot', w: 4 }, { sp: 'lizard', w: 3 }, { sp: 'frog', w: 2 }, { sp: 'snake', w: 2 }, { sp: 'turtle', w: 1, water: true }, { sp: 'otter', w: 1, water: true }],
-        foods: { berries: 4, apple: 3, worm: 3, grass: 1, smallfish: 2, fish: 2 },
+        foods: { berries: 4, apple: 3, worm: 3, grass: 1, smallfish: 2, fish: 2, banana: 4, bugs: 3, twigs: 2, watermelon: 1, mushroom: 1 },
         walk: [],
       };
     },
@@ -413,6 +432,8 @@ const World = (() => {
           { type: 'cattail', per: 22, minH: -0.35, maxH: 0.22, gap: 1.5, tries: 4 },
           { type: 'lily', variants: [0, 0, 1], per: 9, minH: -9, maxH: -0.7, water: true, gap: 1.2, scale: [0.9, 1.5], tries: 2 },
           { type: 'pumpkin', variants: [0, 1, 2], per: AUTUMN ? 0.27 : 0, test: off, gap: 6, spot: 'pumpkin', spotR: 0.5, sink: 0.02 },
+          // round 7: where the new foods grow (only when the street kit has the prop)
+          ...R7([{ type: 'sunflower', variants: [0, 1], per: 1.6, test: off, gap: 5, minH: 0.7 }, { type: 'melonpatch', per: 0.25, test: off, gap: 10, minH: 0.7 }, { type: 'cornrow', per: 0.2, test: off, gap: 10, minH: 0.7 }, { type: 'birdfeeder', per: 0.1, test: off, gap: 12, minH: 0.7 }]),
         ],
         landmarks: { lake: 2, pond: 3, farm: 3, giant: 2, none: 3 },
         wildlife: [
@@ -426,7 +447,7 @@ const World = (() => {
           { sp: 'hedgehog', n: 2, home: [50, 10], range: 30 },
         ],
         ambient: [{ sp: 'bunny', w: 3, kids: 2 }, { sp: 'deer', w: 2, kids: 1 }, { sp: 'fox', w: 1 }, { sp: 'goat', w: 1 }, { sp: 'hedgehog', w: 1 }, { sp: 'squirrel', w: 1 }, { sp: 'swan', w: 1, water: true }, { sp: 'duck', w: 1, water: true, kids: 3 }],
-        foods: { grass: 4, berries: 3, apple: 2, acorn: 2, worm: 2, smallfish: 2, pumpkin: AUTUMN ? 1 : 0 },
+        foods: { grass: 4, berries: 3, apple: 2, acorn: 2, worm: 2, smallfish: 2, pumpkin: AUTUMN ? 1 : 0, seeds: 3, bugs: 3, corn: 2, watermelon: 2, lettuce: 1, hay: 2, twigs: 1 },
         walk: [[8, 14], [-40, 14], [0, 4], [40, 12], [80, -4], [-30, 50], [30, -40], [-90, -10], [GIANT[0] + 12, GIANT[1]]],
       };
     },
@@ -468,7 +489,7 @@ const World = (() => {
           { sp: 'owl', n: 2, home: [-62, 32], range: 12 },
         ],
         ambient: [{ sp: 'parrot', w: 3 }, { sp: 'owl', w: 1 }, { sp: 'swan', w: 1 }],
-        foods: { berries: 5, apple: 3, acorn: 1, worm: 1, grass: 2 },
+        foods: { berries: 5, apple: 3, acorn: 1, worm: 1, grass: 2, seeds: 2, bugs: 2 },
         walk: [],
       };
     },
@@ -507,7 +528,7 @@ const World = (() => {
     const isl = !!def.islands, H0 = def.H, nW = makeNoise(seed + 77);
     const newOwner = (key) => ({ key, items: new Map(), cols: [], trees: [], spots: [], objs: [], meshes: [] });
     const w = {
-      id, def, group, out, grid: new Map(), spots: { apple: [], acorn: [], pinecone: [], berries: [], carrot: [], pumpkin: [] },
+      id, def, group, out, grid: new Map(), spots: { apple: [], acorn: [], pinecone: [], berries: [], carrot: [], pumpkin: [], seeds: [], corn: [], lettuce: [], mushroom: [], watermelon: [], banana: [], hay: [] },
       placed: new Map(), disposables: [], cover: [], treeGrid: new Map(), houses: [], rooms: [], lanterns: [], blockers: [],
       gates: [], enclosures: [], anims: [], events: [], tiles: new Map(), feats: new Map(), own: null, stat: newOwner('static'), room: null,
       traps: [], fishTraps: [], fair: null, playground: null, school: null,
@@ -695,7 +716,10 @@ const World = (() => {
       }
       return best;
     };
-    function addSpot(type, s, owner) { const o = owner || w.own; s.own = o ? o.key : null; w.spots[type].push(s); if (o) o.spots.push(type); }
+    function addSpot(type, s, owner) { const o = owner || w.own; s.own = o ? o.key : null; (w.spots[type] || (w.spots[type] = [])).push(s); if (o) o.spots.push(type); }
+    // props that food shows up around: the prop's own spot field, or these older props
+    const SPOT_OF = { hay: { type: 'hay', r: 1.4 }, mushroom: { type: 'mushroom', r: 0.9 }, cornstalk: { type: 'corn', r: 0.8 } };
+    const propSpot = (type, pr) => pr.spot || SPOT_OF[type] || null;
 
     /* placement bookkeeping for hand-placed things (keeps big props apart) */
     function gapOK(x, z, gap) {
@@ -732,6 +756,7 @@ const World = (() => {
         addTree({ x: x + ox * co + oz * si, z: z - ox * si + oz * co, r: Math.max(0.06, (pr.trunkR || 0.2) * s), top: y + pr.climbH * s, base: h, type }, owner);
       }
       if (o.spot) addSpot(o.spot, { x, z, r: o.spotR * s, y: h }, owner);
+      else { const ps = propSpot(type, pr); if (ps) addSpot(ps.type, { x, z, r: (ps.r || 1) * s, y: h }, owner); }
     }
     // hand-placed scatter for the middle of a world (near a point, or at listed spots)
     w.scatter = (o) => {
@@ -957,6 +982,7 @@ const World = (() => {
           for (const l of w.lanterns.slice(-2)) l.userData.bake = 1;
           const [ckx, ckz] = pts(ud.w / 2 - 0.6, ud.d / 2 + 0.8);
           pushInst(w.own || w.stat, 'cornstalk', 0, ckx, H(ckx, ckz) - 0.05, ckz, spec.rot, 0.9);
+          addSpot('corn', { x: ckx, z: ckz, r: 0.8, y: H(ckx, ckz) });
           const [pkx, pkz] = pts(-ud.w / 2 + 1.2, ud.d / 2 + 2.6);
           pushInst(w.own || w.stat, 'pumpkin', 2, pkx, H(pkx, pkz) - 0.02, pkz, spec.rot + 1, 1);
           rec.treat = true;
@@ -1118,6 +1144,7 @@ const World = (() => {
       if (!hasProp(type)) return;
       const own = w.own || w.stat, pr = Env.prop(type, variant);
       pushInst(own, type, variant, x, y, z, rot, s);
+      { const ps = propSpot(type, pr); if (ps) addSpot(ps.type, { x, z, r: (ps.r || 1) * s, y }, own); }
       if (col && pr.radius > 0) addCollider({ x, z, r: pr.radius * s }, own);
       for (const c of pr.colliders || []) { const [cx, cz] = toWorld(x, z, rot, c.x * s, c.z * s); addCollider({ x: cx, z: cz, r: c.r * s }, own); }
     }
@@ -2079,10 +2106,49 @@ const World = (() => {
       return null;
     };
     const tmpRing = new THREE.Vector3();
+    // food in town and the city: bread by benches and bakeries, hot dogs by the food carts and diners, pet food outside
+    // homes and the pet store (and only there)
+    const URBAN = {
+      bread: (h) => /bakery|cafe|diner|deli|grocery|general/.test(h.store || h.shop || ''),
+      hotdog: (h) => /diner|deli|pizza|grocery/.test(h.store || h.shop || ''),
+      petfood: (h) => h.kind === 'house' || /pet|vet/.test(h.store || h.shop || ''),
+    };
+    function urbanPoint(type, cx, cz, r0, r1) {
+      const near = (x, z) => { const d = Math.hypot(x - cx, z - cz); return d > r0 && d < r1; };
+      const anchors = [];
+      for (const h of w.houses) if (h.door && near(h.door.x, h.door.z) && URBAN[type](h)) anchors.push([h.door.x + Math.sin(h.door.yaw || 0) * 1.6, h.door.z + Math.cos(h.door.yaw || 0) * 1.6, 1.4]);
+      if (type === 'bread') for (const b of w.benches || []) if (!b.chair && near(b.x, b.z)) anchors.push([b.x + Math.sin(b.rot) * 1.2, b.z + Math.cos(b.rot) * 1.2, 1.6]);
+      if (type === 'hotdog') for (const v of w.vendors || []) if (near(v.x, v.z)) anchors.push([v.x, v.z, 2.5]);
+      if (!anchors.length) return null;
+      for (let k = 0; k < 6; k++) {
+        const [ax, az, rr] = anchors[(Math.random() * anchors.length) | 0], a = Math.random() * TAU, d = 0.4 + Math.random() * rr;
+        const x = ax + Math.cos(a) * d, z = az + Math.sin(a) * d, h = H(x, z);
+        tmpRing.set(x, 0, z);
+        if (w.dry(h, 0.15) && !w.collide(tmpRing, 0.15)) return { x, z, y: w.groundAt ? w.groundAt(x, z, h + 0.3) : h };
+      }
+      return null;
+    }
+    // where each kind of food comes from: a spot type (food lies around those spots), or nowhere in particular
+    const SPOT_FOOD = { apple: 'apple', acorn: 'acorn', pinecone: 'pinecone', berries: 'berries', carrot: 'carrot', pumpkin: 'pumpkin',
+      seeds: 'seeds', corn: 'corn', lettuce: 'lettuce', mushroom: 'mushroom', watermelon: 'watermelon', banana: 'banana', hay: 'hay' };
+    // these only show up by their spots (a cornfield, a garden bed, a melon patch, a banana plant, a hay bale)
+    const ONLY_AT_SPOTS = { carrot: 1, pumpkin: 1, apple: 1, corn: 1, lettuce: 1, watermelon: 1, banana: 1, hay: 1 };
     w.foodPoint = (type, cx, cz, r0, r1) => {
-      const spotType = { apple: 'apple', acorn: 'acorn', pinecone: 'pinecone', berries: 'berries', carrot: 'carrot', pumpkin: 'pumpkin' }[type];
+      const spotType = SPOT_FOOD[type];
       if (FOODS[type].water) { const p = w.ringPoint(cx, cz, r0, r1, true); return p ? { x: p.x, z: p.z, y: WATER - 0.22 - Math.random() * 0.15 } : null; }
-      if (spotType) {
+      if (URBAN[type]) return urbanPoint(type, cx, cz, r0, r1);
+      // leafy twigs lie under trees
+      if (type === 'twigs') {
+        for (let k = 0; k < 6; k++) {
+          const p = w.ringPoint(cx, cz, r0, r1, false); if (!p) break;
+          const t = w.treeNear ? w.treeNear(p.x, p.z, 10) : null; if (!t) continue;
+          const a = Math.random() * TAU, d = (t.r || 0.3) + 0.6 + Math.random() * 1.8, x = t.x + Math.cos(a) * d, z = t.z + Math.sin(a) * d, h = H(x, z);
+          tmpRing.set(x, 0, z);
+          if (w.dry(h, 0.15) && !w.collide(tmpRing, 0.15)) return { x, z, y: h };
+        }
+        return null;
+      }
+      if (spotType && w.spots[spotType]) {
         const list = w.spots[spotType].filter((s) => { const d = Math.hypot(s.x - cx, s.z - cz); return d > r0 - s.r && d < r1 + s.r; });
         if (list.length) {
           for (let k = 0; k < 8; k++) {
@@ -2094,8 +2160,8 @@ const World = (() => {
             if (w.dry(h, 0.15) && !w.collide(tmpRing, 0.15)) return { x, z, y: h };
           }
         }
-        if (spotType === 'carrot' || spotType === 'pumpkin' || type === 'apple') return null;
-      }
+        if (ONLY_AT_SPOTS[type]) return null;
+      } else if (ONLY_AT_SPOTS[type]) return null;
       const p = w.ringPoint(cx, cz, r0, r1, false);
       if (!p) return null;
       if (type === 'grass' && def.grassAt(p.x, p.z, p.h) < 0.2) return null;
