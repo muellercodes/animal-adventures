@@ -115,8 +115,10 @@ const CityLife = (() => {
     p.city = true; p.cs = 'walk'; p.storeH = null; p.bench = null; p.sitT = 0; p.pace = 1.05 + Math.random() * 0.35;
     // now and then someone is out walking their dog
     p.dog = null;
-    if (SPECIES.dog && !n.stop && Math.random() < 0.3 && C.list.filter((q) => q.dog).length < 6) {
-      p.dog = Wild.make('dog', 0.8 + Math.random() * 0.2, n.x + 0.8, n.z + 0.6, { state: 'leash', walker: p, home: { x: n.x, z: n.z }, range: 3, slot: Math.random() < 0.5 ? -1 : 1 });
+    // round 7: any of the dog breeds
+    if (!C.dogs) C.dogs = ['dog', 'lab', 'dalmatian', 'husky', 'beagle', 'chihuahua', 'dog'].filter((s) => SPECIES[s]);
+    if (C.dogs.length && !n.stop && Math.random() < 0.3 && C.list.filter((q) => q.dog).length < 6) {
+      p.dog = Wild.make(rnd(C.dogs), 0.8 + Math.random() * 0.2, n.x + 0.8, n.z + 0.6, { state: 'leash', walker: p, home: { x: n.x, z: n.z }, range: 3, slot: Math.random() < 0.5 ? -1 : 1 });
       if (p.dog.rig.setCollar) p.dog.rig.setCollar([0xb02a2a, 0x2a4fb0, 0x2a8a4a, 0xd08a20, 0x6a2a8a][(Math.random() * 5) | 0]);
       if (!p.leashH) p.leashH = new THREE.Object3D();
       if (p.rig.hold) p.rig.hold(p.leashH);

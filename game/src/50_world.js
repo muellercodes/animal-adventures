@@ -17,6 +17,8 @@ const World = (() => {
   // rules and placements for props that may not exist yet (made by the food kit in 38_food)
   const HASP = (t) => !!(Env._k && Env._k.PROPS[t]);
   const R7 = (list) => list.filter((o) => HASP(o.type));
+  // round 7 animals, only when they are in the game
+  const SP7 = (list) => list.filter((o) => typeof SPECIES !== 'undefined' && SPECIES[o.sp]);
   const BIG = { apartment: 1, office: 1, midrise: 1, storefront: 1 };   // city buildings: one draw each, always with shadows
   const dummy = new THREE.Object3D();
 
@@ -208,6 +210,10 @@ const World = (() => {
           // pests that sneak into the farmer's garden for carrots
           { sp: 'weasel', n: 2, home: [-8, -84], range: 22 },
           { sp: 'bunny', n: 2, home: [-2, -66], range: 18 },
+          // round 7: a farm dog and a barn cat, chickadees in the orchard and the park, an eagle over the lake
+          ...SP7([{ sp: 'dog', n: 1, home: [BARN.x + 12, BARN.z + 10], range: 14 }, { sp: 'cat', n: 1, home: [BARN.x - 6, BARN.z + 8], range: 10 },
+            { sp: 'chickadee', n: 4, home: [22, -76], range: 24 }, { sp: 'chickadee', n: 3, home: [Plan.CITY.x + 45, Plan.CITY.z - 15], range: 26 },
+            { sp: 'eagle', n: 1, home: [LAKE.x, LAKE.z], range: 40 }]),
         ],
         ambient: [{ sp: 'bunny', w: 3, kids: 1 }, { sp: 'deer', w: 2, kids: 1 }, { sp: 'squirrel', w: 2 }, { sp: 'fox', w: 1 }, { sp: 'raccoon', w: 1 }, { sp: 'hedgehog', w: 1 }, { sp: 'weasel', w: 1 }, { sp: 'duck', w: 2, water: true, kids: 3 }, { sp: 'swan', w: 1, water: true }, { sp: 'otter', w: 1, water: true }],
         foods: { grass: 4, worm: 3, apple: 3, carrot: 3, berries: 3, acorn: 2, pinecone: 1, smallfish: 3, fish: 2, pumpkin: AUTUMN ? 2 : 0,
@@ -281,6 +287,8 @@ const World = (() => {
           { sp: 'hedgehog', n: 2, home: [-20, 50], range: 30 },
           { sp: 'otter', n: 2, home: [LAKE.x, LAKE.z], range: 24, water: true },
           { sp: 'moose', n: 1, home: [LAKE.x - 30, LAKE.z - 20], range: 30 },
+          // round 7
+          ...SP7([{ sp: 'chickadee', n: 6, home: [0, 20], range: 50 }, { sp: 'eagle', n: 2, home: [LAKE.x, LAKE.z], range: 45 }]),
         ],
         ambient: [{ sp: 'squirrel', w: 3 }, { sp: 'deer', w: 2, kids: 1 }, { sp: 'fox', w: 2 }, { sp: 'owl', w: 2 }, { sp: 'bunny', w: 2 }, { sp: 'raccoon', w: 1 }, { sp: 'hedgehog', w: 1 }, { sp: 'moose', w: 1 }, { sp: 'otter', w: 1, water: true }],
         foods: { pinecone: 4, acorn: 2, berries: 3, worm: 3, grass: 1, smallfish: 2, fish: 2, mushroom: 4, bugs: 3, twigs: 3, seeds: 1 },
@@ -445,6 +453,9 @@ const World = (() => {
           { sp: 'squirrel', n: 3, home: [GIANT[0], GIANT[1]], range: 30 },
           { sp: 'goat', n: 3, kids: 1, home: [-30, 60], range: 30 },
           { sp: 'hedgehog', n: 2, home: [50, 10], range: 30 },
+          // round 7: rhinos on the open grass, hamsters in the fields, chickadees by the big tree
+          ...SP7([{ sp: 'rhino', n: 2, kids: 1, home: [-40, 80], range: 40 }, { sp: 'hamster', n: 4, home: [30, -20], range: 35 },
+            { sp: 'chickadee', n: 4, home: [GIANT[0], GIANT[1]], range: 24 }]),
         ],
         ambient: [{ sp: 'bunny', w: 3, kids: 2 }, { sp: 'deer', w: 2, kids: 1 }, { sp: 'fox', w: 1 }, { sp: 'goat', w: 1 }, { sp: 'hedgehog', w: 1 }, { sp: 'squirrel', w: 1 }, { sp: 'swan', w: 1, water: true }, { sp: 'duck', w: 1, water: true, kids: 3 }],
         foods: { grass: 4, berries: 3, apple: 2, acorn: 2, worm: 2, smallfish: 2, pumpkin: AUTUMN ? 1 : 0, seeds: 3, bugs: 3, corn: 2, watermelon: 2, lettuce: 1, hay: 2, twigs: 1 },
@@ -487,6 +498,8 @@ const World = (() => {
           { sp: 'parrot', n: 6, home: [0, 0], range: 24 },
           { sp: 'swan', n: 2, home: [64, -30], range: 9 },
           { sp: 'owl', n: 2, home: [-62, 32], range: 12 },
+          // round 7
+          ...SP7([{ sp: 'eagle', n: 2, home: [0, 0], range: 30 }]),
         ],
         ambient: [{ sp: 'parrot', w: 3 }, { sp: 'owl', w: 1 }, { sp: 'swan', w: 1 }],
         foods: { berries: 5, apple: 3, acorn: 1, worm: 1, grass: 2, seeds: 2, bugs: 2 },
@@ -1457,7 +1470,11 @@ const World = (() => {
       }
       if (any && r() < 0.5) puddle(M, X0 + (r() - 0.5), Z0 + (r() - 0.5), YS + 0.006, 2.2 + r(), r() * 3);
       // a cat that lives in the alleys of some blocks
-      if (typeof SPECIES !== 'undefined' && SPECIES.cat && b.open.n && b.open.s && b.open.w && b.open.e && hash2(b.c, b.r, 31) < 0.6) w.events.push({ kind: 'home', own: w.own.key, sp: 'cat', n: 1, home: [X0, Z0], range: 9 });
+      if (typeof SPECIES !== 'undefined' && SPECIES.cat && b.open.n && b.open.s && b.open.w && b.open.e && hash2(b.c, b.r, 31) < 0.6) {
+        // round 7: a tabby, a black cat, an orange cat or a calico
+        const cats = ['cat', 'blackcat', 'orangecat', 'calico'].filter((s) => SPECIES[s]);
+        w.events.push({ kind: 'home', own: w.own.key, sp: cats[(hash2(b.c, b.r, 37) * cats.length) | 0], n: 1, home: [X0, Z0], range: 9 });
+      }
     }
 
     /* the city park: paths, the fountain, the pond, a bandstand, a playground, trees, benches and lamps */
