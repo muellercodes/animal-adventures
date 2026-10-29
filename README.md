@@ -7,7 +7,7 @@ A game by Rosemary. Pick an animal, eat food, earn leaves, and explore six world
 ## How it plays
 
 - **Start animals:** duck, swan, chicken, tree frog, lizard (black with yellow spots), garter snake and bunny. All of them are free, and you can switch any time.
-- **Growing up:** every new animal starts as a baby. Birds, frogs, lizards and turtles hatch from an egg (tap to crack it open), and the others are born. Babies grow by eating, and a bird has to be more than half grown before it can fly. You can give each animal a nickname.
+- **Growing up:** every new animal starts as a baby. Birds, lizards and turtles hatch from an egg (tap to crack it open), and the others are born. Babies grow by eating, and a bird has to be more than half grown before it can fly. You can give each animal a nickname.
 - **Real animal moves:** bunnies, frogs and squirrels hop, snakes slither, ducks waddle and paddle, and the duck, swan, owl and parrot can fly. Animals that swim can go in the water, where the fish are. Frogs, lizards, squirrels, raccoons and cats can climb trees. Dogs and cats sit down when they stand still for a while, a dog wags its tail when it's happy, and a cat walks with its tail up.
 - **Taking care of your animal:** your tummy goes down over time. If it stays empty too long your animal catches a cold (sneezing, no running or flying) until it eats, sleeps or sees the vet.
 - **Food:** apples fall under apple trees, acorns under oaks, pine cones under pines, berries by bushes, carrots grow in the garden and fish swim in the ponds. Food your animal can eat glows. Walk up to it and tap Eat. Every animal has a favorite food that's worth more. Food your animal can't eat does nothing to you.

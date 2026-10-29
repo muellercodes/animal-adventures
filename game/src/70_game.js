@@ -358,7 +358,14 @@ function wakeUp() {
 }
 
 /* ---------- hatching and being born ---------- */
+// an egg that has not hatched yet goes away when you switch animals (that animal hatches next time you pick it)
+function clearHatch() {
+  const h = R.hatch; if (!h) return;
+  scene.remove(h.egg); scene.remove(h.nest); R.hatch = null;
+  if (Player.b) Player.b.rig.setVisible(true);
+}
 function beginLife(sp) {
+  clearHatch();
   const b = Player.b;
   if (SPECIES[sp].egg) {
     b.rig.setVisible(false);
@@ -562,6 +569,9 @@ function updateHud() {
   }
   const online = Net.open ? Net.count() : -1;
   if (h.online !== online) { h.online = online; const np = $('netPill'); np.hidden = online < 0; $('netCount').textContent = online; np.setAttribute('aria-label', online === 1 ? '1 other player here' : `${online} other players here`); }
+  // not signed in: a button to sign in and play with other people
+  const join = !!(API && !cloud.user);
+  if (h.join !== join) { h.join = join; $('netJoin').hidden = !join; }
   const hasHome = !!S.homes[S.animal];
   if (h.hasHome !== hasHome) { h.hasHome = hasHome; $('homeBtn').hidden = !hasHome; }
   // action buttons
@@ -737,6 +747,7 @@ function goHome() {
 }
 function switchAnimal(id) {
   if (!S.owned.includes(id)) return;
+  clearHatch();
   S.animal = id; hudState.name = null;
   closeSheet();
   for (const p of Folk.list) Folk.cancel(p);
@@ -944,6 +955,7 @@ document.addEventListener('click', (e) => {
     case 'map': openSheet('map'); break;
     case 'animals': openSheet('animals'); break;
     case 'settings': R.cloudForm = false; openSheet('settings'); break;
+    case 'playonline': R.cloudForm = true; openSheet('settings'); setTimeout(() => { const i = $('cName'); if (i) i.focus(); }, 50); break;
     case 'home': goHome(); break;
     case 'shop': R.shopTab = v || 'animals'; openSheet('shop'); break;
     case 'tab': R.shopTab = v; renderSheet(); break;

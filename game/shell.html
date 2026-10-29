@@ -53,6 +53,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--berry);outline-
 .stats{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;min-height:44px;font:900 18px/1 var(--display);font-variant-numeric:tabular-nums;white-space:nowrap}
 button.pill{cursor:pointer}
+.pill.join{font-size:15px;color:#5a2a8a}
 .pill svg{width:24px;height:24px;flex:none}
 .where{font-size:16px}
 .tag.net{font-size:13px;color:#F3E8FF;text-shadow:0 1px 0 #3A1F57,0 0 4px #3A1F57}
@@ -269,6 +270,7 @@ button.pill{cursor:pointer}
         <span id="moonIco" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 3.2A8.8 8.8 0 1 0 20.8 15 7 7 0 0 1 15.5 3.2Z" fill="#F4EBC0" stroke="#1D3124" stroke-width="2" stroke-linejoin="round"/></svg></span>
         <span class="clock-word" id="clockWord">Day</span><span id="clockText">12:00</span>
       </span>
+      <button class="pill online join" type="button" id="netJoin" hidden data-action="playonline" title="Sign in to play with other people"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="#8B4CC4" stroke="#1D3124" stroke-width="1.6"><ellipse cx="12" cy="16" rx="4.6" ry="3.8"/><circle cx="6" cy="11" r="2.1"/><circle cx="9.6" cy="7" r="2.1"/><circle cx="14.4" cy="7" r="2.1"/><circle cx="18" cy="11" r="2.1"/></g></svg><span>Play online</span></button>
       <span class="pill online" id="netPill" hidden title="Other players in this world"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="#8B4CC4" stroke="#1D3124" stroke-width="1.6"><ellipse cx="12" cy="16" rx="4.6" ry="3.8"/><circle cx="6" cy="11" r="2.1"/><circle cx="9.6" cy="7" r="2.1"/><circle cx="14.4" cy="7" r="2.1"/><circle cx="18" cy="11" r="2.1"/></g></svg><span id="netCount">0</span></span>
       <button class="pill gear" type="button" data-action="settings" aria-label="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 2.5h3.4l.5 2.6 1.7.8 2.3-1.4 2.4 2.4-1.4 2.3.8 1.7 2.6.5v3.4l-2.6.5-.8 1.7 1.4 2.3-2.4 2.4-2.3-1.4-1.7.8-.5 2.6h-3.4l-.5-2.6-1.7-.8-2.3 1.4-2.4-2.4 1.4-2.3-.8-1.7-2.6-.5v-3.4l2.6-.5.8-1.7-1.4-2.3 2.4-2.4 2.3 1.4 1.7-.8Z" fill="#FFFFFF" stroke="#1D3124" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.4" fill="#FFC83A" stroke="#1D3124" stroke-width="1.8"/></svg></button>
     </div>
