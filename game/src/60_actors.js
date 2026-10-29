@@ -3,6 +3,9 @@ const G = { scene: null, world: null, camera: null, t: 0, night: 0, ui: null, so
 const V3 = THREE.Vector3;
 const tmpV = new V3();
 const canEat = (sp, type) => type === 'candy' || SPECIES[sp].eats.includes(type);
+// foods the scenery kit can make (a food in the list without a model yet is skipped)
+const FOOD_OK = {};
+const foodOK = (type) => { if (FOOD_OK[type] === undefined) { try { Env.food(type); FOOD_OK[type] = true; } catch (e) { FOOD_OK[type] = false; } } return FOOD_OK[type]; };
 const UPRIGHT = { duck: 1, swan: 1, chicken: 1, owl: 1, parrot: 1 };
 const FEAR = { chicken: 3, duck: 4.5, swan: 3, frog: 2.5, lizard: 3, snake: 2, bunny: 5, squirrel: 4.5, turtle: 1.5, fox: 6, owl: 5, deer: 10, parrot: 4, moose: 0,
   horse: 6, pig: 3, goat: 4, otter: 4, hedgehog: 2, raccoon: 4, weasel: 4, dog: 1.5, cat: 4 };
@@ -748,7 +751,7 @@ const Folk = {
           p.timer -= dt; crouch = 1; reach = 1; p.speed = damp(p.speed, 0, 8, dt); this.face(p, dt, P.pos.x, P.pos.z);
           if (!p.gave && p.timer < 1.0) {
             p.gave = true; p.offerT = 25;
-            const sp = SPECIES[P.sp], land = sp.eats.filter((f) => !FOODS[f].water);
+            const sp = SPECIES[P.sp], land = sp.eats.filter((f) => !FOODS[f].water && foodOK(f));
             const type = land.includes(sp.fav) ? sp.fav : land[(Math.random() * land.length) | 0];
             const fx = Math.sin(p.yaw), fz = Math.cos(p.yaw), x = p.pos.x + fx * 0.6, z = p.pos.z + fz * 0.6;
             Foods.add(type, x, z, w.H(x, z), true);
@@ -923,7 +926,7 @@ const Homes = {
     const day = nightNo();
     if (rm.bowlDay === day || Foods.list.some((f) => f.bowl === rm)) return;
     rm.bowlDay = day;
-    const sp = SPECIES[Player.sp], land = sp.eats.filter((f) => !FOODS[f].water);
+    const sp = SPECIES[Player.sp], land = sp.eats.filter((f) => !FOODS[f].water && foodOK(f));
     const type = land.includes(sp.fav) ? sp.fav : (land[0] || sp.eats[0]);
     const f = Foods.add(type, rm.bowl.x, rm.bowl.z, 0.06, true);
     f.bowl = rm;
@@ -1115,7 +1118,7 @@ const Foods = {
       if (f.gift) continue;
       if (Math.hypot(f.x - P.pos.x, f.z - P.pos.z) > r1 * 1.7) { this.removeObj(f); this.list.splice(i, 1); }
     }
-    const weights = Object.entries(w.def.foods).filter(([, n]) => n > 0);
+    const weights = Object.entries(w.def.foods).filter(([t, n]) => n > 0 && foodOK(t));
     const outdoors = this.list.filter((f) => !f.bowl && f.x < World.ROOM_X - 20);
     const land = outdoors.filter((f) => !f.fish).length, fish = outdoors.length - land;
     const sp = SPECIES[P.sp];
