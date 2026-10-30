@@ -1,7 +1,8 @@
 /* ---------- food kit: more foods, and the plants and things they come from ----------
    Adds to Env. Uses the scenery kit from 35_envkit through Env._k. Units are meters, Y up, base at y = 0.
    Foods for Env.food(type), registered with Env.addFood. Each is a group named 'food-<type>' sitting on the ground at its
-   origin, about life size. They share one material and one 256 px canvas atlas (the hay shares the hay bale's straw):
+   origin, about life size. They share one material and one 256 px canvas atlas (the hay has its own 128 px loose hay
+   texture). The hook in 35_envkit is Env.addFood(type, make, { setup, update }):
      seeds       a broken piece of a sunflower head, loose striped seeds and a few hulled ones
      corn        an ear of corn, half husked (husk leaves peeled back, silk at the tip)
      lettuce     a head of green leaf lettuce
@@ -16,7 +17,8 @@
      petfood     a red plastic pet bowl of kibble, a few pieces spilled
      hay         a small loose pile of hay
    Props for Env.prop(type, variant), instanced like the kit's plants, base at y = 0. Each has spot: { type, r }: the food
-   that appears around it and how far out (meters at scale 1), and radius or colliders [{ x, z, r }]:
+   that appears around it and how far out (meters at scale 1), radius or colliders [{ x, z, r }], and sink: how deep to
+   set it in the ground (the ones with seed, leaves or vines lying on the ground want little or none):
      sunflower (2)  a patch of tall nodding sunflowers                 spot seeds
      birdfeeder     a wooden hopper feeder on a post, seed spilled      spot seeds
      cornrow        a short hilled row of ripe corn plants with ears   spot corn
@@ -27,7 +29,7 @@
    Foliage sways like the kit's plants. Sunflower, corn and melon leaves take autumn colors (the corn dries to tan). */
 (() => {
   const K = Env._k;
-  const { TAU, V3, clamp, lerp, smooth, rng, fbm, L, mixc, mulc, prep, paint, merge, smoothNormals, boxUV, eachVertex, soup, path, tube,
+  const { TAU, V3, clamp, lerp, smooth, rng, fbm, L, mixc, mulc, prep, paint, merge, smoothNormals, boxUV, soup, path, tube,
     canvasTex, gray, mat, TX, PROPS, VARIANTS, boxG, rrect } = K;
   const PI = Math.PI, DS = THREE.DoubleSide;
 
@@ -258,17 +260,6 @@
     g.attributes.uv.needsUpdate = true;
     return g;
   }
-  // planar uvs in a cell from x and -z (or x and y), size meters across the cell, centered at (cx, cz)
-  function planar(g, cell, cx, cz, size, xy) {
-    g = prep(g);
-    const p = g.attributes.position.array, a = g.attributes.uv.array;
-    for (let i = 0; i < a.length / 2; i++) {
-      const uv = cu(cell, 0.5 + (p[i * 3] - cx) / size, 0.5 + ((xy ? p[i * 3 + 1] : -p[i * 3 + 2]) - cz) / size);
-      a[i * 2] = uv[0]; a[i * 2 + 1] = uv[1];
-    }
-    g.attributes.uv.needsUpdate = true;
-    return g;
-  }
   function ico(rad, d, x, y, z, sx, sy, sz, col) {
     const g = prep(new THREE.IcosahedronGeometry(rad, d));
     g.scale(sx, sy, sz); g.translate(x, y, z);
@@ -455,7 +446,7 @@
     const kuv = (j, i, du) => cu(UV.kernel, ((j % 6) + du) / 6, ts[i]);
     const tipC = (i) => (ts[i] > 0.9 ? L(0xf0e6c0) : [1, 1, 1]);
     for (let i = 0; i < ts.length - 1; i++) for (let j = 0; j < seg; j++) {
-      S4(cob, P(i, j), P(i + 1, j), P(i + 1, j + 1), P(i, j + 1), tipC(i), tipC(i + 1), tipC(i + 1), tipC(i), kuv(j, i, 0), kuv(j, i + 1, 0), kuv(j, i + 1, 1), kuv(j, i, 1));
+      cob.quad(P(i, j), P(i + 1, j), P(i + 1, j + 1), P(i, j + 1), tipC(i), tipC(i + 1), tipC(i + 1), tipC(i), kuv(j, i, 0), kuv(j, i + 1, 0), kuv(j, i + 1, 1), kuv(j, i, 1));
     }
     // the cut end of the cob
     const ctr = new V3(0, R, 0), pithC = L(0xd8cc9a);
@@ -497,8 +488,6 @@
     g.translate(-LEN / 2 + 0.02, 0, 0);
     return [{ geo: g, mat: FM() }];
   }
-  // quad with explicit uvs (shorthand)
-  function S4(S, a, b, c, d, ca, cb, cc, cd, ua, ub, uc, ud) { S.quad(a, b, c, d, ca, cb, cc, cd, ua, ub, uc, ud); }
 
   /* ---------- lettuce ---------- */
   // a head of leaf lettuce: rings of cupped, ruffled leaves, dark and open outside, pale and closed in the middle.
@@ -985,8 +974,8 @@
     }
     return {
       parts: [
-        { geometry: merge(stalks), material: plantM('sun', 0.12, 0.006), castShadow: true },
-        { geometry: upN(leafS.geo(true), 0.35), material: plantM('sunLeaf', 0.12, 0.006, FALL38.sun), castShadow: true },
+        { geometry: merge(stalks), material: plantM('sun', 0.12, 0.01), castShadow: true },
+        { geometry: upN(leafS.geo(true), 0.35), material: plantM('sunLeaf', 0.12, 0.01, FALL38.sun), castShadow: true },
       ],
       radius: 0, colliders: cols, spot: { type: 'seeds', r: 1.0 }, sink: 0.05,
     };
@@ -1066,7 +1055,7 @@
     const leafW = tab([0, 0.1, 0.5, 0.85, 1], [0.35, 0.85, 1, 0.6, 0.0]);
     for (const x0 of [-1.1, -0.55, 0, 0.55, 1.1]) {
       const x = x0 + (r() - 0.5) * 0.1, z = (r() - 0.5) * 0.1, H = 2.0 + r() * 0.4, lx = (r() - 0.5) * 0.08, lz = (r() - 0.5) * 0.08;
-      cols.push({ x, z, r: 0.08 });
+      cols.push({ x: +x.toFixed(3), z: +z.toFixed(3), r: 0.08 });
       const sp = path([new V3(x, -0.02, z), new V3(x + lx * 0.4, H * 0.5, z + lz * 0.4), new V3(x + lx, H, z + lz)], 4);
       parts.push(pipe(sp, (i, t) => lerp(0.022, 0.011, t), (t) => mixc(L(0x56762e), L(0x7a9a42), t), 5));
       // brace roots
@@ -1242,7 +1231,7 @@
       gs.push(g);
       const e = new V3(Math.cos(yaw) * len * 0.5, dia * 0.6, -Math.sin(yaw) * len * 0.5).add(new V3(x, -0.01, z));
       gs.push(pipe([e, e.clone().add(new V3(Math.cos(yaw) * 0.03, 0.01, -Math.sin(yaw) * 0.03)), e.clone().add(new V3(Math.cos(yaw) * 0.05, -0.02, -Math.sin(yaw) * 0.05 + 0.01))], 0.005, L(0x6a7a3a), 4));
-      cols.push({ x, z, r: Math.max(0.1, len * 0.45) });
+      cols.push({ x, z, r: +Math.max(0.1, len * 0.45).toFixed(3) });
     }
     return {
       parts: [
