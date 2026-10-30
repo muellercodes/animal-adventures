@@ -4849,6 +4849,10 @@ void main() {
   }
 
   const FOODS = { pumpkin: foodPumpkin, candy: foodCandy, apple: foodApple, worm: foodWorm, smallfish: () => foodFish(true), fish: () => foodFish(false), grass: foodGrass, berries: foodBerries, carrot: foodCarrot, pinecone: foodPinecone, acorn: foodAcorn };
+  // more foods from later modules (38_food): make() returns parts like the ones above ([{ geo, mat, name }]);
+  // o.setup(root) runs on each new food group, o.update(root, t) runs from foodUpdate
+  const FOOD_EXT = {};
+  function addFood(type, make, o = {}) { FOODS[type] = make; FOOD_EXT[type] = o; delete foodCache[type]; }
   function food(type) {
     const make = FOODS[type];
     if (!make) throw new Error('Env.food: unknown type ' + type);
@@ -4866,6 +4870,7 @@ void main() {
       if (p.name === 'fish') root.userData.fish = m;
     }
     root.userData.phase = Math.random() * TAU;
+    if (FOOD_EXT[type] && FOOD_EXT[type].setup) FOOD_EXT[type].setup(root);
     return root;
   }
   function foodUpdate(obj, t) {
@@ -4883,6 +4888,8 @@ void main() {
       f.position.y = Math.sin(t * 1.3 + ph) * 0.01;
       if (u.tail) u.tail.rotation.y = -Math.sin(t * 8.0 + ph - 0.9) * 0.5;
     }
+    const ext = FOOD_EXT[u.foodType];
+    if (ext && ext.update) ext.update(obj, t);
   }
 
 
@@ -7200,7 +7207,7 @@ void main() {`);
   return {
     _k: KIT,
     prop, barn, fence, garden, grass, water, waterUniforms, sky, clouds, cloudSea, rainbow, fireflies,
-    glowTexture, leafTexture, food, foodUpdate,
+    glowTexture, leafTexture, food, foodUpdate, addFood,
     wind: windU,
     get propTypes() { return Object.keys(PROPS); },
     propVariants: (type) => VARIANTS[type] || 1,
