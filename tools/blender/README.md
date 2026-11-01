@@ -509,7 +509,7 @@ Dog (`VOXEL=0.0035 TRIS=5000 TEX=1024`, then rings across the body and neck and 
 maps, 256 x 256 strand texture: 76 KB mesh and cards + 58 + 34 + 15 + 9 + 38 KB, about 312 KB in the page. Fur shells at detail
 2: 5 layers. About 30 minutes on the shared machine (the coat strokes make `texture` take 12 of them).
 
-Cat (`VOXEL=0.0025 TRIS=4200 TEX=1024`, then rings across the body and neck and along the tail): 6.9k triangles plus 192
+Cat (`VOXEL=0.0025 TRIS=4200 TEX=1024`, then rings across the body and neck and along the tail): 7.0k triangles plus 192
 in the whiskers; 1024 color and normal maps, 512 fur map, 384 kitten color map, 96 x 128 strand texture: 67 KB mesh and
 cards + 62 + 27 + 13 + 14 + 6 KB, about 258 KB in the page. Fur shells at detail 2: 4 layers.
 
@@ -529,3 +529,90 @@ Chickadee (`VOXEL=0.0005 TRIS=6000 TEX=768`): 6.0k body triangles, 8.0k in the g
 Rhino (`VOXEL=0.0085 TRIS=7600 WEIGHTS=transfer TEX=1024`, `PAD_SMOOTH = 3`, normal map WebP 56): 7.6k triangles
 (8.3k in the game with the eyes, 8.6k at detail 2); 1024 color and normal maps, 512 calf color map: 56 KB mesh (with
 the calf's horn nub offsets) + 44 + 117 + 4 KB, about 297 KB in the page. About 25 minutes on the shared machine.
+
+cards + 58 + 26 + 14 + 15 + 6 KB, about 249 KB in the page. Fur shells at detail 2: 4 layers.
+
+Coat variants on the cat's mesh (`python tools/blender/coat.py <id>`, about 4 minutes each): black cat 25 KB color + 1 KB
+kitten color + 5 KB whisker strands, about 44 KB in the page; orange cat 57 + 12 KB, about 93 KB; calico (both sides,
+2048 x 1024 and 768 x 384) 113 + 22 KB, about 180 KB.
+
+Siamese (`VOXEL=0.0025 TRIS=4200 TEX=1024`): 7.0k triangles plus 192 in the whiskers; 66 KB mesh and cards + 45 + 29 + 10
++ 4 + 6 KB, about 216 KB in the page. Fluffy white cat (same settings): 5.9k triangles plus 192; 59 KB + 30 + 40 + 15 +
+3 + 6 KB, about 203 KB; fur shells at detail 2: 6 layers, at detail 1: 2.
+
+Hamster (`VOXEL=0.0008 TRIS=5200 TEX=768`, then rings across the body): 7.6k triangles plus 128 in the whiskers; 768
+color and normal maps, 384 fur map, 256 pup color map: 59 KB mesh and cards + 39 + 14 + 8 + 5 + 4 KB, about 178 KB in
+the page. Fur shells at detail 2: 4 layers.
+
+## More cats and a hamster (round 7: `cat.py` as a template, `coat.py`, `hamster.py`)
+
+Five more cats (`blackcat`, `orangecat`, `calico`, `siamese`, `whitecat`) and a Syrian hamster. The tabby got its fixes
+on the way (see "The tabby, second pass").
+- `cat.py` is a template for the other cats: a breed file sets `BREED` (overrides for the named settings `cat.py`
+  reads with `_o()`: the loft tables, eye, nose, mouth and ear placement, the part boxes `BOX`, bounds), runs
+  `cat.py` in its own module (`exec`) and then replaces the functions it needs (`head`, `trunk`, `paint`, `fur`,
+  `meta`, ...). Every function looks names up in the module it runs in, so a replaced `head()` is the one `shape()`,
+  `parts()` and the paint masks use. Settings only read at call time (`PATCHES`, `FUR`, `KITTEN`, colors) can simply
+  be reassigned after the `exec`.
+- Coat variants share a mesh (`coat.py`): `blackcat.py`, `orangecat.py` and `calico.py` set `BASE = 'cat'` and only
+  paint. `python tools/blender/coat.py blackcat` (Blender's Python, after the cat's own pipeline) reads the cat's work
+  files (game mesh, UV layout, bake), runs the variant's `paint()` and `baby_paint()` and writes its color maps and a
+  json naming `"base": "cat"`. The game takes the mesh, skin weights, fur, cards and every map the variant does not
+  bring (normal, fur, hair) from the base model, so a variant costs only its color maps (black cat 32 KB, orange cat
+  and calico about 90 KB in the page). Options: `OWN_HAIR` (its own whisker strands: the black cat's are dark),
+  `OWN_FUR`, `COAT_FUR` (fur settings over the base's), and in `meta()` `roughK` (scales the shared roughness).
+  Rerun the variants whenever the base model is rebuilt: their maps use its UV layout.
+- `SIDES` (the calico): the game mirrors one half of the body, so a painted pattern is the same on both sides, which
+  a calico's patches never are. `coat.py` then paints the -x side too (the paint at mirrored points) into maps twice
+  as wide (+x left, -x right) and the json says `"sides": true`; the model shader picks the half by the side of the
+  vertex in the rest pose and samples with the derivatives of the whole layout, so the middle line has no seam. Only
+  the color maps double; the normal and fur maps stay shared.
+- A black coat that does not read as a hole: a warm black, not pure black, with coat strokes whose tips catch the light,
+  a faint rusty cast along the back. A variant's paint roughness is not used (the roughness per vertex comes with the
+  shared mesh); `roughK` scales it: 1.08 for the black cat, whose highlights show more on the dark coat (at 0.84 it
+  looked like black plastic).
+- The Siamese (`siamese.py`): a slimmer trunk and neck, slender legs with small oval paws, a thin whip tail, a long
+  wedge head (the top line runs straight from the crown to the nose, the sides narrow evenly, flat cheeks, narrow
+  whisker pads), big ears set low and wide (the ear bone moves with them: the species' spec in the game), almond eyes
+  slanted up (`SLANT` 0.3) sunk deeper (`SINK` 0.58: on the narrow head the game's eye ball stood out of the lids) with
+  the game's lids drawn as an almond (`lid` in `meta()`). The points come from 3D masks: the mask over the whole face
+  (the lids and the skin round the eyes are not part of the head's own field, so they need their own ring), the ears,
+  the legs from the elbows and hocks down, the tail. Short close-lying coat: the cat's fur lengths times 0.45, `lean`
+  2.2. Kittens are nearly all cream with the first faint fawn-gray on the ears, nose and tail.
+- The fluffy white cat (`whitecat.py`): the sculpt is the body inside the coat plus the coat's volume, since far away
+  (no shells) the silhouette has to be fluffy by itself: about 11 mm over the trunk, a ruff around the neck that falls
+  over the chest, britches, a plumed tail, stockier legs, soft clumps of locks over all of it (`_locks()`, a low
+  frequency noise of a few mm) and wider blends (its own `shape()`), so the coat runs smoothly over the shoulders and
+  thighs. A round head with full cheeks and a short broad muzzle, big round copper eyes set wide, small ears with
+  rounded tips set wide and low (a finer grid in height across them too: the small round tips came out saw-toothed).
+  Long fur shells close up (`len` 0.038, 6 layers, `lean` 0.55, a darker lowest layer `shade` 0.6 for depth) and 2
+  layers at detail 1 (`n1`). White whiskers (its own strand texture).
+- The tabby's `grid()` (finer z and x spacing across the ears) suits every cat; the ears of a cat are thin plates
+  facing forward, and on the plain 2.5 mm grid they came out torn, which showed as ragged spikes in the game.
+
+### The tabby, second pass
+
+- Ears: thicker plates (3.5 to 1.6 mm), the finer grid across them, more triangles kept on them, and no fur shells
+  along their rims (only a little at the base and in the middle of the inside): the ragged spikes are gone.
+- Eyes: a smaller, more almond opening (`LID_W` 0.0079, `LID_H` 0.0055, `SLANT` 0.21) and a narrower, fainter pale ring
+  round them. Eyebrow whiskers shorter and pale (long ones with dark roots read as spikes over the ears).
+- Coat: the necklaces thinner, fewer and broken, the nape lines and belly spots softer (the neck and chest read as a
+  zebra's).
+- Kittens: bold fuzzy stripes (a tabby kitten's pattern is clear, the first one was washed out), the top of the thigh
+  pulled in against the body in the baby offsets (it stood out over the hip once the game shortened the legs), and in
+  the game a shorter body and legs that do not thicken (`modelSpec.baby`).
+- Sitting: the tail curls round to the front paws (`sit.wrap` in the game: each tail bone turns its segment toward a
+  direction on the ground, in the rig's frame, blended in with the sit).
+
+### The hamster (`hamster.py`)
+
+A Syrian (golden) hamster, 15 cm: a round compact body with the belly close to the ground, a big head that runs into the
+body, full cheek pouches, small round thin ears, shiny black bulging eyes, a small pink nose over a split lip,
+whiskers, short legs (only the forearms, the little pink hands with four fingers and the long pink hind feet show) and a
+stub of a tail. Golden with darker ticking along the back, white belly, chest, chin and lower cheeks, a dark cheek
+flash behind each pouch. Things that are new:
+- Cheek pouches: cheek bones (`cheekL`, `cheekR`, children of the head) and the pouch skin weighted to them; the game
+  scales them up as the hamster eats (`anim.cheeks`, `cheekPuff`: they fill while it eats and empty over about 14 s).
+- Eating sitting up (`anim.eatUp`): it grabs the food with its head down, then sits up on its hind legs with its front
+  paws at its mouth and nibbles (the sit-up pose and `sitPaws`), and drops back down at the end.
+- A tiny animal: `VOXEL=0.0008`, bake distances in millimeters (`BAKE_DIST`), maps at 768, eyes 3.4 mm across.

@@ -1,0 +1,142 @@
+{
+ "v": 2,
+ "id": "siamese",
+ "data": "siamese.bin",
+ "enc": "deflate",
+ "raw": 100383,
+ "maps": {
+  "color": "siamese-color.webp",
+  "normal": "siamese-normal.webp",
+  "babyColor": "siamese-baby.webp",
+  "fur": "siamese-fur.webp",
+  "hair": "siamese-hair.webp"
+ },
+ "nv": 2667,
+ "ntri": 3497,
+ "nbv": 2667,
+ "nbt": 3497,
+ "bbox": [
+  -0.063534,
+  0.000601,
+  -0.459775,
+  0.063534,
+  0.346079,
+  0.284448
+ ],
+ "bones": [
+  "hips",
+  "rump",
+  "chest",
+  "neck",
+  "neck2",
+  "head",
+  "tail1",
+  "tail2",
+  "tail3",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "earL",
+  "earR",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.01453,
+   0.29215,
+   0.24064
+  ],
+  "r": 0.0085,
+  "dir": [
+   0.3598,
+   0.08,
+   0.9296
+  ],
+  "lid": [
+   0.62,
+   -0.5,
+   0.3
+  ],
+  "iris": 3047644,
+  "irisR": 0.97,
+  "pupil": "v",
+  "pupilR": 0.42,
+  "rim": 1718896,
+  "lidCol": 4667179,
+  "babyLidCol": 13155496,
+  "babyIris": 6986458
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "neck2",
+   0.75
+  ],
+  "lift": 0.5
+ },
+ "belly": [
+  0.0,
+  0.142,
+  -0.07
+ ],
+ "mouth": [
+  0.0,
+  0.2605,
+  0.2719
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.18,
+  0.14,
+  0.1
+ ],
+ "flat": 15129796,
+ "fur": {
+  "len": 0.014,
+  "n": 4,
+  "lean": 2.2,
+  "tile": 0.001,
+  "babyLen": 2.2,
+  "babyLean": 0.6,
+  "shade": 0.76,
+  "uvm": 0.5491
+ },
+ "cards": {
+  "nv": 240,
+  "ntri": 192,
+  "bbox": [
+   -0.083238,
+   0.245382,
+   0.235524,
+   0.083238,
+   0.319743,
+   0.264869
+  ],
+  "bscale": 1e-06,
+  "rough": 0.45,
+  "alpha": 0.35
+ },
+ "bdelta": 0.019996
+}

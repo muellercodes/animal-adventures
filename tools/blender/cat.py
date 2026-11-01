@@ -1,46 +1,60 @@
 # A brown mackerel tabby house cat, sculpted as a signed distance field around the game's cat skeleton
 # (tools/blender/work/cat-rig.json). Units are meters in game rig space (x left, y up, z forward, ground at y = 0).
 # Shape first (a supple body with a loose belly, slim legs on small round paws, a long tail of even thickness, a round
-# head with wide cheeks and whisker pads, a short muzzle, big forward facing eyes and tall ears wide at the base), then
+# head with wide cheeks and whisker pads, a short muzzle, forward facing eyes and tall ears wide at the base), then
 # the tabby coat: a warm ticked brown with black mackerel stripes, the M on the forehead, lines from the eyes over the
 # cheeks, necklaces, barred legs, a ringed tail with a dark tip, a pale chin and belly, the brick red nose. Fur shells
-# for the short dense coat, hair cards for the whiskers and the ear furnishings. Kittens get a rounder little body
-# (baby offsets), a fluffier grayer coat with softer stripes, and blue eyes.
+# for the short dense coat, hair cards for the whiskers. Kittens get a rounder little body (baby offsets), a fluffier
+# coat with bold fuzzy stripes, and blue eyes.
+#
+# The other cats use this file as a template: siamese.py, whitecat.py and the coat variants (blackcat.py,
+# orangecat.py, calico.py) set BREED, a dict of overrides for the named settings below (read with _o()), then run this
+# file in their own module (exec) and replace the functions they need (paint, fur, head, ...). Every function here
+# looks up names in the module it runs in, so an override reaches all of them.
 import numpy as np
 from sdf import V, F, nrm, smin, smax, sstep, sat, ellipsoid, superellipsoid, round_cone, loft, sweep, fbm, vnoise, worley, length
 import carnivore as CV
 from carnivore import local, local_n, mirror, groove, mix, hexc, rnd, wsum
 
-ID = 'cat'
-BOUNDS = (V(-0.075, 0.0, -0.46), V(0.075, 0.36, 0.29))
+_BR = globals().get('BREED', {})
+
+
+def _o(name, default):
+    """a breed's override of a named setting, or the tabby's"""
+    return _BR.get(name, default)
+
+
+ID = _o('ID', 'cat')
+BOUNDS = _o('BOUNDS', (V(-0.075, 0.0, -0.46), V(0.075, 0.36, 0.29)))
 BAKE_DIST = (0.003, 0.009, 0.022)
 DISSOLVE_DEGENERATE = True
 TAIL_RINGS = 0
 
 # ---------- landmarks (left side, +x) ----------
-HF = CV.Frame(V(0.0, 0.292, 0.178), V(0.0, -0.074, 1.0), V(0.0, 1.0, 0.0))
-EYE = CV.Eye(HF.pt(0.066, 0.0055, 0.0178), 0.0094, V(0.33, 0.07, 0.94), lid_w=0.0086, lid_h=0.0064, off=0.0004, slant=0.16,
-             mound=(0.0016, 0.0014, 0.0006), sink=0.42)
-NOSE_S = 0.096
-MOUTH = HF.pt(0.086, -0.026)
-EAR_B = V(0.0245, 0.305, 0.197)
-EAR_A = nrm([0.38, 0.92, -0.04])
-EAR_N = nrm([0.38, -0.08, 0.92])
+HF = _o('HF', CV.Frame(V(0.0, 0.292, 0.178), V(0.0, -0.074, 1.0), V(0.0, 1.0, 0.0)))
+# the eye: a little smaller and more almond shaped than at first (it read as a big round cartoon eye)
+EYE = CV.Eye(HF.pt(*_o('EYE_AT', (0.066, 0.0055, 0.0178))), _o('EYE_R', 0.0094), _o('EYE_D', V(0.33, 0.07, 0.94)), lid_w=_o('LID_W', 0.0079),
+             lid_h=_o('LID_H', 0.0055), off=_o('LID_OFF', 0.0005), slant=_o('SLANT', 0.21), mound=(0.0016, 0.0014, 0.0006), sink=_o('SINK', 0.42))
+NOSE_S = _o('NOSE_S', 0.096)
+MOUTH = HF.pt(*_o('MOUTH_AT', (0.086, -0.026)))
+EAR_B = _o('EAR_B', V(0.0245, 0.305, 0.197))
+EAR_A = nrm(_o('EAR_A', [0.38, 0.92, -0.04]))
+EAR_N = nrm(_o('EAR_N', [0.38, -0.08, 0.92]))
 EAR_N = nrm(EAR_N - EAR_A * np.dot(EAR_N, EAR_A))
-EAR_L, EAR_W = 0.046, 0.0205
+EAR_L, EAR_W = _o('EAR_L', 0.046), _o('EAR_W', 0.0205)
 XF, XH = 0.038, 0.041
 PAW_F = V(XF, 0.0, 0.106)
 PAW_H = V(XH, 0.0, -0.152)
-PATCHES = [
+PATCHES = _o('PATCHES', [
     (EYE.c * V(0, 1, 1) + V(0.006, -0.014, -0.014), EYE.c * V(0, 1, 1) + V(0.032, 0.014, 0.016), 0.0003),   # eye and lids
     (HF.pt(0.07, 0.0) * V(0, 1, 1) + V(0.0, -0.045, -0.004), HF.pt(0.102, 0.0) * V(0, 1, 1) + V(0.024, 0.012, 0.004), 0.0003),  # muzzle
     (V(0.006, 0.296, 0.175), V(0.05, 0.356, 0.218), 0.0004),                                                   # ear
     (V(0.016, -0.001, 0.08), V(0.06, 0.02, 0.124), 0.0004),                                                    # front paw
     (V(0.018, -0.001, -0.18), V(0.064, 0.02, -0.13), 0.0004),                                                  # hind paw
-]
+])
 
 # trunk: z, top, yw (height of widest), bottom, half width, exponents
-TRUNK = [
+TRUNK = _o('TRUNK', [
     (-0.205, 0.222, 0.205, 0.188, 0.018, 2.0, 2.0),
     (-0.19, 0.234, 0.206, 0.172, 0.036, 2.1, 2.0),
     (-0.16, 0.243, 0.208, 0.163, 0.047, 2.2, 2.0),
@@ -52,16 +66,16 @@ TRUNK = [
     (0.1, 0.241, 0.195, 0.125, 0.045, 2.2, 2.0),
     (0.125, 0.233, 0.193, 0.138, 0.039, 2.1, 2.0),
     (0.14, 0.222, 0.192, 0.155, 0.029, 2.0, 2.0),
-]
-NECK = [
+])
+NECK = _o('NECK', [
     (0.2, 0.09, 0.04, 0.046, 0.04, 2.0, 2.0),
     (0.222, 0.135, 0.032, 0.039, 0.034, 2.0, 2.0),
     (0.248, 0.163, 0.027, 0.031, 0.029, 2.0, 2.0),
     (0.274, 0.181, 0.024, 0.026, 0.026, 2.0, 2.0),
     (0.29, 0.188, 0.02, 0.022, 0.022, 2.0, 2.0),
-]
+])
 # head: along the head frame (s), top, height of widest, bottom, half width, exponents above, below
-HEAD = [
+HEAD = _o('HEAD', [
     (-0.006, 0.016, 0.0, -0.019, 0.02, 2.2, 2.0),
     (0.008, 0.026, -0.002, -0.027, 0.032, 2.5, 2.0),
     (0.024, 0.031, -0.004, -0.031, 0.0375, 2.6, 2.0),
@@ -71,8 +85,8 @@ HEAD = [
     (0.077, 0.012, -0.012, -0.03, 0.023, 2.2, 2.3),
     (0.087, 0.006, -0.013, -0.027, 0.018, 2.2, 2.2),
     (0.094, 0.0, -0.013, -0.022, 0.012, 2.1, 2.1),
-]
-FORE = [
+])
+FORE = _o('FORE', [
     (0.205, 0.118, 0.025, 0.028, 0.02, 2.0, 2.0, 0.03),
     (0.175, 0.112, 0.024, 0.027, 0.019, 2.0, 2.0, 0.034),
     (0.14, 0.092, 0.019, 0.024, 0.016, 2.1, 2.1, 0.037),
@@ -82,8 +96,8 @@ FORE = [
     (0.032, 0.089, 0.0094, 0.0094, 0.0098, 2.2, 2.2, 0.038),
     (0.02, 0.094, 0.0088, 0.0088, 0.0094, 2.2, 2.2, 0.038),
     (0.012, 0.098, 0.009, 0.009, 0.0096, 2.2, 2.2, 0.038),
-]
-HIND = [
+])
+HIND = _o('HIND', [
     (0.215, -0.14, 0.033, 0.038, 0.025, 2.0, 2.0, 0.03),
     (0.18, -0.13, 0.034, 0.04, 0.027, 2.0, 2.0, 0.036),
     (0.145, -0.108, 0.025, 0.033, 0.021, 2.1, 2.0, 0.04),
@@ -93,10 +107,10 @@ HIND = [
     (0.04, -0.168, 0.0092, 0.0092, 0.0098, 2.2, 2.2, 0.041),
     (0.02, -0.162, 0.0092, 0.0092, 0.0102, 2.2, 2.2, 0.041),
     (0.012, -0.157, 0.0095, 0.0095, 0.0105, 2.2, 2.2, 0.041),
-]
+])
 # the tail: path (y, z), radius (even thickness down to a rounded tip)
-TAIL = [(0.207, -0.185, 0.0135), (0.203, -0.205, 0.0124), (0.193, -0.245, 0.0116), (0.183, -0.28, 0.0112), (0.167, -0.32, 0.0107),
-        (0.15, -0.36, 0.0102), (0.13, -0.395, 0.0097), (0.115, -0.425, 0.009), (0.106, -0.443, 0.0074), (0.102, -0.451, 0.004)]
+TAIL = _o('TAIL', [(0.207, -0.185, 0.0135), (0.203, -0.205, 0.0124), (0.193, -0.245, 0.0116), (0.183, -0.28, 0.0112), (0.167, -0.32, 0.0107),
+        (0.15, -0.36, 0.0102), (0.13, -0.395, 0.0097), (0.115, -0.425, 0.009), (0.106, -0.443, 0.0074), (0.102, -0.451, 0.004)])
 
 
 def _tail_keys():
@@ -206,7 +220,8 @@ def eye_parts(P):
 
 def ear(P):
     Q = mirror(P)
-    return CV.ear(Q, EAR_B, EAR_A, EAR_N, EAR_L, EAR_W, 'point', th0=0.0032, th1=0.0011, cup=0.85, tipin=-0.0015,
+    # (a little thicker than at first, 1.6 mm at the tip: the thinner plate broke up into ragged spikes)
+    return CV.ear(Q, EAR_B, EAR_A, EAR_N, EAR_L, EAR_W, 'point', th0=0.0035, th1=0.0016, cup=0.85, tipin=-0.0015,
                   base_r=(0.007, 0.005, 0.004))
 
 
@@ -260,23 +275,41 @@ def parts(P):
             'paw': pw, 'claw': cl, 'tail': tail(P)}
 
 
+# the boxes each part is evaluated in (they must hold the part plus its blend radius)
+BOX = _o('BOX', dict(neck=((-0.075, 0.12, 0.0), (0.075, 0.34, 0.25)), head=((-0.065, 0.23, 0.15), (0.065, 0.345, 0.29)),
+                     eyes=((-0.04, 0.275, 0.215), (0.04, 0.32, 0.27)), ear=((-0.065, 0.285, 0.165), (0.065, 0.36, 0.225)),
+                     fleg=((-0.075, -0.005, 0.03), (0.075, 0.26, 0.16)), hleg=((-0.075, -0.005, -0.23), (0.075, 0.27, -0.04)),
+                     paws=((-0.065, -0.005, -0.19), (0.065, 0.03, 0.13)), tail=((-0.03, 0.06, -0.46), (0.03, 0.235, -0.16))))
+
+
+def grid(h):
+    """finer spacing across the ears (thin plates facing forward; on the plain grid they came out torn)"""
+    from sdf import axis_steps
+    lo, hi = BOUNDS
+    ez0, ez1 = BOX['ear'][0][2], BOX['ear'][1][2]
+    xs = axis_steps(0.0, hi[0], [(0.008, BOX['ear'][1][0], h * 0.7)], h)
+    ys = axis_steps(lo[1], hi[1], [], h)
+    zs = axis_steps(lo[2], hi[2], [(ez0, ez1, h * 0.42)], h)
+    return xs, ys, zs
+
+
 def shape(P):
     d = trunk(P)
-    d = smin(d, local(P, (-0.075, 0.12, 0.0), (0.075, 0.34, 0.25), neck), 0.03)
-    h = local(P, (-0.065, 0.23, 0.15), (0.065, 0.345, 0.29), head)
-    ca, li, ba = local_n(P, (-0.04, 0.275, 0.215), (0.04, 0.32, 0.27), eye_parts, 3)
+    d = smin(d, local(P, *BOX['neck'], neck), 0.03)
+    h = local(P, *BOX['head'], head)
+    ca, li, ba = local_n(P, *BOX['eyes'], eye_parts, 3)
     h = smin(h, li, 0.003)
     h = smax(h, -ca, 0.001)
     h = smin(h, ba, 0.0006)
     d = smin(d, h, 0.014)
-    d = smin(d, local(P, (-0.065, 0.285, 0.165), (0.065, 0.36, 0.225), ear), 0.004)
-    fl = local(P, (-0.075, -0.005, 0.03), (0.075, 0.26, 0.16), fleg)
+    d = smin(d, local(P, *BOX['ear'], ear), 0.004)
+    fl = local(P, *BOX['fleg'], fleg)
     d = smin(d, fl, 0.018)
-    hl = local(P, (-0.075, -0.005, -0.23), (0.075, 0.27, -0.04), hleg)
+    hl = local(P, *BOX['hleg'], hleg)
     d = smin(d, hl, 0.02)
-    pw, cl = local_n(P, (-0.065, -0.005, -0.19), (0.065, 0.03, 0.13), paws, 2)
+    pw, cl = local_n(P, *BOX['paws'], paws, 2)
     d = smin(d, pw, 0.005)
-    d = smin(d, local(P, (-0.03, 0.06, -0.46), (0.03, 0.235, -0.16), tail), 0.012)
+    d = smin(d, local(P, *BOX['tail'], tail), 0.012)
     return d
 
 
@@ -298,7 +331,7 @@ PREVIEW = {
 
 
 # ---------- game mesh ----------
-KEEP = (0.44, 0.82, 0.6, 0.72, 0.6, 0.56, 0.4)
+KEEP = (0.44, 0.82, 0.6, 0.72, 0.78, 0.56, 0.4)
 
 
 def keep(P):
@@ -543,9 +576,11 @@ def _tabby(R, Pm, N):
     # the dark band along the spine (three lines run together), on to the tail
     spine = sstep(0.012 + 0.003 * w2, 0.006, x) * sstep(0.6, 0.85, up) * sstep(-0.21, -0.17, z) * sstep(0.13, 0.1, z) * trunk
     # neck: lines running back from the head down the nape
-    nape = _bars(x / 0.0095, 0.17, 0.2 * w1) * sstep(0.45, 0.8, up) * sstep(0.1, 0.13, z) * (1 - hd) * sstep(0.022, 0.014, x)
-    # necklaces: two or three bands across the chest
-    neckl = _bars((y + 0.6 * (z - 0.13)) / 0.025 + 0.3, 0.14, 0.3 * w1) * sstep(0.08, 0.12, z) * sstep(-0.1, -0.5, N[:, 1] - 0.6 * N[:, 2]) * (1 - hd) * sstep(0.12, 0.15, y)
+    nape = _bars(x / 0.0095, 0.15, 0.2 * w1) * sstep(0.45, 0.8, up) * sstep(0.1, 0.13, z) * (1 - hd) * sstep(0.022, 0.014, x)
+    # necklaces: two bands across the chest, thin and broken (bold full rings read as a zebra's)
+    brk = sstep(0.38, 0.58, fbm(Pm * 90, 2, 57) + 0.12 * w2)
+    neckl = _bars((y + 0.6 * (z - 0.13)) / 0.03 + 0.3, 0.11, 0.3 * w1) * sstep(0.08, 0.12, z) * sstep(-0.1, -0.5, N[:, 1] - 0.6 * N[:, 2]) * (1 - hd) * sstep(0.13, 0.16, y)
+    neckl = neckl * brk * sstep(0.235, 0.21, y)
     # legs: bars across, closer together lower down; dark backs of the hind feet up to the hock
     legs = sstep(0.16, 0.13, y) * sstep(0.014, 0.022, y) * (1 - tl)
     legbars = _bars(y / (0.014 + 0.007 * sstep(0.03, 0.12, y)), 0.17, 0.25 * w1) * legs * (0.55 + 0.45 * sstep(0.0, -0.5, -R['Nm'][:, 0]))
@@ -565,7 +600,7 @@ def _tabby(R, Pm, N):
     El = (Pm - EYE.c)
     cheek1 = sstep(0.0022, 0.0009, np.abs(u - 0.0045 + 0.42 * (s - 0.058))) * sstep(0.058, 0.05, s) * sstep(0.022, 0.03, s) * sstep(0.02, 0.026, x) * hd
     cheek2 = sstep(0.0022, 0.0009, np.abs(u + 0.012 + 0.5 * (s - 0.05))) * sstep(0.055, 0.045, s) * sstep(0.018, 0.028, s) * sstep(0.022, 0.03, x) * hd
-    stripes = np.clip(np.maximum.reduce([mack, spine, nape * 0.9, neckl * 0.8, legbars * 0.85, hock, belly_sp * 0.75, rings * 0.95, tip, tail_top,
+    stripes = np.clip(np.maximum.reduce([mack, spine, nape * 0.7, neckl * 0.5, legbars * 0.8, hock, belly_sp * 0.6, rings * 0.95, tip, tail_top,
                                          mx * 0.95, crown * 0.85, cheek1 * 0.9, cheek2 * 0.8]), 0, 1)
     # pale: chin and upper lip, the whisker pads, the throat, belly and inner legs; pale rims round the eyes
     chin = sstep(-0.018, -0.024, u) * sstep(0.06, 0.07, s) * hd
@@ -573,8 +608,8 @@ def _tabby(R, Pm, N):
     throat = sstep(-0.2, -0.6, N[:, 1] - 0.4 * N[:, 2]) * sstep(0.12, 0.15, z) * (1 - hd)
     belly = sstep(-0.5, -0.85, up) * trunk * sstep(0.17, 0.13, y)
     inner = sstep(0.0, -0.5, R['Nm'][:, 0]) * sstep(0.16, 0.1, y) * sstep(0.02, 0.04, y) * (1 - tl)
-    eyering = sstep(1.7, 1.3, R['ring']) * sstep(1.0, 1.15, R['ring']) * hd
-    pale = np.clip(np.maximum.reduce([chin, pads * 0.85, throat * 0.6, belly * 0.7, inner * 0.6, eyering * 0.75]), 0, 1)
+    eyering = sstep(1.5, 1.25, R['ring']) * sstep(1.0, 1.12, R['ring']) * hd
+    pale = np.clip(np.maximum.reduce([chin, pads * 0.85, throat * 0.7, belly * 0.7, inner * 0.6, eyering * 0.45]), 0, 1)
     return dict(stripes=stripes, pale=pale, chin=chin, pads=pads, eyering=eyering)
 
 
@@ -597,7 +632,7 @@ def paint(P, N, c):
     # stripes: black with a brown edge
     st = M['stripes']
     col = mix(col, K['stripeHi'], sstep(0.05, 0.55, st) * 0.75)
-    col = mix(col, K['stripe'] * (0.85 + 0.3 * n2[:, None]), sstep(0.45, 0.95, st) * 0.85)
+    col = mix(col, K['stripe'] * (0.85 + 0.3 * n2[:, None]), sstep(0.45, 0.95, st) * 0.8)
     # ears: the outsides ticked brown, the insides pink skin with pale fur at the edges
     col = mix(col, K['ticked'], R['ear'] * (1 - R['earIn']) * 0.6)
     col = mix(col, K['earIn'], R['ear'] * R['earIn'] * 0.85)
@@ -648,7 +683,11 @@ def fur(P, N, c):
     hd = R['head']
     ln = ln * (1 - hd) + hd * (0.005 + 0.004 * sstep(0.03, 0.01, L[:, 2]) * sstep(0.0, -0.015, L[:, 1]) - 0.002 * sstep(0.07, 0.085, L[:, 2]))
     er = R['ear']
-    ln = ln * (1 - er) + er * (0.0012 + 0.0045 * R['earIn'] * sstep(0.0, 0.01, R['ea']) * sstep(0.035, 0.015, R['ea']))
+    u = np.clip(R['ea'] / EAR_L, 0, 1)
+    hw = EAR_W * (1 - u) ** 0.85 * (0.75 + 0.25 * np.sqrt(np.clip(u * 4, 0, 1))) + 0.0006   # the ear's half width (CV.ear)
+    rim = sstep(0.5, 0.8, np.abs(R['ec']) / np.maximum(hw, 1e-4))
+    inner = R['earIn'] * sstep(0.003, 0.012, R['ea']) * sstep(0.032, 0.016, R['ea']) * (1 - rim) * sstep(0.3, 0.7, R['Nm'] @ EAR_N)
+    ln = ln * (1 - er) + er * (0.004 * sstep(0.005, 0.0, R['ea']) + 0.0028 * inner)
     tl = R['tail']
     ln = ln * (1 - tl) + tl * (0.012 + 0.002 * sstep(0.2, 0.8, R['tt']))
     ln = ln * (1 - R['paw'] * 0.6)
@@ -679,7 +718,7 @@ def meta(st):
     }
 
 
-# ---------- kittens: a rounder little body, a fluffier grayer coat with softer stripes ----------
+# ---------- kittens: a rounder little body, a fluffier coat with bold fuzzy stripes ----------
 BABY_TEX = 384
 KITTEN = dict(c=V(0.0, 0.196, -0.035), r=(0.052, 0.05, 0.175), rb=0.072, e=2.1, maxd=0.02)
 
@@ -706,19 +745,26 @@ def baby_offset(P, N, c):
     w = w * sstep(-0.006, 0.024, np.minimum(c['head'], c['neck']) - c['trunk']) * sstep(0.14, 0.08, Q[:, 2]) * sstep(-0.225, -0.175, Q[:, 2])
     w = w * (1 - sstep(0.012, -0.002, c['tail']))
     d = d * w[:, None]
+    # the upper thigh: a kitten has no muscular haunch, so the top of the thigh lies in against the body and a little
+    # lower (else it stands out over the hip as a bulge once the game shortens the legs)
+    th = sstep(0.006, -0.004, c['hleg'] - c['trunk']) * sstep(0.1, 0.16, Q[:, 1]) * sstep(-0.225, -0.18, Q[:, 2]) * sstep(-0.05, -0.09, Q[:, 2])
+    d[:, 0] -= 0.008 * th * sstep(0.03, 0.055, Q[:, 0])
+    d[:, 1] -= 0.005 * th * sstep(0.15, 0.2, Q[:, 1])
     d[:, 0] *= np.sign(P[:, 0] + 1e-9)
     return d.astype(F)
 
 
 def baby_paint(P, N, c, col):
+    """kittens: a softer, a little grayer ground and the stripes bold and fuzzy (a tabby kitten's pattern is clear)"""
     R = _regions(P, N, c)
     Pm = R['Pm']
     M = _tabby(R, Pm, N)
     n2 = fbm(Pm * 140, 3, 12)
-    kit = mix(np.tile(hexc(0x8C7C68), (len(P), 1)), hexc(0xA49480), n2)
+    kit = mix(np.tile(hexc(0x988870), (len(P), 1)), hexc(0xB09C80), n2)
     keep = np.clip(R['nose'] + R['ball'] + R['lid'] + R['lip'] + R['phil'] + R['pad'] * R['paw'] + R['ear'] * R['earIn'], 0, 1)
-    out = mix(col, kit, 0.45 * (1 - keep) * (1 - M['stripes'] * 0.6) * (1 - M['pale']))
-    out = mix(out, hexc(0x3A3028), M['stripes'] * 0.25 * (1 - keep))
+    st = M['stripes']
+    out = mix(col, kit, 0.35 * (1 - keep) * (1 - st) * (1 - M['pale']))
+    out = mix(out, hexc(0x241A12), sstep(0.25, 0.75, st) * 0.55 * (1 - keep))
     return np.clip(out, 0, 1).astype(F)
 
 
@@ -758,8 +804,8 @@ def cards():
         # eyebrow whiskers: two above each eye, sweeping up and out
         for j in range(2):
             root = EYE.c + V(0.002 + 0.004 * j, 0.0105, -0.004 - 0.002 * j)
-            d = nrm(V(0.55, 0.75, 0.25 - 0.2 * j))
-            wk += CV.whiskers([(root * m, d * m, 0.03 + 0.006 * j, 0.0007, -0.15, 1)], baby=0.6)
+            d = nrm(V(0.7, 0.55, 0.35 - 0.2 * j))
+            wk += CV.whiskers([(root * m, d * m, 0.02 + 0.004 * j, 0.0006, -0.1, 0)], baby=0.6)
     roots = np.array([cd['pts'][0] for cd in wk], F)
     g = CV.gradient(shape, roots, 0.0003)
     dd = shape(roots)

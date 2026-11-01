@@ -457,7 +457,7 @@ const World = (() => {
           { sp: 'goat', n: 3, kids: 1, home: [-30, 60], range: 30 },
           { sp: 'hedgehog', n: 2, home: [50, 10], range: 30 },
           // round 7: rhinos on the open grass, hamsters in the fields, chickadees by the big tree
-          ...SP7([{ sp: 'rhino', n: 2, kids: 1, home: [-40, 80], range: 40 }, { sp: 'hamster', n: 4, home: [30, -20], range: 35 },
+          ...SP7([{ sp: 'rhino', n: 2, kids: 1, home: [-40, 80], range: 40 }, { sp: 'hamster', n: 3, home: [30, -20], range: 30 },
             { sp: 'chickadee', n: 4, home: [GIANT[0], GIANT[1]], range: 24 }]),
         ],
         ambient: [{ sp: 'bunny', w: 3, kids: 2 }, { sp: 'deer', w: 2, kids: 1 }, { sp: 'fox', w: 1 }, { sp: 'goat', w: 1 }, { sp: 'hedgehog', w: 1 }, { sp: 'squirrel', w: 1 }, { sp: 'swan', w: 1, water: true }, { sp: 'duck', w: 1, water: true, kids: 3 }],

@@ -71,7 +71,7 @@ const SPECIES = {
   horse: { name: 'Horse', many: 'Horses', eats: ['grass', 'apple', 'carrot', 'pumpkin', 'hay', 'corn', 'watermelon'], fav: 'carrot', price: 1200, outdoor: true, baby: 'Foal' },
   moose: { name: 'Moose', many: 'Moose', eats: ['grass', 'apple', 'carrot', 'twigs', 'lettuce'], fav: 'grass', swim: true, swimSpeed: 2.2, price: 1500, outdoor: true, baby: 'Moose calf' },
   dog: { name: 'Golden retriever', many: 'Golden retrievers', eats: ['fish', 'apple', 'carrot', 'worm', 'pumpkin', 'petfood', 'hotdog', 'bread', 'watermelon'], fav: 'fish', swim: true, swimSpeed: 2.0, price: 350, baby: 'Puppy' },
-  cat: { name: 'Cat', many: 'Cats', eats: ['smallfish', 'fish', 'worm', 'bugs', 'petfood'], fav: 'smallfish', climb: true, price: 300, baby: 'Kitten' },
+  cat: { name: 'Tabby cat', many: 'Tabby cats', eats: ['smallfish', 'fish', 'worm', 'bugs', 'petfood'], fav: 'smallfish', climb: true, price: 300, baby: 'Kitten' },
   // round 7: dog breeds
   lab: { name: 'Black Lab', many: 'Black Labs', eats: ['petfood', 'fish', 'apple', 'carrot', 'worm', 'bread', 'hotdog', 'watermelon'], fav: 'fish', swim: true, swimSpeed: 2.0, price: 350, baby: 'Puppy' },
   dalmatian: { name: 'Dalmatian', many: 'Dalmatians', eats: ['petfood', 'apple', 'carrot', 'worm', 'bread', 'hotdog'], fav: 'petfood', swim: true, swimSpeed: 2.0, price: 450, baby: 'Puppy' },
@@ -83,15 +83,25 @@ const SPECIES = {
   eagle: { name: 'Bald eagle', many: 'Bald eagles', eats: ['fish', 'smallfish', 'hotdog'], fav: 'fish', fly: true, flySpeed: 13, price: 1100, hunter: true, grab: true, egg: 0xf1eee4, outdoor: true, baby: 'Eaglet' },
   chickadee: { name: 'Chickadee', many: 'Chickadees', eats: ['seeds', 'bugs', 'berries', 'worm'], fav: 'seeds', fly: true, flySpeed: 9, hop: true, hopV: 1.5, price: 180, egg: 0xf6f1ec, baby: 'Chickadee chick' },
   rhino: { name: 'Rhino', many: 'Rhinos', eats: ['grass', 'twigs', 'hay', 'lettuce', 'watermelon', 'banana', 'apple'], fav: 'twigs', price: 1600, outdoor: true, baby: 'Rhino calf' },
+  // round 7: cats and a hamster
+  blackcat: { name: 'Black cat', many: 'Black cats', eats: ['smallfish', 'fish', 'worm', 'bugs', 'petfood'], fav: 'fish', climb: true, price: 300, baby: 'Kitten' },
+  orangecat: { name: 'Orange cat', many: 'Orange cats', eats: ['smallfish', 'fish', 'worm', 'bugs', 'petfood'], fav: 'petfood', climb: true, price: 300, baby: 'Kitten' },
+  calico: { name: 'Calico cat', many: 'Calico cats', eats: ['smallfish', 'fish', 'worm', 'bugs', 'petfood'], fav: 'smallfish', climb: true, price: 350, baby: 'Kitten' },
+  siamese: { name: 'Siamese cat', many: 'Siamese cats', eats: ['smallfish', 'fish', 'worm', 'petfood'], fav: 'smallfish', climb: true, price: 400, baby: 'Kitten' },
+  whitecat: { name: 'Fluffy cat', many: 'Fluffy cats', eats: ['fish', 'smallfish', 'petfood', 'worm'], fav: 'fish', climb: true, price: 450, baby: 'Kitten' },
+  hamster: { name: 'Hamster', many: 'Hamsters', eats: ['seeds', 'corn', 'carrot', 'lettuce', 'apple', 'berries'], fav: 'seeds', price: 120, baby: 'Hamster pup' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
 // round 7: dog breeds
 SHOP.push('lab', 'beagle', 'chihuahua', 'dalmatian', 'husky');
+// round 7: cats and a hamster (the hamster is the cheapest animal in the shop); the shop stays in price order
+SHOP.push('hamster', 'blackcat', 'orangecat', 'calico', 'siamese', 'whitecat');
+SHOP.sort((a, b) => SPECIES[a].price - SPECIES[b].price);
 const SMALL_PREY = ['chicken', 'frog', 'lizard', 'bunny', 'squirrel', 'duck', 'hedgehog', 'weasel'];
 // round 7: eagle, chickadee, rhino: each goes into the shop list by its price (the list runs from cheap to dear)
 for (const id of ['chickadee', 'eagle', 'rhino']) { let i = SHOP.length; while (i > 0 && SPECIES[SHOP[i - 1]].price > SPECIES[id].price) i--; SHOP.splice(i, 0, id); }
-SMALL_PREY.push('chickadee');
+SMALL_PREY.push('chickadee', 'hamster');
 SPECIES.chickadee.eggSpeck = [0.72, 0.4, 0.28];   // reddish brown speckles
 // round 7: the shop runs from cheap to dear
 SHOP.sort((a, b) => SPECIES[a].price - SPECIES[b].price);

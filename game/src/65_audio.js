@@ -181,6 +181,16 @@ const Sound = (() => {
         T({ t: t + 0.42, f: 70 * k, f2: 55 * k, dur: 0.45, type: 'sawtooth', lp: 300 * k, vol: vol * 0.45 });
         break;
       }
+      // round 7: the other cats meow a little higher or lower; the Siamese yowls long and loud; the fluffy white cat's
+      // is soft and short; the hamster squeaks
+      case 'blackcat': case 'orangecat': case 'calico': case 'whitecat': {
+        const m = k * { blackcat: 0.94, orangecat: 0.86, calico: 1.08, whitecat: 1.16 }[sp], v = vol * (sp === 'whitecat' ? 0.6 : 0.8), d = sp === 'whitecat' ? 0.75 : 1;
+        T({ t, f: 520 * m, f2: 760 * m, dur: 0.2 * d, type: 'sawtooth', bp: 1500 * m, q: 1.8, vib: 6, vibAmt: 12, vol: v });
+        T({ t: t + 0.18 * d, f: 760 * m, f2: 470 * m, dur: 0.42 * d, a: 0.03, type: 'sawtooth', bp: 1100 * m, q: 1.8, vib: 6, vibAmt: 14, vol: v });
+        break;
+      }
+      case 'siamese': T({ t, f: 430 * k, f2: 700 * k, dur: 0.3, type: 'sawtooth', bp: 1700 * k, q: 2.6, vib: 5, vibAmt: 18, vol: vol }); T({ t: t + 0.28, f: 700 * k, f2: 380 * k, dur: 0.7, a: 0.04, type: 'sawtooth', bp: 1250 * k, q: 2.6, vib: 5, vibAmt: 22, vol: vol }); break;
+      case 'hamster': for (let i = 0; i < 2; i++) T({ t: t + i * 0.11, f: 3400 * (k > 1 ? 1.15 : 1), f2: 4300 * (k > 1 ? 1.15 : 1), dur: 0.06, type: 'triangle', vol: vol * 0.5 }); break;
     }
   }
 
