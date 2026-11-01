@@ -68,10 +68,21 @@ const SPECIES = {
   moose: { name: 'Moose', many: 'Moose', eats: ['grass', 'apple', 'carrot'], fav: 'grass', swim: true, swimSpeed: 2.2, price: 1500, outdoor: true, baby: 'Moose calf' },
   dog: { name: 'Dog', many: 'Dogs', eats: ['fish', 'apple', 'carrot', 'worm', 'pumpkin'], fav: 'fish', swim: true, swimSpeed: 2.0, price: 350, baby: 'Puppy' },
   cat: { name: 'Cat', many: 'Cats', eats: ['smallfish', 'fish', 'worm'], fav: 'smallfish', climb: true, price: 300, baby: 'Kitten' },
+  // round 7: eagle, chickadee, rhino
+  // grab: catches fish at the water surface in flight (needs Player.tryEat to allow it while flying low; see the round 7 notes)
+  eagle: { name: 'Bald eagle', many: 'Bald eagles', eats: ['fish', 'smallfish', 'hotdog'], fav: 'fish', fly: true, flySpeed: 13, price: 1100, hunter: true, grab: true, egg: 0xf1eee4, outdoor: true, baby: 'Eaglet' },
+  chickadee: { name: 'Chickadee', many: 'Chickadees', eats: ['seeds', 'bugs', 'berries', 'worm'], fav: 'seeds', fly: true, flySpeed: 9, hop: true, hopV: 1.5, price: 180, egg: 0xf6f1ec, baby: 'Chickadee chick' },
+  rhino: { name: 'Rhino', many: 'Rhinos', eats: ['grass', 'twigs', 'hay', 'lettuce', 'watermelon', 'banana', 'apple'], fav: 'twigs', price: 1600, outdoor: true, baby: 'Rhino calf' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
 const SMALL_PREY = ['chicken', 'frog', 'lizard', 'bunny', 'squirrel', 'duck', 'hedgehog', 'weasel'];
+// round 7: eagle, chickadee, rhino: each goes into the shop list by its price (the list runs from cheap to dear)
+for (const id of ['chickadee', 'eagle', 'rhino']) { let i = SHOP.length; while (i > 0 && SPECIES[SHOP[i - 1]].price > SPECIES[id].price) i--; SHOP.splice(i, 0, id); }
+SMALL_PREY.push('chickadee');
+// round 7 TEMPORARY (drop when the new foods are merged): names for the new foods the eagle, chickadee and rhino eat,
+// so the shop's food chips and canEat work in this branch. Env.food cannot draw them yet.
+for (const [k, n] of [['seeds', 'Seeds'], ['bugs', 'Bugs'], ['twigs', 'Twigs'], ['hay', 'Hay'], ['lettuce', 'Lettuce'], ['watermelon', 'Watermelon'], ['banana', 'Bananas'], ['hotdog', 'Hot dogs']]) if (!FOODS[k]) FOODS[k] = { name: n };
 const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow'];
 const PACKS = [{ id: 's', leaves: 100, price: '$0.99' }, { id: 'm', leaves: 300, price: '$1.99' }, { id: 'l', leaves: 1000, price: '$4.99' }];
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];
