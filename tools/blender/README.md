@@ -444,9 +444,21 @@ in the cards (30 wisps of tail feathering and the whiskers); 1024 color and norm
 256 x 256 strand texture: 72 KB mesh and cards + 57 + 25 + 13 + 8 + 38 KB, about 289 KB in the page. Fur shells at detail
 2: 5 layers. About 30 minutes on the shared machine (the coat strokes make `texture` take 12 of them).
 
-Cat (`VOXEL=0.0025 TRIS=4200 TEX=1024`, then rings across the body and neck and along the tail): 6.9k triangles plus 192
+Cat (`VOXEL=0.0025 TRIS=4200 TEX=1024`, then rings across the body and neck and along the tail): 7.0k triangles plus 192
 in the whiskers; 1024 color and normal maps, 512 fur map, 384 kitten color map, 96 x 128 strand texture: 67 KB mesh and
-cards + 62 + 27 + 13 + 14 + 6 KB, about 258 KB in the page. Fur shells at detail 2: 4 layers.
+cards + 58 + 26 + 14 + 15 + 6 KB, about 249 KB in the page. Fur shells at detail 2: 4 layers.
+
+Coat variants on the cat's mesh (`python tools/blender/coat.py <id>`, about 4 minutes each): black cat 25 KB color + 1 KB
+kitten color + 5 KB whisker strands, about 44 KB in the page; orange cat 57 + 12 KB, about 93 KB; calico (both sides,
+2048 x 1024 and 768 x 384) 113 + 22 KB, about 180 KB.
+
+Siamese (`VOXEL=0.0025 TRIS=4200 TEX=1024`): 7.0k triangles plus 192 in the whiskers; 66 KB mesh and cards + 45 + 29 + 10
++ 4 + 6 KB, about 216 KB in the page. Fluffy white cat (same settings): 5.9k triangles plus 192; 59 KB + 30 + 40 + 15 +
+3 + 6 KB, about 203 KB; fur shells at detail 2: 6 layers, at detail 1: 2.
+
+Hamster (`VOXEL=0.0008 TRIS=5200 TEX=768`, then rings across the body): 7.6k triangles plus 128 in the whiskers; 768
+color and normal maps, 384 fur map, 256 pup color map: 59 KB mesh and cards + 39 + 14 + 8 + 5 + 4 KB, about 178 KB in
+the page. Fur shells at detail 2: 4 layers.
 
 ## More cats and a hamster (round 7: `cat.py` as a template, `coat.py`, `hamster.py`)
 
@@ -464,7 +476,7 @@ on the way (see "The tabby, second pass").
   json naming `"base": "cat"`. The game takes the mesh, skin weights, fur, cards and every map the variant does not
   bring (normal, fur, hair) from the base model, so a variant costs only its color maps (black cat 32 KB, orange cat
   and calico about 90 KB in the page). Options: `OWN_HAIR` (its own whisker strands: the black cat's are dark),
-  `OWN_FUR`, `COAT_FUR` (fur settings over the base's), and in `meta()` `roughK` (a glossier coat: the black cat).
+  `OWN_FUR`, `COAT_FUR` (fur settings over the base's), and in `meta()` `roughK` (scales the shared roughness).
   Rerun the variants whenever the base model is rebuilt: their maps use its UV layout.
 - `SIDES` (the calico): the game mirrors one half of the body, so a painted pattern is the same on both sides, which
   a calico's patches never are. `coat.py` then paints the -x side too (the paint at mirrored points) into maps twice
@@ -472,7 +484,9 @@ on the way (see "The tabby, second pass").
   vertex in the rest pose and samples with the derivatives of the whole layout, so the middle line has no seam. Only
   the color maps double; the normal and fur maps stay shared.
 - A black coat that does not read as a hole: a warm black, not pure black, with coat strokes whose tips catch the light,
-  a faint rusty cast along the back, and `roughK` 0.84 for a soft sheen that shows the shape of the face and body.
+  a faint rusty cast along the back. A variant's paint roughness is not used (the roughness per vertex comes with the
+  shared mesh); `roughK` scales it: 1.08 for the black cat, whose highlights show more on the dark coat (at 0.84 it
+  looked like black plastic).
 - The Siamese (`siamese.py`): a slimmer trunk and neck, slender legs with small oval paws, a thin whip tail, a long
   wedge head (the top line runs straight from the crown to the nose, the sides narrow evenly, flat cheeks, narrow
   whisker pads), big ears set low and wide (the ear bone moves with them: the species' spec in the game), almond eyes

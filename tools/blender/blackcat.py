@@ -1,7 +1,8 @@
 # A black cat (round 7): the tabby's body (cat.py, the same mesh: BASE) with a solid black coat and yellow-gold eyes.
 # Only its color maps, whisker strands and settings are its own: run tools/blender/coat.py blackcat after the cat.
 # The coat must not read as a dark hole: a warm black, coat strokes with brownish tips that catch the light, a faint
-# rusty cast along the back, and a glossier surface (roughK) so the shape shows in its highlights.
+# rusty cast along the back. The roughness per vertex is the tabby's (shared mesh); roughK scales it: a little above
+# 1, since highlights on a dark coat show more (glossier, it looked like black plastic).
 import os
 BREED = dict(ID='blackcat')
 exec(compile(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cat.py')).read(), 'cat.py', 'exec'))
@@ -34,7 +35,7 @@ def paint(P, N, c):
     hair = s * (0.3 + 0.45 * tone) * (1 - R['nose']) * (1 - R['ear'] * R['earIn']) * (1 - R['lid'])
     col = mix(col, KB['sheen'], hair * 0.6)
     col = mix(col, K['ball'], R['ball'])
-    rough = 0.5 + 0.08 * (n2 - 0.5) - 0.2 * R['nose']
+    rough = 0.64 + 0.08 * (n2 - 0.5) - 0.2 * R['nose']
     return np.clip(col, 0, 1).astype(F), np.clip(rough, 0.2, 0.95).astype(F)
 
 
@@ -53,7 +54,7 @@ def meta(st):
     m = _meta(st)
     # yellow-gold eyes (kittens' are blue); a glossier coat: its sheen shows the shape
     m['eye'].update({'iris': 0xD8A21C, 'rim': 0x5A4008, 'lidCol': st['lidCol'], 'babyLidCol': 0x221C18})
-    m.update({'roughK': 0.84, 'rim': [0.08, 0.08, 0.1], 'flat': 0x1E1A17})
+    m.update({'roughK': 1.08, 'rim': [0.08, 0.08, 0.1], 'flat': 0x1E1A17})
     return m
 
 

@@ -4466,7 +4466,8 @@ const Animals = (() => {
       radii: [0.0003, 0.0002, 0.0001],
     }));
     return {
-      size: { length: 0.15, height: 0.075, radius: 0.04, eyeHeight: 0.055 },
+      // about 15 cm of hamster plus its coat (17 cm nose to tail stub), 8.5 cm to the top of its back
+      size: { length: 0.17, height: 0.085, radius: 0.042, eyeHeight: 0.055 },
       tex: [256, 256], rough: 0.9,
       detail: { kind: 'fur', tile: 0.008, amt: 0.16, bump: 0.3, sheen: 0.3 },
       shell: { parts: ['body', 'head'], len: 0.006, n: 4, lean: 0.8, babyLen: 1.5 },
@@ -4565,7 +4566,8 @@ const Animals = (() => {
         // sits up on its hind legs now and then to look around, and to eat, with the food in its front paws
         sitUp: 1.05, sitDrop: 0.0, sitNeckD: [-0.45, 0.3], sitPaws: [0.25, 0.42, 1.6], sitSome: 7, sitRump: 0.35,
         eatUp: 1.05, cheeks: ['cheekL', 'cheekR'], cheekPuff: 0.45,
-        sleep: { style: 'curl', neck: [1.2, 0.6], tail: [0.3, 0.0], bend: 0.7, roll: 0.15 },
+        // sleeps curled up in a ball, the head tucked down to its belly
+        sleep: { style: 'curl', neck: [0.6, 1.5], tail: [0.3, 0.0], bend: 0.55, roll: 0.1 },
       },
     };
   };
@@ -6452,7 +6454,7 @@ const Animals = (() => {
   // round 7: cats and a hamster
   Object.assign(COLLAR, {
     blackcat: COLLAR.cat, orangecat: COLLAR.cat, calico: COLLAR.cat, siamese: COLLAR.cat, whitecat: COLLAR.cat,
-    hamster: { at: ['neck', 'head', 0.2], r: 0.8 },
+    hamster: { at: ['neck', 'head', 0.6], r: 0.5, w: 0.4 },
   });
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;

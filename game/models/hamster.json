@@ -73,19 +73,18 @@
   "irisR": 0.97,
   "pupilR": 0.6,
   "rim": 328451,
-  "lidCol": 10710328,
-  "babyLidCol": 12619872
+  "lidCol": 5913122,
+  "babyLidCol": 6964264
  },
  "collar": {
   "at": [
    "neck",
    "head",
-   0.2
+   0.6
   ],
-  "r": 0.8,
-  "w": 0.8,
-  "maxR": 0.04,
-  "lift": 0.25
+  "r": 0.5,
+  "w": 0.4,
+  "lift": 0.15
  },
  "belly": [
   0.0,

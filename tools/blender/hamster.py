@@ -508,10 +508,12 @@ def meta(st):
     p, r, d, lid = EYE.meta()
     return {
         # shiny black eyes
-        'eye': {'p': p, 'r': r, 'dir': d, 'lid': lid, 'iris': 0x0A0606, 'irisR': 0.97, 'pupilR': 0.6, 'rim': 0x050303, 'lidCol': st['lidCol'],
-                'babyLidCol': 0xC09060},
-        # no real neck: the band sits low on the fur between the head and the chest
-        'collar': {'at': ['neck', 'head', 0.2], 'r': 0.8, 'w': 0.8, 'maxR': 0.04, 'lift': 0.25},
+        # (a dark lid: with the golden coat's color a shut eye looked like a golden button on the bulging ball)
+        'eye': {'p': p, 'r': r, 'dir': d, 'lid': lid, 'iris': 0x0A0606, 'irisR': 0.97, 'pupilR': 0.6, 'rim': 0x050303, 'lidCol': 0x5A3A22,
+                'babyLidCol': 0x6A4428},
+        # no real neck: a narrow band just behind the cheeks, sunk into the fur, with a small tag (a wide band read as a
+        # belt round the front of the body)
+        'collar': {'at': ['neck', 'head', 0.6], 'r': 0.5, 'w': 0.4, 'lift': 0.15},
         'belly': [0.0, 0.012, -0.02],
         'mouth': [round(float(v), 4) for v in MOUTH],
         'tint': [1.0, 1.0, 1.0], 'babyTint': [1.0, 1.0, 1.0],
