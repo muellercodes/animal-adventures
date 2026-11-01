@@ -354,8 +354,8 @@ A golden retriever (with a little yellow Labrador in it) and a brown mackerel ta
   from the belly to the stifle) stops the notch between the belly and the thigh.
 - The dog's drop ears (`drop_ear()`): a leaf shaped plate hanging from the fold along `EAR_A`, cupped around the
   cheek, its lower part a little off it, thick at the fold and thinner at the tip and edges; weighted to the ear bones
-  from the fold down. Its fringe is only longer fur shells: cards along its lower edge hung off it like a comb, and on a
-  puppy they stood out as orange flaps.
+  from the fold down. Its fringe is sculpted (a thin wavy plate past its edges, see the breeds below) under longer
+  fur shells: cards along its lower edge hung off it like a comb, and on a puppy they stood out as orange flaps.
 - The tail's feathering (the flag) is sculpted: the sweep's section is deeper on the underside (`FLAG`, the 'top' side
   for a path going back and down) with a pointed exponent, under longer fur shells, and only a few wide, short cards
   hang from its lower edge as wisps. Cards alone, however many, hung under the tail like a comb. The tail's rings and
@@ -375,6 +375,35 @@ A golden retriever (with a little yellow Labrador in it) and a brown mackerel ta
   Kittens have blue eyes (`babyIris`).
 - Cards for ear furnishings (pale tufts inside the cat's ears) read as white spikes at game distance; the coat inside
   the ear does the job.
+
+## Dog breeds (`dogkit.py`: `lab.py`, `dalmatian.py`, `husky.py`, `beagle.py`, `chihuahua.py`)
+
+Every breed is the golden retriever (`dog.py`) refitted, so a new breed is a page of numbers and its coat, not a new
+sculpt. `dogkit.Fit` maps golden rig space to the breed's: an overall scale `s`, the legs (`kL`) and the body above
+them (`kB`) taller or shorter (one smooth height map, the paws kept as they are), the body longer (`kz`) or wider
+(`kw`), stouter or slimmer legs (`kLW`, about each leg's middle line) and the head carried higher or further forward
+(`neck`, fading in up the neck). The golden's trunk, neck and legs are evaluated through the inverse map (the field
+times the local scale is still a good enough distance). The head has its own map: the golden head frame moved with the
+neck, turned by `pitch`, scaled by `k`, and in it the skull and the muzzle each with their own length (`kS`, `kM`),
+width (`kSW`, `kMW`, `kTW` at the nose) and depth (`kDome`, `kJaw`, `kMD`); a breed can add shape in its head frame
+(`head_extra`: the chihuahua's apple dome, the beagle's flews) or on the body (`body_extra`: the husky's ruff). Ears
+(`DropEar`, `ErectEar`), the tail (`Tail`: a sweep with an optional brush or flag on its normal side), the eyes and
+the paws are the breed's own, placed through the maps. The game refits the procedural skeleton and body with the same
+numbers (`dogFit` and `dogBreed` in `game/src/40_animals.js`), so the bones match the sculpt; change both together.
+- The golden's paint masks, coat flow and texture regions are reused through `Fit.gpt()`: every breed point maps to
+  the golden point it stands for (the body's map, the head's in front of the back of the skull, blended), so "the
+  chest", "the backs of the legs" or "the muzzle" mean the same on a chihuahua. The breeds paint on top of them: the
+  black Lab's glossy black, the Dalmatian's round spots (a cell grid with a spot in most cells, smaller on the head,
+  the legs and the tail), the husky's saddle and mask, the beagle's tricolor, the chihuahua's fawn.
+- Puppies: the trunk walks onto the golden's egg (refitted); the tops of the legs round into it; the throat is tucked
+  and the nape filled up to the back of the bigger head; the golden's feathering goes back to the bare body; and the
+  head is pulled toward a puppy's (`dog.puppy_head()`: a round skull, a short muzzle as big in section as the adult's,
+  a big nose, rounder eyes). The game's baby head map now shortens a dog's muzzle along the head's axis
+  (`baby.muzzleDir`): toward the mouth, which sits low, it squashed the jaw up and left a ball with a beak.
+- The golden got sculpted feathering (`feathering()`: fringes down the backs of the forelegs, the trousers, the bib and
+  a wavy fringe along the underline, `_fringe()` plates with wavy edges) and a fringe on its ears (thinner, past the
+  back edge most, toward the bottom), all finished by longer fur shells and the coat strokes. `EAR_C` points back, not
+  forward.
 
 ## Budget
 
@@ -439,11 +468,17 @@ spine cards and the whiskers), 8.9k in all; 768 color and normal maps, 384 fur m
 strand textures (spines, the hoglets' pale spines): 80 KB mesh and cards + 64 + 18 + 7 + 5 + 18 + 18 KB, about 286 KB in
 the page. Fur shells (face, belly, skirt) at detail 2: 3 layers, 9k triangles.
 
-Dog (`VOXEL=0.004 TRIS=5000 TEX=1024`, then rings across the body and neck and along the tail): 7.4k triangles plus 244
-in the cards (30 wisps of tail feathering and the whiskers); 1024 color and normal maps, 512 fur and puppy color maps,
-256 x 256 strand texture: 72 KB mesh and cards + 57 + 25 + 13 + 8 + 38 KB, about 289 KB in the page. Fur shells at detail
+Dog (`VOXEL=0.0035 TRIS=5000 TEX=1024`, then rings across the body and neck and along the tail): 7.4k triangles plus
+244 in the cards (30 wisps of tail feathering and the whiskers); 1024 color and normal maps, 512 fur and puppy color
+maps, 256 x 256 strand texture: 76 KB mesh and cards + 58 + 34 + 15 + 9 + 38 KB, about 312 KB in the page. Fur shells at detail
 2: 5 layers. About 30 minutes on the shared machine (the coat strokes make `texture` take 12 of them).
 
 Cat (`VOXEL=0.0025 TRIS=4200 TEX=1024`, then rings across the body and neck and along the tail): 6.9k triangles plus 192
 in the whiskers; 1024 color and normal maps, 512 fur map, 384 kitten color map, 96 x 128 strand texture: 67 KB mesh and
 cards + 62 + 27 + 13 + 14 + 6 KB, about 258 KB in the page. Fur shells at detail 2: 4 layers.
+
+Dog breeds (`dogkit.py`, `TRIS=5000 TEX=1024`, `VOXEL` 0.0036 for the Lab and the Dalmatian, 0.0034 husky, 0.0026
+beagle, 0.0016 chihuahua: finer for the smaller dogs): 7.2k to 7.6k triangles plus 64 in the whiskers each; 1024
+color and normal maps, 512 fur and puppy color maps, a small whisker texture. Black Lab 115 KB of files (about 153 KB
+in the page: a black coat compresses well), Dalmatian 152 KB (203 KB), husky 173 KB (231 KB), beagle 165 KB (220 KB),
+chihuahua 147 KB (197 KB). About 15 to 20 minutes each on the shared machine.

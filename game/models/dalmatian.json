@@ -1,0 +1,142 @@
+{
+ "v": 2,
+ "id": "dalmatian",
+ "data": "dalmatian.bin",
+ "enc": "deflate",
+ "raw": 96604,
+ "maps": {
+  "color": "dalmatian-color.webp",
+  "normal": "dalmatian-normal.webp",
+  "babyColor": "dalmatian-baby.webp",
+  "fur": "dalmatian-fur.webp",
+  "hair": "dalmatian-hair.webp"
+ },
+ "nv": 2682,
+ "ntri": 3621,
+ "nbv": 2682,
+ "nbt": 3621,
+ "bbox": [
+  -0.11392,
+  0.0004,
+  -0.598921,
+  0.11392,
+  0.789775,
+  0.582779
+ ],
+ "bones": [
+  "hips",
+  "rump",
+  "chest",
+  "neck",
+  "neck2",
+  "head",
+  "tail1",
+  "tail2",
+  "tail3",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "earL",
+  "earR",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.03526,
+   0.74183,
+   0.45055
+  ],
+  "r": 0.01048,
+  "dir": [
+   0.499,
+   0.171,
+   0.8496
+  ],
+  "lid": [
+   0.95,
+   -0.886,
+   0.3
+  ],
+  "iris": 4860438,
+  "irisR": 0.9,
+  "pupilR": 0.46,
+  "rim": 1707526,
+  "lidCol": 11908014,
+  "babyLidCol": 3814452,
+  "babyIris": 3159100
+ },
+ "collar": {
+  "at": [
+   "neck2",
+   "head",
+   0.15
+  ],
+  "lift": 0.35,
+  "maxR": 0.0731
+ },
+ "belly": [
+  0.0,
+  0.4308,
+  -0.1344
+ ],
+ "mouth": [
+  0.0,
+  0.673,
+  0.5384
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.14,
+  0.14,
+  0.16
+ ],
+ "flat": 15592420,
+ "fur": {
+  "len": 0.018,
+  "n": 4,
+  "lean": 1.7,
+  "tile": 0.0012,
+  "babyLen": 1.6,
+  "babyLean": 0.6,
+  "shade": 0.75,
+  "uvm": 1.0567
+ },
+ "cards": {
+  "nv": 80,
+  "ntri": 64,
+  "bbox": [
+   -0.063486,
+   0.685129,
+   0.491364,
+   0.063486,
+   0.705519,
+   0.541965
+  ],
+  "bscale": 1e-06,
+  "rough": 0.5,
+  "alpha": 0.3
+ },
+ "bdelta": 0.069543
+}
