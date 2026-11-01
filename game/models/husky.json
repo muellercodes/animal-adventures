@@ -1,0 +1,142 @@
+{
+ "v": 2,
+ "id": "husky",
+ "data": "husky.bin",
+ "enc": "deflate",
+ "raw": 100336,
+ "maps": {
+  "color": "husky-color.webp",
+  "normal": "husky-normal.webp",
+  "babyColor": "husky-baby.webp",
+  "fur": "husky-fur.webp",
+  "hair": "husky-hair.webp"
+ },
+ "nv": 2780,
+ "ntri": 3802,
+ "nbv": 2780,
+ "nbt": 3802,
+ "bbox": [
+  -0.116933,
+  0.0004,
+  -0.425774,
+  0.116933,
+  0.790719,
+  0.53969
+ ],
+ "bones": [
+  "hips",
+  "rump",
+  "chest",
+  "neck",
+  "neck2",
+  "head",
+  "tail1",
+  "tail2",
+  "tail3",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "earL",
+  "earR",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.03852,
+   0.68669,
+   0.43062
+  ],
+  "r": 0.00965,
+  "dir": [
+   0.499,
+   0.1625,
+   0.8512
+  ],
+  "lid": [
+   0.857,
+   -0.746,
+   0.3
+  ],
+  "iris": 10275048,
+  "irisR": 0.9,
+  "pupilR": 0.4,
+  "rim": 1707526,
+  "lidCol": 6447716,
+  "babyLidCol": 3815996,
+  "babyIris": 8300754
+ },
+ "collar": {
+  "at": [
+   "neck2",
+   "head",
+   0.15
+  ],
+  "lift": 0.6,
+  "maxR": 0.095
+ },
+ "belly": [
+  0.0,
+  0.3958,
+  -0.137
+ ],
+ "mouth": [
+  0.0,
+  0.6215,
+  0.5024
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.16,
+  0.16,
+  0.18
+ ],
+ "flat": 9079436,
+ "fur": {
+  "len": 0.052,
+  "n": 5,
+  "lean": 1.2,
+  "tile": 0.0017,
+  "babyLen": 1.4,
+  "babyLean": 0.45,
+  "shade": 0.62,
+  "uvm": 1.0252
+ },
+ "cards": {
+  "nv": 80,
+  "ntri": 64,
+  "bbox": [
+   -0.058712,
+   0.633173,
+   0.464045,
+   0.058712,
+   0.651537,
+   0.506465
+  ],
+  "bscale": 1e-06,
+  "rough": 0.5,
+  "alpha": 0.3
+ },
+ "bdelta": 0.066306
+}

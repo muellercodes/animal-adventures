@@ -66,11 +66,19 @@ const SPECIES = {
   parrot: { name: 'Parrot', many: 'Parrots', eats: ['berries', 'apple', 'acorn'], fav: 'berries', fly: true, flySpeed: 10, price: 1000, egg: 0xf6f3ec, baby: 'Parrot chick' },
   horse: { name: 'Horse', many: 'Horses', eats: ['grass', 'apple', 'carrot', 'pumpkin'], fav: 'carrot', price: 1200, outdoor: true, baby: 'Foal' },
   moose: { name: 'Moose', many: 'Moose', eats: ['grass', 'apple', 'carrot'], fav: 'grass', swim: true, swimSpeed: 2.2, price: 1500, outdoor: true, baby: 'Moose calf' },
-  dog: { name: 'Dog', many: 'Dogs', eats: ['fish', 'apple', 'carrot', 'worm', 'pumpkin'], fav: 'fish', swim: true, swimSpeed: 2.0, price: 350, baby: 'Puppy' },
+  dog: { name: 'Golden retriever', many: 'Golden retrievers', eats: ['fish', 'apple', 'carrot', 'worm', 'pumpkin'], fav: 'fish', swim: true, swimSpeed: 2.0, price: 350, baby: 'Puppy' },
   cat: { name: 'Cat', many: 'Cats', eats: ['smallfish', 'fish', 'worm'], fav: 'smallfish', climb: true, price: 300, baby: 'Kitten' },
+  // round 7: dog breeds
+  lab: { name: 'Black Lab', many: 'Black Labs', eats: ['petfood', 'fish', 'apple', 'carrot', 'worm', 'bread', 'hotdog', 'watermelon'], fav: 'fish', swim: true, swimSpeed: 2.0, price: 350, baby: 'Puppy' },
+  dalmatian: { name: 'Dalmatian', many: 'Dalmatians', eats: ['petfood', 'apple', 'carrot', 'worm', 'bread', 'hotdog'], fav: 'petfood', swim: true, swimSpeed: 2.0, price: 450, baby: 'Puppy' },
+  husky: { name: 'Husky', many: 'Huskies', eats: ['fish', 'petfood', 'worm', 'apple', 'carrot'], fav: 'fish', swim: true, swimSpeed: 2.0, price: 500, baby: 'Puppy' },
+  beagle: { name: 'Beagle', many: 'Beagles', eats: ['petfood', 'hotdog', 'bread', 'apple', 'carrot', 'worm'], fav: 'hotdog', price: 400, baby: 'Puppy' },
+  chihuahua: { name: 'Chihuahua', many: 'Chihuahuas', eats: ['petfood', 'apple', 'carrot', 'worm', 'bread'], fav: 'petfood', price: 400, baby: 'Puppy' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
+// round 7: dog breeds
+SHOP.push('lab', 'beagle', 'chihuahua', 'dalmatian', 'husky');
 const SMALL_PREY = ['chicken', 'frog', 'lizard', 'bunny', 'squirrel', 'duck', 'hedgehog', 'weasel'];
 const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow'];
 const PACKS = [{ id: 's', leaves: 100, price: '$0.99' }, { id: 'm', leaves: 300, price: '$1.99' }, { id: 'l', leaves: 1000, price: '$4.99' }];

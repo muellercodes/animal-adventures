@@ -4206,9 +4206,9 @@ const Animals = (() => {
         cmix(C, hex(0xE8C893), 0.45 * (P.part === 'ear' ? 0.5 : 1));
         C.fl = Math.min(1, C.fl * 1.3 + 0.1);
       },
-      baby: { head: 1.55, muzzle: 0.46, eye: 1.18, ear: 1.1, neck: [0.65, 1.2], body: [1.12, 1.12, 0.78], leg: [0.7, 1.28], tail: 0.45 },
+      baby: { head: 1.36, muzzle: 0.55, muzzleDir: [0, -0.196, 0.981], eye: 1.18, ear: 1.0, neck: [0.55, 1.12], body: [1.12, 1.12, 0.64], leg: [0.7, 1.28], tail: 0.45 },
       // the sculpted eyes sit in sockets that already grow with the head
-      modelSpec: { baby: { eye: 1.08, leg: [0.7, 1.12] } },
+      modelSpec: { baby: { eye: 1.12, leg: [0.72, 1.12] } },
       anim: {
         type: 'legged', walk: 1.2, trot: 2.6, run: 6.0, stride: 0.72, strideMax: 2.4,
         duty: [0.62, 0.45, 0.32], lift: [0.06, 0.055], flexF: 1.5, flexH: 0.9,
@@ -4409,6 +4409,218 @@ const Animals = (() => {
     };
   };
 
+  // ===== round 7: dog breeds (Black Lab, Dalmatian, Husky, Beagle, Chihuahua) =====
+  // Every breed is the golden retriever (SPEC.dog) refitted. dogFit maps the golden's skeleton and body to the
+  // breed's build: an overall scale s, the legs (kL) and the body above them (kB) taller or shorter, the body longer
+  // (kz) or wider (kw), stouter or slimmer legs (kLW), the head carried higher or further forward (neck). The head goes
+  // through a second map: the golden head frame moved with the neck, turned by pitch, scaled by k, and in it the skull
+  // and the muzzle each with their own length (kS, kM), width (kSW, kMW, kTW at the nose) and depth (kDome over the
+  // skull, kJaw under it, kMD for the muzzle). Each breed brings its own ears, tail, eyes, coat and gaits.
+  // tools/blender/dogkit.py refits the sculpted bodies with the same numbers.
+  ids.push('lab', 'dalmatian', 'husky', 'beagle', 'chihuahua');
+  const DOGI = (a, b, t) => { const x = clamp((t - a) / (b - a), 0, 1); return (b - a) * (x * x * x - 0.5 * x * x * x * x) + Math.max(0, t - b); };
+  const DOG_HO = [0, 0.715, 0.335], DOG_HA = [0, -0.2 / Math.hypot(0.2, 1), 1 / Math.hypot(0.2, 1)], DOG_HU = [0, 1 / Math.hypot(0.2, 1), 0.2 / Math.hypot(0.2, 1)];
+  function dogFit(B) {
+    const s = B.s, kL = B.kL || 1, kB = B.kB || 1, kz = B.kz || 1, kw = B.kw || 1, kLW = B.kLW || 1, nk = B.neck || [0, 0];
+    const H = Object.assign({ k: 1, pitch: 0, kS: 1, kM: 1, kSW: 1, kMW: 1, kDome: 1, kMD: 1, kJaw: 1 }, B.head || {});
+    if (H.kTW == null) H.kTW = H.kMW;
+    const Y = (y) => y + (kL - 1) * DOGI(0.05, 0.09, y) + (kB - kL) * DOGI(0.28, 0.34, y);
+    // a golden body point -> the breed's (leg 'f' or 'h': the leg keeps its own thickness about its middle line)
+    const body = (x, y, z, leg) => {
+      const x0 = leg === 'f' ? 0.077 : leg === 'h' ? 0.081 : 0;
+      const X = leg ? (x < 0 ? -1 : 1) * (x0 * kw + (Math.abs(x) - x0) * kLW) : x * kw;
+      const w = sstep(0.52, 0.7, y) * sstep(0.18, 0.26, z);
+      return [s * X, s * (Y(y) + w * nk[0]), s * (z * kz + w * nk[1])];
+    };
+    const ho = body(DOG_HO[0], DOG_HO[1], DOG_HO[2]), sh = s * H.k, c = Math.cos(H.pitch), sn = Math.sin(H.pitch);
+    const rot = (v) => [v[0], v[1] * c + v[2] * sn, -v[1] * sn + v[2] * c];
+    const ha = rot(DOG_HA), hu = rot(DOG_HU);
+    const hs = (t) => H.kS * t + (H.kM - H.kS) * DOGI(0.105, 0.135, t);
+    const kx = (t) => lerp(lerp(H.kSW, H.kMW, sstep(0.09, 0.16, t)), H.kTW, sstep(0.17, 0.24, t));
+    const ku = (t, u) => lerp(u > 0 ? H.kDome : H.kJaw, H.kMD, sstep(0.095, 0.14, t));
+    const hlocal = (x, u, t) => [sh * x, ho[1] + sh * (ha[1] * t + hu[1] * u), ho[2] + sh * (ha[2] * t + hu[2] * u)];
+    // a golden head point -> the breed's (and its place along the golden head, t)
+    const head = (x, y, z) => {
+      const dy = y - DOG_HO[1], dz = z - DOG_HO[2], t = dy * DOG_HA[1] + dz * DOG_HA[2], u = dy * DOG_HU[1] + dz * DOG_HU[2];
+      return hlocal(x * kx(t), u * ku(t, u), hs(t));
+    };
+    const along = (y, z) => (y - DOG_HO[1]) * DOG_HA[1] + (z - DOG_HO[2]) * DOG_HA[2];
+    return { s, sh, kw, kB, kz, kLW, H, body, head, along, kx, ku, rot };
+  }
+  // the ears (golden head point B, direction A, L long, W half wide in golden units): loft keys for the procedural body
+  function dogEar(E, F) {
+    const B = F.head(E.B[0], E.B[1], E.B[2]), sh = F.sh, L = E.L * sh, W = E.W * sh;
+    const n = Math.hypot(E.A[0], E.A[1], E.A[2]), A = E.A.map((v) => v / n), keys = [];
+    for (let i = 0; i <= 4; i++) {
+      const u = i / 4;
+      let hw;
+      if (E.type === 'drop') {
+        const w0 = E.w0 || 0.78, um = E.um || 0.33, p = E.p || 2;
+        hw = u < um ? w0 + (1 - w0) * Math.sqrt(u / um) : Math.pow(Math.max(0, 1 - Math.pow((u - um) / (1 - um), p)), 1 / p);
+      } else hw = Math.pow(1 - u, 0.85) * (0.75 + 0.25 * Math.sqrt(Math.min(1, u * 4)));
+      hw = Math.max(hw * W, 0.08 * W);
+      const th = (0.0065 * (1 - u) + 0.0042 * u) * sh, P = [B[0] + A[0] * L * u, B[1] + A[1] * L * u, B[2] + A[2] * L * u];
+      keys.push(E.type === 'drop' ? [P[0], P[1], P[2], th, hw, hw] : [P[0], P[1], P[2], hw, th, th]);
+    }
+    return { B, keys, tip: [B[0] + A[0] * L, B[1] + A[1] * L, B[2] + A[2] * L] };
+  }
+  // a breed spec from the golden's: B = fit numbers, head, ear, tail (keys [dy, dz, r] from the golden's tail root,
+  // times s, and the keys its three bones sit on), eye, nose, paint, babyPaint, baby, modelSpec, anim, collar
+  function dogBreed(B) {
+    const g = SPEC.dog(), F = dogFit(B), s = F.s, sh = F.sh;
+    const legOf = (n) => (/^(arm|fore|fmeta|fpaw)/.test(n) ? 'f' : /^(thigh|shin|hmeta|hpaw)/.test(n) ? 'h' : null);
+    const root = F.body(0, 0.507, -0.36);
+    const tail = B.tail.map((k) => [root[1] + k[0] * s, root[2] + k[1] * s, k[2] * s, (k[3] || 0) * s]);
+    const ear = dogEar(B.ear, F);
+    const bones = g.bones.map((b) => {
+      const n = b[0], o = b.slice();
+      let p;
+      if (n === 'head') p = F.head(b[2], b[3], b[4]);
+      else if (n === 'earL') p = ear.B;
+      else if (/^tail\d$/.test(n)) { const k = tail[B.tailBones[+n[4] - 1]]; p = [0, k[0], k[1]]; }
+      else p = F.body(b[2], b[3], b[4], legOf(n));
+      o[2] = p[0]; o[3] = p[1]; o[4] = p[2];
+      return o;
+    });
+    const fur = g.fur.map((fp) => {
+      const o = Object.assign({}, fp);
+      if (fp.name === 'tail') o.keys = tail.map((k) => [0, k[0], k[1], k[2], k[2] + k[3], k[2]]);
+      else if (fp.name === 'ear') o.keys = ear.keys;
+      else if (fp.name === 'head') o.keys = fp.keys.map((k) => { const p = F.head(k[0], k[1], k[2]), t = F.along(k[1], k[2]); return [p[0], p[1], p[2], k[3] * sh * F.kx(t), k[4] * sh * F.ku(t, 1), k[5] * sh * F.ku(t, -1)]; });
+      else {
+        const leg = fp.name === 'fleg' ? 'f' : fp.name === 'hleg' ? 'h' : null, kr = leg ? s * F.kLW : s;
+        o.keys = fp.keys.map((k) => { const p = F.body(k[0], k[1], k[2], leg); return [p[0], p[1], p[2], k[3] * kr * (leg ? 1 : F.kw), k[4] * kr * (leg ? 1 : F.kB), k[5] * kr * (leg ? 1 : F.kB)]; });
+      }
+      return o;
+    });
+    const E = Object.assign({ k: 1, iris: 0x4A2A14 }, B.eye || {}), ge = g.eyes[0];
+    const eyeP = F.head(ge.p[0], ge.p[1], ge.p[2]);
+    const nose = F.head(0, 0.67, 0.57), top = F.head(0, 0.758, 0.4);
+    const tailZ = Math.min(...tail.map((k) => k[1]), F.body(0, 0.5, -0.4)[2]), tailY = Math.max(...tail.map((k) => k[0] + k[2]));
+    const A = Object.assign({}, g.anim);
+    for (const k of ['stride', 'floatDepth']) A[k] = g.anim[k] * s;
+    for (const k of ['lift', 'bob', 'eatSplay']) A[k] = g.anim[k].map((v) => v * s);
+    A.eatDrop = g.anim.eatDrop * s;
+    Object.assign(A, B.anim || {});
+    return Object.assign({}, g, {
+      size: { length: +((nose[2] + 0.015 * sh - tailZ) * 1.03).toFixed(3), height: +Math.max(top[1], ear.tip[1] + 0.01 * sh, tailY).toFixed(3), radius: +(0.24 * s * F.kw).toFixed(3), eyeHeight: +eyeP[1].toFixed(3) },
+      bones, fur,
+      accent: [{ kind: 'sphere', bone: 'head', c: nose, r: 0.0145 * sh * (B.nose || 1), s: [1.2, 0.8, 0.72], col: B.noseCol || 0x1C1614 }],
+      eyes: [Object.assign({}, ge, { p: eyeP, r: ge.r * sh * E.k, dir: F.rot(ge.dir), iris: E.iris })],
+      mouth: F.head(g.mouth[0], g.mouth[1], g.mouth[2]),
+      paint: B.paint, babyPaint: B.babyPaint,
+      baby: Object.assign({}, B.baby || g.baby, { muzzleDir: F.rot(DOG_HA) }), modelSpec: B.modelSpec || g.modelSpec,
+      anim: A,
+    });
+  }
+  // Black Lab: shorter coupled, broader and stouter than the golden, a broad skull and blunt muzzle, smaller ears,
+  // the thick round otter tail; a short glossy black coat
+  SPEC.lab = () => dogBreed({
+    s: 1.0, kL: 1.0, kB: 1.02, kz: 0.98, kw: 1.08, kLW: 1.07, neck: [-0.004, -0.008],
+    head: { k: 1.0, pitch: 0, kS: 1.0, kM: 0.9, kSW: 1.14, kMW: 1.15, kTW: 1.2, kDome: 1.0, kMD: 1.04, kJaw: 1.05 },
+    ear: { type: 'drop', B: [0.066, 0.721, 0.386], A: [0.14, -1, 0.06], L: 0.095, W: 0.04, w0: 0.86, um: 0.24, p: 1.6 },
+    tail: [[0, 0, 0.04], [-0.006, -0.03, 0.038], [-0.02, -0.074, 0.033], [-0.04, -0.118, 0.0275], [-0.066, -0.162, 0.0235],
+      [-0.096, -0.202, 0.0195], [-0.128, -0.236, 0.0158], [-0.156, -0.262, 0.0118], [-0.172, -0.276, 0.0068]], tailBones: [1, 3, 5],
+    eye: { iris: 0x5A3418 }, nose: 1.05, noseCol: 0x131212,
+    paint(P, C) {
+      cset(C, hex(0x1B1A1C));
+      cmix(C, hex(0x2E2622), sstep(0.35, 0.9, P.ny) * 0.3);
+      cmix(C, hex(0x0F0E10), sstep(-0.2, -0.7, P.ny) * 0.5);
+      cmul(C, 0.92 + 0.14 * grain(P, 140, 40));
+      C.ro = 0.55;
+      C.fl = P.part === 'tail' ? 0.5 : P.part === 'body' ? 0.4 : 0.25;
+    },
+    babyPaint(P, C) { cmix(C, hex(0x221E1C), 0.4); C.fl = Math.min(1, C.fl * 1.3 + 0.1); },
+    anim: { walk: 1.2, trot: 2.6, run: 6.0 },
+  });
+  // Dalmatian: lean and leggy, a long arched neck, a long lean head, thin ears set high, a long tapering tail with a
+  // slight upward curve; white with round black spots (puppies are born white)
+  SPEC.dalmatian = () => dogBreed({
+    s: 1.0, kL: 1.12, kB: 0.92, kz: 0.96, kw: 0.86, kLW: 0.86, neck: [0.032, 0.026],
+    head: { k: 0.97, pitch: 0.06, kS: 1.0, kM: 1.06, kSW: 0.9, kMW: 0.86, kTW: 0.84, kDome: 0.93, kMD: 0.9, kJaw: 0.92 },
+    ear: { type: 'drop', B: [0.062, 0.738, 0.384], A: [0.16, -1, 0.1], L: 0.1, W: 0.042, w0: 0.95, um: 0.12, p: 1.35 },
+    tail: [[0, 0, 0.025], [-0.004, -0.032, 0.024], [-0.018, -0.08, 0.021], [-0.042, -0.13, 0.018], [-0.075, -0.175, 0.0155], [-0.115, -0.212, 0.013],
+      [-0.16, -0.235, 0.0105], [-0.205, -0.245, 0.0082], [-0.24, -0.24, 0.0062], [-0.262, -0.228, 0.0042]], tailBones: [1, 3, 6],
+    eye: { iris: 0x4A2A16 }, noseCol: 0x141212,
+    paint(P, C) {
+      cset(C, hex(0xF1EFE8));
+      cmix(C, hex(0xE6E0D3), sstep(-0.2, -0.7, P.ny) * 0.6);
+      const k = P.part === 'body' ? 26 : 48;
+      cmix(C, hex(0x181616), sstep(0.34, 0.27, cells(P.x * k + 3.1, P.y * k, P.z * k)) * (P.part === 'ear' ? 1.3 : 1));
+      C.ro = 0.6;
+      C.fl = P.part === 'tail' ? 0.4 : P.part === 'body' ? 0.35 : 0.2;
+    },
+    babyPaint(P, C) { cmix(C, hex(0xF1EFE8), 0.85); C.fl = Math.min(1, C.fl * 1.3 + 0.1); },
+    anim: { walk: 1.3, trot: 3.0, run: 7.5 },
+  });
+  // Siberian husky: a little lighter than the golden, a thick ruff, erect triangular ears, ice blue eyes, the bushy
+  // tail curled up over the back; gray over white with the mask
+  SPEC.husky = () => dogBreed({
+    s: 0.95, kL: 1.04, kB: 0.97, kz: 1.03, kw: 0.94, kLW: 0.92, neck: [0.012, 0.004],
+    head: { k: 0.98, pitch: 0.05, kS: 1.0, kM: 0.9, kSW: 1.0, kMW: 0.92, kTW: 0.8, kDome: 1.02, kMD: 0.88, kJaw: 0.9 },
+    ear: { type: 'erect', B: [0.03, 0.753, 0.373], A: [0.14, 1, 0.06], L: 0.072, W: 0.034 },
+    tail: [[0, 0, 0.03, 0], [0.03, -0.025, 0.031, 0.006], [0.075, -0.035, 0.03, 0.012], [0.12, -0.02, 0.028, 0.016], [0.155, 0.015, 0.025, 0.018],
+      [0.17, 0.06, 0.022, 0.017], [0.16, 0.105, 0.018, 0.014], [0.135, 0.14, 0.013, 0.01], [0.11, 0.155, 0.008, 0.005]], tailBones: [1, 3, 5],
+    eye: { k: 0.96, iris: 0x9CC8E8 }, noseCol: 0x151414,
+    paint(P, C) {
+      cset(C, hex(0xF0EEE9));
+      const dark = (P.part === 'body' ? sstep(0.0, 0.4, P.ny) * sstep(0.42, 0.5, P.y / 0.95) : P.part === 'head' ? sstep(0.2, 0.6, P.ny) * 0.9 : P.part === 'ear' ? 1 : P.part === 'tail' ? sstep(-0.2, 0.3, -P.ny) : 0);
+      cmix(C, hex(0x6E6E72), dark);
+      cmul(C, 0.94 + 0.1 * grain(P, 120, 35));
+      C.ro = 0.8;
+      C.fl = P.part === 'tail' ? 1 : P.part === 'body' ? 0.8 : 0.4;
+    },
+    babyPaint(P, C) { cmix(C, hex(0x55555A), 0.25); C.fl = Math.min(1, C.fl * 1.3 + 0.1); },
+    baby: { head: 1.45, muzzle: 0.42, eye: 1.18, ear: 0.8, neck: [0.55, 1.12], body: [1.12, 1.12, 0.64], leg: [0.7, 1.28], tail: 0.45 },
+    anim: { walk: 1.3, trot: 3.2, run: 7.0, tailIdle: [0, 0, 0], tailWalkLift: [0, 0, 0], tailRun: [-0.25, 0, 0], tailHappy: 0.3, wag: 0.5,
+      sit: { idle: 6, pitch: 0.8, drop: 0.6, rump: 0.4, chest: 0.1, front: [0.08, 0.0], hind: [0.3, 0.05, 0.0], neck: [0.0, 0.05, 0.0], tail: [0.4, 0.1, 0.0], tailYaw: [0.3, 0.3, 0.2] } },
+  });
+  // Beagle: a small sturdy hound, a slightly domed skull, a square muzzle, big brown eyes, long low-set ears, the tail
+  // carried up with a white tip; black, tan and white
+  SPEC.beagle = () => dogBreed({
+    s: 0.66, kL: 0.92, kB: 1.05, kz: 1.04, kw: 1.06, kLW: 1.05, neck: [-0.006, -0.004],
+    head: { k: 1.14, pitch: 0.04, kS: 1.03, kM: 0.88, kSW: 1.02, kMW: 1.02, kTW: 1.05, kDome: 1.12, kMD: 1.02, kJaw: 1.0 },
+    ear: { type: 'drop', B: [0.068, 0.714, 0.384], A: [0.1, -1, 0.12], L: 0.148, W: 0.043, w0: 0.68, um: 0.55, p: 2.2 },
+    tail: [[0, 0, 0.026, 0], [0.022, -0.02, 0.025, 0.002], [0.062, -0.034, 0.022, 0.005], [0.11, -0.04, 0.019, 0.007], [0.16, -0.035, 0.0165, 0.008],
+      [0.205, -0.02, 0.014, 0.007], [0.24, 0.0, 0.011, 0.005], [0.258, 0.016, 0.006, 0.002]], tailBones: [1, 3, 5],
+    eye: { k: 1.18, iris: 0x4A2A12 }, noseCol: 0x151212,
+    paint(P, C) {
+      cset(C, hex(0xB97A3C));
+      if (P.part === 'body') cmix(C, hex(0x1D1B1A), sstep(-0.1, 0.3, P.ny) * sstep(0.3, 0.34, P.y));
+      if (P.part === 'tail') cmix(C, P.v > 0.85 ? hex(0xF2EEE6) : hex(0x1D1B1A), 1);
+      cmix(C, hex(0xF2EEE6), sstep(-0.3, -0.7, P.ny) + (P.part === 'fleg' || P.part === 'hleg' ? sstep(0.2, 0.14, P.y) : 0));
+      cmul(C, 0.94 + 0.1 * grain(P, 140, 40));
+      C.ro = 0.7;
+      C.fl = P.part === 'tail' ? 0.5 : P.part === 'body' ? 0.4 : 0.25;
+    },
+    babyPaint(P, C) { if (P.part === 'head' || P.part === 'ear') cmix(C, hex(0x2A2220), 0.4 * sstep(-0.2, 0.4, P.ny)); C.fl = Math.min(1, C.fl * 1.3 + 0.1); },
+    anim: { walk: 0.95, trot: 2.1, run: 5.2, tailIdle: [0, 0, 0], tailWalkLift: [0.1, 0, 0], tailRun: [-0.1, 0, 0] },
+  });
+  // Chihuahua: tiny and fine boned, the apple dome head with a short muzzle, big round eyes and very large erect ears
+  // flaring out, the tail up in a sickle; a smooth fawn coat
+  SPEC.chihuahua = () => dogBreed({
+    s: 0.36, kL: 0.95, kB: 0.95, kz: 1.0, kw: 1.0, kLW: 0.7, neck: [-0.02, -0.02],
+    head: { k: 1.5, pitch: 0.12, kS: 0.95, kM: 0.5, kSW: 1.12, kMW: 0.85, kTW: 0.75, kDome: 1.55, kMD: 0.8, kJaw: 0.85 },
+    ear: { type: 'erect', B: [0.036, 0.748, 0.36], A: [0.62, 0.78, -0.04], L: 0.108, W: 0.054 },
+    tail: [[0, 0, 0.024], [0.03, -0.022, 0.022], [0.08, -0.032, 0.0195], [0.135, -0.022, 0.017], [0.18, 0.008, 0.0145],
+      [0.208, 0.05, 0.012], [0.21, 0.092, 0.0095], [0.195, 0.122, 0.0065], [0.178, 0.135, 0.004]], tailBones: [1, 3, 5],
+    eye: { k: 1.55, iris: 0x2E1A0E }, noseCol: 0x1A1514,
+    paint(P, C) {
+      cset(C, hex(0xCB9558));
+      cmix(C, hex(0xAD7A43), sstep(0.35, 0.9, P.ny) * 0.45);
+      cmix(C, hex(0xEAD3AC), sstep(-0.3, -0.8, P.ny) * 0.7);
+      if (P.part === 'ear') cmix(C, hex(0xD8A28E), 0.4);
+      cmul(C, 0.95 + 0.08 * grain(P, 140, 40));
+      C.ro = 0.6;
+      C.fl = P.part === 'tail' ? 0.3 : 0.2;
+    },
+    babyPaint(P, C) { cmix(C, hex(0xDDB27A), 0.3); C.fl = Math.min(1, C.fl * 1.3 + 0.1); },
+    baby: { head: 1.22, muzzle: 0.7, eye: 1.05, ear: 0.85, neck: [0.6, 1.1], body: [1.12, 1.12, 0.72], leg: [0.72, 1.2], tail: 0.5 },
+    modelSpec: { baby: { eye: 0.94, leg: [0.74, 1.1] } },
+    anim: { walk: 0.6, trot: 1.3, run: 3.5, tailIdle: [0, 0, 0], tailWalkLift: [0, 0, 0], tailRun: [-0.2, 0, 0], tailHappy: 0.3, wag: 0.6,
+      sit: { idle: 4, pitch: 0.8, drop: 0.6, rump: 0.4, chest: 0.1, front: [0.08, 0.0], hind: [0.3, 0.05, 0.0], neck: [0.0, 0.05, 0.0], tail: [0.3, 0.1, 0.0], tailYaw: [0.2, 0.2, 0.2] } },
+  });
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -4479,7 +4691,9 @@ const Animals = (() => {
         if (par) babyApply(par, c0, c1); else c1.copy(c0).add(_v1.set(0, -drop, 0));
         const mp = { name: d.name, role, c0, c1, M, muz: null };
         if (role === 'head' && eye && B.muzzle < 1) {
-          const dir = mouth.clone().sub(eye); dir.x = 0;
+          // (muzzleDir: shorten the muzzle along this direction instead of toward the mouth, so a long muzzle with a
+          // low mouth does not lose its depth: the dogs)
+          const dir = B.muzzleDir ? new THREE.Vector3().fromArray(B.muzzleDir) : mouth.clone().sub(eye); dir.x = 0;
           if (dir.lengthSq() > 1e-8) mp.muz = { e: eye.clone().addScaledVector(dir.clone().normalize(), -0.004), d: dir.normalize(), f: B.muzzle };
         }
         byName[d.name] = mp;
@@ -6222,6 +6436,8 @@ const Animals = (() => {
     frog: { at: ['chest', 'head', 0.7], tag: PI * 0.62, w: 0.6, r: 0.75 }, lizard: { at: ['neck', 'head', 0.3], tag: PI * 0.6 },
     turtle: { part: 'neck', at: ['neck', 'head', 0.95] }, snake: { at: ['s0', 's1', 0.5], tag: PI * 0.55 },
   };
+  // round 7: dog breeds (the golden's collar place)
+  for (const id of ['lab', 'dalmatian', 'husky', 'beagle', 'chihuahua']) COLLAR[id] = COLLAR.dog;
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)

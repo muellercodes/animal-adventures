@@ -141,6 +141,15 @@ const Sound = (() => {
       case 'dog': for (let i = 0; i < 2; i++) { const t0 = t + i * 0.32; T({ t: t0, f: 330 * k, f2: 210 * k, dur: 0.16, type: 'sawtooth', bp: 800 * k, q: 1.6, vol: vol * 1.2 }); T({ t: t0, f: 660 * k, f2: 380 * k, dur: 0.1, type: 'square', bp: 1400 * k, q: 2, vol: vol * 0.35 }); noise({ t: t0, f: 900 * k, q: 1.2, dur: 0.09, vol: vol * 0.4, pan }); } break;
       // meow: rising into the "ee", then a long falling "ow"
       case 'cat': T({ t, f: 520 * k, f2: 760 * k, dur: 0.2, type: 'sawtooth', bp: 1500 * k, q: 1.8, vib: 6, vibAmt: 12, vol: vol * 0.8 }); T({ t: t + 0.18, f: 760 * k, f2: 470 * k, dur: 0.42, a: 0.03, type: 'sawtooth', bp: 1100 * k, q: 1.8, vib: 6, vibAmt: 14, vol: vol * 0.8 }); break;
+      // round 7: dog breeds
+      // Black Lab and Dalmatian: two barks like the golden's, the Lab's a little deeper, the Dalmatian's a little higher
+      case 'lab': case 'dalmatian': { const f0 = sp === 'lab' ? 290 : 360; for (let i = 0; i < 2; i++) { const t0 = t + i * 0.3; T({ t: t0, f: f0 * k, f2: f0 * 0.62 * k, dur: 0.16, type: 'sawtooth', bp: (f0 * 2.4) * k, q: 1.6, vol: vol * 1.2 }); T({ t: t0, f: f0 * 2 * k, f2: f0 * 1.15 * k, dur: 0.1, type: 'square', bp: f0 * 4.3 * k, q: 2, vol: vol * 0.35 }); noise({ t: t0, f: f0 * 2.7 * k, q: 1.2, dur: 0.09, vol: vol * 0.4, pan }); } break; }
+      // Husky: a howl, "awoo": a rising start, then a long falling, wavering note
+      case 'husky': T({ t, f: 400 * k, f2: 600 * k, dur: 0.32, a: 0.06, type: 'sawtooth', bp: 1000 * k, q: 2, vol: vol * 0.8 }); T({ t: t + 0.28, f: 600 * k, f2: 470 * k, dur: 1.1, a: 0.05, type: 'sawtooth', bp: 900 * k, q: 2.2, vib: 5, vibAmt: 10, vol: vol * 0.8 }); break;
+      // Beagle: baying, "aroo": a quick rise and a long ringing fall
+      case 'beagle': T({ t, f: 470 * k, f2: 660 * k, dur: 0.22, type: 'sawtooth', bp: 1300 * k, q: 2, vol: vol * 0.9 }); T({ t: t + 0.2, f: 660 * k, f2: 520 * k, dur: 0.75, a: 0.03, type: 'sawtooth', bp: 1200 * k, q: 2.2, vib: 6.5, vibAmt: 18, vol: vol * 0.85 }); break;
+      // Chihuahua: high, quick yaps
+      case 'chihuahua': for (let i = 0; i < 3; i++) { const t0 = t + i * 0.14; T({ t: t0, f: 900 * k, f2: 640 * k, dur: 0.07, type: 'sawtooth', bp: 1900 * k, q: 2, vol: vol * 0.8 }); noise({ t: t0, f: 2400 * k, q: 1.5, dur: 0.05, vol: vol * 0.3, pan }); } break;
     }
   }
 
