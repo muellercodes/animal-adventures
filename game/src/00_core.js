@@ -78,12 +78,18 @@ const SPECIES = {
   husky: { name: 'Husky', many: 'Huskies', eats: ['fish', 'petfood', 'worm', 'apple', 'carrot'], fav: 'fish', swim: true, swimSpeed: 2.0, price: 500, baby: 'Puppy' },
   beagle: { name: 'Beagle', many: 'Beagles', eats: ['petfood', 'hotdog', 'bread', 'apple', 'carrot', 'worm'], fav: 'hotdog', price: 400, baby: 'Puppy' },
   chihuahua: { name: 'Chihuahua', many: 'Chihuahuas', eats: ['petfood', 'apple', 'carrot', 'worm', 'bread'], fav: 'petfood', price: 400, baby: 'Puppy' },
+  // round 7: cockatiel and crocodile
+  cockatiel: { name: 'Cockatiel', many: 'Cockatiels', eats: ['seeds', 'berries', 'apple', 'corn', 'lettuce', 'banana'], fav: 'seeds', fly: true, flySpeed: 9, price: 250, egg: 0xf6f3ec, baby: 'Cockatiel chick' },
+  crocodile: { name: 'Crocodile', many: 'Crocodiles', eats: ['fish', 'smallfish', 'worm', 'bugs', 'hotdog'], fav: 'fish', swim: true, swimSpeed: 3, noJump: true, outdoor: true, hunter: true, price: 1300, egg: 0xf2efe6, baby: 'Baby crocodile' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
 // round 7: dog breeds
 SHOP.push('lab', 'beagle', 'chihuahua', 'dalmatian', 'husky');
 const SMALL_PREY = ['chicken', 'frog', 'lizard', 'bunny', 'squirrel', 'duck', 'hedgehog', 'weasel'];
+// round 7: cockatiel and crocodile
+SHOP.push('cockatiel', 'crocodile');
+SMALL_PREY.push('cockatiel');
 const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow'];
 const PACKS = [{ id: 's', leaves: 100, price: '$0.99' }, { id: 'm', leaves: 300, price: '$1.99' }, { id: 'l', leaves: 1000, price: '$4.99' }];
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];

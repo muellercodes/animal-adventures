@@ -150,6 +150,11 @@ const Sound = (() => {
       case 'beagle': T({ t, f: 470 * k, f2: 660 * k, dur: 0.22, type: 'sawtooth', bp: 1300 * k, q: 2, vol: vol * 0.9 }); T({ t: t + 0.2, f: 660 * k, f2: 520 * k, dur: 0.75, a: 0.03, type: 'sawtooth', bp: 1200 * k, q: 2.2, vib: 6.5, vibAmt: 18, vol: vol * 0.85 }); break;
       // Chihuahua: high, quick yaps
       case 'chihuahua': for (let i = 0; i < 3; i++) { const t0 = t + i * 0.14; T({ t: t0, f: 900 * k, f2: 640 * k, dur: 0.07, type: 'sawtooth', bp: 1900 * k, q: 2, vol: vol * 0.8 }); noise({ t: t0, f: 2400 * k, q: 1.5, dur: 0.05, vol: vol * 0.3, pan }); } break;
+      // round 7: cockatiel and crocodile
+      // Cockatiel: a bright rising whistle and a quick two-note chirp ("wee-oo, cheep")
+      case 'cockatiel': T({ t, f: 2100 * k, f2: 2900 * k, dur: 0.22, type: 'sine', vib: 9, vibAmt: 40, vol: vol * 0.7 }); T({ t: t + 0.26, f: 2900 * k, f2: 2300 * k, dur: 0.16, type: 'sine', vol: vol * 0.6 }); T({ t: t + 0.5, f: 3200 * k, f2: 3400 * k, dur: 0.06, type: 'triangle', vol: vol * 0.5 }); break;
+      // Crocodile: a deep rumbling growl with a hiss (hatchlings chirp instead)
+      case 'crocodile': if (k > 1) { for (let i = 0; i < 2; i++) T({ t: t + i * 0.18, f: 900, f2: 1300, dur: 0.1, type: 'triangle', vol: vol * 0.6 }); } else { T({ t, f: 62, f2: 48, dur: 1.1, a: 0.12, type: 'sawtooth', lp: 260, vib: 7, vibAmt: 6, vol: vol * 1.4 }); noise({ t: t + 0.05, f: 1800, q: 0.6, dur: 0.7, vol: vol * 0.35, pan }); } break;
     }
   }
 
