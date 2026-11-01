@@ -3,7 +3,7 @@
  "id": "dog",
  "data": "dog.bin",
  "enc": "deflate",
- "raw": 106204,
+ "raw": 109561,
  "maps": {
   "color": "dog-color.webp",
   "normal": "dog-normal.webp",
@@ -11,17 +11,17 @@
   "fur": "dog-fur.webp",
   "hair": "dog-hair.webp"
  },
- "nv": 2746,
- "ntri": 3713,
- "nbv": 2746,
- "nbt": 3713,
+ "nv": 2875,
+ "ntri": 3692,
+ "nbv": 2875,
+ "nbt": 3692,
  "bbox": [
-  -0.131617,
+  -0.131514,
   0.0004,
-  -0.66559,
-  0.131617,
-  0.764735,
-  0.568366
+  -0.668131,
+  0.131514,
+  0.764626,
+  0.568185
  ],
  "bones": [
   "hips",
@@ -118,10 +118,10 @@
   "n": 5,
   "lean": 1.35,
   "tile": 0.0018,
-  "babyLen": 1.25,
-  "babyLean": 0.6,
+  "babyLen": 1.6,
+  "babyLean": 0.4,
   "shade": 0.62,
-  "uvm": 1.1039
+  "uvm": 1.1707
  },
  "cards": {
   "nv": 320,
@@ -138,5 +138,5 @@
   "rough": 0.6,
   "alpha": 0.3
  },
- "bdelta": 0.069722
+ "bdelta": 0.069972
 }

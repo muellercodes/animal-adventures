@@ -29,14 +29,17 @@ EAR_A = nrm([0.12, -1.0, 0.08])
 EAR_N = nrm([1.0, 0.12, -0.12])
 EAR_N = nrm(EAR_N - EAR_A * np.dot(EAR_N, EAR_A))
 EAR_C = np.cross(EAR_N, EAR_A)          # across the ear, toward the front
-EAR_L, EAR_W = 0.105, 0.04
+EAR_L, EAR_W = 0.1, 0.04
+# the ear's feathering (part of the sculpt): how far it reaches past the back edge, the front edge and the tip
+EAR_FR, EAR_FF, EAR_FE = 0.016, 0.005, 0.011
+EAR_M = EAR_W + EAR_FR + 0.004          # half width of the ear with its feathering, for masks
 XF, XH = 0.077, 0.081
 PAW_F = V(XF, 0.0, 0.187)
 PAW_H = V(XH, 0.0, -0.262)
 PATCHES = [
     (EYE.c * V(0, 1, 1) + V(0.022, -0.02, -0.02), EYE.c * V(0, 1, 1) + V(0.062, 0.02, 0.022), 0.0006),   # eye and lids
     (HF.pt(0.19, 0.0) * V(0, 1, 1) + V(0.0, -0.075, -0.01), HF.pt(0.258, 0.0) * V(0, 1, 1) + V(0.045, 0.02, 0.01), 0.0008),  # muzzle, nose, lips
-    (V(0.032, 0.6, 0.33), V(0.11, 0.765, 0.43), 0.0012),                                                     # ear
+    (V(0.032, 0.59, 0.32), V(0.112, 0.765, 0.44), 0.0012),                                                   # ear
     (V(0.04, -0.001, 0.15), V(0.115, 0.04, 0.225), 0.0009),                                                  # front paw
     (V(0.045, -0.001, -0.3), V(0.12, 0.04, -0.22), 0.0009),                                                  # hind paw
 ]
@@ -75,9 +78,9 @@ HEAD = [
     (0.126, 0.028, -0.019, -0.063, 0.041, 2.2, 2.3),
     (0.14, 0.018, -0.021, -0.062, 0.039, 2.2, 2.4),
     (0.17, 0.014, -0.023, -0.061, 0.038, 2.2, 2.5),
-    (0.2, 0.011, -0.024, -0.058, 0.037, 2.3, 2.5),
-    (0.222, 0.007, -0.024, -0.053, 0.035, 2.4, 2.4),
-    (0.236, 0.001, -0.024, -0.046, 0.031, 2.3, 2.2),
+    (0.2, 0.011, -0.024, -0.058, 0.0358, 2.3, 2.5),
+    (0.222, 0.007, -0.024, -0.053, 0.0333, 2.4, 2.4),
+    (0.236, 0.001, -0.024, -0.046, 0.0295, 2.3, 2.2),
 ]
 # front leg: path (y, z), section forward (top), back (bot), half width across, exponents, x of the middle
 FORE = [
@@ -202,8 +205,8 @@ def head(P):
     # under the eye the muzzle narrows a little
     d = d + groove(np.sqrt((L[:, 0] - 0.04) ** 2 + ((L[:, 1] + 0.008) * 0.8) ** 2), 0.007, 0.0028) * sstep(0.12, 0.135, L[:, 2]) * sstep(0.165, 0.15, L[:, 2])
     # the flews: the upper lips hang over the lower jaw at the sides, a fold at the corner of the mouth
-    d = smin(d, ellipsoid(L, V(0.026, -0.043, 0.18), V(0.0155, 0.024, 0.05)), 0.012)
-    d = smin(d, ellipsoid(L, V(0.031, -0.05, 0.13), V(0.012, 0.012, 0.02)), 0.01)
+    d = smin(d, ellipsoid(L, V(0.025, -0.042, 0.18), V(0.0142, 0.019, 0.046)), 0.012)
+    d = smin(d, ellipsoid(L, V(0.03, -0.049, 0.132), V(0.0105, 0.0095, 0.017)), 0.01)
     # lower jaw and chin, a little behind the upper lip
     d = smin(d, ellipsoid(L, V(0.0, -0.058, 0.157), V(0.026, 0.014, 0.062)), 0.014)
     # nose leather: big and wide, a little proud of the muzzle
@@ -248,6 +251,14 @@ def drop_ear(Q):
     d_th = np.abs(n - mid) - np.maximum(th, 0.0015)
     d_end = np.maximum(-a + 0.004, a - EAR_L)
     d = smax(smax(d_out, d_th, 0.004), d_end, 0.008)
+    # the feathering: a thinner fringe of locks past the back edge (most), the front edge and the tip, longer
+    # toward the bottom, its edge wavy
+    wave = 0.78 + 0.22 * np.sin(a * 190.0 + 1.1) * np.sin(a * 67.0 + 0.4)
+    fr = np.where(cc > 0, EAR_FR, EAR_FF) * sstep(0.22, 0.75, u) * wave
+    d_fo = np.abs(cc) - (hw + fr)
+    d_ft = np.abs(n - mid - 0.002 * u) - 0.0034 * (1 - 0.4 * sstep(0.0, 1.0, (np.abs(cc) - hw) / np.maximum(fr, 1e-4)))
+    d_fe = np.maximum(-a + 0.02, a - EAR_L - EAR_FE * (0.75 + 0.25 * np.sin(cc * 260.0)))
+    d = smin(d, smax(smax(d_fo, d_ft, 0.0025), d_fe, 0.006), 0.004)
     # the fold: the ear leather rolls over the top of the skull here
     d = smin(d, ellipsoid(Q, EAR_B + EAR_A * 0.004 - EAR_N * 0.004, V(0.012, 0.012, 0.03)), 0.01)
     return d
@@ -319,6 +330,44 @@ def tail(P):
     return sweep(mirror(P), _tail_keys())
 
 
+# ---------- the golden's feathering (part of the sculpt; the breeds refitted from the golden leave it out) ----------
+def _fringe(Q, a, b, x0, off0, off1, th0, ph, back=True):
+    """a fringe of locks hanging off a limb: behind the line a -> b (in the y-z plane at x0), out to off (off0 at a,
+    off1 at b) with a wavy edge, th0 thick across x at its root, thinner toward its edge"""
+    ab = b - a
+    L2 = float(ab @ ab)
+    tt = ((Q - a) @ ab) / L2
+    t = np.clip(tt, 0, 1)
+    C = a + t[:, None] * ab
+    nb = nrm(V(0.0, -ab[2], ab[1]) * (1 if back else -1))
+    p = (Q - C) @ nb
+    wave = 0.85 + 0.09 * np.sin(t * 23.0 + ph) + 0.06 * np.sin(t * 61.0 + 2 * ph)
+    off = (off0 + (off1 - off0) * t) * wave
+    th = th0 * (1 - 0.55 * np.clip(p / np.maximum(off, 1e-4), 0, 1))
+    d2 = np.maximum(p - off, -p - 0.004)
+    dt = np.abs(Q[:, 0] - x0) - th
+    dl = np.maximum(-tt, tt - 1) * np.sqrt(L2)
+    return smax(smax(d2, dt, 0.004), dl, 0.012)
+
+
+def feathering(P):
+    """the fringe down the backs of the forelegs, the trousers behind the thighs, the bib on the chest and the wavy
+    fringe along the underline"""
+    Q = mirror(P)
+    fl = _fringe(Q, V(XF, 0.31, 0.11), V(XF, 0.11, 0.144), XF - 0.002, 0.072, 0.036, 0.012, 0.7)
+    tr = _fringe(Q, V(XH - 0.012, 0.47, -0.38), V(XH - 0.004, 0.26, -0.318), XH - 0.012, 0.034, 0.024, 0.032, 1.9)
+    # the underline: from between the elbows back to the loin, hanging below the chest and the belly
+    x, y, z = Q[:, 0], Q[:, 1], Q[:, 2]
+    yb = np.interp(z, [-0.14, -0.06, 0.04, 0.12, 0.2], [0.385, 0.36, 0.322, 0.302, 0.31]).astype(F)
+    wave = 0.75 + 0.15 * np.sin(z * 120.0 + 0.6) + 0.1 * np.sin(z * 290.0 + 2.0)
+    drop = 0.03 * sstep(-0.13, -0.04, z) * sstep(0.21, 0.13, z) * wave
+    bl = np.maximum(np.maximum(yb - drop - y, y - yb - 0.03), np.abs(x) - 0.07 + 0.25 * np.maximum(yb - y, 0))
+    bl = smax(bl, np.maximum(-0.14 - z, z - 0.2), 0.02)
+    # the bib: longer hair over the breastbone and down between the forelegs
+    bib = ellipsoid(Q, V(0.0, 0.405, 0.268), V(0.05, 0.075, 0.028))
+    return smin(smin(np.minimum(fl, tr), bl, 0.01), bib, 0.02)
+
+
 # ---------- assembled ----------
 def parts(P):
     ca, li, ba = eye_parts(P)
@@ -345,6 +394,7 @@ def shape(P):
     d = smin(d, pw, 0.012)
     d = np.minimum(d, cl)
     d = smin(d, local(P, (-0.06, 0.26, -0.69), (0.06, 0.55, -0.32), tail), 0.03)
+    d = smin(d, local(P, (-0.15, 0.08, -0.45), (0.15, 0.52, 0.32), feathering), 0.008)
     return d
 
 
@@ -382,7 +432,7 @@ def keep(P):
     hd = sstep(-0.02, 0.02, L[:, 2]) * sstep(0.56, 0.6, Pm[:, 1]) * KEEP[2]
     m = sstep(0.19, 0.22, L[:, 2]) * sstep(-0.09, -0.07, L[:, 1]) * KEEP[3]
     a, c, n = ear_coords(Pm)
-    er = sstep(-0.01, 0.005, a) * sstep(EAR_W + 0.012, EAR_W, np.abs(c)) * sstep(0.03, 0.015, np.abs(n)) * sstep(EAR_L + 0.01, EAR_L, a) * KEEP[4]
+    er = sstep(-0.01, 0.005, a) * sstep(EAR_M + 0.008, EAR_M - 0.006, np.abs(c)) * sstep(0.03, 0.015, np.abs(n)) * sstep(EAR_L + EAR_FE + 0.008, EAR_L + EAR_FE, a) * KEEP[4]
     pw = sstep(0.045, 0.028, Pm[:, 1]) * KEEP[5]
     return np.maximum.reduce([base, e, hd, m, er, pw]).astype(F)
 
@@ -420,7 +470,7 @@ def uv_regions(P):
     tl = (z < -0.375) & (y > 0.25)
     lab[neck] = 1
     lab[head] = 0
-    lab[(a > 0.006) & (np.abs(c) < EAR_W + 0.01) & (np.abs(n) < 0.025) & (a < EAR_L + 0.01)] = 8
+    lab[(a > 0.006) & (np.abs(c) < EAR_M + 0.004) & (np.abs(n) < 0.025) & (a < EAR_L + EAR_FE + 0.006)] = 8
     lab[fleg] = 3
     lab[fleg & (y < 0.2)] = 4
     lab[hleg] = 5
@@ -526,7 +576,7 @@ def flow(P, N=None):
     wb = np.clip(1 - wh - wn - wl - wt, 0, 1)
     f = body * wb[:, None] + headd * wh[:, None] + neckd * wn[:, None] + legd * wl[:, None] + taild * wt[:, None]
     a, c, n = ear_coords(Q)
-    we = sstep(-0.006, 0.01, a) * sstep(EAR_W + 0.012, EAR_W, np.abs(c)) * sstep(0.03, 0.014, np.abs(n)) * sstep(EAR_L + 0.012, EAR_L, a)
+    we = sstep(-0.006, 0.01, a) * sstep(EAR_M + 0.008, EAR_M - 0.004, np.abs(c)) * sstep(0.03, 0.014, np.abs(n)) * sstep(EAR_L + EAR_FE + 0.01, EAR_L + EAR_FE, a)
     f = f * (1 - we)[:, None] + (EAR_A + 0.25 * EAR_C)[None, :] * we[:, None]
     f = f / np.maximum(np.linalg.norm(f, axis=1, keepdims=True), 1e-9)
     f[:, 0] *= np.sign(P[:, 0] + 1e-12)
@@ -581,7 +631,7 @@ def _lenk(Pm):
     lg = sstep(0.3, 0.18, y) * (1 - sstep(-0.37, -0.4, z))
     tl = sstep(-0.37, -0.42, z) * sstep(0.25, 0.3, y)
     a, c, n = ear_coords(Pm)
-    er = sstep(0.0, 0.02, a) * sstep(EAR_W + 0.01, EAR_W - 0.004, np.abs(c)) * sstep(0.025, 0.012, np.abs(n)) * sstep(EAR_L + 0.01, EAR_L - 0.01, a)
+    er = sstep(0.0, 0.02, a) * sstep(EAR_M + 0.006, EAR_W - 0.004, np.abs(c)) * sstep(0.025, 0.012, np.abs(n)) * sstep(EAR_L + EAR_FE + 0.008, EAR_L - 0.01, a)
     return np.clip(1.0 - 0.6 * hd - 0.45 * lg + 0.5 * tl + 0.3 * er, 0.35, 1.6)
 
 
@@ -672,7 +722,7 @@ def finish(C, ao, valid):
 
 
 # ---------- coat: fur shells ----------
-FUR = {'len': 0.055, 'n': 5, 'lean': 1.35, 'tile': 0.0018, 'babyLen': 1.25, 'babyLean': 0.6, 'shade': 0.62, 'quality': 80}
+FUR = {'len': 0.055, 'n': 5, 'lean': 1.35, 'tile': 0.0018, 'babyLen': 1.6, 'babyLean': 0.4, 'shade': 0.62, 'quality': 80}
 
 
 def fur(P, N, c):
@@ -691,7 +741,7 @@ def fur(P, N, c):
     hd = R['head']
     ln = ln * (1 - hd) + hd * (0.007 + 0.01 * sstep(0.04, 0.0, L[:, 2]) - 0.003 * sstep(0.13, 0.17, L[:, 2]))
     er = R['ear']
-    ln = ln * (1 - er) + er * (0.012 + 0.012 * sstep(0.3, 0.7, R['ea'] / EAR_L) + 0.008 * sstep(EAR_W * 0.5, EAR_W, np.abs(R['ec'])))
+    ln = ln * (1 - er) + er * (0.012 + 0.012 * sstep(0.3, 0.7, R['ea'] / EAR_L) + 0.01 * sstep(EAR_W * 0.5, EAR_W, np.abs(R['ec'])) + 0.012 * sstep(EAR_W, EAR_W + EAR_FR, np.abs(R['ec'])))
     tl = R['tail']
     ln = ln * (1 - tl) + tl * (0.026 + 0.018 * sstep(0.2, -0.5, N[:, 1]) * sstep(0.05, 0.3, R['tt']) - 0.012 * sstep(0.85, 1.0, R['tt']))
     ln = ln * (1 - R['paw'] * 0.6)
@@ -726,7 +776,7 @@ def meta(st):
 
 # ---------- puppies: a rounder little body and a pale cream coat ----------
 BABY_TEX = 512
-PUPPY = dict(c=V(0.0, 0.45, -0.07), r=(0.118, 0.114, 0.345), rb=0.148, e=2.05, maxd=0.07)
+PUPPY = dict(c=V(0.0, 0.45, -0.07), r=(0.118, 0.114, 0.345), rb=0.148, e=2.05, maxd=0.07, throat=0.012, nape=0.014)
 
 
 def _egg_walk(Q, Nm):
@@ -740,32 +790,132 @@ def _egg_walk(Q, Nm):
     return d * np.minimum(1, g['maxd'] / np.maximum(ln, 1e-9))
 
 
+def _gauss(t):
+    return np.exp(-t * t)
+
+
+# the puppy's head in the golden head frame (golden units, before the game's bigger head and shorter muzzle): a round
+# skull (an ellipsoid: center, radii), a short round muzzle (an elliptic section along s from the stop to the nose:
+# s, middle height, half width, half height), and how far vertices may move toward them; cheek and open are brushes
+PUP_HEAD = dict(skull=((0.0, -0.008, 0.05), (0.066, 0.064, 0.078)), muzzle=((0.115, -0.018, 0.04, 0.041), (0.215, -0.022, 0.036, 0.035)), nose=0.2,
+                maxd=0.009, cheek=0.003, open=0.0016, skull_w=1.0, muzzle_w=1.0)
+
+
+def _radial(R, r, maxd):
+    """offsets moving points R (relative to a center) radially onto the ellipse or ellipsoid with radii r"""
+    q = np.sqrt(((R / np.asarray(r, F)[None]) ** 2).sum(1))
+    D = R * (1 / np.maximum(q, 1e-6) - 1)[:, None]
+    ln = np.linalg.norm(D, axis=1, keepdims=True)
+    return D * np.minimum(1, maxd / np.maximum(ln, 1e-9))
+
+
+def puppy_head(L, c=None, scale=1.0, eye=None, k=None):
+    """a puppy's head: offsets (x, u, s) in the golden head frame (golden units, before the game's bigger head and
+    shorter muzzle) for points L (x, u, s) of the +x side. The skull and the muzzle are pulled toward a puppy's: a
+    round, smooth skull (no brows or temporal ridges), a short muzzle smaller and rounder in section than the
+    adult's, no flews; full cheeks; the lids open a little rounder. The eyes (eye = (center, radius) in the same
+    frame), the nose leather and the ears stay put. Breeds pass their own settings in k (the keys of PUP_HEAD)."""
+    K_ = dict(PUP_HEAD)
+    K_.update(k or {})
+    x, u, s = np.abs(L[:, 0]), L[:, 1], L[:, 2]
+    X = np.stack([x, u, s], 1).astype(F)
+    md = K_['maxd']
+    # the skull: over the cheekbones, from the back of the head to the stop
+    sc, sr = K_['skull']
+    Ds = _radial(X - np.asarray(sc, F)[None], sr, md)
+    ws = sstep(-0.03, -0.012, u) * sstep(-0.04, -0.015, s) * sstep(0.14, 0.112, s) * K_['skull_w']
+    # the muzzle: from the stop to just behind the nose leather
+    (s0, u0, x0, h0), (s1, u1, x1, h1) = K_['muzzle']
+    t = np.clip((s - s0) / (s1 - s0), 0, 1)
+    uc, rx, ru = u0 + (u1 - u0) * t, x0 + (x1 - x0) * t, h0 + (h1 - h0) * t
+    R2 = np.stack([x, u - uc], 1)
+    q = np.sqrt((x / rx) ** 2 + ((u - uc) / ru) ** 2)
+    D2 = R2 * (1 / np.maximum(q, 1e-6) - 1)[:, None]
+    ln = np.linalg.norm(D2, axis=1, keepdims=True)
+    D2 = D2 * np.minimum(1, md / np.maximum(ln, 1e-9))
+    Dm = np.stack([D2[:, 0], D2[:, 1], np.zeros(len(L), F)], 1)
+    wm = sstep(s0 - 0.005, s0 + 0.02, s) * (1 - sstep(s1 - 0.012, s1, s)) * K_['muzzle_w']
+    d = Ds * ws[:, None] + Dm * wm[:, None]
+    # full cheeks under the eyes
+    d[:, 0] += K_['cheek'] * _gauss((s - 0.075) / 0.03) * _gauss((u + 0.03) / 0.02) * sstep(0.02, 0.045, x)
+    # a puppy's nose is big for its face
+    nc = np.array([0.0, -0.004, NOSE_S - 0.004], F)
+    d += (X - nc[None]) * (K_['nose'] * sstep(0.21, 0.224, s) * sstep(-0.035, -0.02, u))[:, None]
+    # what stays put
+    w = np.ones(len(L), F)
+    if eye is not None:
+        # the pull keeps clear of the eyes; the lids open a little wider round them (a puppy's round eyes)
+        ec, er = eye
+        R_ = X - np.asarray(ec, F)[None]
+        de = np.linalg.norm(R_, axis=1)
+        d *= sstep(1.5 * er, 2.6 * er, de)[:, None]
+        ring = _gauss((de - 1.15 * er) / (0.45 * er)) * sstep(0.8 * er, 1.0 * er, de)
+        d[:, 1] += K_['open'] * ring * R_[:, 1] / np.maximum(de, 1e-9)
+    if c is not None:
+        w = w * sstep(-0.002 * scale, 0.004 * scale, c['ear'] - c['head'])
+    return (d * w[:, None]).astype(F)
+
+
 def baby_offset(P, N, c):
     """per vertex offsets in adult space (the game adds the bigger head, short muzzle, big ears and short legs): the
-    deep chest and tucked loin round off into a puppy's barrel with a full little belly"""
+    deep chest and tucked loin round off into a puppy's barrel with a full little belly; the head gets a puppy's
+    rounder skull and softer muzzle (puppy_head)"""
     Q = mirror(P)
     Nm = N.copy(); Nm[:, 0] = N[:, 0] * np.sign(P[:, 0] + 1e-9)
     d = _egg_walk(Q, Nm)
     legd = np.minimum(c['fleg'], c['hleg'])
     w = sstep(0.07, -0.02, c['trunk'] - legd)
-    w = w * sstep(-0.02, 0.06, np.minimum(c['head'], c['neck']) - c['trunk']) * sstep(0.3, 0.16, Q[:, 2]) * sstep(-0.47, -0.39, Q[:, 2])
+    # the tops of the legs round off into the barrel too (a puppy's soft thighs and shoulders)
+    y, z = Q[:, 1], Q[:, 2]
+    w = np.maximum(w, 0.6 * sstep(0.3, 0.4, y) * sstep(-0.1, -0.16, z) + 0.35 * sstep(0.36, 0.44, y) * sstep(0.05, 0.1, z))
+    w = w * sstep(-0.02, 0.06, np.minimum(c['head'], c['neck']) - c['trunk']) * sstep(0.3, 0.16, z) * sstep(-0.52, -0.43, z)
     w = w * (1 - sstep(0.03, -0.005, c['tail']))
-    d = d * w[:, None]
+    # no feathering yet: the fringes on the legs and the belly, the trousers and the bib go back to the bare body
+    bare = lambda X: np.minimum(trunk(X), np.minimum(fleg(X), hleg(X)))
+    b0 = bare(Q)
+    fw = sstep(0.0005, 0.004, b0) * sstep(0.004, 0.0, feathering(Q)) * (1 - sstep(0.004, -0.002, c['ear']))
+    d = d * (w * (1 - fw))[:, None]
+    on = fw > 0.01
+    if on.any():
+        X = Q[on]
+        e = 0.0008
+        g = np.stack([bare(X + np.eye(3, dtype=F)[k] * e) - b0[on] for k in range(3)], 1) / e
+        g /= np.maximum(np.linalg.norm(g, axis=1, keepdims=True), 1e-9)
+        d[on] -= g * (np.minimum(b0[on], 0.085) * fw[on])[:, None]
+    # the throat tucked in (the shorter baby neck would bunch it into a dewlap)
+    thr = sstep(0.2, 0.28, z) * sstep(0.4, 0.46, y) * sstep(0.66, 0.6, y) * sstep(-0.1, -0.5, Nm[:, 1] - 0.4 * Nm[:, 2])
+    d = d - Nm * (PUPPY['throat'] * thr)[:, None]
+    L = HF.loc(Q)
+    hw = sstep(-0.045, -0.008, L[:, 2]) * sstep(-0.13, -0.09, L[:, 1])
+    # the nape filled up to the back of the (bigger) head
+    nape = sstep(0.19, 0.31, z) * sstep(0.55, 0.62, y) * sstep(-0.2, 0.3, Nm[:, 1] - 0.5 * Nm[:, 2]) * (1 - hw)
+    d = d + Nm * (PUPPY['nape'] * nape)[:, None]
+    on = hw > 0.01
+    if on.any():
+        dg = puppy_head(L[on], {k: v[on] for k, v in c.items()}, 1.0, (HF.loc(EYE.c[None])[0], EYE.r))
+        d[on] += (HF.a[None] * dg[:, 2:3] + HF.u[None] * dg[:, 1:2] + V(1, 0, 0)[None] * dg[:, 0:1]) * hw[on][:, None]
     d[:, 0] *= np.sign(P[:, 0] + 1e-9)
     return d.astype(F)
 
 
 def baby_paint(P, N, c, col):
+    """puppies: a warm light honey gold, paler than the adult but clearly golden, a little darker over the back and on
+    the ears, cream on the chest, the belly and the backs of the legs, soft strokes; the lips dark only at the corner
+    of the mouth"""
     R = _regions(P, N, c)
-    Pm = R['Pm']
+    Pm, L = R['Pm'], R['L']
     M = _markings(R, Pm, N)
+    n1 = fbm(Pm * 8, 3, 11)
     n2 = fbm(Pm * 40, 3, 12)
-    pup = mix(np.tile(hexc(0xDDB57A), (len(P), 1)), hexc(0xEACB94), n2)
-    keep = np.clip(R['nose'] + R['ball'] + R['lid'] + R['lip'] + R['claw'] + R['pad'] * R['paw'], 0, 1)
-    out = mix(col, pup, 0.8 * (1 - keep))
-    out = mix(out, hexc(0xCB9A60), (M['saddle'] * 0.3 + R['ear'] * 0.3) * (1 - keep))
+    pup = mix(np.tile(hexc(0xD7A15C), (len(P), 1)), hexc(0xE0B270), n2 * 0.6)
+    pup = mix(pup, hexc(0xC48A46), M['saddle'] * 0.45 + R['ear'] * 0.55)
+    pup = mix(pup, hexc(0xE8C690), M['pale'] * 0.75)
+    pup = mix(pup, hexc(0xDDAE6C), M['muzzle'] * 0.4)
+    pup *= (0.95 + 0.1 * n1)[:, None]
     s, tone = _strands(P, N, R)
-    out *= (1 + s * 0.12 * (tone - 0.4))[:, None]
+    pup *= (1 + s * 0.16 * (tone - 0.4) - 0.04 * (1 - s))[:, None]
+    keep = np.clip(R['nose'] + R['ball'] + R['lid'] + R['claw'] + R['pad'] * R['paw'] + 0.8 * R['lip'] * sstep(0.175, 0.15, L[:, 2]), 0, 1)
+    out = mix(pup, col, keep)
     return np.clip(out, 0, 1).astype(F)
 
 
