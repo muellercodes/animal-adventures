@@ -231,19 +231,20 @@ const Player = {
     const b = this.b, sp = SPECIES[b.sp], m = b.m;
     b.sick = damp(b.sick, S.sick > 0 ? 1 : 0, 2, dt);
     b.happy = damp(b.happy, Folk.list.some((p) => p.state === 'pet' && p.pos.distanceTo(b.pos) < 3) ? 1 : 0, 3, dt);
-    const tired = S.hunger <= 0 || S.sick > 0;
+    // an empty tummy: walk only and no flying up. Sick: slower, no dashing (only a vet makes you better)
+    const tired = S.hunger <= 0, ill = S.sick > 0;
     const mag = Math.min(1, Math.hypot(inp.mx, inp.mz));
-    const walkS = m.walk, runS = tired ? walkS : Math.max(m.run * 0.9, walkS * 1.6);
+    const walkS = m.walk, runS = tired ? walkS : ill ? lerp(walkS, Math.max(m.run * 0.9, walkS * 1.6), 0.35) : Math.max(m.run * 0.9, walkS * 1.6);
     // dash: hold to go much faster for a few seconds; the energy fills back up while you are not dashing
     if (this.energy === undefined) this.energy = 1;
     if (this.energy <= 0) this.winded = true; else if (this.energy > 0.3) this.winded = false;
-    const dash = !!inp.dash && !tired && !this.winded && mag > 0.3 && b.mode !== 'climb' && b.mode !== 'perch' && b.mode !== 'sleep' && !b.room;
+    const dash = !!inp.dash && !tired && !ill && !this.winded && mag > 0.3 && b.mode !== 'climb' && b.mode !== 'perch' && b.mode !== 'sleep' && !b.room;
     this.dashing = dash;
     this.energy = clamp(this.energy + (dash ? -dt / 6 : dt / 7), 0, 1);
     const boost = dash ? (b.mode === 'fly' ? 1.6 : b.mode === 'swim' ? 1.5 : 1.8) : 1;
     let want;
-    if (b.mode === 'fly') want = sp.flySpeed * mag * boost;
-    else if (b.mode === 'swim') want = (sp.swimSpeed || 1.5) * (0.6 + 0.4 * b.k) * mag * (tired ? 0.6 : 1) * boost;
+    if (b.mode === 'fly') want = sp.flySpeed * mag * boost * (ill ? 0.75 : 1);
+    else if (b.mode === 'swim') want = (sp.swimSpeed || 1.5) * (0.6 + 0.4 * b.k) * mag * (tired ? 0.6 : ill ? 0.8 : 1) * boost;
     else if (b.mode === 'air') want = b.speed;
     else { want = mag <= 0.6 ? walkS * (mag / 0.6) : lerp(walkS, runS, (mag - 0.6) / 0.4); if (inp.walk) want = Math.min(want, walkS); if (dash) want = Math.max(want, runS) * boost; }
     const c = { dx: inp.mx, dz: inp.mz, want, jump: inp.jump && !(tired && b.mode === 'air'), up: inp.up && !tired, down: inp.down || (tired && b.mode === 'fly'), climbV: inp.iy, around: -inp.ix, letGo: inp.letGo, climb: inp.climb };
@@ -263,16 +264,24 @@ const Player = {
         else if (b.mode === 'air') { c.want = 0; }
       }
     }
+    // a hurt paw: a hitch in every other step
+    const limp = ill && Sick.kind() === 'paw' && b.mode === 'ground' && c.want > 0.05;
+    if (limp) { this.limpT = (this.limpT || 0) + dt * (1.4 + b.speed * 0.9); c.want *= 0.7 + 0.3 * Math.abs(Math.sin(this.limpT * Math.PI)); }
+    const wasAir = b.mode === 'air', vy0 = b.vy;
     if (b.riding) { b.speed = 0; b.vy = 0; b.mode = 'ground'; } else moveBody(b, dt, c);
+    // landing hard from a big fall can hurt a paw
+    if (wasAir && b.mode === 'ground' && vy0 < -12.5 && !sp.fly && Math.random() < 0.6) Sick.start('paw');
     if (b.pos.y < -30) { G.ui.toast('Whoosh! Back to an island.'); const I = G.world.ringPoint(b.pos.x, b.pos.z, 0, 120, false); if (I) this.place(I.x, I.z); else this.place(G.world.def.spawn[0], G.world.def.spawn[1]); }
     poseBody(b, dt, true);
+    b.rig.root.rotation.z = limp ? Math.sin(this.limpT * Math.PI * 2) * 0.06 * Math.min(1, b.speed) : 0;
+    Sick.update(dt, b);
     // tummy: it slowly empties; an empty tummy makes you tired, and staying empty gives you a cold
     S.hunger = Math.max(0, S.hunger - dt * (100 / 420));
     this.sayT -= dt;
     if (S.hunger <= 0) {
       this.emptyT += dt;
       if (this.sayT <= 0) { this.sayT = 22; G.ui.say("I'm hungry!", 2); if (G.sound) G.sound.tummy(); }
-      if (this.emptyT > 90 && S.sick <= 0) { S.sick = 1; G.ui.toast(`Oh no, your ${sp.name.toLowerCase()} caught a cold! Eat lots of food, sleep in your bed, or visit the vet.`, 5000); }
+      if (this.emptyT > 90 && S.sick <= 0) Sick.start('cold', ' from going hungry');
     } else this.emptyT = 0;
     if (!b.room) { S.x = b.pos.x; S.z = b.pos.z; }
   },
@@ -298,6 +307,53 @@ const Player = {
     this.eatFood = f; this.ate = false; b.speed = 0;
     this.eatDur = f ? 1.1 : 0.7;
     b.eat = 0.001;
+  },
+};
+
+/* ---------- getting sick: a cold, a tummy ache or a hurt paw. Only a vet makes it better ---------- */
+// junk food: eat too much of it in a short time and your tummy hurts
+const JUNK = { hotdog: 1, candy: 1, bread: 0.5 };
+const HOOVES = { horse: 1, deer: 1, goat: 1, moose: 1, pig: 1, rhino: 1 };
+const Sick = {
+  sayT: 0,
+  limb(sp) { return HOOVES[sp] ? 'leg' : (SPECIES[sp].egg || sp === 'frog') ? 'foot' : 'paw'; },
+  // each animal you own is sick or well on its own
+  kind() { return (S.ills && S.ills[S.animal]) || (S.sick > 0 ? 'cold' : null); },
+  label() { const k = this.kind(); return !k ? '' : k === 'tummy' ? 'Tummy ache' : k === 'paw' ? 'Hurt ' + this.limb(S.animal) : 'Has a cold'; },
+  sync() { S.sick = S.ills && S.ills[S.animal] ? 1 : 0; },
+  start(kind, why) {
+    if (S.sick > 0 || R.hatch) return;
+    if (kind === 'paw' && S.animal === 'snake') kind = 'tummy';
+    S.ills = S.ills || {}; S.ills[S.animal] = kind; S.sick = 1;
+    const nm = SPECIES[S.animal].name.toLowerCase();
+    const msg = kind === 'tummy' ? `Uh oh, your ${nm} has a tummy ache${why || ''}.` : kind === 'paw' ? `Ouch! Your ${nm} hurt a ${this.limb(S.animal)}.` : `Achoo! Your ${nm} caught a cold${why || ''}.`;
+    G.ui.toast(msg + ' Tap Vet to go see the vet.', 6000);
+    this.sayT = 4;
+    G.save();
+  },
+  cure() {
+    if (S.ills) delete S.ills[S.animal];
+    S.sick = 0; S.junk = 0;
+    S.sickIn = 1200 + Math.random() * 1500;   // the next time: 20 to 45 minutes of play from now
+    G.save();
+  },
+  update(dt, b) {
+    S.junk = Math.max(0, (S.junk || 0) - dt / 90);
+    if (S.sick > 0) {
+      // now and then you say how you feel
+      this.sayT -= dt;
+      if (this.sayT <= 0 && b.mode !== 'sleep') {
+        this.sayT = 22 + Math.random() * 14;
+        const k = this.kind();
+        G.ui.say(k === 'tummy' ? 'My tummy hurts...' : k === 'paw' ? `Ouch, my ${this.limb(S.animal)}!` : 'Achoo!', 2);
+      }
+      return;
+    }
+    // every so often you catch something: about once every half hour of play
+    if (S.sickIn === undefined) S.sickIn = 600 + Math.random() * 900;
+    if (b.room || b.mode === 'sleep' || b.riding || R.hatch) return;
+    S.sickIn -= dt;
+    if (S.sickIn <= 0) { S.sickIn = 1200 + Math.random() * 1500; this.start(['cold', 'cold', 'tummy', 'paw'][(Math.random() * 4) | 0]); }
   },
 };
 
@@ -902,7 +958,8 @@ const Homes = {
     if (rm.pound) {
       Wild.spawnPound(rm);
       if (rm.desk) Folk.make('Pat', { skin: SKIN[2], hair: HAIR[4], hairStyle: 1, shirt: '#3E8E6E', pants: PANTS[0], shoes: SHOES[0], height: 1.68 }, rm.desk.x, rm.desk.z, { staff: true, room: rm });
-      if (rm.vet) Folk.make('Dr. Rosa', { skin: SKIN[1], hair: HAIR[0], hairStyle: 2, shirt: '#E8E2D4', pants: '#55606B', shoes: SHOES[2], height: 1.64 }, rm.vet.x + 0.9, rm.vet.z + 0.4, { staff: true, room: rm, vetDoc: true });
+      if (rm.vet) { const doc = Folk.make('Dr. Rosa', { skin: SKIN[1], hair: HAIR[0], hairStyle: 2, shirt: '#E8E2D4', pants: '#55606B', shoes: SHOES[2], height: 1.64 }, rm.vet.x + 0.9, rm.vet.z + 0.4, { staff: true, room: rm, vetDoc: true });
+        if (S.sick > 0) setTimeout(() => G.ui.bubble(doc, 'Are you sick? Come see me by the table.', 3), 1200); }
       for (const pn of rm.pens) this.kennelDoor(pn, true);
     }
     if (rm.barn) Wild.spawnBarn(rm);
@@ -1012,10 +1069,13 @@ const Homes = {
   },
   letOut() { const P = Player.b, pen = P && this.penAt(P.room, P.pos); if (pen) { this.kennelDoor(pen, true); this.shutT = 0; const pat = Folk.list.find((p) => p.staff && !p.vetDoc); if (pat) G.ui.bubble(pat, 'There you go!', 1.8); } },
   vet() {
-    S.sick = 0; Player.emptyT = 0;
-    const doc = Folk.list.find((p) => p.vetDoc);
-    if (doc) G.ui.bubble(doc, 'All better! Remember to eat your food.', 3);
-    G.ui.hearts(Player.pos, 4); G.ui.toast('The vet made you all better!');
+    const kind = Sick.kind(), limb = Sick.limb(S.animal);
+    Sick.cure(); Player.emptyT = 0;
+    const doc = Folk.list.find((p) => p.vetDoc && p.room === Player.b.room);
+    const line = kind === 'tummy' ? 'Some tummy medicine, and not so much junk food!' : kind === 'paw' ? `Let me wrap that ${limb}. There you go!` : 'Here is some medicine for that cold.';
+    if (doc) G.ui.bubble(doc, line, 3.2);
+    G.ui.hearts(Player.pos, 4);
+    G.ui.toast(kind === 'tummy' ? 'The vet gave you tummy medicine. All better!' : kind === 'paw' ? `The vet wrapped your ${limb}. All better!` : 'The vet gave you medicine. All better!');
     if (G.sound) G.sound.chime();
     G.save();
   },
@@ -1108,7 +1168,9 @@ const Foods = {
     this.list.splice(this.list.indexOf(f), 1);
     const sp = SPECIES[Player.sp], fav = f.type === sp.fav, n = f.type === 'candy' ? 3 : fav ? 2 : 1;
     S.leaves += n; S.hunger = Math.min(100, S.hunger + (fav ? 22 : 13));
-    if (S.sick > 0) { S.sick = Math.max(0, S.sick - 0.18); if (S.sick === 0) G.ui.toast('You feel all better!'); }
+    // too much junk food in a short time gives you a tummy ache
+    const junk = JUNK[f.type] || 0;
+    if (junk) { S.junk = (S.junk || 0) + junk; if (S.junk >= 3.5) { S.junk = 0; Sick.start('tummy', ' from too much junk food'); } }
     // growing up
     const before = ageOf(Player.sp);
     if (before < 1) {

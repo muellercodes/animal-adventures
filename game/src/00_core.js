@@ -88,7 +88,7 @@ const SHOES = ['#2A2A2A', '#5A3A22', '#E8E8E8', '#7A2E2E'];
 /* ---------- save state ---------- */
 // ages: species -> 0 (newborn) .. 1 (grown up). names: nicknames. homes: species -> the person who adopted it.
 const fresh = () => ({ v: 1, d3: true, saved: 0, leaves: 0, owned: [], animal: 'duck', world: 'land', visited: [], time: 120, hunger: 100, x: null, z: null, started: false,
-  ages: {}, names: {}, homes: {}, sick: 0, hatched: [], treats: {}, sound: true, music: true });
+  ages: {}, names: {}, homes: {}, sick: 0, ills: {}, hatched: [], treats: {}, sound: true, music: true });
 const ADULT_AT = 1, FLY_AGE = 0.6;
 const ageOf = (sp) => (S.ages[sp] === undefined ? 1 : S.ages[sp]);
 const nameOf = (sp) => S.names[sp] || SPECIES[sp].name;

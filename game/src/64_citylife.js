@@ -239,6 +239,12 @@ const CityLife = (() => {
     const mk = (spot, extra) => { if (!spot) return null; const p = Folk.make(Town.freeName(), Folk.randomLook(false), spot.x, spot.z, Object.assign({ room: rm, city: true, cs: 'still', cool: 4 }, extra)); p.yaw = spot.yaw || 0; C.inside.push(p); return p; };
     const clerk = mk(rm.clerk, { clerk: true });
     if (clerk) G.ui.bubble(clerk, pick(['Hello! Welcome in!', 'Well hi there, little one!', 'Look who came to shop!', 'Come on in!']), 2.6);
+    // the city vet: a doctor by the exam table
+    if (rm.vet) {
+      const doc = Folk.make('Dr. Lee', { skin: SKIN[3], hair: HAIR[1], hairStyle: 0, shirt: '#F2F2EE', pants: '#3A5A7A', shoes: SHOES[2], height: 1.7 }, rm.vet.x + 1.0, rm.vet.z + 0.2, { room: rm, city: true, cs: 'still', cool: 4, staff: true, vetDoc: true });
+      doc.yaw = -Math.PI / 2; C.inside.push(doc);
+      if (S.sick > 0) setTimeout(() => G.ui.bubble(doc, 'Oh no, are you sick? Come over to the table.', 3), 1200);
+    }
     const sh = (rm.shoppers || []).slice().sort(() => Math.random() - 0.5).slice(0, 1 + ((Math.random() * 2) | 0));
     for (const s of sh) mk(s, { shopper: true });
   }
