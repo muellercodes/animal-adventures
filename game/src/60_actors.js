@@ -6,11 +6,11 @@ const canEat = (sp, type) => type === 'candy' || SPECIES[sp].eats.includes(type)
 // foods the scenery kit can make (a food in the list without a model yet is skipped)
 const FOOD_OK = {};
 const foodOK = (type) => { if (FOOD_OK[type] === undefined) { try { Env.food(type); FOOD_OK[type] = true; } catch (e) { FOOD_OK[type] = false; } } return FOOD_OK[type]; };
-const UPRIGHT = { duck: 1, swan: 1, chicken: 1, owl: 1, parrot: 1 };
+const UPRIGHT = { duck: 1, swan: 1, chicken: 1, owl: 1, parrot: 1, eagle: 1, chickadee: 1, cockatiel: 1 };
 const FEAR = { chicken: 3, duck: 4.5, swan: 3, frog: 2.5, lizard: 3, snake: 2, bunny: 5, squirrel: 4.5, turtle: 1.5, fox: 6, owl: 5, deer: 10, parrot: 4, moose: 0,
   horse: 6, pig: 3, goat: 4, otter: 4, hedgehog: 2, raccoon: 4, weasel: 4, dog: 1.5, cat: 4,
   // round 7
-  lab: 1.5, dalmatian: 1.5, husky: 2, beagle: 2, chihuahua: 3, blackcat: 4, orangecat: 4, calico: 4, siamese: 4, whitecat: 4, hamster: 3, eagle: 8, chickadee: 3, rhino: 0 };
+  lab: 1.5, dalmatian: 1.5, husky: 2, beagle: 2, chihuahua: 3, blackcat: 4, orangecat: 4, calico: 4, siamese: 4, whitecat: 4, hamster: 3, eagle: 6, chickadee: 3, rhino: 0 };
 const NOCTURNAL = { owl: 1, frog: 1, fox: 1, raccoon: 1, hedgehog: 1, hamster: 1 };
 const nightNo = () => Math.floor(S.time / CYCLE);
 
@@ -251,7 +251,9 @@ const Player = {
     if (b.mode === 'climb' || b.mode === 'perch') { if (inp.jump && b.mode === 'perch') c.letGo = true; }
     // eating: stop, turn to the food, lower the head
     if (b.eat > 0) {
-      c.want = 0; c.dx = 0; c.dz = 0;
+      // an eagle grabbing a fish keeps flying, then climbs away with it; everyone else stops to eat
+      if (b.mode === 'fly') { c.want = sp.flySpeed * 0.35; c.dx = Math.sin(b.yaw); c.dz = Math.cos(b.yaw); if (b.eat >= 0.52) c.up = true; }
+      else { c.want = 0; c.dx = 0; c.dz = 0; }
       if (this.eatFood && !this.eatFood.gone) c.face = Math.atan2(this.eatFood.x - b.pos.x, this.eatFood.z - b.pos.z);
       b.eat += dt / this.eatDur;
       if (this.eatFood && !this.ate && b.eat >= 0.52) { this.ate = true; Foods.consume(this.eatFood); }
@@ -261,6 +263,7 @@ const Player = {
       if (this.eatQueue > 0) {
         this.eatQueue -= dt;
         if (b.mode === 'ground' || b.mode === 'swim') { this.eatQueue = 0; this.tryEat(); }
+        else if (b.mode === 'fly' && sp.grab && this.reachable()) { this.eatQueue = 0; this.tryEat(); }
         else if (b.mode === 'air') { c.want = 0; }
       }
     }
@@ -303,8 +306,8 @@ const Player = {
   },
   tryEat() {
     const b = this.b, f = this.reachable();
-    if (b.mode === 'air' || b.mode === 'fly' || b.mode === 'climb' || b.mode === 'sleep') return;
-    this.eatFood = f; this.ate = false; b.speed = 0;
+    if (b.mode === 'air' || (b.mode === 'fly' && !(SPECIES[b.sp].grab && f)) || b.mode === 'climb' || b.mode === 'sleep') return;
+    this.eatFood = f; this.ate = false; if (b.mode !== 'fly') b.speed = 0;
     this.eatDur = f ? 1.1 : 0.7;
     b.eat = 0.001;
   },
@@ -899,7 +902,8 @@ const Folk = {
 
 /* ---------- homes: adoption, going in and out, cages, the pound and the vet ---------- */
 // pets that live in a cage or tank at home, like real ones do
-const CAGED = { lizard: 'terrarium', snake: 'terrarium', frog: 'terrarium', turtle: 'terrarium', parrot: 'birdCage', bunny: 'hutch', hedgehog: 'hutch' };
+const CAGED = { lizard: 'terrarium', snake: 'terrarium', frog: 'terrarium', turtle: 'terrarium', parrot: 'birdCage', bunny: 'hutch', hedgehog: 'hutch',
+  chickadee: 'birdCage', cockatiel: 'birdCage' };   // round 7
 const CAGE_WORDS = { terrarium: 'a glass tank', birdCage: 'a big bird cage', hutch: 'a cozy pen' };
 const Homes = {
   penT: 0, kennel: null,

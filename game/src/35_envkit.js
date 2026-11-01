@@ -4974,13 +4974,15 @@ void main() {
     };
     return { bottom: half(true), top: half(false) };
   }
-  function eggMaterial(colorHex, speckled) {
+  function eggMaterial(colorHex, speckled, speckC) {
     const m = new THREE.MeshStandardMaterial({ color: lcol(colorHex), roughness: 0.42, metalness: 0, side: THREE.DoubleSide, fog: true });
-    const u = { uCrack: { value: 0 }, uSpeck: { value: speckled ? 1 : 0 }, uSeed: { value: Math.random() * 100 } };
+    // speckC: what the speckles multiply the shell color by (gray by default, reddish brown for a chickadee's egg)
+    const u = { uCrack: { value: 0 }, uSpeck: { value: speckled ? 1 : 0 }, uSeed: { value: Math.random() * 100 }, uSpeckC: { value: new THREE.Vector3().fromArray(speckC || [0.38, 0.38, 0.38]) } };
     m.onBeforeCompile = (sh) => {
       Object.assign(sh.uniforms, u);
       sh.vertexShader = sh.vertexShader.replace('void main() {', 'varying vec3 vEgg;\nvoid main() {\n  vEgg = position;');
       sh.fragmentShader = sh.fragmentShader.replace('void main() {', `uniform float uCrack, uSpeck, uSeed;
+uniform vec3 uSpeckC;
 varying vec3 vEgg;
 float eh(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 43758.5453); }
 float en(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -5016,7 +5018,7 @@ void main() {`);
     if (!gl_FrontFacing) diffuseColor.rgb = vec3(0.86, 0.84, 0.78);
     else {
       float sp = en(vEgg * 46.0 + uSeed) * 0.7 + en(vEgg * 110.0 - uSeed) * 0.3;
-      diffuseColor.rgb *= 1.0 - uSpeck * smoothstep(0.62, 0.7, sp) * 0.62;
+      diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * uSpeckC, uSpeck * smoothstep(0.62, 0.7, sp));
       diffuseColor.rgb *= 0.94 + 0.06 * en(vEgg * 9.0 + uSeed);
     }
     float ck = eggCrack(vEgg);
@@ -5026,9 +5028,9 @@ void main() {`);
     m.customProgramCacheKey = () => 'env-egg';
     return { m, u };
   }
-  function egg(colorHex = 0xf4efe2, speckled = false) {
+  function egg(colorHex = 0xf4efe2, speckled = false, speckC = null) {
     if (!eggGeo) eggGeo = buildEggGeo();
-    const { m, u } = eggMaterial(colorHex, speckled);
+    const { m, u } = eggMaterial(colorHex, speckled, speckC);
     const grp = new THREE.Group();
     grp.name = 'egg';
     const bottom = new THREE.Mesh(eggGeo.bottom, m);

@@ -85,7 +85,8 @@ function camBlock(x, y, z, dist) {
 }
 function followCamera(dt) {
   const b = Player.b, m = b.m, H = G.world.H, room = b.room;
-  const base = clamp(m.length * 1.35 + m.height * 1.5 + 0.75, 1.15, 8.5);
+  // animals shorter than 15 cm (a chickadee, a chick, a froglet) get a closer camera
+  const base = clamp(m.length * 1.35 + m.height * 1.5 + 0.75 * clamp(m.length / 0.15, 0.55, 1), 0.6, 8.5);
   let dist = base * Cam.zoom;
   const ty = b.pos.y + (b.mode === 'climb' ? m.length * 0.4 : m.eye * 0.8) + 0.05;
   if (Cam.snap) { Cam.target.set(b.pos.x, ty, b.pos.z); Cam.yaw = b.yaw; Cam.snap = false; }
@@ -373,8 +374,8 @@ function beginLife(sp) {
   const b = Player.b;
   if (SPECIES[sp].egg) {
     b.rig.setVisible(false);
-    const s = clamp(b.rig.height * 0.42 * 0.9, 0.06, 0.5);
-    const nest = Env.nest(), egg = Env.egg(SPECIES[sp].egg, true);
+    const s = clamp(b.rig.height * 0.42 * 0.9, 0.035, 0.5);
+    const nest = Env.nest(), egg = Env.egg(SPECIES[sp].egg, true, SPECIES[sp].eggSpeck);
     let x = b.pos.x, z = b.pos.z, y = b.pos.y;
     if (b.mode === 'swim') { const pt = G.world.ringPoint(x, z, 1, 20, false); if (pt) { x = pt.x; z = pt.z; y = pt.h; b.pos.set(x, y, z); b.mode = 'ground'; } }
     nest.scale.setScalar((s * 1.7) / 0.59); nest.position.set(x, y, z); scene.add(nest);
