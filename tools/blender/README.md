@@ -483,3 +483,14 @@ in the cards (30 wisps of tail feathering and the whiskers); 1024 color and norm
 Cat (`VOXEL=0.0025 TRIS=4200 TEX=1024`, then rings across the body and neck and along the tail): 6.9k triangles plus 192
 in the whiskers; 1024 color and normal maps, 512 fur map, 384 kitten color map, 96 x 128 strand texture: 67 KB mesh and
 cards + 62 + 27 + 13 + 14 + 6 KB, about 258 KB in the page. Fur shells at detail 2: 4 layers.
+
+Bald eagle (`VOXEL=0.0028 TRIS=6400 TEX=768`): 6.4k body triangles, 9.4k in the game with the feather blades and eyes
+(the eaglet's down shells at detail 2: 43k); 768 color and normal maps, 512 baby maps, 512 x 256 feather atlas: 48 KB
+mesh + 21 + 40 + 8 + 10 + 9 + 18 + 2 + 8 KB, about 225 KB in the page.
+
+Chickadee (`VOXEL=0.0005 TRIS=6000 TEX=768`): 6.0k body triangles, 8.0k in the game (the chick's shells at detail 2:
+35k); same maps as the eagle: 45 KB mesh + 17 + 36 + 6 + 9 + 7 + 19 + 2 + 7 KB, about 206 KB in the page.
+
+Rhino (`VOXEL=0.0085 TRIS=7600 WEIGHTS=transfer TEX=1024`, `PAD_SMOOTH = 3`, normal map WebP 56): 7.6k triangles
+(8.3k in the game with the eyes, 8.6k at detail 2); 1024 color and normal maps, 512 calf color map: 56 KB mesh (with
+the calf's horn nub offsets) + 44 + 117 + 4 KB, about 297 KB in the page. About 25 minutes on the shared machine.

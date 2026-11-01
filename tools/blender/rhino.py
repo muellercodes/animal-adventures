@@ -5,7 +5,7 @@
 # three nailed toes, a thin tail with a tuft; thick hairless skin in deep folds (neck, shoulders, flanks, legs). Paint:
 # slate gray, dusty on top, darker in the folds and on the lower legs; the calf's smoother, lighter skin is the baby
 # color map. Shared helpers for the hooved animals are in ungulate.py.
-# Make it with: VOXEL=0.007 TRIS=7600 WEIGHTS=transfer TEX=1024 BLENDER_PY=... python3 tools/blender/make.py rhino
+# Make it with: VOXEL=0.0085 TRIS=7600 WEIGHTS=transfer TEX=1024 BLENDER_PY=... python3 tools/blender/make.py rhino
 import numpy as np
 from sdf import V, F, nrm, smin, smax, sstep, sat, ellipsoid, superellipsoid, round_cone, loft, sweep, fbm, vnoise, worley, length
 import ungulate as U
@@ -674,7 +674,7 @@ def meta(st):
         'eye': {'p': [round(float(v), 5) for v in EYE_C], 'r': round(r, 5), 'dir': [round(float(v), 4) for v in EYE_DIR], 'lid': [round(up, 3), round(dn, 3), 0.3],
                 'iris': 0x2A1C12, 'irisR': 0.97, 'pupil': 'h', 'pupilR': 0.4, 'rim': 0x0C0705, 'lidCol': st['lidCol'],
                 'lash': {'n': 14, 'len': 0.014, 'col': 0x2A2420}},
-        'collar': {'at': ['neck', 'neck2', 0.35], 'w': 0.8, 'r': 0.75, 'tilt': -0.25, 'maxR': 0.7},
+        'collar': {'at': ['neck', 'neck2', 0.35], 'w': 0.8, 'r': 0.75, 'maxR': 0.55},   # (a tilted band reached up to the hump)
         'mouth': [round(float(v), 4) for v in MOUTH],
         'tint': [1.0, 1.0, 1.0], 'babyTint': [1.0, 1.0, 1.0],
         'rim': [0.08, 0.07, 0.06], 'flat': 0x7E7972,

@@ -4,7 +4,7 @@
 # game's feather blades. Dark chocolate brown body, white head and neck, the big hooked yellow bill and cere, a heavy
 # brow over the pale yellow eye, feathered thighs and upper legs, bare yellow scaled feet with black talons.
 # The eaglet: woolly gray-brown down (fur shells), a dark bill, a rounder body.
-# Make it with: VOXEL=0.0025 TRIS=6400 TEX=1024 BLENDER_PY=... python3 tools/blender/make.py eagle
+# Make it with: VOXEL=0.0028 TRIS=6400 TEX=768 BLENDER_PY=... python3 tools/blender/make.py eagle
 import sys
 import numpy as np
 from sdf import V, F, nrm, smin, smax, sstep, sat, ellipsoid, round_cone, chain, loft, frame, fbm, vnoise, worley, length
@@ -246,7 +246,17 @@ WCFG = dict(groups=[('body', ['trunk', 'neck']), ('head', ['head', 'brow', 'bill
 
 
 def fix_weights(W, wpos, names, G, weld):
-    return B.part_weights(W, wpos, names, parts(wpos.astype(F)), WCFG)
+    W = B.part_weights(W, wpos, names, parts(wpos.astype(F)), WCFG)
+    # the tips of the long front talons can fall outside every part group and stay on the hips (in the game they
+    # then shot out as thin spikes): everything near the ground goes on the foot of its side
+    bi = {n: i for i, n in enumerate(names)}
+    P = wpos.astype(F)
+    low = P[:, 1] < 0.03
+    if low.any():
+        W[low] = 0
+        W[low & (P[:, 0] >= 0), bi['hpawL']] = 1
+        W[low & (P[:, 0] < 0), bi['hpawR']] = 1
+    return W
 
 
 def bone_tips(P):

@@ -4,7 +4,7 @@
 # under the game's feather blades. A tiny round songbird: a big round head with the black cap and bib and bright white
 # cheeks, a soft gray back, buffy peach flanks, a whitish belly, a tiny black bill, dark eyes, thin dark gray legs.
 # The chick: fluffier (fur shells), a sooty cap and bib, and the yellow gape at the corners of its bill.
-# Make it with: VOXEL=0.00045 TRIS=6000 TEX=768 BLENDER_PY=... python3 tools/blender/make.py chickadee
+# Make it with: VOXEL=0.0005 TRIS=6000 TEX=768 BLENDER_PY=... python3 tools/blender/make.py chickadee
 import sys
 import numpy as np
 from sdf import V, F, nrm, smin, smax, sstep, sat, ellipsoid, round_cone, chain, loft, frame, fbm, vnoise, worley, length
