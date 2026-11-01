@@ -529,6 +529,14 @@ def feather_atlas(cells, W, H, seed=0):
             # long pointed tip, the narrow outer vane tapering first
             tp = sat((T - (1 - tipz)) / tipz)
             side_w = side_w * np.sqrt(np.maximum(0, 1 - tp ** np.where(S > 0, 1.6, 2.4)))
+        elif cell.kind == 'finger':
+            # round 7 (eagle): an emarginated primary, the "fingers" of a soaring wing: full vanes up to 1 - notch,
+            # there both vanes step in to a narrow finger that tapers to a rounded point
+            kn = cell.notch or 0.35
+            fing = sstep(1 - kn - 0.04, 1 - kn + 0.04, T)
+            side_w = side_w * (1 - 0.58 * fing)
+            tp = sat((T - (1 - kn * 0.45)) / (kn * 0.45))
+            side_w = side_w * np.sqrt(np.maximum(0, 1 - tp ** 2))
         elif cell.kind == 'curl':
             tp = sat((T - 0.4) / 0.6)
             side_w = side_w * (1 - tp ** 1.5) + 0.04

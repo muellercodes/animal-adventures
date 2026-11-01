@@ -405,6 +405,42 @@ numbers (`dogFit` and `dogBreed` in `game/src/40_animals.js`), so the bones matc
   back edge most, toward the bottom), all finished by longer fur shells and the coat strokes. `EAR_C` points back, not
   forward.
 
+## Round 7: the bald eagle, the chickadee and the rhino (`eagle.py`, `chickadee.py`, `rhino.py`)
+
+Two more birds on `bird.py` and the biggest land animal on `ungulate.py`. Things that are new or took a few tries:
+- The eagle's bill is two lofts (`UPPER`, `LOWER`: stations along z with a center height, a half width and a depth),
+  not capsules: a deep, wide base on the cere, a culmen that curves down into a short hook, and the lower mandible
+  tucked inside the upper one. Capsule chains read as a long tusk. The heavy brow is a separate chain of balls over
+  the eye (`brow()`); the white hood is painted (`_hood()`), with the feather pattern turned off along x = 0 so the
+  two mirrored halves leave no seam on the crown, throat and bib (also in the chickadee).
+- Soaring wings: a new feather atlas kind, `'finger'` (`bird.py`): an emarginated primary, full vanes up to `1 -
+  notch`, then both vanes step in to a narrow finger with a rounded tip. The eagle has one fingered primary per hand
+  bone, spread in flight (`primSpread`) so the tips stand apart like fingers.
+- In the game (`animBird`, both off for the other birds): `anim.soar` (long glides with a few slow beats, wings held
+  flat) and `anim.grab` (eating in flight: legs swung forward and down, talons open, body pitched up, wings raised).
+  The grab pose plays when the eagle eats while in the air (`grab: true` in its `SPECIES` entry); letting a player
+  eat in flight needs a change in `Player.tryEat` (`60_actors.js`), which refuses to eat while flying.
+- The eagle's folded wing: the long primaries cross over the tail; tune `folded` / `foldedPos` with the wing debug
+  view until the tips meet behind the tail and the wrist sits in the side, or the folded wing splays out.
+- The chickadee is tiny (13.5 cm): `VOXEL=0.0006` and 0.11 to 0.12 mm patches for the bill, eyes and feet. Its marks (black cap and
+  bib, white cheek, buff flanks, white wing edges) are painted from 3D masks and must be big: the bib reads at game
+  distance only when it reaches well down the breast. The chick's yellow gape is a small puffy rim at the bill corners
+  (`_baby_extra()` in its `baby_offset()`), painted yellow in the baby map.
+- Babies' backs: the folded wing feathers of a chick or eaglet drew dark streaks down the back; the down shells and a
+  small `modelSpec.baby.wing` (0.2) avoid them.
+- The rhino (`rhino.py`) is the horse/moose recipe at 4 m: a long head carried low (a loft along its own frame
+  `hp()`), the hump over the neck, a barrel trunk, pillar legs on round three-nailed feet, a thin tail with a tuft.
+  The skin folds are `folds()`: each fold is a crease plus an overhang along a curve (neck, shoulder, flank, legs), and
+  the paint darkens them. The hide's pattern (creases around small plates and long wrinkles) is in the normal map; fine
+  pits there made the normal map 180 KB, so they are left out.
+- Horns: `U.horn()` sections (flattened, a keel in front) along a polyline. Each horn is on its own bone (`horn`,
+  `horn2`) with the pivot at the top of its stub (`HORN_STUB` 3.5 cm), weighted only past the stub and only on the
+  nearest horn. On the calf the game scales the horn bones to nothing and the stub stays as the nub; the calf's color
+  map paints the nub skin colored (a dark horn color there read as a hole).
+- Tube ears (`ears()`): a round cone minus a smaller inner cone, with a slit open to the front and side (`U.ear()`
+  was too thin at this size and broke up in the voxels). Only the rim gets dark hair; dark hair inside made black
+  leaves of them.
+
 ## Budget
 
 Pig: about 6.3k triangles, 4.8k vertices, 1024 x 1024 color and normal maps: 38 KB mesh (format 2; 136 KB before) +
@@ -482,3 +518,14 @@ beagle, 0.0016 chihuahua: finer for the smaller dogs): 7.2k to 7.6k triangles pl
 color and normal maps, 512 fur and puppy color maps, a small whisker texture. Black Lab 115 KB of files (about 153 KB
 in the page: a black coat compresses well), Dalmatian 152 KB (203 KB), husky 173 KB (231 KB), beagle 165 KB (220 KB),
 chihuahua 147 KB (197 KB). About 15 to 20 minutes each on the shared machine.
+
+Bald eagle (`VOXEL=0.0028 TRIS=6400 TEX=768`): 6.4k body triangles, 9.4k in the game with the feather blades and eyes
+(the eaglet's down shells at detail 2: 43k); 768 color and normal maps, 512 baby maps, 512 x 256 feather atlas: 48 KB
+mesh + 21 + 40 + 8 + 10 + 9 + 18 + 2 + 8 KB, about 225 KB in the page.
+
+Chickadee (`VOXEL=0.0005 TRIS=6000 TEX=768`): 6.0k body triangles, 8.0k in the game (the chick's shells at detail 2:
+35k); same maps as the eagle: 45 KB mesh + 17 + 36 + 6 + 9 + 7 + 19 + 2 + 7 KB, about 206 KB in the page.
+
+Rhino (`VOXEL=0.0085 TRIS=7600 WEIGHTS=transfer TEX=1024`, `PAD_SMOOTH = 3`, normal map WebP 56): 7.6k triangles
+(8.3k in the game with the eyes, 8.6k at detail 2); 1024 color and normal maps, 512 calf color map: 56 KB mesh (with
+the calf's horn nub offsets) + 44 + 117 + 4 KB, about 297 KB in the page. About 25 minutes on the shared machine.

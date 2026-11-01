@@ -150,6 +150,37 @@ const Sound = (() => {
       case 'beagle': T({ t, f: 470 * k, f2: 660 * k, dur: 0.22, type: 'sawtooth', bp: 1300 * k, q: 2, vol: vol * 0.9 }); T({ t: t + 0.2, f: 660 * k, f2: 520 * k, dur: 0.75, a: 0.03, type: 'sawtooth', bp: 1200 * k, q: 2.2, vib: 6.5, vibAmt: 18, vol: vol * 0.85 }); break;
       // Chihuahua: high, quick yaps
       case 'chihuahua': for (let i = 0; i < 3; i++) { const t0 = t + i * 0.14; T({ t: t0, f: 900 * k, f2: 640 * k, dur: 0.07, type: 'sawtooth', bp: 1900 * k, q: 2, vol: vol * 0.8 }); noise({ t: t0, f: 2400 * k, q: 1.5, dur: 0.05, vol: vol * 0.3, pan }); } break;
+      // round 7: eagle, chickadee, rhino
+      // bald eagle: a high, thin, chattering whistle (a stutter of short notes that rises, then a few falling ones), not a hawk's scream
+      case 'eagle': {
+        const n = 9;
+        for (let i = 0; i < n; i++) {
+          const u = i / (n - 1), t0 = t + i * (0.075 + 0.02 * u), f = (2300 + 900 * Math.sin(u * Math.PI * 0.9)) * (k > 1 ? 1.15 : 1);
+          T({ t: t0, f, f2: f * (i < 4 ? 1.12 : 0.88), dur: 0.055 + 0.02 * u, a: 0.006, type: 'triangle', vib: 38, vibAmt: f * 0.025, vol: vol * (0.42 + 0.18 * Math.sin(u * Math.PI)) });
+          T({ t: t0, f: f * 2.02, dur: 0.04, a: 0.004, vol: vol * 0.08 });
+        }
+        break;
+      }
+      // chick-a-dee-dee-dee (now and then the clear two-note fee-bee song instead)
+      case 'chickadee': {
+        if (Math.random() < 0.3) { T({ t, f: 3950 * k, f2: 3900 * k, dur: 0.32, a: 0.02, vol: vol * 0.55 }); T({ t: t + 0.42, f: 3400 * k, f2: 3380 * k, dur: 0.26, a: 0.02, vol: vol * 0.5 }); break; }
+        T({ t, f: 7200, f2: 4800, dur: 0.035, vol: vol * 0.35 });
+        T({ t: t + 0.06, f: 3700 * k, f2: 3300 * k, dur: 0.06, vol: vol * 0.4 });
+        for (let i = 0; i < 3; i++) {
+          const t0 = t + 0.17 + i * 0.13;
+          T({ t: t0, f: 3700 * k, f2: 3500 * k, dur: 0.1, type: 'sawtooth', bp: 3600 * k, q: 3, vib: 90, vibAmt: 220, vol: vol * 0.45 });
+          noise({ t: t0, f: 3600 * k, q: 2.5, dur: 0.09, vol: vol * 0.25, pan });
+        }
+        break;
+      }
+      // a deep snort and a huff of breath (a calf's is higher)
+      case 'rhino': {
+        noise({ t, f: 420 * k, f2: 260 * k, type: 'lowpass', q: 0.8, dur: 0.22, vol: vol * 0.9, pan });
+        T({ t, f: 95 * k, f2: 70 * k, dur: 0.24, type: 'sawtooth', lp: 380 * k, vol: vol * 0.9, vib: 32, vibAmt: 10 });
+        noise({ t: t + 0.42, f: 900 * k, f2: 380 * k, q: 0.6, dur: 0.5, a: 0.05, vol: vol * 0.55, pan });
+        T({ t: t + 0.42, f: 70 * k, f2: 55 * k, dur: 0.45, type: 'sawtooth', lp: 300 * k, vol: vol * 0.45 });
+        break;
+      }
     }
   }
 

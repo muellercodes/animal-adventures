@@ -1,0 +1,120 @@
+{
+ "v": 2,
+ "id": "rhino",
+ "data": "rhino.bin",
+ "enc": "deflate",
+ "raw": 91488,
+ "maps": {
+  "color": "rhino-color.webp",
+  "normal": "rhino-normal.webp",
+  "babyColor": "rhino-color-baby.webp"
+ },
+ "nv": 2864,
+ "ntri": 3792,
+ "nbv": 2864,
+ "nbt": 3792,
+ "bbox": [
+  -0.66803,
+  -0.007489,
+  -1.719972,
+  0.66803,
+  1.844438,
+  2.239017
+ ],
+ "bones": [
+  "hips",
+  "chest",
+  "neck",
+  "neck2",
+  "head",
+  "tail1",
+  "tail2",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "earL",
+  "earR",
+  "horn",
+  "horn2",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.232,
+   1.081,
+   1.668
+  ],
+  "r": 0.019,
+  "dir": [
+   0.9314,
+   0.0501,
+   0.3605
+  ],
+  "lid": [
+   0.595,
+   -0.511,
+   0.3
+  ],
+  "iris": 2759698,
+  "irisR": 0.97,
+  "pupil": "h",
+  "pupilR": 0.4,
+  "rim": 788229,
+  "lidCol": 5854544,
+  "lash": {
+   "n": 14,
+   "len": 0.014,
+   "col": 2761760
+  }
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "neck2",
+   0.35
+  ],
+  "w": 0.8,
+  "r": 0.75,
+  "maxR": 0.55
+ },
+ "mouth": [
+  0.0,
+  0.374,
+  2.117
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.08,
+  0.07,
+  0.06
+ ],
+ "flat": 8288626,
+ "bdelta": 0.534594,
+ "belly": [
+  0.0,
+  0.6026,
+  -0.77
+ ]
+}
