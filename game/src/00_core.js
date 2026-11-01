@@ -90,6 +90,9 @@ const SPECIES = {
   siamese: { name: 'Siamese cat', many: 'Siamese cats', eats: ['smallfish', 'fish', 'worm', 'petfood'], fav: 'smallfish', climb: true, price: 400, baby: 'Kitten' },
   whitecat: { name: 'Fluffy cat', many: 'Fluffy cats', eats: ['fish', 'smallfish', 'petfood', 'worm'], fav: 'fish', climb: true, price: 450, baby: 'Kitten' },
   hamster: { name: 'Hamster', many: 'Hamsters', eats: ['seeds', 'corn', 'carrot', 'lettuce', 'apple', 'berries'], fav: 'seeds', price: 120, baby: 'Hamster pup' },
+  // round 7: cockatiel and crocodile
+  cockatiel: { name: 'Cockatiel', many: 'Cockatiels', eats: ['seeds', 'berries', 'apple', 'corn', 'lettuce', 'banana'], fav: 'seeds', fly: true, flySpeed: 9, price: 250, egg: 0xf6f3ec, baby: 'Cockatiel chick' },
+  crocodile: { name: 'Crocodile', many: 'Crocodiles', eats: ['fish', 'smallfish', 'worm', 'bugs', 'hotdog'], fav: 'fish', swim: true, swimSpeed: 3, noJump: true, outdoor: true, hunter: true, price: 1300, egg: 0xf2efe6, baby: 'Baby crocodile' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
@@ -99,6 +102,9 @@ SHOP.push('lab', 'beagle', 'chihuahua', 'dalmatian', 'husky');
 SHOP.push('hamster', 'blackcat', 'orangecat', 'calico', 'siamese', 'whitecat');
 SHOP.sort((a, b) => SPECIES[a].price - SPECIES[b].price);
 const SMALL_PREY = ['chicken', 'frog', 'lizard', 'bunny', 'squirrel', 'duck', 'hedgehog', 'weasel'];
+// round 7: cockatiel and crocodile
+SHOP.push('cockatiel', 'crocodile');
+SMALL_PREY.push('cockatiel');
 // round 7: eagle, chickadee, rhino: each goes into the shop list by its price (the list runs from cheap to dear)
 for (const id of ['chickadee', 'eagle', 'rhino']) { let i = SHOP.length; while (i > 0 && SPECIES[SHOP[i - 1]].price > SPECIES[id].price) i--; SHOP.splice(i, 0, id); }
 SMALL_PREY.push('chickadee', 'hamster');

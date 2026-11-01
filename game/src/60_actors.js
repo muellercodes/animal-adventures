@@ -10,7 +10,7 @@ const UPRIGHT = { duck: 1, swan: 1, chicken: 1, owl: 1, parrot: 1, eagle: 1, chi
 const FEAR = { chicken: 3, duck: 4.5, swan: 3, frog: 2.5, lizard: 3, snake: 2, bunny: 5, squirrel: 4.5, turtle: 1.5, fox: 6, owl: 5, deer: 10, parrot: 4, moose: 0,
   horse: 6, pig: 3, goat: 4, otter: 4, hedgehog: 2, raccoon: 4, weasel: 4, dog: 1.5, cat: 4,
   // round 7
-  lab: 1.5, dalmatian: 1.5, husky: 2, beagle: 2, chihuahua: 3, blackcat: 4, orangecat: 4, calico: 4, siamese: 4, whitecat: 4, hamster: 3, eagle: 6, chickadee: 3, rhino: 0 };
+  lab: 1.5, dalmatian: 1.5, husky: 2, beagle: 2, chihuahua: 3, blackcat: 4, orangecat: 4, calico: 4, siamese: 4, whitecat: 4, hamster: 3, eagle: 6, chickadee: 3, rhino: 0, cockatiel: 3, crocodile: 2 };
 const NOCTURNAL = { owl: 1, frog: 1, fox: 1, raccoon: 1, hedgehog: 1, hamster: 1 };
 const nightNo = () => Math.floor(S.time / CYCLE);
 

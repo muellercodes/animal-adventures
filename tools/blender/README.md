@@ -441,6 +441,36 @@ Two more birds on `bird.py` and the biggest land animal on `ungulate.py`. Things
   was too thin at this size and broke up in the voxels). Only the rim gets dark hair; dark hair inside made black
   leaves of them.
 
+## The cockatiel and the crocodile (`cockatiel.py`, `crocodile.py`)
+
+- The cockatiel is the macaw (`parrot.py`) built small: every shape is laid out in the macaw's units and scaled by
+  `KS = 0.42` on the way out (the pipeline hooks take points `/ KS` and give distances `* KS`), so the bird helpers
+  (`bird.py`: plumage, down, the feather atlas, part weights) work unchanged. Its own parts: a round head with full
+  cheeks and a low ridge on the crown, a short thick neck, a small beak, the yellow face and crown (the back of the head
+  and the nape stay gray) and the round orange cheek patch. The crest is game feather blades on its own bone (`crest`,
+  child of `head`, nine narrow yellow blades turned to face sideways), raised when happy or flying and laid back flat
+  asleep (`anim.crest`, `crestHappy`, `crestFly`, `crestSleep` in `animBird`). The cockatiel sleeps facing forward with
+  the head sunk (a turned-back head made the laid-back crest point up). The wing cells make the white patch: greater
+  and lesser coverts white, flight feathers dark gray. `fix_weights` puts every vertex well out along the arm on the
+  wing bones (a few wing tip vertices fell to the hips and stuck out sideways when the wing folded). The chick: pale
+  yellow down in tufts over pink skin (thin on the head and the neck), a short down crest (`baby.roles.crest = 'ear'`,
+  `baby.ear` sizes it).
+- The crocodile is one loft from the tail tip to the snout (`BODY`) with the head features on top: a flat skull table,
+  raised orbits with the eyes looking up and out, the nasal disc at the tip, a jaw groove with the lower jaw set in a
+  little, and conical teeth of both jaws along the jaw line (`TEETH`: the big fourth lower tooth stays visible). The
+  snout was laid out long and then shortened in front of the eyes (`zf()`, every z ahead of `Z0` goes through it) to a
+  Nile crocodile's proportions. Keeled scutes in rows on the back, the nuchal group, the tail's double crest of upright
+  plates merging into one (`scutes()`). Legs with toes and claws, webbed hind feet (`bird.toes`, `bird.web`). The skin
+  is a height field per texel (`skin()`): round scales, square belly plates in rows, pitted scutes, small pits on the
+  jaws. Weights: the trunk, neck, head and tail are one smooth chain along z; legs keep the transferred weights minus
+  any spine bones (a little head weight in the shoulders tore the hatchling's skin, whose head is scaled up).
+- The hatchling has its own color map (`paint_baby`: bright yellow, about a dozen black bands, dark mottling on the
+  head, pale belly) and its own size (`size.baby` in the spec: about 68 cm at age 0 before the game's 0.42, so about
+  28 cm in the game). `setAge` reads `size.baby` for the rig's length, height, radius, eye height and float depth, and
+  sets `R.strideK` so the legged animator scales the stride and foot lift with it (adult steps tore the hatchling's
+  legs). In the water it floats with the eyes, the nostrils and the back just above the surface (`floatDepth`,
+  `swimPitch`, `swimHead`), the legs tucked back along the body (`swimTuck`) and the tail sweeping (`anim.swimSweep`).
+
 ## Budget
 
 Pig: about 6.3k triangles, 4.8k vertices, 1024 x 1024 color and normal maps: 38 KB mesh (format 2; 136 KB before) +
@@ -616,3 +646,11 @@ flash behind each pouch. Things that are new:
 - Eating sitting up (`anim.eatUp`): it grabs the food with its head down, then sits up on its hind legs with its front
   paws at its mouth and nibbles (the sit-up pose and `sitPaws`), and drops back down at the end.
 - A tiny animal: `VOXEL=0.0008`, bake distances in millimeters (`BAKE_DIST`), maps at 768, eyes 3.4 mm across.
+
+Cockatiel (`VOXEL=0.0009 TRIS=6000 TEX=768 WEIGHTS=transfer`): 6.0k body triangles plus about 1.9k in the feather
+blades (wings, tail, crest) and the eyes, 8.6k in the game; 768 color and normal maps, 512 chick maps, 512 fur map, a
+512 x 256 feather atlas: 46 KB mesh + 16 + 50 + 13 + 11 + 10 + 20 + 2 + 9 KB, 183 KB of files, about 244 KB in the page.
+
+Crocodile (`VOXEL=0.006 TRIS=3300 TEX=704 WEIGHTS=transfer`; TRIS here gives about twice as many in the game mesh):
+7.9k triangles; 704 color and normal maps (WebP 60 and 52), 384 hatchling color map: 62 KB mesh + 46 + 81 + 31 KB,
+222 KB of files, about 296 KB in the page. About 10 minutes for the whole run on the shared machine.

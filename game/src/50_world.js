@@ -345,6 +345,8 @@ const World = (() => {
           { sp: 'duck', n: 4, kids: 3, home: [40, 40], range: 50, water: true },
           { sp: 'otter', n: 2, home: [-40, -40], range: 50, water: true },
           { sp: 'raccoon', n: 2, home: [20, 50], range: 40 },
+          // round 7: crocodiles in the swamp water
+          ...SP7([{ sp: 'crocodile', n: 3, kids: 1, home: [30, -30], range: 45, water: true }]),
         ],
         ambient: [{ sp: 'frog', w: 4 }, { sp: 'turtle', w: 3, water: true }, { sp: 'snake', w: 2 }, { sp: 'duck', w: 2, water: true, kids: 3 }, { sp: 'otter', w: 1, water: true }, { sp: 'raccoon', w: 1 }],
         foods: { worm: 4, grass: 2, berries: 1, acorn: 1, smallfish: 4, fish: 3, bugs: 4, mushroom: 2, twigs: 1 },
@@ -396,6 +398,8 @@ const World = (() => {
           { sp: 'turtle', n: 3, home: [LAG.x, LAG.z], range: 14, water: true },
           { sp: 'snake', n: 3, home: [20, 40], range: 40 },
           { sp: 'otter', n: 2, home: [xc(0), 0], range: 40, water: true },
+          // round 7: a crocodile in the lagoon
+          ...SP7([{ sp: 'crocodile', n: 1, home: [LAG.x, LAG.z], range: 14, water: true }]),
         ],
         ambient: [{ sp: 'parrot', w: 4 }, { sp: 'lizard', w: 3 }, { sp: 'frog', w: 2 }, { sp: 'snake', w: 2 }, { sp: 'turtle', w: 1, water: true }, { sp: 'otter', w: 1, water: true }],
         foods: { berries: 4, apple: 3, worm: 3, grass: 1, smallfish: 2, fish: 2, banana: 4, bugs: 3, twigs: 2, watermelon: 1, mushroom: 1 },
@@ -458,7 +462,7 @@ const World = (() => {
           { sp: 'hedgehog', n: 2, home: [50, 10], range: 30 },
           // round 7: rhinos on the open grass, hamsters in the fields, chickadees by the big tree
           ...SP7([{ sp: 'rhino', n: 2, kids: 1, home: [-40, 80], range: 40 }, { sp: 'hamster', n: 3, home: [30, -20], range: 30 },
-            { sp: 'chickadee', n: 4, home: [GIANT[0], GIANT[1]], range: 24 }]),
+            { sp: 'chickadee', n: 4, home: [GIANT[0], GIANT[1]], range: 24 }, { sp: 'cockatiel', n: 5, home: [70, 10], range: 35 }]),
         ],
         ambient: [{ sp: 'bunny', w: 3, kids: 2 }, { sp: 'deer', w: 2, kids: 1 }, { sp: 'fox', w: 1 }, { sp: 'goat', w: 1 }, { sp: 'hedgehog', w: 1 }, { sp: 'squirrel', w: 1 }, { sp: 'swan', w: 1, water: true }, { sp: 'duck', w: 1, water: true, kids: 3 }],
         foods: { grass: 4, berries: 3, apple: 2, acorn: 2, worm: 2, smallfish: 2, pumpkin: AUTUMN ? 1 : 0, seeds: 3, bugs: 3, corn: 2, watermelon: 2, lettuce: 1, hay: 2, twigs: 1 },
