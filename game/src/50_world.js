@@ -9,10 +9,13 @@ const World = (() => {
   const SMALL = { rock: 1, fern: 1, mushroom: 1, stump: 1, log: 1, cattail: 1, lily: 1, pumpkin: 1, cornstalk: 1, hay: 1,
     // street things you only notice up close
     hydrant: 1, trashcan: 1, newsbox: 1, bikerack: 1, bollard: 1, mailbox: 1, parkingmeter: 1, cone: 1, barrier: 1, sandwichboard: 1, cafetable: 1, trashbags: 1,
-    recycling: 1, pallet: 1, crates: 1, acunit: 1, gaspipe: 1, wheelstop: 1, treegrate: 1, bicycle: 1, drinking: 1, flowerbed: 1, planter: 1, noparking: 1, parkingsign: 1 };
+    recycling: 1, pallet: 1, crates: 1, acunit: 1, gaspipe: 1, wheelstop: 1, treegrate: 1, bicycle: 1, drinking: 1, flowerbed: 1, planter: 1, noparking: 1, parkingsign: 1,
+    // round 7 food plants
+    mushrooms: 1, melonpatch: 1, lettucebed: 1, birdfeeder: 1 };
   // drawn out to a middle distance (parked cars, signs and the like)
   const MID = { parked: 1, stopsign: 1, streetsign2: 1, oneway: 1, speedlimit: 1, busstopsign: 1, crosswalksign: 1, dumpster: 1, fence8: 1, foodcart: 1, phonebooth: 1,
-    streetclock: 1, planterbox: 1, parkbooth: 1, bench: 1, parkbench: 1, picnic: 1, busstop: 1, statue: 1, trafficpole: 1 };
+    streetclock: 1, planterbox: 1, parkbooth: 1, bench: 1, parkbench: 1, picnic: 1, busstop: 1, statue: 1, trafficpole: 1,
+    sunflower: 1, cornrow: 1 };
   const LOD_D = 120;            // towers farther than this are drawn with their simple version
   // rules and placements for props that may not exist yet (made by the food kit in 38_food)
   const HASP = (t) => !!(Env._k && Env._k.PROPS[t]);
@@ -760,9 +763,10 @@ const World = (() => {
     }
     function finishOwner(o) { for (const e of o.items.values()) { if (!(e.ms instanceof Float32Array)) e.ms = new Float32Array(e.ms); if (e.cs && !(e.cs instanceof Float32Array)) e.cs = new Float32Array(e.cs); } poolDirty = true; }
     function placeProp(owner, o, type, variant, x, z, h, s, rot) {
-      const y = o.water ? WATER + 0.005 : h - (o.sink || 0.05) * s;
-      pushInst(owner, type, variant, x, y, z, rot, s);
       const pr = Env.prop(type, variant);
+      // how deep it sits: the rule's sink, else the prop's own (the food kit props set one), else 5 cm
+      const y = o.water ? WATER + 0.005 : h - (o.sink !== undefined ? o.sink : pr.sink !== undefined ? pr.sink : 0.05) * s;
+      pushInst(owner, type, variant, x, y, z, rot, s);
       if (pr.radius > 0) addCollider({ x, z, r: pr.radius * s }, owner);
       if (pr.climbH > 0) {
         const ox = (pr.climbX || 0) * s, oz = (pr.climbZ || 0) * s, co = Math.cos(rot), si = Math.sin(rot);

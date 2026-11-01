@@ -1139,7 +1139,8 @@ const Foods = {
         f.obj.rotation.y = Math.atan2(-Math.sin(fi.a) * fi.w, Math.cos(fi.a) * fi.w);
         f.x = nx; f.z = nz; f.obj.position.set(nx, f.y + Math.sin(t * 1.3 + f.phase) * 0.03, nz);
       }
-      if (!f.inst) Env.foodUpdate(f.obj, t + f.phase);
+      // moving foods (worms, fish, bugs) far away are specks: hide them and skip their animation
+      if (!f.inst) { const vis = Math.abs(f.x - P.pos.x) < 70 && Math.abs(f.z - P.pos.z) < 70; if (f.obj.visible !== vis) f.obj.visible = vis; if (vis) Env.foodUpdate(f.obj, t + f.phase); }
       // the glow shows only on foods near you (each one is a draw)
       const near = f.edible && Math.abs(f.x - P.pos.x) < 30 && Math.abs(f.z - P.pos.z) < 30;
       if (f.glow.visible !== near) f.glow.visible = near;
