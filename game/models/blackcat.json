@@ -1,0 +1,71 @@
+{
+ "v": 2,
+ "id": "blackcat",
+ "base": "cat",
+ "maps": {
+  "color": "blackcat-color.webp",
+  "babyColor": "blackcat-baby.webp",
+  "hair": "blackcat-hair.webp"
+ },
+ "eye": {
+  "p": [
+   0.0165,
+   0.29234,
+   0.24051
+  ],
+  "r": 0.0094,
+  "dir": [
+   0.3304,
+   0.0701,
+   0.9412
+  ],
+  "lid": [
+   1.0,
+   -0.9,
+   0.18
+  ],
+  "iris": 14197276,
+  "irisR": 0.97,
+  "pupil": "v",
+  "pupilR": 0.42,
+  "rim": 5914632,
+  "lidCol": 1973016,
+  "babyLidCol": 2235416,
+  "babyIris": 7245486
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "neck2",
+   0.75
+  ],
+  "lift": 0.5
+ },
+ "belly": [
+  0.0,
+  0.142,
+  -0.07
+ ],
+ "mouth": [
+  0.0,
+  0.2597,
+  0.2618
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.08,
+  0.08,
+  0.1
+ ],
+ "flat": 1972759,
+ "roughK": 0.84
+}

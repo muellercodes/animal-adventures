@@ -141,6 +141,16 @@ const Sound = (() => {
       case 'dog': for (let i = 0; i < 2; i++) { const t0 = t + i * 0.32; T({ t: t0, f: 330 * k, f2: 210 * k, dur: 0.16, type: 'sawtooth', bp: 800 * k, q: 1.6, vol: vol * 1.2 }); T({ t: t0, f: 660 * k, f2: 380 * k, dur: 0.1, type: 'square', bp: 1400 * k, q: 2, vol: vol * 0.35 }); noise({ t: t0, f: 900 * k, q: 1.2, dur: 0.09, vol: vol * 0.4, pan }); } break;
       // meow: rising into the "ee", then a long falling "ow"
       case 'cat': T({ t, f: 520 * k, f2: 760 * k, dur: 0.2, type: 'sawtooth', bp: 1500 * k, q: 1.8, vib: 6, vibAmt: 12, vol: vol * 0.8 }); T({ t: t + 0.18, f: 760 * k, f2: 470 * k, dur: 0.42, a: 0.03, type: 'sawtooth', bp: 1100 * k, q: 1.8, vib: 6, vibAmt: 14, vol: vol * 0.8 }); break;
+      // round 7: the other cats meow a little higher or lower; the Siamese yowls long and loud; the fluffy white cat's
+      // is soft and short; the hamster squeaks
+      case 'blackcat': case 'orangecat': case 'calico': case 'whitecat': {
+        const m = k * { blackcat: 0.94, orangecat: 0.86, calico: 1.08, whitecat: 1.16 }[sp], v = vol * (sp === 'whitecat' ? 0.6 : 0.8), d = sp === 'whitecat' ? 0.75 : 1;
+        T({ t, f: 520 * m, f2: 760 * m, dur: 0.2 * d, type: 'sawtooth', bp: 1500 * m, q: 1.8, vib: 6, vibAmt: 12, vol: v });
+        T({ t: t + 0.18 * d, f: 760 * m, f2: 470 * m, dur: 0.42 * d, a: 0.03, type: 'sawtooth', bp: 1100 * m, q: 1.8, vib: 6, vibAmt: 14, vol: v });
+        break;
+      }
+      case 'siamese': T({ t, f: 430 * k, f2: 700 * k, dur: 0.3, type: 'sawtooth', bp: 1700 * k, q: 2.6, vib: 5, vibAmt: 18, vol: vol }); T({ t: t + 0.28, f: 700 * k, f2: 380 * k, dur: 0.7, a: 0.04, type: 'sawtooth', bp: 1250 * k, q: 2.6, vib: 5, vibAmt: 22, vol: vol }); break;
+      case 'hamster': for (let i = 0; i < 2; i++) T({ t: t + i * 0.11, f: 3400 * (k > 1 ? 1.15 : 1), f2: 4300 * (k > 1 ? 1.15 : 1), dur: 0.06, type: 'triangle', vol: vol * 0.5 }); break;
     }
   }
 

@@ -67,10 +67,20 @@ const SPECIES = {
   horse: { name: 'Horse', many: 'Horses', eats: ['grass', 'apple', 'carrot', 'pumpkin'], fav: 'carrot', price: 1200, outdoor: true, baby: 'Foal' },
   moose: { name: 'Moose', many: 'Moose', eats: ['grass', 'apple', 'carrot'], fav: 'grass', swim: true, swimSpeed: 2.2, price: 1500, outdoor: true, baby: 'Moose calf' },
   dog: { name: 'Dog', many: 'Dogs', eats: ['fish', 'apple', 'carrot', 'worm', 'pumpkin'], fav: 'fish', swim: true, swimSpeed: 2.0, price: 350, baby: 'Puppy' },
-  cat: { name: 'Cat', many: 'Cats', eats: ['smallfish', 'fish', 'worm'], fav: 'smallfish', climb: true, price: 300, baby: 'Kitten' },
+  cat: { name: 'Tabby cat', many: 'Tabby cats', eats: ['smallfish', 'fish', 'worm'], fav: 'smallfish', climb: true, price: 300, baby: 'Kitten' },
+  // round 7: cats and a hamster
+  blackcat: { name: 'Black cat', many: 'Black cats', eats: ['smallfish', 'fish', 'worm', 'bugs', 'petfood'], fav: 'fish', climb: true, price: 300, baby: 'Kitten' },
+  orangecat: { name: 'Orange cat', many: 'Orange cats', eats: ['smallfish', 'fish', 'worm', 'bugs', 'petfood'], fav: 'petfood', climb: true, price: 300, baby: 'Kitten' },
+  calico: { name: 'Calico cat', many: 'Calico cats', eats: ['smallfish', 'fish', 'worm', 'bugs', 'petfood'], fav: 'smallfish', climb: true, price: 350, baby: 'Kitten' },
+  siamese: { name: 'Siamese cat', many: 'Siamese cats', eats: ['smallfish', 'fish', 'worm', 'petfood'], fav: 'smallfish', climb: true, price: 400, baby: 'Kitten' },
+  whitecat: { name: 'Fluffy white cat', many: 'Fluffy white cats', eats: ['fish', 'smallfish', 'petfood', 'worm'], fav: 'fish', climb: true, price: 450, baby: 'Kitten' },
+  hamster: { name: 'Hamster', many: 'Hamsters', eats: ['seeds', 'corn', 'carrot', 'lettuce', 'apple', 'berries'], fav: 'seeds', price: 120, baby: 'Hamster pup' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
+// round 7: cats and a hamster (the hamster is the cheapest animal in the shop); the shop stays in price order
+SHOP.push('hamster', 'blackcat', 'orangecat', 'calico', 'siamese', 'whitecat');
+SHOP.sort((a, b) => SPECIES[a].price - SPECIES[b].price);
 const SMALL_PREY = ['chicken', 'frog', 'lizard', 'bunny', 'squirrel', 'duck', 'hedgehog', 'weasel'];
 const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow'];
 const PACKS = [{ id: 's', leaves: 100, price: '$0.99' }, { id: 'm', leaves: 300, price: '$1.99' }, { id: 'l', leaves: 1000, price: '$4.99' }];

@@ -4388,7 +4388,7 @@ const Animals = (() => {
         C.fl = Math.min(1, C.fl * 1.4 + 0.15);
       },
       baby: { head: 1.65, muzzle: 0.6, eye: 1.25, ear: 1.3, neck: [0.68, 1.15], body: [1.1, 1.1, 0.78], leg: [0.72, 1.18], tail: 0.55, fluff: 0.002 },
-      modelSpec: { baby: { eye: 1.06, fluff: 0, leg: [0.72, 1.06] } },
+      modelSpec: { baby: { eye: 1.06, fluff: 0, leg: [0.7, 1.02], body: [1.12, 1.12, 0.72] } },
       anim: {
         type: 'legged', walk: 0.75, trot: 1.6, run: 4.5, stride: 0.34, strideMax: 2.4, maxRate: 9,
         duty: [0.64, 0.46, 0.3], lift: [0.025, 0.03], flexF: 1.5, flexH: 0.9,
@@ -4404,7 +4404,168 @@ const Animals = (() => {
         floatDepth: 0.17, swimHead: -0.4,
         climb: { splay: 0.55, drop: 0.55, reach: 0.25, neck: -0.35, tail: [-0.3, -0.05, 0], flex: 0.2, toe: 0.8 },
         sleep: { style: 'curl', neck: [2.6, 1.1], tail: [2.5, 0.0], bend: 1.3, roll: 0.3, rumpBend: 0.5 },
-        sit: { idle: 3, pitch: 0.62, drop: 0.6, rump: 0.5, chest: 0.25, front: [0.06, 0.0], hind: [0.3, 0.05, 0.0], neck: [-0.15, 0.0, 0.0], tail: [1.0, 0.25, 0.15], tailYaw: [0.6, 1.0, 1.0] },
+        sit: { idle: 3, pitch: 0.62, drop: 0.6, rump: 0.5, chest: 0.25, front: [0.06, 0.0], hind: [0.3, 0.05, 0.0], neck: [-0.15, 0.0, 0.0], tail: [1.0, 0.25, 0.15], tailYaw: [0.6, 1.0, 1.0],
+          // round 7: the tail curls round to the front paws
+          wrap: [1.35, 2.8, 3.35], wrapY: [0.1, 0.0, -0.02] },
+      },
+    };
+  };
+
+  // ===== round 7: cats and a hamster =====
+  // Five more cats on the tabby's skeleton and animation: a black cat, an orange (ginger) tabby, a calico, a Siamese and
+  // a fluffy white long-haired cat. Their sculpted models (tools/blender: blackcat.py and the others) share the tabby's
+  // mesh or have their own; these specs give their colors to the procedural fallback and their eyes and settings.
+  ids.push('blackcat', 'orangecat', 'calico', 'siamese', 'whitecat', 'hamster');
+  const lum = (C) => C.r * 0.3 + C.g * 0.59 + C.b * 0.11;
+  const CAT_TYPES = {
+    // solid glossy black, yellow-gold eyes, a dark nose
+    blackcat: { iris: 0xD9A520, nose: 0x2A2224, coat(P, C, l) { cset(C, mixc(hex(0x15110F), hex(0x2C2622), sstep(0.25, 0.8, l) * 0.7)); C.ro = 0.6; } },
+    // ginger mackerel tabby: rust bars on orange, cream chin and chest, amber eyes
+    orangecat: { iris: 0xD48A26, coat(P, C, l) { cset(C, l < 0.36 ? mixc(hex(0xA4521F), hex(0xD48A44), sstep(0.12, 0.36, l)) : mixc(hex(0xD48A44), hex(0xF3E0BE), sstep(0.5, 0.8, l))); } },
+    // white with big patches of orange and black, green eyes
+    calico: { iris: 0x86A63E, coat(P, C) {
+      const white = Math.max(sstep(-0.1, -0.5, P.ny), P.part === 'hleg' || P.part === 'fleg' ? sstep(0.13, 0.08, P.y) : 0, P.part === 'head' ? sstep(0.25, 0.262, P.z) : 0);
+      const o = sstep(0.52, 0.58, noise(P.x * 13 + 5, P.y * 13, P.z * 13)), k = sstep(0.55, 0.61, noise(P.x * 11 - 3, P.y * 11 + 9, P.z * 11));
+      const c = mixc(mixc(hex(0xF2EEE6), hex(0xD9873E), o), hex(0x1E1A18), k * (1 - o * 0.5));
+      cset(C, mixc(c, hex(0xF2EEE6), white));
+    } },
+    // cream with seal-brown points (mask, ears, legs, tail), blue eyes; kittens are nearly all cream
+    siamese: { iris: 0x3E86DA, nose: 0x3A2A26, coat(P, C) {
+      const pt = Math.max(P.part === 'ear' ? 1 : 0, P.part === 'head' ? sstep(0.225, 0.255, P.z) : 0, P.part === 'tail' ? sstep(0.02, 0.12, P.arc) : 0,
+        P.part === 'hleg' || P.part === 'fleg' ? sstep(0.16, 0.08, P.y) : 0);
+      cset(C, mixc(mixc(hex(0xEFE4CC), hex(0xD8C6A2), sstep(0.2, 0.8, P.ny) * 0.6), hex(0x3B2B21), pt));
+    }, baby(P, C) { cmix(C, hex(0xF0E6D2), 0.75); },
+      // big ears set lower and wider (the sculpted model's ears sit on this bone)
+      spec(s) { for (const b of s.bones) if (b[0] === 'earL') { b[2] = 0.026; b[3] = 0.301; b[4] = 0.193; } } },
+    // long-haired white (Persian-like), copper eyes
+    whitecat: { iris: 0xD27A26, coat(P, C, l) { cset(C, mixc(hex(0xF5F2EC), hex(0xE2DCD0), sstep(0.6, 0.2, l) * 0.5)); },
+      // small ears set wide and low (the sculpted model's ears sit on this bone)
+      spec(s) { s.shell.len = 0.02; s.shell.lean = 0.6; for (const b of s.bones) if (b[0] === 'earL') { b[2] = 0.029; b[3] = 0.309; b[4] = 0.192; } } },
+  };
+  for (const id in CAT_TYPES) SPEC[id] = () => {
+    const s = SPEC.cat(), T = CAT_TYPES[id], tabby = s.paint;
+    s.paint = (P, C) => { tabby(P, C); T.coat(P, C, lum(C)); };
+    if (T.baby) s.babyPaint = (P, C) => { T.baby(P, C); C.fl = Math.min(1, C.fl * 1.4 + 0.15); };
+    else s.babyPaint = (P, C) => { C.fl = Math.min(1, C.fl * 1.4 + 0.15); };
+    s.eyes[0].iris = T.iris;
+    if (T.nose) s.accent[0].col = T.nose;
+    if (T.spec) T.spec(s);
+    return s;
+  };
+
+  // ===== HAMSTER (a Syrian, golden hamster) =====
+  // Round and compact: golden orange back, white belly and cheeks, short legs on small pink paws, small round ears,
+  // shiny black eyes, a pink nose with whiskers, almost no tail. It scurries, sits up on its hind legs now and then,
+  // sits up to eat with the food in its front paws (eatUp), and its cheek pouches fill up as it eats (cheeks).
+  SPEC.hamster = () => {
+    const xF = 0.019, xH = 0.024;
+    const K = { gold: hex(0xC98A48), back: hex(0xA8703C), white: hex(0xF1ECE2), pink: hex(0xE8A9A0), ear: hex(0x9A6A48), nose: 0xD98E8E };
+    const wh = [[0.0, 0.0, 0.026], [0.0015, -0.0015, 0.024], [0.003, -0.003, 0.021]].map((w) => ({
+      kind: 'tube', bone: 'head', mirror: true, segs: 3, col: 0xE8E2D6,
+      pts: [[0.006, 0.041 + w[1], 0.07], [0.006 + w[2] * 0.5, 0.042 + w[1] + w[0], 0.068 - w[2] * 0.2], [0.006 + w[2], 0.041 + w[1] + w[0] * 2 - w[2] * 0.1, 0.064 - w[2] * 0.45]],
+      radii: [0.0003, 0.0002, 0.0001],
+    }));
+    return {
+      size: { length: 0.15, height: 0.075, radius: 0.04, eyeHeight: 0.055 },
+      tex: [256, 256], rough: 0.9,
+      detail: { kind: 'fur', tile: 0.008, amt: 0.16, bump: 0.3, sheen: 0.3 },
+      shell: { parts: ['body', 'head'], len: 0.006, n: 4, lean: 0.8, babyLen: 1.5 },
+      bones: [
+        ['hips', null, 0, 0.04, -0.02],
+        ['rump', 'hips', 0, 0.038, -0.045],
+        ['chest', 'hips', 0, 0.04, 0.018],
+        ['neck', 'chest', 0, 0.042, 0.034],
+        ['head', 'neck', 0, 0.046, 0.044],
+        ['tail1', 'rump', 0, 0.03, -0.07],
+        ['thighL', 'rump', xH, 0.032, -0.04, 1],
+        ['shinL', 'thighL', xH + 0.001, 0.018, -0.029, 1],
+        ['hmetaL', 'shinL', xH + 0.001, 0.008, -0.044, 1],
+        ['hpawL', 'hmetaL', xH + 0.001, 0.003, -0.034, 1],
+        ['armL', 'chest', xF, 0.032, 0.03, 1],
+        ['foreL', 'armL', xF + 0.001, 0.019, 0.026, 1],
+        ['fmetaL', 'foreL', xF + 0.001, 0.008, 0.032, 1],
+        ['fpawL', 'fmetaL', xF + 0.001, 0.003, 0.037, 1],
+        ['earL', 'head', 0.0185, 0.069, 0.033, 1],
+        // cheek pouches: they swell as it stuffs food in
+        ['cheekL', 'head', 0.019, 0.036, 0.05, 1],
+      ],
+      fur: [
+        { name: 'body', bones: ['rump', 'hips', 'chest', 'neck', 'head'], blend: 0.012, segs: 14, cap0: 3, capLen0: 0.8, keys: [
+          [0, 0.035, -0.076, 0.016, 0.014, 0.014],
+          [0, 0.038, -0.066, 0.03, 0.03, 0.026],
+          [0, 0.04, -0.048, 0.037, 0.036, 0.03],
+          [0, 0.041, -0.022, 0.039, 0.037, 0.031],
+          [0, 0.041, 0.002, 0.037, 0.035, 0.03],
+          [0, 0.043, 0.022, 0.033, 0.031, 0.028],
+          [0, 0.045, 0.036, 0.029, 0.028, 0.025],
+        ] },
+        { name: 'head', bones: ['head'], segs: 12, cap1: 3, capLen1: 0.6, keys: [
+          [0, 0.047, 0.03, 0.026, 0.026, 0.022],
+          [0, 0.048, 0.045, 0.028, 0.025, 0.022],
+          [0, 0.046, 0.058, 0.021, 0.02, 0.018],
+          [0, 0.043, 0.068, 0.013, 0.013, 0.012],
+          [0, 0.041, 0.075, 0.007, 0.007, 0.007],
+        ] },
+        { name: 'tail', bones: ['rump', 'tail1'], segs: 6, cap1: 2, keys: [
+          [0, 0.031, -0.07, 0.004, 0.004, 0.004],
+          [0, 0.028, -0.081, 0.003, 0.003, 0.003],
+        ] },
+        { name: 'hleg', mirror: true, bones: ['rump', 'thighL', 'shinL', 'hmetaL', 'hpawL'], blend: 0.006, segs: 8, cap1: 2, keys: [
+          [xH - 0.006, 0.03, -0.04, 0.012, 0.014, 0.014],
+          [xH, 0.018, -0.031, 0.007, 0.008, 0.008],
+          [xH + 0.001, 0.008, -0.042, 0.0045, 0.0045, 0.0045],
+          [xH + 0.001, 0.003, -0.03, 0.0055, 0.0025, 0.0025],
+          [xH + 0.001, 0.003, -0.022, 0.0045, 0.002, 0.002],
+        ] },
+        { name: 'fleg', mirror: true, bones: ['chest', 'armL', 'foreL', 'fmetaL', 'fpawL'], blend: 0.006, segs: 8, cap1: 2, keys: [
+          [xF - 0.005, 0.03, 0.03, 0.01, 0.011, 0.011],
+          [xF, 0.019, 0.027, 0.0055, 0.006, 0.006],
+          [xF + 0.001, 0.008, 0.032, 0.004, 0.004, 0.004],
+          [xF + 0.001, 0.003, 0.039, 0.0045, 0.0022, 0.0022],
+        ] },
+        // small round ears, thin, facing forward and out
+        { name: 'ear', mirror: true, bones: ['earL'], segs: 8, sub: 3, cap1: 2, capLen1: 0.8, keys: [
+          [0.016, 0.065, 0.04, 0.005, 0.0016, 0.0016],
+          [0.02, 0.071, 0.039, 0.0065, 0.0012, 0.0012],
+          [0.023, 0.075, 0.038, 0.004, 0.001, 0.001],
+        ] },
+      ],
+      accent: [
+        { kind: 'sphere', bone: 'head', c: [0, 0.042, 0.0755], r: 0.0032, s: [1.2, 0.85, 0.8], col: K.nose },
+        ...wh,
+      ],
+      accentRough: 0.4,
+      eyes: [{ bone: 'head', p: [0.0165, 0.055, 0.056], r: 0.0032, dir: [0.78, 0.3, 0.55], iris: 0x0A0606, irisR: 0.97, pupilR: 0.6, lid: [0.85, -0.85, 0.12] }],
+      mouth: [0, 0.034, 0.072],
+      paint(P, C) {
+        cset(C, K.gold);
+        cmix(C, K.back, sstep(0.3, 0.85, P.ny) * 0.5);
+        // white belly, chest, cheeks and muzzle; pink paws and inner ears
+        cmix(C, K.white, sstep(-0.05, -0.45, P.ny));
+        if (P.part === 'head') cmix(C, K.white, sstep(0.0, -0.35, P.ny) * 0.9 + sstep(0.062, 0.07, P.z) * 0.5);
+        if (P.part === 'hleg' || P.part === 'fleg') { cmix(C, K.white, 0.6); cmix(C, K.pink, sstep(0.012, 0.005, P.y)); }
+        if (P.part === 'ear') { cset(C, K.ear); cmix(C, K.pink, 0.4); }
+        if (P.part === 'tail') cmix(C, K.pink, 0.3);
+        cmul(C, 0.93 + 0.12 * grain(P, 300, 120));
+        C.ro = 0.86;
+        C.fl = P.part === 'body' ? 1 : P.part === 'head' ? 0.6 : 0.2;
+      },
+      // pups: a fuzzy little golden hamster, a touch paler
+      babyPaint(P, C) { cmix(C, hex(0xE0B07A), 0.25); C.fl = Math.min(1, C.fl * 1.3 + 0.1); },
+      baby: { head: 1.3, muzzle: 0.8, eye: 1.05, ear: 0.95, neck: [0.9, 1.05], body: [1.02, 1.0, 0.92], leg: [0.85, 1.08], tail: 0.8 },
+      anim: {
+        type: 'legged', walk: 0.45, trot: 1.0, run: 2.2, stride: 0.05, strideMax: 2.4, maxRate: 13,
+        duty: [0.6, 0.5, 0.4], lift: [0.007, 0.008], flexF: 1.0, flexH: 0.8,
+        // quick little scurrying steps
+        bob: [0.0012, 0.0025, 0.005], pitchRun: 0.05, flexRun: 0.08, roll: 0.035,
+        neck: ['neck', 'head'], neckDist: [0.5, 0.5], nod: 0.04, eatY: 0.004, eatElev: [-30, -45], chew: 0.05, chewRate: 16,
+        tail: ['tail1'], tailIdle: [0.0], tailSway: 0.05, tailWalk: 0.04,
+        ears: ['earL', 'earR'], earBack: 0.3, lookAmp: 0.7,
+        floatDepth: 0.04, swimHead: -0.3,
+        // sits up on its hind legs now and then to look around, and to eat, with the food in its front paws
+        sitUp: 1.05, sitDrop: 0.0, sitNeckD: [-0.45, 0.3], sitPaws: [0.25, 0.42, 1.6], sitSome: 7, sitRump: 0.35,
+        eatUp: 1.05, cheeks: ['cheekL', 'cheekR'], cheekPuff: 0.45,
+        sleep: { style: 'curl', neck: [1.2, 0.6], tail: [0.3, 0.0], bend: 0.7, roll: 0.15 },
       },
     };
   };
@@ -4659,6 +4820,13 @@ const Animals = (() => {
     // sit (cats and dogs): see the sit block in update()
     const SI = P.sit || null;
     if (SI) S.sit = 0;
+    // round 7: eatUp (the hamster grabs its food head down, then sits up and nibbles it from its front paws) and
+    // cheek pouches that fill up as it eats and slowly empty again (cheeks: bones scaled up by cheekPuff)
+    const EU = P.eatUp || 0, cheeks = (P.cheeks || []).map((n) => B[n]).filter(Boolean);
+    if (EU) { S.eat0 = 0; S.eu = 0; }
+    S.ck = 0;
+    // round 7: sit.wrap (cats): sitting, the tail lies on the ground and curls around to the front paws (see the tail)
+    const WR = SI && SI.wrap ? { q0: new THREE.Quaternion(), q1: new THREE.Quaternion(), d: new THREE.Vector3(), r: new THREE.Vector3() } : null;
     const SL = Object.assign({}, SLEEP_DEF[(P.sleep && P.sleep.style) || 'curl'], P.sleep || {});
     const sleepSide = R.rnd < 0.5 ? 1 : -1;
     const K = { legH: 0.3 };
@@ -4686,7 +4854,9 @@ const Animals = (() => {
       S.tw = damp(S.tw, sstep(P.walk * 1.1, P.trot, spd), 3, dt);
       S.cw = P.canter ? damp(S.cw, sstep(P.trot * 1.1, P.canter, spd), 3, dt) : 0;
       S.gw = damp(S.gw, sstep((P.canter || P.trot) * 1.15, P.run, spd), 3, dt);
-      spring(S, 'eat', eatEnvelope(st.eat || 0), 8, dt);
+      spring(S, EU ? 'eat0' : 'eat', eatEnvelope(st.eat || 0), 8, dt);
+      // round 7: eatUp: the head-down part of eating gives way to sitting up (sitUp below) once it has the food
+      if (EU) { const e = st.eat || 0; spring(S, 'eu', e > 0 ? sstep(0.34, 0.48, e) * (1 - sstep(0.9, 1.0, e)) : 0, 9, dt); S.eat = S.eat0 * (1 - sat(S.eu)); }
       S.lean = damp(S.lean, clamp((st.turn || 0) * Math.max(spd, 0.5), -4, 4), 4, dt);
       spring(S, 'up', inAir ? clamp((st.vy || 0) / 1.2, -1, 1) : 0, 8, dt);
       S.gt = inAir ? 0 : S.gt + dt;
@@ -4726,6 +4896,8 @@ const Animals = (() => {
       let sitUp = (P.sitUp || 0) * still * ground * (1 - S.eat) * (1 - sl) * (1 - sick) * (0.7 + 0.3 * sstep(-0.3, 0.6, Math.sin(it * 0.21 + R.rnd * 40)));
       // sitSome (s): only stands up now and then while idle, once every s seconds or so
       if (P.sitSome) { const f = fract(it / P.sitSome + R.rnd * 5); sitUp *= sstep(1.0, 2.0, st.idle || 0) * sstep(0.0, 0.07, f) * (1 - sstep(0.38, 0.46, f)); }
+      // round 7: eatUp: sits up to eat
+      if (EU) sitUp = Math.max(sitUp, EU * sat(S.eu) * ground * (1 - sl));
       // sit (P.sit): haunches on the ground, front legs straight, the tail around the paws. It sits by itself after
       // P.sit.idle seconds standing still; st.sit (0..1) asks for it, and st.sit = 0 keeps it standing
       let sit = 0;
@@ -4944,6 +5116,13 @@ const Animals = (() => {
         S.ext = damp(S.ext, tgtE, 2.5, dt);
         neck[0].position.set(neck0.x, neck0.y + P.extend[1] * S.ext, neck0.z + P.extend[0] * (S.ext - 1));
       }
+      // round 7: eatUp: quick nibbling while it sits up with its food; cheeks: the pouches fill as it eats and empty slowly
+      if (EU && nN) neck[nN - 1].rotation.x += Math.sin(t * (P.chewRate || 12)) * (P.chew || 0.05) * sat(S.eu);
+      if (cheeks.length) {
+        S.ck = (st.eat || 0) > 0.45 ? Math.min(1, S.ck + dt * 1.6) : Math.max(0, S.ck - dt * 0.07);
+        const ck = 1 + (P.cheekPuff || 0.4) * smooth(S.ck);
+        for (const c of cheeks) c.scale.set(ck, ck, ck);
+      }
       // ----- tail -----
       const wag = hap2 * (P.wag == null ? 0.45 : P.wag);
       for (let i = 0; i < nT; i++) {
@@ -4966,6 +5145,16 @@ const Animals = (() => {
         if (clb > 0.001) { tx2 = lerp(tx2, CL.tail ? CL.tail[i] || 0 : 0.1, clb); ty2 *= 1 - clb * 0.7; }
         if (sl > 0.001) { const ss = sl * (1 - swim); tx2 = lerp(tx2, SL.tail[1], ss); ty2 = lerp(ty2, -SL.tail[0] * sleepSide / nT + Math.sin(it * 0.7) * 0.02, ss); }
         tail[i].rotation.set(tx2, ty2, 0);
+        // round 7: sit.wrap: each tail bone turns its segment toward a direction on the ground, wrap[i] radians around
+        // from straight back toward the side it sits on (lifted by wrapY[i]), so the tail curls round to the front paws
+        if (WR && sit > 0.001) {
+          const nb = tail[Math.min(i + 1, nT - 1)], a = i + 1 < nT ? tail[i] : tail[i - 1];
+          WR.r.subVectors(R.rest[nb.name], R.rest[a.name]).normalize();
+          const th = SI.wrap[i];
+          WR.d.set(Math.sin(th) * sleepSide, SI.wrapY ? SI.wrapY[i] : 0, -Math.cos(th)).normalize();
+          rootQuat(tail[i].parent, root, WR.q0).invert().multiply(WR.q1.setFromUnitVectors(WR.r, WR.d));
+          tail[i].quaternion.slerp(WR.q0, sit);
+        }
       }
       // ----- mane (horse): flops with the stride, streams back at speed -----
       for (let i = 0; i < mane.length; i++) {
@@ -5362,6 +5551,17 @@ const Animals = (() => {
       img.src = md.maps[k];
     }
   }
+  // round 7: a coat variant (md.base) borrows the maps it does not bring from the model it shares (normal, fur, hair)
+  for (const id in MODELS) {
+    const md = MODELS[id], bm = md.base ? modelMaps[md.base] : null, mm = modelMaps[id];
+    if (!bm) continue;
+    for (const k in MODELS[md.base].maps || {}) {
+      if (md.maps && md.maps[k]) continue;
+      mm.need++;
+      const take = () => { mm.tex[k] = bm.tex[k]; if (++mm.ready === mm.need) for (const f of mm.waiters.splice(0)) f(); };
+      if (bm.ready === bm.need) take(); else bm.waiters.push(take);
+    }
+  }
   // resolves once every model's maps are decoded (tools that render pictures of the animals wait for it)
   const ready = Promise.all(mapLoads);
   // raw deflate (RFC 1951) decoder for format 2 model data, small and synchronous
@@ -5511,6 +5711,12 @@ const Animals = (() => {
     if (modelCache[id] !== undefined) return modelCache[id];
     const md = MODELS[id];
     let out = null;
+    // round 7: a coat variant (md.base) shares that model's mesh, skin weights, fur and cards, and has its own maps,
+    // eyes and settings (a black cat on the tabby's body)
+    if (md && md.base) {
+      const B = MODELS[md.base] ? modelData(md.base) : null;
+      return (modelCache[id] = B ? Object.assign({}, B, { md: Object.assign({}, B.md, md), maps: modelMaps[id] }) : null);
+    }
     if (md && md.v >= 2) {
       try {
         const bin = atob(md.data), u8 = new Uint8Array(bin.length);
@@ -5562,15 +5768,36 @@ const Animals = (() => {
   float aaRim = pow(1.0 - saturate(dot(normal, geometry.viewDir)), 3.0);
   reflectedLight.directDiffuse *= vec3(1.0) + aaRimC * aaRim; reflectedLight.indirectDiffuse *= vec3(1.0) + aaRimC * aaRim;
 }`);
+    // round 7: md.sides (see modelMaterial): the color map holds both sides of the body; the half by the side of the
+    // vertex in the rest pose, sampled with the derivatives of the whole layout so the middle line shows no seam
+    if (this.defines && this.defines.AA_SIDES !== undefined) {
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying float vSideX;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvSideX = position.x;');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vSideX;\nuniform sampler2D aaSideMap;')
+        .replace('#include <map_fragment>', `#include <map_fragment>
+#ifdef USE_UV
+  {
+    vec2 aaSu = vec2(vUv.x * 0.5 + (vSideX < 0.0 ? 0.5 : 0.0), vUv.y);
+  #if __VERSION__ >= 300
+    diffuseColor *= textureGrad(aaSideMap, aaSu, dFdx(vUv) * vec2(0.5, 1.0), dFdy(vUv) * vec2(0.5, 1.0));
+  #else
+    diffuseColor *= texture2D(aaSideMap, aaSu);
+  #endif
+  }
+#endif`);
+    }
   }
   function modelMaterial(M, baby) {
     const md = M.md, tint = (baby ? md.babyTint : md.tint) || [1, 1, 1], rim = md.rim || [0.25, 0.1, 0.08];
-    const m = new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0 });
+    // (md.roughK: round 7, a glossier coat on a shared body, such as a black cat's sheen)
+    const m = new THREE.MeshStandardMaterial({ roughness: md.roughK || 1, metalness: 0 });
     m.userData.aa = { aaRimC: { value: new THREE.Vector3().fromArray(rim) } };
     m.onBeforeCompile = aaModelCompile;
     const mm = M.maps, flat = linColor(md.flat || 0xe0b0a0);
     // babies can have their own maps (birds: down instead of feathers; a fox kit's gray-brown fuzz)
-    const apply = () => { m.map = (baby && mm.tex.babyColor) || mm.tex.color || null; m.normalMap = (baby && mm.tex.babyNormal) || mm.tex.normal || null; m.color.setRGB(tint[0], tint[1], tint[2]); m.needsUpdate = true; };
+    let apply = () => { m.map = (baby && mm.tex.babyColor) || mm.tex.color || null; m.normalMap = (baby && mm.tex.babyNormal) || mm.tex.normal || null; m.color.setRGB(tint[0], tint[1], tint[2]); m.needsUpdate = true; };
+    // round 7: md.sides: the color map holds the +x side in its left half and the -x side in its right half (a coat
+    // that differs from side to side, such as a calico's patches; the mesh shares one layout for both sides)
+    if (md.sides) { const a0 = apply; apply = () => { a0(); m.userData.aa.aaSideMap = { value: m.map }; m.map = null; m.defines = { AA_SIDES: '' }; }; }
     if (mm && mm.ready === mm.need) apply();
     else { m.color.copy(flat); if (mm) mm.waiters.push(apply); }
     return m;
@@ -6222,6 +6449,11 @@ const Animals = (() => {
     frog: { at: ['chest', 'head', 0.7], tag: PI * 0.62, w: 0.6, r: 0.75 }, lizard: { at: ['neck', 'head', 0.3], tag: PI * 0.6 },
     turtle: { part: 'neck', at: ['neck', 'head', 0.95] }, snake: { at: ['s0', 's1', 0.5], tag: PI * 0.55 },
   };
+  // round 7: cats and a hamster
+  Object.assign(COLLAR, {
+    blackcat: COLLAR.cat, orangecat: COLLAR.cat, calico: COLLAR.cat, siamese: COLLAR.cat, whitecat: COLLAR.cat,
+    hamster: { at: ['neck', 'head', 0.2], r: 0.8 },
+  });
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)
