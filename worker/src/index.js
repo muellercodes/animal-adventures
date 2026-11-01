@@ -142,7 +142,9 @@ const routes = {
 
 /* ---- multiplayer ---- */
 const WORLDS = ['land', 'forest', 'swamp', 'jungle', 'meadow', 'sky'];
-const SPECIES = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny', 'squirrel', 'hedgehog', 'turtle', 'pig', 'goat', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose', 'weasel', 'dog', 'cat'];
+const SPECIES = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny', 'squirrel', 'hedgehog', 'turtle', 'pig', 'goat', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose', 'weasel', 'dog', 'cat',
+  // round 7
+  'lab', 'dalmatian', 'husky', 'beagle', 'chihuahua', 'eagle', 'chickadee', 'rhino', 'blackcat', 'orangecat', 'calico', 'siamese', 'whitecat', 'hamster', 'cockatiel', 'crocodile'];
 const MODES = ['ground', 'air', 'swim', 'fly', 'climb', 'perch', 'sleep'];
 const MAX_IN_WORLD = 60;
 
