@@ -1,0 +1,164 @@
+{
+ "v": 2,
+ "id": "chickadee",
+ "data": "chickadee.bin",
+ "enc": "deflate",
+ "raw": 76404,
+ "maps": {
+  "color": "chickadee-color.webp",
+  "normal": "chickadee-normal.webp",
+  "babyColor": "chickadee-babycolor.webp",
+  "fur": "chickadee-fur.webp",
+  "babyNormal": "chickadee-babynrm.webp",
+  "feather": "chickadee-feather.webp",
+  "featherNormal": "chickadee-feathernrm.webp",
+  "babyFeather": "chickadee-babyfeather.webp"
+ },
+ "nv": 2166,
+ "ntri": 2987,
+ "nbv": 2166,
+ "nbt": 2987,
+ "bbox": [
+  -0.081887,
+  -0.000519,
+  -0.04292,
+  0.081887,
+  0.087304,
+  0.061657
+ ],
+ "bones": [
+  "hips",
+  "tail",
+  "neck",
+  "head",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "wingL",
+  "wingR",
+  "wforeL",
+  "wforeR",
+  "whandL",
+  "whandR",
+  "f0L",
+  "f0R",
+  "f1L",
+  "f1R",
+  "f2L",
+  "f2R",
+  "f3L",
+  "f3R",
+  "f4L",
+  "f4R",
+  "f5L",
+  "f5R",
+  "f6L",
+  "f6R",
+  "f7L",
+  "f7R",
+  "f8L",
+  "f8R",
+  "f9L",
+  "f9R",
+  "f10L",
+  "f10R",
+  "f11L",
+  "f11R",
+  "f12L",
+  "f12R",
+  "f13L",
+  "f13R",
+  "f14L",
+  "f14R",
+  "f15L",
+  "f15R",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.0102,
+   0.0757,
+   0.0458
+  ],
+  "r": 0.0026,
+  "dir": [
+   0.9091,
+   0.101,
+   0.4041
+  ],
+  "lid": [
+   0.84,
+   -0.84,
+   0.1
+  ],
+  "iris": 1840144,
+  "irisR": 0.95,
+  "pupilR": 0.5,
+  "rim": 920586,
+  "lidCol": 2763308,
+  "babyLidCol": 4078650
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "head",
+   0.3
+  ],
+  "w": 0.8,
+  "babyAt": 0.35,
+  "hug": true,
+  "babyK": 1.6,
+  "lift": 0.35
+ },
+ "mouth": [
+  0.0,
+  0.0703,
+  0.0585
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.1,
+  0.1,
+  0.1
+ ],
+ "flat": 9079944,
+ "fur": {
+  "len": 0.008,
+  "n": 5,
+  "lean": 0.35,
+  "tile": 0.0006,
+  "babyLen": 1.0,
+  "babyLean": 0.35,
+  "shade": 0.88,
+  "babyOnly": true,
+  "uvm": 0.1241
+ },
+ "bdelta": 0.074887,
+ "belly": [
+  0.0,
+  -0.0005,
+  0
+ ],
+ "srgb": [
+  "babyColor",
+  "feather",
+  "babyFeather"
+ ],
+ "feathers": {
+  "cols": 8
+ }
+}

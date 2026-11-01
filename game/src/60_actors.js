@@ -6,10 +6,12 @@ const canEat = (sp, type) => type === 'candy' || SPECIES[sp].eats.includes(type)
 // foods the scenery kit can make (a food in the list without a model yet is skipped)
 const FOOD_OK = {};
 const foodOK = (type) => { if (FOOD_OK[type] === undefined) { try { Env.food(type); FOOD_OK[type] = true; } catch (e) { FOOD_OK[type] = false; } } return FOOD_OK[type]; };
-const UPRIGHT = { duck: 1, swan: 1, chicken: 1, owl: 1, parrot: 1 };
+const UPRIGHT = { duck: 1, swan: 1, chicken: 1, owl: 1, parrot: 1, eagle: 1, chickadee: 1, cockatiel: 1 };
 const FEAR = { chicken: 3, duck: 4.5, swan: 3, frog: 2.5, lizard: 3, snake: 2, bunny: 5, squirrel: 4.5, turtle: 1.5, fox: 6, owl: 5, deer: 10, parrot: 4, moose: 0,
-  horse: 6, pig: 3, goat: 4, otter: 4, hedgehog: 2, raccoon: 4, weasel: 4, dog: 1.5, cat: 4 };
-const NOCTURNAL = { owl: 1, frog: 1, fox: 1, raccoon: 1, hedgehog: 1 };
+  horse: 6, pig: 3, goat: 4, otter: 4, hedgehog: 2, raccoon: 4, weasel: 4, dog: 1.5, cat: 4,
+  // round 7
+  lab: 1.5, dalmatian: 1.5, husky: 2, beagle: 2, chihuahua: 3, blackcat: 4, orangecat: 4, calico: 4, siamese: 4, whitecat: 4, hamster: 3, eagle: 6, chickadee: 3, rhino: 0, cockatiel: 3, crocodile: 2 };
+const NOCTURNAL = { owl: 1, frog: 1, fox: 1, raccoon: 1, hedgehog: 1, hamster: 1 };
 const nightNo = () => Math.floor(S.time / CYCLE);
 
 function newBody(sp, age = 1) {
@@ -229,19 +231,29 @@ const Player = {
     const b = this.b, sp = SPECIES[b.sp], m = b.m;
     b.sick = damp(b.sick, S.sick > 0 ? 1 : 0, 2, dt);
     b.happy = damp(b.happy, Folk.list.some((p) => p.state === 'pet' && p.pos.distanceTo(b.pos) < 3) ? 1 : 0, 3, dt);
-    const tired = S.hunger <= 0 || S.sick > 0;
+    // an empty tummy: walk only and no flying up. Sick: slower, no dashing (only a vet makes you better)
+    const tired = S.hunger <= 0, ill = S.sick > 0;
     const mag = Math.min(1, Math.hypot(inp.mx, inp.mz));
-    const walkS = m.walk, runS = tired ? walkS : Math.max(m.run * 0.9, walkS * 1.6);
+    const walkS = m.walk, runS = tired ? walkS : ill ? lerp(walkS, Math.max(m.run * 0.9, walkS * 1.6), 0.35) : Math.max(m.run * 0.9, walkS * 1.6);
+    // dash: hold to go much faster for a few seconds; the energy fills back up while you are not dashing
+    if (this.energy === undefined) this.energy = 1;
+    if (this.energy <= 0) this.winded = true; else if (this.energy > 0.3) this.winded = false;
+    const dash = !!inp.dash && !tired && !ill && !this.winded && mag > 0.3 && b.mode !== 'climb' && b.mode !== 'perch' && b.mode !== 'sleep' && !b.room;
+    this.dashing = dash;
+    this.energy = clamp(this.energy + (dash ? -dt / 6 : dt / 7), 0, 1);
+    const boost = dash ? (b.mode === 'fly' ? 1.6 : b.mode === 'swim' ? 1.5 : 1.8) : 1;
     let want;
-    if (b.mode === 'fly') want = sp.flySpeed * mag;
-    else if (b.mode === 'swim') want = (sp.swimSpeed || 1.5) * (0.6 + 0.4 * b.k) * mag * (tired ? 0.6 : 1);
+    if (b.mode === 'fly') want = sp.flySpeed * mag * boost * (ill ? 0.75 : 1);
+    else if (b.mode === 'swim') want = (sp.swimSpeed || 1.5) * (0.6 + 0.4 * b.k) * mag * (tired ? 0.6 : ill ? 0.8 : 1) * boost;
     else if (b.mode === 'air') want = b.speed;
-    else { want = mag <= 0.6 ? walkS * (mag / 0.6) : lerp(walkS, runS, (mag - 0.6) / 0.4); if (inp.walk) want = Math.min(want, walkS); }
+    else { want = mag <= 0.6 ? walkS * (mag / 0.6) : lerp(walkS, runS, (mag - 0.6) / 0.4); if (inp.walk) want = Math.min(want, walkS); if (dash) want = Math.max(want, runS) * boost; }
     const c = { dx: inp.mx, dz: inp.mz, want, jump: inp.jump && !(tired && b.mode === 'air'), up: inp.up && !tired, down: inp.down || (tired && b.mode === 'fly'), climbV: inp.iy, around: -inp.ix, letGo: inp.letGo, climb: inp.climb };
     if (b.mode === 'climb' || b.mode === 'perch') { if (inp.jump && b.mode === 'perch') c.letGo = true; }
     // eating: stop, turn to the food, lower the head
     if (b.eat > 0) {
-      c.want = 0; c.dx = 0; c.dz = 0;
+      // an eagle grabbing a fish keeps flying, then climbs away with it; everyone else stops to eat
+      if (b.mode === 'fly') { c.want = sp.flySpeed * 0.35; c.dx = Math.sin(b.yaw); c.dz = Math.cos(b.yaw); if (b.eat >= 0.52) c.up = true; }
+      else { c.want = 0; c.dx = 0; c.dz = 0; }
       if (this.eatFood && !this.eatFood.gone) c.face = Math.atan2(this.eatFood.x - b.pos.x, this.eatFood.z - b.pos.z);
       b.eat += dt / this.eatDur;
       if (this.eatFood && !this.ate && b.eat >= 0.52) { this.ate = true; Foods.consume(this.eatFood); }
@@ -251,19 +263,28 @@ const Player = {
       if (this.eatQueue > 0) {
         this.eatQueue -= dt;
         if (b.mode === 'ground' || b.mode === 'swim') { this.eatQueue = 0; this.tryEat(); }
+        else if (b.mode === 'fly' && sp.grab && this.reachable()) { this.eatQueue = 0; this.tryEat(); }
         else if (b.mode === 'air') { c.want = 0; }
       }
     }
+    // a hurt paw: a hitch in every other step
+    const limp = ill && Sick.kind() === 'paw' && b.mode === 'ground' && c.want > 0.05;
+    if (limp) { this.limpT = (this.limpT || 0) + dt * (1.4 + b.speed * 0.9); c.want *= 0.7 + 0.3 * Math.abs(Math.sin(this.limpT * Math.PI)); }
+    const wasAir = b.mode === 'air', vy0 = b.vy;
     if (b.riding) { b.speed = 0; b.vy = 0; b.mode = 'ground'; } else moveBody(b, dt, c);
+    // landing hard from a big fall can hurt a paw
+    if (wasAir && b.mode === 'ground' && vy0 < -12.5 && !sp.fly && Math.random() < 0.6) Sick.start('paw');
     if (b.pos.y < -30) { G.ui.toast('Whoosh! Back to an island.'); const I = G.world.ringPoint(b.pos.x, b.pos.z, 0, 120, false); if (I) this.place(I.x, I.z); else this.place(G.world.def.spawn[0], G.world.def.spawn[1]); }
     poseBody(b, dt, true);
+    b.rig.root.rotation.z = limp ? Math.sin(this.limpT * Math.PI * 2) * 0.06 * Math.min(1, b.speed) : 0;
+    Sick.update(dt, b);
     // tummy: it slowly empties; an empty tummy makes you tired, and staying empty gives you a cold
     S.hunger = Math.max(0, S.hunger - dt * (100 / 420));
     this.sayT -= dt;
     if (S.hunger <= 0) {
       this.emptyT += dt;
       if (this.sayT <= 0) { this.sayT = 22; G.ui.say("I'm hungry!", 2); if (G.sound) G.sound.tummy(); }
-      if (this.emptyT > 90 && S.sick <= 0) { S.sick = 1; G.ui.toast(`Oh no, your ${sp.name.toLowerCase()} caught a cold! Eat lots of food, sleep in your bed, or visit the vet.`, 5000); }
+      if (this.emptyT > 90 && S.sick <= 0) Sick.start('cold', ' from going hungry');
     } else this.emptyT = 0;
     if (!b.room) { S.x = b.pos.x; S.z = b.pos.z; }
   },
@@ -285,10 +306,57 @@ const Player = {
   },
   tryEat() {
     const b = this.b, f = this.reachable();
-    if (b.mode === 'air' || b.mode === 'fly' || b.mode === 'climb' || b.mode === 'sleep') return;
-    this.eatFood = f; this.ate = false; b.speed = 0;
+    if (b.mode === 'air' || (b.mode === 'fly' && !(SPECIES[b.sp].grab && f)) || b.mode === 'climb' || b.mode === 'sleep') return;
+    this.eatFood = f; this.ate = false; if (b.mode !== 'fly') b.speed = 0;
     this.eatDur = f ? 1.1 : 0.7;
     b.eat = 0.001;
+  },
+};
+
+/* ---------- getting sick: a cold, a tummy ache or a hurt paw. Only a vet makes it better ---------- */
+// junk food: eat too much of it in a short time and your tummy hurts
+const JUNK = { hotdog: 1, candy: 1, bread: 0.5 };
+const HOOVES = { horse: 1, deer: 1, goat: 1, moose: 1, pig: 1, rhino: 1 };
+const Sick = {
+  sayT: 0,
+  limb(sp) { return HOOVES[sp] ? 'leg' : (SPECIES[sp].egg || sp === 'frog') ? 'foot' : 'paw'; },
+  // each animal you own is sick or well on its own
+  kind() { return (S.ills && S.ills[S.animal]) || (S.sick > 0 ? 'cold' : null); },
+  label() { const k = this.kind(); return !k ? '' : k === 'tummy' ? 'Tummy ache' : k === 'paw' ? 'Hurt ' + this.limb(S.animal) : 'Has a cold'; },
+  sync() { S.sick = S.ills && S.ills[S.animal] ? 1 : 0; },
+  start(kind, why) {
+    if (S.sick > 0 || R.hatch) return;
+    if (kind === 'paw' && S.animal === 'snake') kind = 'tummy';
+    S.ills = S.ills || {}; S.ills[S.animal] = kind; S.sick = 1;
+    const nm = SPECIES[S.animal].name.toLowerCase();
+    const msg = kind === 'tummy' ? `Uh oh, your ${nm} has a tummy ache${why || ''}.` : kind === 'paw' ? `Ouch! Your ${nm} hurt a ${this.limb(S.animal)}.` : `Achoo! Your ${nm} caught a cold${why || ''}.`;
+    G.ui.toast(msg + ' Tap Vet to go see the vet.', 6000);
+    this.sayT = 4;
+    G.save();
+  },
+  cure() {
+    if (S.ills) delete S.ills[S.animal];
+    S.sick = 0; S.junk = 0;
+    S.sickIn = 1200 + Math.random() * 1500;   // the next time: 20 to 45 minutes of play from now
+    G.save();
+  },
+  update(dt, b) {
+    S.junk = Math.max(0, (S.junk || 0) - dt / 90);
+    if (S.sick > 0) {
+      // now and then you say how you feel
+      this.sayT -= dt;
+      if (this.sayT <= 0 && b.mode !== 'sleep') {
+        this.sayT = 22 + Math.random() * 14;
+        const k = this.kind();
+        G.ui.say(k === 'tummy' ? 'My tummy hurts...' : k === 'paw' ? `Ouch, my ${this.limb(S.animal)}!` : 'Achoo!', 2);
+      }
+      return;
+    }
+    // every so often you catch something: about once every half hour of play
+    if (S.sickIn === undefined) S.sickIn = 600 + Math.random() * 900;
+    if (b.room || b.mode === 'sleep' || b.riding || R.hatch) return;
+    S.sickIn -= dt;
+    if (S.sickIn <= 0) { S.sickIn = 1200 + Math.random() * 1500; this.start(['cold', 'cold', 'tummy', 'paw'][(Math.random() * 4) | 0]); }
   },
 };
 
@@ -834,7 +902,8 @@ const Folk = {
 
 /* ---------- homes: adoption, going in and out, cages, the pound and the vet ---------- */
 // pets that live in a cage or tank at home, like real ones do
-const CAGED = { lizard: 'terrarium', snake: 'terrarium', frog: 'terrarium', turtle: 'terrarium', parrot: 'birdCage', bunny: 'hutch', hedgehog: 'hutch' };
+const CAGED = { lizard: 'terrarium', snake: 'terrarium', frog: 'terrarium', turtle: 'terrarium', parrot: 'birdCage', bunny: 'hutch', hedgehog: 'hutch',
+  chickadee: 'birdCage', cockatiel: 'birdCage' };   // round 7
 const CAGE_WORDS = { terrarium: 'a glass tank', birdCage: 'a big bird cage', hutch: 'a cozy pen' };
 const Homes = {
   penT: 0, kennel: null,
@@ -893,7 +962,8 @@ const Homes = {
     if (rm.pound) {
       Wild.spawnPound(rm);
       if (rm.desk) Folk.make('Pat', { skin: SKIN[2], hair: HAIR[4], hairStyle: 1, shirt: '#3E8E6E', pants: PANTS[0], shoes: SHOES[0], height: 1.68 }, rm.desk.x, rm.desk.z, { staff: true, room: rm });
-      if (rm.vet) Folk.make('Dr. Rosa', { skin: SKIN[1], hair: HAIR[0], hairStyle: 2, shirt: '#E8E2D4', pants: '#55606B', shoes: SHOES[2], height: 1.64 }, rm.vet.x + 0.9, rm.vet.z + 0.4, { staff: true, room: rm, vetDoc: true });
+      if (rm.vet) { const doc = Folk.make('Dr. Rosa', { skin: SKIN[1], hair: HAIR[0], hairStyle: 2, shirt: '#E8E2D4', pants: '#55606B', shoes: SHOES[2], height: 1.64 }, rm.vet.x + 0.9, rm.vet.z + 0.4, { staff: true, room: rm, vetDoc: true });
+        if (S.sick > 0) setTimeout(() => G.ui.bubble(doc, 'Are you sick? Come see me by the table.', 3), 1200); }
       for (const pn of rm.pens) this.kennelDoor(pn, true);
     }
     if (rm.barn) Wild.spawnBarn(rm);
@@ -1003,10 +1073,13 @@ const Homes = {
   },
   letOut() { const P = Player.b, pen = P && this.penAt(P.room, P.pos); if (pen) { this.kennelDoor(pen, true); this.shutT = 0; const pat = Folk.list.find((p) => p.staff && !p.vetDoc); if (pat) G.ui.bubble(pat, 'There you go!', 1.8); } },
   vet() {
-    S.sick = 0; Player.emptyT = 0;
-    const doc = Folk.list.find((p) => p.vetDoc);
-    if (doc) G.ui.bubble(doc, 'All better! Remember to eat your food.', 3);
-    G.ui.hearts(Player.pos, 4); G.ui.toast('The vet made you all better!');
+    const kind = Sick.kind(), limb = Sick.limb(S.animal);
+    Sick.cure(); Player.emptyT = 0;
+    const doc = Folk.list.find((p) => p.vetDoc && p.room === Player.b.room);
+    const line = kind === 'tummy' ? 'Some tummy medicine, and not so much junk food!' : kind === 'paw' ? `Let me wrap that ${limb}. There you go!` : 'Here is some medicine for that cold.';
+    if (doc) G.ui.bubble(doc, line, 3.2);
+    G.ui.hearts(Player.pos, 4);
+    G.ui.toast(kind === 'tummy' ? 'The vet gave you tummy medicine. All better!' : kind === 'paw' ? `The vet wrapped your ${limb}. All better!` : 'The vet gave you medicine. All better!');
     if (G.sound) G.sound.chime();
     G.save();
   },
@@ -1030,16 +1103,47 @@ const HOUSE_COLOR_NAMES = ['white', 'yellow', 'blue', 'brick', 'gray', 'white'];
 const Foods = {
   list: [], tick: 0,
   glowMat: null,
-  clear() { for (const f of this.list) this.removeObj(f); this.list = []; },
-  removeObj(f) { G.scene.remove(f.obj); if (f.glow) G.scene.remove(f.glow); f.gone = true; },
+  // foods that hold still are drawn instanced, one draw per kind and part; moving ones (worms, fish, bugs) are their own objects
+  kinds: new Map(), dirty: false,
+  kindOf(type) {
+    let k = this.kinds.get(type);
+    if (k) return k;
+    const g = Env.food(type), u = g.userData;
+    k = { type, still: !(u.worm || u.fish || u.tail || u.anim || u.bugs || type === 'bugs'), parts: [], ims: [], cap: 0 };
+    if (k.still) g.traverse((m) => { if (m.isMesh) { m.updateMatrix(); k.parts.push({ geo: m.geometry, mat: m.material, local: m.matrix.clone(), cast: m.castShadow !== false }); } });
+    this.kinds.set(type, k);
+    return k;
+  },
+  draw() {
+    this.dirty = false;
+    const by = new Map();
+    for (const f of this.list) if (f.inst && !f.gone) { let a = by.get(f.type); if (!a) by.set(f.type, (a = [])); a.push(f); }
+    const _m = Foods._m || (Foods._m = new THREE.Matrix4());
+    for (const k of this.kinds.values()) {
+      if (!k.still) continue;
+      const a = by.get(k.type) || [];
+      if (a.length > k.cap) {
+        for (const im of k.ims) { G.scene.remove(im); im.dispose(); }
+        k.cap = Math.max(16, Math.ceil(a.length * 1.5));
+        k.ims = k.parts.map((p) => { const im = new THREE.InstancedMesh(p.geo, p.mat, k.cap); im.frustumCulled = false; im.castShadow = p.cast; im.receiveShadow = true; im.name = 'foods-' + k.type; G.scene.add(im); return im; });
+      }
+      k.parts.forEach((p, j) => {
+        const im = k.ims[j]; if (!im) return;
+        for (let i = 0; i < a.length; i++) { a[i].obj.updateMatrix(); _m.multiplyMatrices(a[i].obj.matrix, p.local); im.setMatrixAt(i, _m); }
+        im.count = a.length; im.visible = a.length > 0; im.instanceMatrix.needsUpdate = true;
+      });
+    }
+  },
+  clear() { for (const f of this.list) this.removeObj(f); this.list = []; this.draw(); },
+  removeObj(f) { if (f.inst) this.dirty = true; else G.scene.remove(f.obj); if (f.glow) G.scene.remove(f.glow); f.gone = true; },
   glowFor() {
     if (!this.glowMat) this.glowMat = new THREE.SpriteMaterial({ map: Env.glowTexture, color: 0xffe9a0, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
     if (!this.giftMat) this.giftMat = new THREE.SpriteMaterial({ map: Env.glowTexture, color: 0xffc23a, transparent: true, opacity: 0.8, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
   },
   add(type, x, z, y, gift) {
     this.glowFor();
-    const obj = Env.food(type);
-    const f = { type, x, y, z, obj, gift: !!gift, edible: false, glow: null, phase: Math.random() * TAU };
+    const kind = this.kindOf(type), obj = kind.still ? new THREE.Object3D() : Env.food(type);
+    const f = { type, x, y, z, obj, inst: kind.still, gift: !!gift, edible: false, glow: null, phase: Math.random() * TAU };
     obj.position.set(x, y, z); obj.rotation.y = Math.random() * TAU;
     if (FOODS[type] && FOODS[type].water) {
       const a = Math.random() * TAU;
@@ -1048,7 +1152,8 @@ const Foods = {
     const glow = new THREE.Sprite(gift ? this.giftMat : this.glowMat);
     glow.renderOrder = 5;
     f.glow = glow;
-    G.scene.add(obj); G.scene.add(glow);
+    if (f.inst) this.dirty = true; else G.scene.add(obj);
+    G.scene.add(glow);
     this.list.push(f);
     this.refreshOne(f);
     return f;
@@ -1067,7 +1172,9 @@ const Foods = {
     this.list.splice(this.list.indexOf(f), 1);
     const sp = SPECIES[Player.sp], fav = f.type === sp.fav, n = f.type === 'candy' ? 3 : fav ? 2 : 1;
     S.leaves += n; S.hunger = Math.min(100, S.hunger + (fav ? 22 : 13));
-    if (S.sick > 0) { S.sick = Math.max(0, S.sick - 0.18); if (S.sick === 0) G.ui.toast('You feel all better!'); }
+    // too much junk food in a short time gives you a tummy ache
+    const junk = JUNK[f.type] || 0;
+    if (junk) { S.junk = (S.junk || 0) + junk; if (S.junk >= 3.5) { S.junk = 0; Sick.start('tummy', ' from too much junk food'); } }
     // growing up
     const before = ageOf(Player.sp);
     if (before < 1) {
@@ -1098,7 +1205,11 @@ const Foods = {
         f.obj.rotation.y = Math.atan2(-Math.sin(fi.a) * fi.w, Math.cos(fi.a) * fi.w);
         f.x = nx; f.z = nz; f.obj.position.set(nx, f.y + Math.sin(t * 1.3 + f.phase) * 0.03, nz);
       }
-      Env.foodUpdate(f.obj, t + f.phase);
+      // moving foods (worms, fish, bugs) far away are specks: hide them and skip their animation
+      if (!f.inst) { const vis = Math.abs(f.x - P.pos.x) < 70 && Math.abs(f.z - P.pos.z) < 70; if (f.obj.visible !== vis) f.obj.visible = vis; if (vis) Env.foodUpdate(f.obj, t + f.phase); }
+      // the glow shows only on foods near you (each one is a draw)
+      const near = f.edible && Math.abs(f.x - P.pos.x) < 30 && Math.abs(f.z - P.pos.z) < 30;
+      if (f.glow.visible !== near) f.glow.visible = near;
       if (f.glow.visible) {
         const s = f.glowS * (0.85 + 0.15 * pulse);
         f.glow.scale.set(s, s, s);
@@ -1106,13 +1217,14 @@ const Foods = {
       }
     }
     if (this.glowMat) this.glowMat.opacity = 0.32 + 0.22 * pulse;
+    if (this.dirty) this.draw();
     // keep a ring of food around the player (not indoors)
     this.tick -= dt;
-    if (this.tick <= 0 && !P.room) { this.tick = 0.5; this.fill(3); }
+    if (this.tick <= 0 && !P.room) { this.tick = 0.4; this.fill(4); }
   },
   fill(maxAdd) {
     const P = Player.b, w = G.world; if (!P || P.room) return;
-    const m = P.m, r0 = Math.max(2.2, m.length * 3.5), r1 = clamp(m.length * 26 + 10, 15, 42);
+    const m = P.m, r0 = Math.max(2.2, m.length * 3.5), r1 = clamp(m.length * 26 + 12, 18, 48);
     for (let i = this.list.length - 1; i >= 0; i--) {
       const f = this.list[i];
       if (f.gift) continue;
@@ -1124,8 +1236,8 @@ const Foods = {
     const sp = SPECIES[P.sp];
     let added = 0;
     for (let k = 0; k < 12 && added < maxAdd; k++) {
-      const wantFish = !!w.def.water && fish + added < 6 && Math.random() < 0.35;
-      if (!wantFish && land + added >= 34) break;
+      const wantFish = !!w.def.water && fish + added < 8 && Math.random() < 0.35;
+      if (!wantFish && land + added >= 56) break;
       let pool = weights.filter(([t]) => !!FOODS[t].water === wantFish);
       if (!pool.length) continue;
       if (Math.random() < 0.6) { const ed = pool.filter(([t]) => sp.eats.includes(t)); if (ed.length) pool = ed; }

@@ -3755,6 +3755,8 @@ float cityLit(float glow, vec2 cb) {
       spawn: { x: 0, z: hd - 1.1, yaw: PI },
       exit: { x: 0, z: hd - 0.3, r: 0.7 },
       light: { x: 0, y: H - 0.4, z: -0.3 },
+      // the vet: where you stand to be seen, in front of the exam table
+      vet: B.kind === 'vet' ? { x: 3.2, z: -2.75, y: 0 } : null,
       colliders: B.cols, clerk: B.clerk, shoppers: B.shoppers.length > 5 ? [0, 1, 2, 3, 4].map((i) => B.shoppers[Math.floor(i * B.shoppers.length / 5)]) : B.shoppers, treats: B.treats,
       doors: [doorRec('door', 'swing', 1.45)],
     };

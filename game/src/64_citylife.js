@@ -115,8 +115,10 @@ const CityLife = (() => {
     p.city = true; p.cs = 'walk'; p.storeH = null; p.bench = null; p.sitT = 0; p.pace = 1.05 + Math.random() * 0.35;
     // now and then someone is out walking their dog
     p.dog = null;
-    if (SPECIES.dog && !n.stop && Math.random() < 0.3 && C.list.filter((q) => q.dog).length < 6) {
-      p.dog = Wild.make('dog', 0.8 + Math.random() * 0.2, n.x + 0.8, n.z + 0.6, { state: 'leash', walker: p, home: { x: n.x, z: n.z }, range: 3, slot: Math.random() < 0.5 ? -1 : 1 });
+    // round 7: any of the dog breeds
+    if (!C.dogs) C.dogs = ['dog', 'lab', 'dalmatian', 'husky', 'beagle', 'chihuahua', 'dog'].filter((s) => SPECIES[s]);
+    if (C.dogs.length && !n.stop && Math.random() < 0.3 && C.list.filter((q) => q.dog).length < 6) {
+      p.dog = Wild.make(rnd(C.dogs), 0.8 + Math.random() * 0.2, n.x + 0.8, n.z + 0.6, { state: 'leash', walker: p, home: { x: n.x, z: n.z }, range: 3, slot: Math.random() < 0.5 ? -1 : 1 });
       if (p.dog.rig.setCollar) p.dog.rig.setCollar([0xb02a2a, 0x2a4fb0, 0x2a8a4a, 0xd08a20, 0x6a2a8a][(Math.random() * 5) | 0]);
       if (!p.leashH) p.leashH = new THREE.Object3D();
       if (p.rig.hold) p.rig.hold(p.leashH);
@@ -237,6 +239,12 @@ const CityLife = (() => {
     const mk = (spot, extra) => { if (!spot) return null; const p = Folk.make(Town.freeName(), Folk.randomLook(false), spot.x, spot.z, Object.assign({ room: rm, city: true, cs: 'still', cool: 4 }, extra)); p.yaw = spot.yaw || 0; C.inside.push(p); return p; };
     const clerk = mk(rm.clerk, { clerk: true });
     if (clerk) G.ui.bubble(clerk, pick(['Hello! Welcome in!', 'Well hi there, little one!', 'Look who came to shop!', 'Come on in!']), 2.6);
+    // the city vet: a doctor by the exam table
+    if (rm.vet) {
+      const doc = Folk.make('Dr. Lee', { skin: SKIN[3], hair: HAIR[1], hairStyle: 0, shirt: '#F2F2EE', pants: '#3A5A7A', shoes: SHOES[2], height: 1.7 }, rm.vet.x + 1.0, rm.vet.z + 0.2, { room: rm, city: true, cs: 'still', cool: 4, staff: true, vetDoc: true });
+      doc.yaw = -Math.PI / 2; C.inside.push(doc);
+      if (S.sick > 0) setTimeout(() => G.ui.bubble(doc, 'Oh no, are you sick? Come over to the table.', 3), 1200);
+    }
     const sh = (rm.shoppers || []).slice().sort(() => Math.random() - 0.5).slice(0, 1 + ((Math.random() * 2) | 0));
     for (const s of sh) mk(s, { shopper: true });
   }

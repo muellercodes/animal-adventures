@@ -1,0 +1,142 @@
+{
+ "v": 2,
+ "id": "beagle",
+ "data": "beagle.bin",
+ "enc": "deflate",
+ "raw": 97912,
+ "maps": {
+  "color": "beagle-color.webp",
+  "normal": "beagle-normal.webp",
+  "babyColor": "beagle-baby.webp",
+  "fur": "beagle-fur.webp",
+  "hair": "beagle-hair.webp"
+ },
+ "nv": 2706,
+ "ntri": 3731,
+ "nbv": 2706,
+ "nbt": 3731,
+ "bbox": [
+  -0.091465,
+  0.000414,
+  -0.293016,
+  0.091465,
+  0.511654,
+  0.396074
+ ],
+ "bones": [
+  "hips",
+  "rump",
+  "chest",
+  "neck",
+  "neck2",
+  "head",
+  "tail1",
+  "tail2",
+  "tail3",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "earL",
+  "earR",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.03272,
+   0.46651,
+   0.30933
+  ],
+  "r": 0.00959,
+  "dir": [
+   0.499,
+   0.154,
+   0.8528
+  ],
+  "lid": [
+   0.95,
+   -0.917,
+   0.3
+  ],
+  "iris": 4860434,
+  "irisR": 0.9,
+  "pupilR": 0.46,
+  "rim": 1707526,
+  "lidCol": 9790257,
+  "babyLidCol": 2893348,
+  "babyIris": 3025448
+ },
+ "collar": {
+  "at": [
+   "neck2",
+   "head",
+   0.15
+  ],
+  "lift": 0.35,
+  "maxR": 0.059466000000000005
+ },
+ "belly": [
+  0.0,
+  0.2612,
+  -0.0961
+ ],
+ "mouth": [
+  0.0,
+  0.4079,
+  0.3655
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.2,
+  0.13,
+  0.06
+ ],
+ "flat": 12155452,
+ "fur": {
+  "len": 0.02,
+  "n": 4,
+  "lean": 1.6,
+  "tile": 0.0012,
+  "babyLen": 1.6,
+  "babyLean": 0.6,
+  "shade": 0.7,
+  "uvm": 0.7518
+ },
+ "cards": {
+  "nv": 80,
+  "ntri": 64,
+  "bbox": [
+   -0.052766,
+   0.418684,
+   0.334779,
+   0.052766,
+   0.435547,
+   0.370326
+  ],
+  "bscale": 1e-06,
+  "rough": 0.5,
+  "alpha": 0.3
+ },
+ "bdelta": 0.045998
+}

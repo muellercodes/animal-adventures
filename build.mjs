@@ -5,7 +5,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
-const ORDER = ['00_core', '35_envkit', '36_city', '37_street', '40_animals', '45_people', '49_plan', '50_world', '60_actors', '62_town', '63_traffic', '64_citylife', '65_audio', '68_net', '70_game'];
+const ORDER = ['00_core', '35_envkit', '36_city', '37_street', '38_food', '40_animals', '45_people', '49_plan', '50_world', '60_actors', '62_town', '63_traffic', '64_citylife', '65_audio', '68_net', '70_game'];
 const cfg = JSON.parse(readFileSync('game/config.json', 'utf8'));
 const api = process.env.API_BASE ?? cfg.apiBase ?? '';
 
@@ -37,7 +37,8 @@ if (!process.env.NO_MODELS && existsSync('game/models')) {
   for (const f of readdirSync('game/models')) {
     const m = f.match(/^([a-z]+)\.json$/); if (!m) continue;
     const md = JSON.parse(readFileSync(`game/models/${f}`, 'utf8'));
-    md.data = readFileSync(`game/models/${md.data}`).toString('base64');
+    // (a coat variant has no mesh of its own: it names the model it shares, md.base, and brings only its own maps)
+    if (md.data) md.data = readFileSync(`game/models/${md.data}`).toString('base64');
     for (const k in md.maps) md.maps[k] = `data:${mime[md.maps[k].split('.').pop()]};base64,${readFileSync(`game/models/${md.maps[k]}`).toString('base64')}`;
     models[m[1]] = md;
   }

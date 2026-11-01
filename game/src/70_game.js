@@ -85,7 +85,8 @@ function camBlock(x, y, z, dist) {
 }
 function followCamera(dt) {
   const b = Player.b, m = b.m, H = G.world.H, room = b.room;
-  const base = clamp(m.length * 1.35 + m.height * 1.5 + 0.75, 1.15, 8.5);
+  // animals shorter than 15 cm (a chickadee, a chick, a froglet) get a closer camera
+  const base = clamp(m.length * 1.35 + m.height * 1.5 + 0.75 * clamp(m.length / 0.15, 0.55, 1), 0.6, 8.5);
   let dist = base * Cam.zoom;
   const ty = b.pos.y + (b.mode === 'climb' ? m.length * 0.4 : m.eye * 0.8) + 0.05;
   if (Cam.snap) { Cam.target.set(b.pos.x, ty, b.pos.z); Cam.yaw = b.yaw; Cam.snap = false; }
@@ -200,9 +201,10 @@ function holdButton(id, on, off) {
 holdButton('btnJump', () => { press.jump = true; press.jumpHeld = true; }, () => { press.jumpHeld = false; });
 holdButton('btnEat', () => { press.eat = true; });
 holdButton('btnLand', () => { press.landHeld = true; }, () => { press.landHeld = false; });
+holdButton('btnDash', () => { press.dashHeld = true; }, () => { press.dashHeld = false; });
 holdButton('btnAct', () => { press.act = true; });
 holdButton('btnCall', () => { press.call = true; });
-const KEYMAP = { KeyW: 'f', ArrowUp: 'f', KeyS: 'b', ArrowDown: 'b', KeyA: 'l', ArrowLeft: 'l', KeyD: 'r', ArrowRight: 'r', ShiftLeft: 'walk', ShiftRight: 'walk', Space: 'jump', KeyE: 'eat', KeyC: 'land', KeyQ: 'land', KeyF: 'act', Enter: 'act', KeyV: 'call' };
+const KEYMAP = { KeyW: 'f', ArrowUp: 'f', KeyS: 'b', ArrowDown: 'b', KeyA: 'l', ArrowLeft: 'l', KeyD: 'r', ArrowRight: 'r', ShiftLeft: 'walk', ShiftRight: 'walk', KeyR: 'dash', Space: 'jump', KeyE: 'eat', KeyC: 'land', KeyQ: 'land', KeyF: 'act', Enter: 'act', KeyV: 'call' };
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && R.sheet) { closeSheet(); return; }
   if (R.mode !== 'play' || R.paused || e.target.tagName === 'INPUT') return;
@@ -212,7 +214,7 @@ window.addEventListener('keydown', (e) => {
   keys[k] = true;
 });
 window.addEventListener('keyup', (e) => { const k = KEYMAP[e.code]; if (k) keys[k] = false; });
-window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; press.jumpHeld = press.landHeld = false; });
+window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; press.jumpHeld = press.landHeld = press.dashHeld = false; });
 function readInput() {
   let ix = 0, iy = 0;
   if (stick.id !== null) { ix = stick.dx / STICK_R; iy = -stick.dy / STICK_R; const m = Math.hypot(ix, iy); if (m < 0.12) { ix = 0; iy = 0; } }
@@ -223,6 +225,7 @@ function readInput() {
   const fx = Math.sin(Cam.yaw), fz = Math.cos(Cam.yaw), rx = -Math.cos(Cam.yaw), rz = Math.sin(Cam.yaw);
   inp.mx = fx * iy + rx * ix; inp.mz = fz * iy + rz * ix; inp.ix = ix; inp.iy = iy;
   inp.walk = !!keys.walk;
+  inp.dash = !!(press.dashHeld || keys.dash) && !R.hatch && !held;
   inp.jump = press.jump && !R.hatch && !held; press.jump = false;
   inp.up = press.jumpHeld || !!keys.jump;
   inp.down = press.landHeld || !!keys.land;
@@ -249,7 +252,7 @@ function findAction() {
     }
     if (rm.barn && rm.petBed && Math.hypot(b.pos.x - rm.petBed.x, b.pos.z - rm.petBed.z) < reach + 0.4) return { id: 'sleep', label: 'Sleep' };
     if (rm.pound) { const pen = Homes.penAt(rm, b.pos); if (pen && pen.open === false) return { id: 'letout', label: 'Let me out' }; }
-    if (rm.pound && rm.vet && S.sick > 0 && Math.hypot(b.pos.x - rm.vet.x, b.pos.z - rm.vet.z) < 2) return { id: 'vet', label: 'See the vet' };
+    if (rm.vet && S.sick > 0 && Math.hypot(b.pos.x - rm.vet.x, b.pos.z - rm.vet.z) < 2) return { id: 'vet', label: 'See the vet' };
     return null;
   }
   if (b.mode !== 'ground' && b.mode !== 'swim') return null;
@@ -258,7 +261,8 @@ function findAction() {
   for (const h of w.houses) {
     const barn = h.kind === 'barn';
     if (Math.hypot(b.pos.x - h.door.x, b.pos.z - h.door.z) > (barn ? 2.6 : 1.7) + b.m.radius) continue;
-    if (!barn && b.m.height > 1.15) return { id: 'big', label: 'Too big!' };
+    // too big to go in: the vet comes out to see a sick animal
+    if (!barn && b.m.height > 1.15) return S.sick > 0 && (h.pound || h.store === 'vet') ? { id: 'vetout', label: 'See the vet' } : { id: 'big', label: 'Too big!' };
     if (barn && !h.room && !h.lazy) continue;
     if (home === h && !sp.outdoor) return { id: 'in', label: 'Go home', house: h };
     if (h.pound || barn) return { id: 'in', label: 'Go in', house: h };
@@ -297,6 +301,7 @@ function doAction(a) {
     case 'letoutFair': Town.letOutFair(); break;
     case 'sleep': startSleep(); break;
     case 'vet': Homes.vet(); break;
+    case 'vetout': Homes.vet(); UI.toast('The vet came outside to see you. All better!'); break;
     case 'treat': Homes.trickOrTreat(a.house); break;
     case 'climb': inp.climb = a.tree; break;
     case 'letgo': inp.letGo = true; break;
@@ -348,7 +353,7 @@ function wakeUp() {
   const night = dayInfo().night || G.night > 0.4;
   if (night) S.time = (Math.floor(S.time / CYCLE) + 1) * CYCLE + 40; else S.time += 150;
   R.wasNight = dayInfo().night;
-  S.sick = 0; S.hunger = Math.max(S.hunger, 45); Player.emptyT = 0;
+  S.hunger = Math.max(S.hunger, 45); Player.emptyT = 0;   // sleeping does not cure being sick: only a vet does
   const b = Player.b; b.mode = 'ground'; b.idle = 0;
   if (b.room) b.pos.y = 0;
   $('fade').classList.remove('on');
@@ -369,8 +374,8 @@ function beginLife(sp) {
   const b = Player.b;
   if (SPECIES[sp].egg) {
     b.rig.setVisible(false);
-    const s = clamp(b.rig.height * 0.42 * 0.9, 0.06, 0.5);
-    const nest = Env.nest(), egg = Env.egg(SPECIES[sp].egg, true);
+    const s = clamp(b.rig.height * 0.42 * 0.9, 0.035, 0.5);
+    const nest = Env.nest(), egg = Env.egg(SPECIES[sp].egg, true, SPECIES[sp].eggSpeck);
     let x = b.pos.x, z = b.pos.z, y = b.pos.y;
     if (b.mode === 'swim') { const pt = G.world.ringPoint(x, z, 1, 20, false); if (pt) { x = pt.x; z = pt.z; y = pt.h; b.pos.set(x, y, z); b.mode = 'ground'; } }
     nest.scale.setScalar((s * 1.7) / 0.59); nest.position.set(x, y, z); scene.add(nest);
@@ -556,7 +561,7 @@ function updateHud() {
   const nm = nameOf(S.animal) + (S.names[S.animal] ? '' : ''), stage = ageOf(S.animal) < 1 ? stageName(S.animal) : '';
   const nameKey = S.animal + nm + stage;
   if (h.name !== nameKey) { h.name = nameKey; $('meImg').src = meIcon(S.animal); $('meName').textContent = S.names[S.animal] ? S.names[S.animal] : (stage || sp.name); }
-  const status = S.sick > 0 ? 'Has a cold' : S.hunger <= 0 ? 'Hungry!' : (S.names[S.animal] && stage) ? stage : '';
+  const status = S.sick > 0 ? Sick.label() : S.hunger <= 0 ? 'Hungry!' : (S.names[S.animal] && stage) ? stage : '';
   if (h.status !== status) { h.status = status; $('meStatus').textContent = status; $('meStatus').hidden = !status; }
   const shopName = (rm) => { const n = (rm.house && rm.house.name || 'the shop').replace(/^the /, ''); return n[0].toUpperCase() + n.slice(1); };
   const where = b.room ? (b.room.pound ? 'Animal pound' : b.room.barn ? 'Barn' : b.room.school ? 'School' : b.room.store ? shopName(b.room) : (Homes.homeOf(b.sp) && Homes.homeOf(b.sp).room === b.room ? 'Home' : 'A house')) : (S.world === 'land' && Plan.placeName(b.pos.x, b.pos.z)) || World.META[S.world].name;
@@ -569,9 +574,14 @@ function updateHud() {
   }
   const online = Net.open ? Net.count() : -1;
   if (h.online !== online) { h.online = online; const np = $('netPill'); np.hidden = online < 0; $('netCount').textContent = online; np.setAttribute('aria-label', online === 1 ? '1 other player here' : `${online} other players here`); }
+  // the dash ring: how much energy is left
+  const en = Math.round((Player.energy === undefined ? 1 : Player.energy) * 40) / 40, dl = !!Player.winded || S.sick > 0 || S.hunger <= 0;
+  if (h.energy !== en || h.dashLow !== dl) { h.energy = en; h.dashLow = dl; const db = $('btnDash'); db.style.setProperty('--e', en); db.classList.toggle('low', dl); }
   // not signed in: a button to sign in and play with other people
   const join = !!(API && !cloud.user);
   if (h.join !== join) { h.join = join; $('netJoin').hidden = !join; }
+  const sick = S.sick > 0;
+  if (h.sick !== sick) { h.sick = sick; $('vetBtn').hidden = !sick; }
   const hasHome = !!S.homes[S.animal];
   if (h.hasHome !== hasHome) { h.hasHome = hasHome; $('homeBtn').hidden = !hasHome; }
   // action buttons
@@ -745,10 +755,29 @@ function goHome() {
   };
   if (S.world !== 'land') travel('land', doIt); else doIt();
 }
+// take a sick animal to the door of the nearest vet (the Maple Town animal pound or the city vet)
+function goVet() {
+  closeSheet();
+  const doIt = () => {
+    const b = Player.b, w = G.world;
+    const vets = w.houses.filter((h) => h.pound || h.store === 'vet');
+    if (!vets.length) { UI.toast('There is no vet in this world.'); return; }
+    if (b.room) Homes.exit();
+    if (b.riding) { b.riding = null; b.mode = 'ground'; }
+    let best = null, bd = 1e9;
+    for (const h of vets) { const d = Math.hypot(h.door.x - b.pos.x, h.door.z - b.pos.z); if (d < bd) { bd = d; best = h; } }
+    const yaw = best.door.yaw, d = 0.6 + b.m.radius;   // close enough that "Go in" shows right away
+    Player.place(best.door.x + Math.sin(yaw) * d, best.door.z + Math.cos(yaw) * d);
+    b.yaw = yaw + Math.PI; Cam.yaw = b.yaw; Cam.snap = true;
+    const big = b.m.height > 1.15;
+    UI.toast(`This is ${best.pound ? 'the animal pound. The vet is inside' : 'the vet'}! ${big ? 'Walk up to the door and the vet will come out.' : 'Go in and find the vet.'}`, 4500);
+  };
+  if (S.world !== 'land') travel('land', doIt); else doIt();
+}
 function switchAnimal(id) {
   if (!S.owned.includes(id)) return;
   clearHatch();
-  S.animal = id; hudState.name = null;
+  S.animal = id; hudState.name = null; Sick.sync();
   closeSheet();
   for (const p of Folk.list) Folk.cancel(p);
   const born = S.ages[id] === 0 && !S.hatched.includes(id);
@@ -813,7 +842,12 @@ function applySave(d) {
   S.ages = {}; for (const [k, v] of Object.entries(obj(d.ages))) if (SPECIES[k] && Number.isFinite(v)) S.ages[k] = clamp(v, 0, 1);
   S.names = {}; for (const [k, v] of Object.entries(obj(d.names))) if (SPECIES[k] && typeof v === 'string') S.names[k] = v.slice(0, 16);
   S.homes = {}; for (const [k, v] of Object.entries(obj(d.homes))) if (SPECIES[k] && v && typeof v.name === 'string' && v.look) S.homes[k] = { name: v.name.slice(0, 20), look: v.look, house: clamp(v.house | 0, 0, 5) };
-  S.sick = Number.isFinite(d.sick) ? clamp(d.sick, 0, 1) : 0;
+  // which of your animals are sick, and with what (older saves only knew "has a cold")
+  S.ills = {}; for (const [k, v] of Object.entries(obj(d.ills))) if (SPECIES[k] && ['cold', 'tummy', 'paw'].includes(v)) S.ills[k] = v;
+  if (Number.isFinite(d.sick) && d.sick > 0 && !Object.keys(S.ills).length) S.ills[S.animal] = 'cold';
+  S.sick = S.ills[S.animal] ? 1 : 0;
+  S.sickIn = Number.isFinite(d.sickIn) ? clamp(d.sickIn, 0, 3600) : undefined;
+  S.junk = 0;
   S.hatched = Array.isArray(d.hatched) ? d.hatched.filter((id) => SPECIES[id]) : [];
   S.treats = obj(d.treats);
   S.sound = d.sound !== false; S.music = d.music !== false;
@@ -957,6 +991,7 @@ document.addEventListener('click', (e) => {
     case 'settings': R.cloudForm = false; openSheet('settings'); break;
     case 'playonline': R.cloudForm = true; openSheet('settings'); setTimeout(() => { const i = $('cName'); if (i) i.focus(); }, 50); break;
     case 'home': goHome(); break;
+    case 'govet': goVet(); break;
     case 'shop': R.shopTab = v || 'animals'; openSheet('shop'); break;
     case 'tab': R.shopTab = v; renderSheet(); break;
     case 'pack': R.pack = v; R.gc = newGc(); R.shopTab = 'grownup'; renderSheet(); break;
@@ -1078,7 +1113,7 @@ function start(data) {
   if (snap && data.playing && S.started) play();
   if (API && cloud.token && !(snap && data.playing)) pullCloud().then(() => { if (R.mode === 'title') renderTitle(); }).catch((err) => { if (err.status === 401) { setSession(null, null); if (R.mode === 'title') renderTitle(); } });
   window.claude?.hot?.snapshot?.(() => ({ S: JSON.parse(JSON.stringify(S)), playing: R.mode === 'play' }));
-  if (/test|assets/.test(location.hash)) window.__aa = { SPECIES, manual(on) { manual = on; if (!on) requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); }); }, step(n, dt = 1 / 30, draw = true) { for (let i = 0; i < n; i++) tick(dt, 1, draw && i === n - 1); }, S, G, R, Player, Wild, Folk, Foods, Homes, World, Cam, inp, keys, press, travel, switchAnimal, loadWorld, play, pickStarter, animalIcon, renderer, camera, scene, dayInfo, timeOfDay, findAction, doAction, Sound, setBodyAge, goHome, buyAnimal, Env, Animals, People, THREE, Net, Town, Nav, Traffic, Plan, CityLife };
+  if (/test|assets/.test(location.hash)) window.__aa = { SPECIES, manual(on) { manual = on; if (!on) requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); }); }, step(n, dt = 1 / 30, draw = true) { for (let i = 0; i < n; i++) tick(dt, 1, draw && i === n - 1); }, S, G, R, Player, Wild, Folk, Foods, Homes, World, Cam, inp, keys, press, travel, switchAnimal, loadWorld, play, pickStarter, animalIcon, renderer, camera, scene, dayInfo, timeOfDay, findAction, doAction, Sound, setBodyAge, goHome, buyAnimal, Env, Animals, People, THREE, Net, Town, Nav, Traffic, Plan, CityLife, Sick, applySave };
   requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); });
 }
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});

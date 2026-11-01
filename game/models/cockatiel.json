@@ -1,0 +1,165 @@
+{
+ "v": 2,
+ "id": "cockatiel",
+ "data": "cockatiel.bin",
+ "enc": "deflate",
+ "raw": 77232,
+ "maps": {
+  "color": "cockatiel-color.webp",
+  "normal": "cockatiel-normal.webp",
+  "babyColor": "cockatiel-babycolor.webp",
+  "fur": "cockatiel-fur.webp",
+  "babyNormal": "cockatiel-babynrm.webp",
+  "feather": "cockatiel-feather.webp",
+  "featherNormal": "cockatiel-feathernrm.webp",
+  "babyFeather": "cockatiel-babyfeather.webp"
+ },
+ "nv": 2194,
+ "ntri": 2999,
+ "nbv": 2194,
+ "nbt": 2999,
+ "bbox": [
+  -0.135806,
+  -0.000518,
+  -0.063,
+  0.135806,
+  0.181953,
+  0.067838
+ ],
+ "bones": [
+  "hips",
+  "tail",
+  "neck",
+  "head",
+  "crest",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "wingL",
+  "wingR",
+  "wforeL",
+  "wforeR",
+  "whandL",
+  "whandR",
+  "f0L",
+  "f0R",
+  "f1L",
+  "f1R",
+  "f2L",
+  "f2R",
+  "f3L",
+  "f3R",
+  "f4L",
+  "f4R",
+  "f5L",
+  "f5R",
+  "f6L",
+  "f6R",
+  "f7L",
+  "f7R",
+  "f8L",
+  "f8R",
+  "f9L",
+  "f9R",
+  "f10L",
+  "f10R",
+  "f11L",
+  "f11R",
+  "f12L",
+  "f12R",
+  "f13L",
+  "f13R",
+  "f14L",
+  "f14R",
+  "f15L",
+  "f15R",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.01352,
+   0.16737,
+   0.04851
+  ],
+  "r": 0.00277,
+  "dir": [
+   0.9398,
+   0.12,
+   0.3199
+  ],
+  "lid": [
+   0.8,
+   -0.8,
+   0.12
+  ],
+  "iris": 2759184,
+  "irisR": 0.92,
+  "pupilR": 0.55,
+  "rim": 3811872,
+  "lidCol": 9209474,
+  "babyIris": 1708556,
+  "babyLidCol": 14200996
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "head",
+   0.35
+  ],
+  "babyAt": 0.4,
+  "hug": true,
+  "babyK": 1.8,
+  "lift": 0.35
+ },
+ "mouth": [
+  0.0,
+  0.152,
+  0.0651
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.1,
+  0.1,
+  0.1
+ ],
+ "flat": 9210760,
+ "fur": {
+  "len": 0.013,
+  "n": 5,
+  "lean": 0.3,
+  "tile": 0.0012,
+  "babyLen": 1.0,
+  "babyLean": 0.3,
+  "shade": 0.88,
+  "babyOnly": true,
+  "uvm": 0.1802
+ },
+ "bdelta": 0.119846,
+ "belly": [
+  0.0,
+  -0.0001,
+  0
+ ],
+ "srgb": [
+  "babyColor",
+  "feather",
+  "babyFeather"
+ ],
+ "feathers": {
+  "cols": 8
+ }
+}

@@ -70,12 +70,47 @@ const SPECIES = {
   parrot: { name: 'Parrot', many: 'Parrots', eats: ['berries', 'apple', 'acorn', 'seeds', 'banana', 'corn', 'watermelon'], fav: 'berries', fly: true, flySpeed: 10, price: 1000, egg: 0xf6f3ec, baby: 'Parrot chick' },
   horse: { name: 'Horse', many: 'Horses', eats: ['grass', 'apple', 'carrot', 'pumpkin', 'hay', 'corn', 'watermelon'], fav: 'carrot', price: 1200, outdoor: true, baby: 'Foal' },
   moose: { name: 'Moose', many: 'Moose', eats: ['grass', 'apple', 'carrot', 'twigs', 'lettuce'], fav: 'grass', swim: true, swimSpeed: 2.2, price: 1500, outdoor: true, baby: 'Moose calf' },
-  dog: { name: 'Dog', many: 'Dogs', eats: ['fish', 'apple', 'carrot', 'worm', 'pumpkin', 'petfood', 'hotdog', 'bread', 'watermelon'], fav: 'fish', swim: true, swimSpeed: 2.0, price: 350, baby: 'Puppy' },
-  cat: { name: 'Cat', many: 'Cats', eats: ['smallfish', 'fish', 'worm', 'bugs', 'petfood'], fav: 'smallfish', climb: true, price: 300, baby: 'Kitten' },
+  dog: { name: 'Golden retriever', many: 'Golden retrievers', eats: ['fish', 'apple', 'carrot', 'worm', 'pumpkin', 'petfood', 'hotdog', 'bread', 'watermelon'], fav: 'fish', swim: true, swimSpeed: 2.0, price: 350, baby: 'Puppy' },
+  cat: { name: 'Tabby cat', many: 'Tabby cats', eats: ['smallfish', 'fish', 'worm', 'bugs', 'petfood'], fav: 'smallfish', climb: true, price: 300, baby: 'Kitten' },
+  // round 7: dog breeds
+  lab: { name: 'Black Lab', many: 'Black Labs', eats: ['petfood', 'fish', 'apple', 'carrot', 'worm', 'bread', 'hotdog', 'watermelon'], fav: 'fish', swim: true, swimSpeed: 2.0, price: 350, baby: 'Puppy' },
+  dalmatian: { name: 'Dalmatian', many: 'Dalmatians', eats: ['petfood', 'apple', 'carrot', 'worm', 'bread', 'hotdog'], fav: 'petfood', swim: true, swimSpeed: 2.0, price: 450, baby: 'Puppy' },
+  husky: { name: 'Husky', many: 'Huskies', eats: ['fish', 'petfood', 'worm', 'apple', 'carrot'], fav: 'fish', swim: true, swimSpeed: 2.0, price: 500, baby: 'Puppy' },
+  beagle: { name: 'Beagle', many: 'Beagles', eats: ['petfood', 'hotdog', 'bread', 'apple', 'carrot', 'worm'], fav: 'hotdog', price: 400, baby: 'Puppy' },
+  chihuahua: { name: 'Chihuahua', many: 'Chihuahuas', eats: ['petfood', 'apple', 'carrot', 'worm', 'bread'], fav: 'petfood', price: 400, baby: 'Puppy' },
+  // round 7: eagle, chickadee, rhino
+  // grab: catches fish at the water surface in flight (needs Player.tryEat to allow it while flying low; see the round 7 notes)
+  eagle: { name: 'Bald eagle', many: 'Bald eagles', eats: ['fish', 'smallfish', 'hotdog'], fav: 'fish', fly: true, flySpeed: 13, price: 1100, hunter: true, grab: true, egg: 0xf1eee4, outdoor: true, baby: 'Eaglet' },
+  chickadee: { name: 'Chickadee', many: 'Chickadees', eats: ['seeds', 'bugs', 'berries', 'worm'], fav: 'seeds', fly: true, flySpeed: 9, hop: true, hopV: 1.5, price: 180, egg: 0xf6f1ec, baby: 'Chickadee chick' },
+  rhino: { name: 'Rhino', many: 'Rhinos', eats: ['grass', 'twigs', 'hay', 'lettuce', 'watermelon', 'banana', 'apple'], fav: 'twigs', price: 1600, outdoor: true, baby: 'Rhino calf' },
+  // round 7: cats and a hamster
+  blackcat: { name: 'Black cat', many: 'Black cats', eats: ['smallfish', 'fish', 'worm', 'bugs', 'petfood'], fav: 'fish', climb: true, price: 300, baby: 'Kitten' },
+  orangecat: { name: 'Orange cat', many: 'Orange cats', eats: ['smallfish', 'fish', 'worm', 'bugs', 'petfood'], fav: 'petfood', climb: true, price: 300, baby: 'Kitten' },
+  calico: { name: 'Calico cat', many: 'Calico cats', eats: ['smallfish', 'fish', 'worm', 'bugs', 'petfood'], fav: 'smallfish', climb: true, price: 350, baby: 'Kitten' },
+  siamese: { name: 'Siamese cat', many: 'Siamese cats', eats: ['smallfish', 'fish', 'worm', 'petfood'], fav: 'smallfish', climb: true, price: 400, baby: 'Kitten' },
+  whitecat: { name: 'Fluffy cat', many: 'Fluffy cats', eats: ['fish', 'smallfish', 'petfood', 'worm'], fav: 'fish', climb: true, price: 450, baby: 'Kitten' },
+  hamster: { name: 'Hamster', many: 'Hamsters', eats: ['seeds', 'corn', 'carrot', 'lettuce', 'apple', 'berries'], fav: 'seeds', price: 120, baby: 'Hamster pup' },
+  // round 7: cockatiel and crocodile
+  cockatiel: { name: 'Cockatiel', many: 'Cockatiels', eats: ['seeds', 'berries', 'apple', 'corn', 'lettuce', 'banana'], fav: 'seeds', fly: true, flySpeed: 9, price: 250, egg: 0xf6f3ec, baby: 'Cockatiel chick' },
+  crocodile: { name: 'Crocodile', many: 'Crocodiles', eats: ['fish', 'smallfish', 'worm', 'bugs', 'hotdog'], fav: 'fish', swim: true, swimSpeed: 3, noJump: true, outdoor: true, hunter: true, price: 1300, egg: 0xf2efe6, baby: 'Baby crocodile' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
+// round 7: dog breeds
+SHOP.push('lab', 'beagle', 'chihuahua', 'dalmatian', 'husky');
+// round 7: cats and a hamster (the hamster is the cheapest animal in the shop); the shop stays in price order
+SHOP.push('hamster', 'blackcat', 'orangecat', 'calico', 'siamese', 'whitecat');
+SHOP.sort((a, b) => SPECIES[a].price - SPECIES[b].price);
 const SMALL_PREY = ['chicken', 'frog', 'lizard', 'bunny', 'squirrel', 'duck', 'hedgehog', 'weasel'];
+// round 7: cockatiel and crocodile
+SHOP.push('cockatiel', 'crocodile');
+SMALL_PREY.push('cockatiel');
+// round 7: eagle, chickadee, rhino: each goes into the shop list by its price (the list runs from cheap to dear)
+for (const id of ['chickadee', 'eagle', 'rhino']) { let i = SHOP.length; while (i > 0 && SPECIES[SHOP[i - 1]].price > SPECIES[id].price) i--; SHOP.splice(i, 0, id); }
+SMALL_PREY.push('chickadee', 'hamster');
+SPECIES.chickadee.eggSpeck = [0.72, 0.4, 0.28];   // reddish brown speckles
+// round 7: the shop runs from cheap to dear
+SHOP.sort((a, b) => SPECIES[a].price - SPECIES[b].price);
 const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow'];
 const PACKS = [{ id: 's', leaves: 100, price: '$0.99' }, { id: 'm', leaves: 300, price: '$1.99' }, { id: 'l', leaves: 1000, price: '$4.99' }];
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];
@@ -88,7 +123,7 @@ const SHOES = ['#2A2A2A', '#5A3A22', '#E8E8E8', '#7A2E2E'];
 /* ---------- save state ---------- */
 // ages: species -> 0 (newborn) .. 1 (grown up). names: nicknames. homes: species -> the person who adopted it.
 const fresh = () => ({ v: 1, d3: true, saved: 0, leaves: 0, owned: [], animal: 'duck', world: 'land', visited: [], time: 120, hunger: 100, x: null, z: null, started: false,
-  ages: {}, names: {}, homes: {}, sick: 0, hatched: [], treats: {}, sound: true, music: true });
+  ages: {}, names: {}, homes: {}, sick: 0, ills: {}, hatched: [], treats: {}, sound: true, music: true });
 const ADULT_AT = 1, FLY_AGE = 0.6;
 const ageOf = (sp) => (S.ages[sp] === undefined ? 1 : S.ages[sp]);
 const nameOf = (sp) => S.names[sp] || SPECIES[sp].name;

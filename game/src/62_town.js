@@ -5,11 +5,12 @@
    and scouts look in the woods for animals without homes and bring them to the adoption fair. */
 const KID_NAMES = ['Lily', 'Max', 'Zoe', 'Jack', 'Mia', 'Noah', 'Ella', 'Luke'];
 const PESTS = { weasel: 1, bunny: 1, raccoon: 1 };
-const BIG = { horse: 1, moose: 1, deer: 1, swan: 1 };
+const BIG = { horse: 1, moose: 1, deer: 1, swan: 1, rhino: 1, eagle: 1, crocodile: 1 };
 // the school day, in seconds after sunrise (a day lasts 720 seconds)
 const T_LEAVE = 20, T_BELL = 70, T_RECESS = 280, T_CLASS2 = 340, T_OUT = 450, T_HOME = 560;
 const NO_POSE = { crouch: 0, reach: 0 };
-const FAIR_ANIMALS = ['otter', 'snake', 'weasel', 'hedgehog', 'bunny', 'turtle', 'raccoon', 'squirrel', 'fox', 'lizard', 'dog', 'cat', 'dog', 'cat'].filter((s) => SPECIES[s]);
+const FAIR_ANIMALS = ['otter', 'snake', 'weasel', 'hedgehog', 'bunny', 'turtle', 'raccoon', 'squirrel', 'fox', 'lizard', 'dog', 'cat', 'dog', 'cat',
+  'hamster', 'beagle', 'chihuahua', 'calico', 'siamese', 'chickadee', 'cockatiel'].filter((s) => SPECIES[s]);   // round 7: the new pets too
 const hexNum = (h) => (typeof h === 'string' ? parseInt(h.replace('#', ''), 16) : h) || 0x3e8e6e;
 const rnd = (a) => a[(Math.random() * a.length) | 0];
 

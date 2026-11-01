@@ -354,8 +354,8 @@ A golden retriever (with a little yellow Labrador in it) and a brown mackerel ta
   from the belly to the stifle) stops the notch between the belly and the thigh.
 - The dog's drop ears (`drop_ear()`): a leaf shaped plate hanging from the fold along `EAR_A`, cupped around the
   cheek, its lower part a little off it, thick at the fold and thinner at the tip and edges; weighted to the ear bones
-  from the fold down. Its fringe is only longer fur shells: cards along its lower edge hung off it like a comb, and on a
-  puppy they stood out as orange flaps.
+  from the fold down. Its fringe is sculpted (a thin wavy plate past its edges, see the breeds below) under longer
+  fur shells: cards along its lower edge hung off it like a comb, and on a puppy they stood out as orange flaps.
 - The tail's feathering (the flag) is sculpted: the sweep's section is deeper on the underside (`FLAG`, the 'top' side
   for a path going back and down) with a pointed exponent, under longer fur shells, and only a few wide, short cards
   hang from its lower edge as wisps. Cards alone, however many, hung under the tail like a comb. The tail's rings and
@@ -375,6 +375,101 @@ A golden retriever (with a little yellow Labrador in it) and a brown mackerel ta
   Kittens have blue eyes (`babyIris`).
 - Cards for ear furnishings (pale tufts inside the cat's ears) read as white spikes at game distance; the coat inside
   the ear does the job.
+
+## Dog breeds (`dogkit.py`: `lab.py`, `dalmatian.py`, `husky.py`, `beagle.py`, `chihuahua.py`)
+
+Every breed is the golden retriever (`dog.py`) refitted, so a new breed is a page of numbers and its coat, not a new
+sculpt. `dogkit.Fit` maps golden rig space to the breed's: an overall scale `s`, the legs (`kL`) and the body above
+them (`kB`) taller or shorter (one smooth height map, the paws kept as they are), the body longer (`kz`) or wider
+(`kw`), stouter or slimmer legs (`kLW`, about each leg's middle line) and the head carried higher or further forward
+(`neck`, fading in up the neck). The golden's trunk, neck and legs are evaluated through the inverse map (the field
+times the local scale is still a good enough distance). The head has its own map: the golden head frame moved with the
+neck, turned by `pitch`, scaled by `k`, and in it the skull and the muzzle each with their own length (`kS`, `kM`),
+width (`kSW`, `kMW`, `kTW` at the nose) and depth (`kDome`, `kJaw`, `kMD`); a breed can add shape in its head frame
+(`head_extra`: the chihuahua's apple dome, the beagle's flews) or on the body (`body_extra`: the husky's ruff). Ears
+(`DropEar`, `ErectEar`), the tail (`Tail`: a sweep with an optional brush or flag on its normal side), the eyes and
+the paws are the breed's own, placed through the maps. The game refits the procedural skeleton and body with the same
+numbers (`dogFit` and `dogBreed` in `game/src/40_animals.js`), so the bones match the sculpt; change both together.
+- The golden's paint masks, coat flow and texture regions are reused through `Fit.gpt()`: every breed point maps to
+  the golden point it stands for (the body's map, the head's in front of the back of the skull, blended), so "the
+  chest", "the backs of the legs" or "the muzzle" mean the same on a chihuahua. The breeds paint on top of them: the
+  black Lab's glossy black, the Dalmatian's round spots (a cell grid with a spot in most cells, smaller on the head,
+  the legs and the tail), the husky's saddle and mask, the beagle's tricolor, the chihuahua's fawn.
+- Puppies: the trunk walks onto the golden's egg (refitted); the tops of the legs round into it; the throat is tucked
+  and the nape filled up to the back of the bigger head; the golden's feathering goes back to the bare body; and the
+  head is pulled toward a puppy's (`dog.puppy_head()`: a round skull, a short muzzle as big in section as the adult's,
+  a big nose, rounder eyes). The game's baby head map now shortens a dog's muzzle along the head's axis
+  (`baby.muzzleDir`): toward the mouth, which sits low, it squashed the jaw up and left a ball with a beak.
+- The golden got sculpted feathering (`feathering()`: fringes down the backs of the forelegs, the trousers, the bib and
+  a wavy fringe along the underline, `_fringe()` plates with wavy edges) and a fringe on its ears (thinner, past the
+  back edge most, toward the bottom), all finished by longer fur shells and the coat strokes. `EAR_C` points back, not
+  forward.
+
+## Round 7: the bald eagle, the chickadee and the rhino (`eagle.py`, `chickadee.py`, `rhino.py`)
+
+Two more birds on `bird.py` and the biggest land animal on `ungulate.py`. Things that are new or took a few tries:
+- The eagle's bill is two lofts (`UPPER`, `LOWER`: stations along z with a center height, a half width and a depth),
+  not capsules: a deep, wide base on the cere, a culmen that curves down into a short hook, and the lower mandible
+  tucked inside the upper one. Capsule chains read as a long tusk. The heavy brow is a separate chain of balls over
+  the eye (`brow()`); the white hood is painted (`_hood()`), with the feather pattern turned off along x = 0 so the
+  two mirrored halves leave no seam on the crown, throat and bib (also in the chickadee).
+- Soaring wings: a new feather atlas kind, `'finger'` (`bird.py`): an emarginated primary, full vanes up to `1 -
+  notch`, then both vanes step in to a narrow finger with a rounded tip. The eagle has one fingered primary per hand
+  bone, spread in flight (`primSpread`) so the tips stand apart like fingers.
+- In the game (`animBird`, both off for the other birds): `anim.soar` (long glides with a few slow beats, wings held
+  flat) and `anim.grab` (eating in flight: legs swung forward and down, talons open, body pitched up, wings raised).
+  The grab pose plays when the eagle eats while in the air (`grab: true` in its `SPECIES` entry); letting a player
+  eat in flight needs a change in `Player.tryEat` (`60_actors.js`), which refuses to eat while flying.
+- The eagle's folded wing: the long primaries cross over the tail; tune `folded` / `foldedPos` with the wing debug
+  view until the tips meet behind the tail and the wrist sits in the side, or the folded wing splays out.
+- The chickadee is tiny (13.5 cm): `VOXEL=0.0006` and 0.11 to 0.12 mm patches for the bill, eyes and feet. Its marks (black cap and
+  bib, white cheek, buff flanks, white wing edges) are painted from 3D masks and must be big: the bib reads at game
+  distance only when it reaches well down the breast. The chick's yellow gape is a small puffy rim at the bill corners
+  (`_baby_extra()` in its `baby_offset()`), painted yellow in the baby map.
+- Babies' backs: the folded wing feathers of a chick or eaglet drew dark streaks down the back; the down shells and a
+  small `modelSpec.baby.wing` (0.2) avoid them.
+- The rhino (`rhino.py`) is the horse/moose recipe at 4 m: a long head carried low (a loft along its own frame
+  `hp()`), the hump over the neck, a barrel trunk, pillar legs on round three-nailed feet, a thin tail with a tuft.
+  The skin folds are `folds()`: each fold is a crease plus an overhang along a curve (neck, shoulder, flank, legs), and
+  the paint darkens them. The hide's pattern (creases around small plates and long wrinkles) is in the normal map; fine
+  pits there made the normal map 180 KB, so they are left out.
+- Horns: `U.horn()` sections (flattened, a keel in front) along a polyline. Each horn is on its own bone (`horn`,
+  `horn2`) with the pivot at the top of its stub (`HORN_STUB` 3.5 cm), weighted only past the stub and only on the
+  nearest horn. On the calf the game scales the horn bones to nothing and the stub stays as the nub; the calf's color
+  map paints the nub skin colored (a dark horn color there read as a hole).
+- Tube ears (`ears()`): a round cone minus a smaller inner cone, with a slit open to the front and side (`U.ear()`
+  was too thin at this size and broke up in the voxels). Only the rim gets dark hair; dark hair inside made black
+  leaves of them.
+
+## The cockatiel and the crocodile (`cockatiel.py`, `crocodile.py`)
+
+- The cockatiel is the macaw (`parrot.py`) built small: every shape is laid out in the macaw's units and scaled by
+  `KS = 0.42` on the way out (the pipeline hooks take points `/ KS` and give distances `* KS`), so the bird helpers
+  (`bird.py`: plumage, down, the feather atlas, part weights) work unchanged. Its own parts: a round head with full
+  cheeks and a low ridge on the crown, a short thick neck, a small beak, the yellow face and crown (the back of the head
+  and the nape stay gray) and the round orange cheek patch. The crest is game feather blades on its own bone (`crest`,
+  child of `head`, nine narrow yellow blades turned to face sideways), raised when happy or flying and laid back flat
+  asleep (`anim.crest`, `crestHappy`, `crestFly`, `crestSleep` in `animBird`). The cockatiel sleeps facing forward with
+  the head sunk (a turned-back head made the laid-back crest point up). The wing cells make the white patch: greater
+  and lesser coverts white, flight feathers dark gray. `fix_weights` puts every vertex well out along the arm on the
+  wing bones (a few wing tip vertices fell to the hips and stuck out sideways when the wing folded). The chick: pale
+  yellow down in tufts over pink skin (thin on the head and the neck), a short down crest (`baby.roles.crest = 'ear'`,
+  `baby.ear` sizes it).
+- The crocodile is one loft from the tail tip to the snout (`BODY`) with the head features on top: a flat skull table,
+  raised orbits with the eyes looking up and out, the nasal disc at the tip, a jaw groove with the lower jaw set in a
+  little, and conical teeth of both jaws along the jaw line (`TEETH`: the big fourth lower tooth stays visible). The
+  snout was laid out long and then shortened in front of the eyes (`zf()`, every z ahead of `Z0` goes through it) to a
+  Nile crocodile's proportions. Keeled scutes in rows on the back, the nuchal group, the tail's double crest of upright
+  plates merging into one (`scutes()`). Legs with toes and claws, webbed hind feet (`bird.toes`, `bird.web`). The skin
+  is a height field per texel (`skin()`): round scales, square belly plates in rows, pitted scutes, small pits on the
+  jaws. Weights: the trunk, neck, head and tail are one smooth chain along z; legs keep the transferred weights minus
+  any spine bones (a little head weight in the shoulders tore the hatchling's skin, whose head is scaled up).
+- The hatchling has its own color map (`paint_baby`: bright yellow, about a dozen black bands, dark mottling on the
+  head, pale belly) and its own size (`size.baby` in the spec: about 68 cm at age 0 before the game's 0.42, so about
+  28 cm in the game). `setAge` reads `size.baby` for the rig's length, height, radius, eye height and float depth, and
+  sets `R.strideK` so the legged animator scales the stride and foot lift with it (adult steps tore the hatchling's
+  legs). In the water it floats with the eyes, the nostrils and the back just above the surface (`floatDepth`,
+  `swimPitch`, `swimHead`), the legs tucked back along the body (`swimTuck`) and the tail sweeping (`anim.swimSweep`).
 
 ## Budget
 
@@ -439,11 +534,123 @@ spine cards and the whiskers), 8.9k in all; 768 color and normal maps, 384 fur m
 strand textures (spines, the hoglets' pale spines): 80 KB mesh and cards + 64 + 18 + 7 + 5 + 18 + 18 KB, about 286 KB in
 the page. Fur shells (face, belly, skirt) at detail 2: 3 layers, 9k triangles.
 
-Dog (`VOXEL=0.004 TRIS=5000 TEX=1024`, then rings across the body and neck and along the tail): 7.4k triangles plus 244
-in the cards (30 wisps of tail feathering and the whiskers); 1024 color and normal maps, 512 fur and puppy color maps,
-256 x 256 strand texture: 72 KB mesh and cards + 57 + 25 + 13 + 8 + 38 KB, about 289 KB in the page. Fur shells at detail
+Dog (`VOXEL=0.0035 TRIS=5000 TEX=1024`, then rings across the body and neck and along the tail): 7.4k triangles plus
+244 in the cards (30 wisps of tail feathering and the whiskers); 1024 color and normal maps, 512 fur and puppy color
+maps, 256 x 256 strand texture: 76 KB mesh and cards + 58 + 34 + 15 + 9 + 38 KB, about 312 KB in the page. Fur shells at detail
 2: 5 layers. About 30 minutes on the shared machine (the coat strokes make `texture` take 12 of them).
 
-Cat (`VOXEL=0.0025 TRIS=4200 TEX=1024`, then rings across the body and neck and along the tail): 6.9k triangles plus 192
+Cat (`VOXEL=0.0025 TRIS=4200 TEX=1024`, then rings across the body and neck and along the tail): 7.0k triangles plus 192
 in the whiskers; 1024 color and normal maps, 512 fur map, 384 kitten color map, 96 x 128 strand texture: 67 KB mesh and
 cards + 62 + 27 + 13 + 14 + 6 KB, about 258 KB in the page. Fur shells at detail 2: 4 layers.
+
+Dog breeds (`dogkit.py`, `TRIS=5000 TEX=1024`, `VOXEL` 0.0036 for the Lab and the Dalmatian, 0.0034 husky, 0.0026
+beagle, 0.0016 chihuahua: finer for the smaller dogs): 7.2k to 7.6k triangles plus 64 in the whiskers each; 1024
+color and normal maps, 512 fur and puppy color maps, a small whisker texture. Black Lab 115 KB of files (about 153 KB
+in the page: a black coat compresses well), Dalmatian 152 KB (203 KB), husky 173 KB (231 KB), beagle 165 KB (220 KB),
+chihuahua 147 KB (197 KB). About 15 to 20 minutes each on the shared machine.
+
+Bald eagle (`VOXEL=0.0028 TRIS=6400 TEX=768`): 6.4k body triangles, 9.4k in the game with the feather blades and eyes
+(the eaglet's down shells at detail 2: 43k); 768 color and normal maps, 512 baby maps, 512 x 256 feather atlas: 48 KB
+mesh + 21 + 40 + 8 + 10 + 9 + 18 + 2 + 8 KB, about 225 KB in the page.
+
+Chickadee (`VOXEL=0.0005 TRIS=6000 TEX=768`): 6.0k body triangles, 8.0k in the game (the chick's shells at detail 2:
+35k); same maps as the eagle: 45 KB mesh + 17 + 36 + 6 + 9 + 7 + 19 + 2 + 7 KB, about 206 KB in the page.
+
+Rhino (`VOXEL=0.0085 TRIS=7600 WEIGHTS=transfer TEX=1024`, `PAD_SMOOTH = 3`, normal map WebP 56): 7.6k triangles
+(8.3k in the game with the eyes, 8.6k at detail 2); 1024 color and normal maps, 512 calf color map: 56 KB mesh (with
+the calf's horn nub offsets) + 44 + 117 + 4 KB, about 297 KB in the page. About 25 minutes on the shared machine.
+
+cards + 58 + 26 + 14 + 15 + 6 KB, about 249 KB in the page. Fur shells at detail 2: 4 layers.
+
+Coat variants on the cat's mesh (`python tools/blender/coat.py <id>`, about 4 minutes each): black cat 25 KB color + 1 KB
+kitten color + 5 KB whisker strands, about 44 KB in the page; orange cat 57 + 12 KB, about 93 KB; calico (both sides,
+2048 x 1024 and 768 x 384) 113 + 22 KB, about 180 KB.
+
+Siamese (`VOXEL=0.0025 TRIS=4200 TEX=1024`): 7.0k triangles plus 192 in the whiskers; 66 KB mesh and cards + 45 + 29 + 10
++ 4 + 6 KB, about 216 KB in the page. Fluffy white cat (same settings): 5.9k triangles plus 192; 59 KB + 30 + 40 + 15 +
+3 + 6 KB, about 203 KB; fur shells at detail 2: 6 layers, at detail 1: 2.
+
+Hamster (`VOXEL=0.0008 TRIS=5200 TEX=768`, then rings across the body): 7.6k triangles plus 128 in the whiskers; 768
+color and normal maps, 384 fur map, 256 pup color map: 59 KB mesh and cards + 39 + 14 + 8 + 5 + 4 KB, about 178 KB in
+the page. Fur shells at detail 2: 4 layers.
+
+## More cats and a hamster (round 7: `cat.py` as a template, `coat.py`, `hamster.py`)
+
+Five more cats (`blackcat`, `orangecat`, `calico`, `siamese`, `whitecat`) and a Syrian hamster. The tabby got its fixes
+on the way (see "The tabby, second pass").
+- `cat.py` is a template for the other cats: a breed file sets `BREED` (overrides for the named settings `cat.py`
+  reads with `_o()`: the loft tables, eye, nose, mouth and ear placement, the part boxes `BOX`, bounds), runs
+  `cat.py` in its own module (`exec`) and then replaces the functions it needs (`head`, `trunk`, `paint`, `fur`,
+  `meta`, ...). Every function looks names up in the module it runs in, so a replaced `head()` is the one `shape()`,
+  `parts()` and the paint masks use. Settings only read at call time (`PATCHES`, `FUR`, `KITTEN`, colors) can simply
+  be reassigned after the `exec`.
+- Coat variants share a mesh (`coat.py`): `blackcat.py`, `orangecat.py` and `calico.py` set `BASE = 'cat'` and only
+  paint. `python tools/blender/coat.py blackcat` (Blender's Python, after the cat's own pipeline) reads the cat's work
+  files (game mesh, UV layout, bake), runs the variant's `paint()` and `baby_paint()` and writes its color maps and a
+  json naming `"base": "cat"`. The game takes the mesh, skin weights, fur, cards and every map the variant does not
+  bring (normal, fur, hair) from the base model, so a variant costs only its color maps (black cat 32 KB, orange cat
+  and calico about 90 KB in the page). Options: `OWN_HAIR` (its own whisker strands: the black cat's are dark),
+  `OWN_FUR`, `COAT_FUR` (fur settings over the base's), and in `meta()` `roughK` (scales the shared roughness).
+  Rerun the variants whenever the base model is rebuilt: their maps use its UV layout.
+- `SIDES` (the calico): the game mirrors one half of the body, so a painted pattern is the same on both sides, which
+  a calico's patches never are. `coat.py` then paints the -x side too (the paint at mirrored points) into maps twice
+  as wide (+x left, -x right) and the json says `"sides": true`; the model shader picks the half by the side of the
+  vertex in the rest pose and samples with the derivatives of the whole layout, so the middle line has no seam. Only
+  the color maps double; the normal and fur maps stay shared.
+- A black coat that does not read as a hole: a warm black, not pure black, with coat strokes whose tips catch the light,
+  a faint rusty cast along the back. A variant's paint roughness is not used (the roughness per vertex comes with the
+  shared mesh); `roughK` scales it: 1.08 for the black cat, whose highlights show more on the dark coat (at 0.84 it
+  looked like black plastic).
+- The Siamese (`siamese.py`): a slimmer trunk and neck, slender legs with small oval paws, a thin whip tail, a long
+  wedge head (the top line runs straight from the crown to the nose, the sides narrow evenly, flat cheeks, narrow
+  whisker pads), big ears set low and wide (the ear bone moves with them: the species' spec in the game), almond eyes
+  slanted up (`SLANT` 0.3) sunk deeper (`SINK` 0.58: on the narrow head the game's eye ball stood out of the lids) with
+  the game's lids drawn as an almond (`lid` in `meta()`). The points come from 3D masks: the mask over the whole face
+  (the lids and the skin round the eyes are not part of the head's own field, so they need their own ring), the ears,
+  the legs from the elbows and hocks down, the tail. Short close-lying coat: the cat's fur lengths times 0.45, `lean`
+  2.2. Kittens are nearly all cream with the first faint fawn-gray on the ears, nose and tail.
+- The fluffy white cat (`whitecat.py`): the sculpt is the body inside the coat plus the coat's volume, since far away
+  (no shells) the silhouette has to be fluffy by itself: about 11 mm over the trunk, a ruff around the neck that falls
+  over the chest, britches, a plumed tail, stockier legs, soft clumps of locks over all of it (`_locks()`, a low
+  frequency noise of a few mm) and wider blends (its own `shape()`), so the coat runs smoothly over the shoulders and
+  thighs. A round head with full cheeks and a short broad muzzle, big round copper eyes set wide, small ears with
+  rounded tips set wide and low (a finer grid in height across them too: the small round tips came out saw-toothed).
+  Long fur shells close up (`len` 0.038, 6 layers, `lean` 0.55, a darker lowest layer `shade` 0.6 for depth) and 2
+  layers at detail 1 (`n1`). White whiskers (its own strand texture).
+- The tabby's `grid()` (finer z and x spacing across the ears) suits every cat; the ears of a cat are thin plates
+  facing forward, and on the plain 2.5 mm grid they came out torn, which showed as ragged spikes in the game.
+
+### The tabby, second pass
+
+- Ears: thicker plates (3.5 to 1.6 mm), the finer grid across them, more triangles kept on them, and no fur shells
+  along their rims (only a little at the base and in the middle of the inside): the ragged spikes are gone.
+- Eyes: a smaller, more almond opening (`LID_W` 0.0079, `LID_H` 0.0055, `SLANT` 0.21) and a narrower, fainter pale ring
+  round them. Eyebrow whiskers shorter and pale (long ones with dark roots read as spikes over the ears).
+- Coat: the necklaces thinner, fewer and broken, the nape lines and belly spots softer (the neck and chest read as a
+  zebra's).
+- Kittens: bold fuzzy stripes (a tabby kitten's pattern is clear, the first one was washed out), the top of the thigh
+  pulled in against the body in the baby offsets (it stood out over the hip once the game shortened the legs), and in
+  the game a shorter body and legs that do not thicken (`modelSpec.baby`).
+- Sitting: the tail curls round to the front paws (`sit.wrap` in the game: each tail bone turns its segment toward a
+  direction on the ground, in the rig's frame, blended in with the sit).
+
+### The hamster (`hamster.py`)
+
+A Syrian (golden) hamster, 15 cm: a round compact body with the belly close to the ground, a big head that runs into the
+body, full cheek pouches, small round thin ears, shiny black bulging eyes, a small pink nose over a split lip,
+whiskers, short legs (only the forearms, the little pink hands with four fingers and the long pink hind feet show) and a
+stub of a tail. Golden with darker ticking along the back, white belly, chest, chin and lower cheeks, a dark cheek
+flash behind each pouch. Things that are new:
+- Cheek pouches: cheek bones (`cheekL`, `cheekR`, children of the head) and the pouch skin weighted to them; the game
+  scales them up as the hamster eats (`anim.cheeks`, `cheekPuff`: they fill while it eats and empty over about 14 s).
+- Eating sitting up (`anim.eatUp`): it grabs the food with its head down, then sits up on its hind legs with its front
+  paws at its mouth and nibbles (the sit-up pose and `sitPaws`), and drops back down at the end.
+- A tiny animal: `VOXEL=0.0008`, bake distances in millimeters (`BAKE_DIST`), maps at 768, eyes 3.4 mm across.
+
+Cockatiel (`VOXEL=0.0009 TRIS=6000 TEX=768 WEIGHTS=transfer`): 6.0k body triangles plus about 1.9k in the feather
+blades (wings, tail, crest) and the eyes, 8.6k in the game; 768 color and normal maps, 512 chick maps, 512 fur map, a
+512 x 256 feather atlas: 46 KB mesh + 16 + 50 + 13 + 11 + 10 + 20 + 2 + 9 KB, 183 KB of files, about 244 KB in the page.
+
+Crocodile (`VOXEL=0.006 TRIS=3300 TEX=704 WEIGHTS=transfer`; TRIS here gives about twice as many in the game mesh):
+7.9k triangles; 704 color and normal maps (WebP 60 and 52), 384 hatchling color map: 62 KB mesh + 46 + 81 + 31 KB,
+222 KB of files, about 296 KB in the page. About 10 minutes for the whole run on the shared machine.
