@@ -5543,6 +5543,114 @@ const Animals = (() => {
     };
   };
 
+  // round 8: brachiosaurus
+  ids.push('brachiosaurus');
+  // BRACHIOSAURUS (Brachiosaurus altithorax as current reconstructions show it), at about 0.6 of its real size so it
+  // stays playable: about 13 m long with the head about 7.5 m up. Front legs longer than the hind legs (the back slopes
+  // down to the tail), the long neck carried high like a giraffe's, a small head with the arched crest over the nostrils
+  // in front of the eyes, a fairly short thick tail held off the ground, pillar legs on elephant-like feet (a thumb claw
+  // on each front foot, three claws on each hind foot). It ambles, lowers its neck to the ground to eat and lies down to
+  // sleep with the neck curved round. The hatchling is its own size (size.baby): about 1 m in the game, big head and
+  // eyes, short neck and tail, chunky legs.
+  SPEC.brachiosaurus = () => {
+    const K = { skin: hex(0x7A7262), skinDk: hex(0x5A5448), skinLt: hex(0x9A917E), belly: hex(0xA49C88), claw: hex(0x3E3830) };
+    const xF = 0.76, xH = 0.8;
+    return {
+      size: { length: 13.1, height: 7.5, radius: 1.3, eyeHeight: 7.32, baby: { length: 2.3, height: 1.2, radius: 0.3, eyeHeight: 1.15 } },
+      tex: [256, 512], rough: 0.85,
+      detail: { kind: 'skin', tile: 0.5, amt: 0.2, bump: 0.5, sheen: 0.03 },
+      bones: [
+        ['hips', null, 0, 2.65, -1.7],
+        ['chest', 'hips', 0, 2.95, 1.2],
+        ['neck', 'chest', 0, 3.35, 2.1],
+        ['neck2', 'neck', 0, 4.4, 2.9],
+        ['neck3', 'neck2', 0, 5.5, 3.6],
+        ['neck4', 'neck3', 0, 6.55, 4.2],
+        ['head', 'neck4', 0, 7.35, 4.62],
+        ['tail1', 'hips', 0, 2.85, -2.7],
+        ['tail2', 'tail1', 0, 2.45, -3.9],
+        ['tail3', 'tail2', 0, 2.0, -5.1],
+        ['tail4', 'tail3', 0, 1.55, -6.3],
+        ['thighL', 'hips', xH - 0.18, 2.65, -1.7, 1],
+        ['shinL', 'thighL', xH - 0.04, 1.5, -1.45, 1],
+        ['hmetaL', 'shinL', xH - 0.02, 0.5, -1.72, 1],
+        ['hpawL', 'hmetaL', xH, 0.03, -1.56, 1],
+        ['armL', 'chest', xF - 0.1, 2.95, 1.35, 1],
+        ['foreL', 'armL', xF - 0.01, 1.75, 1.15, 1],
+        ['fmetaL', 'foreL', xF, 0.65, 1.3, 1],
+        ['fpawL', 'fmetaL', xF, 0.03, 1.36, 1],
+      ],
+      fur: [
+        { name: 'body', bones: ['hips', 'chest', 'neck'], blend: 0.5, segs: 16, cap0: 2, capLen0: 0.5, keys: [
+          [0, 2.95, -2.7, 0.55, 0.4, 0.45], [0, 2.75, -1.8, 0.8, 0.65, 0.7], [0, 2.65, -0.4, 0.93, 0.95, 0.92],
+          [0, 2.75, 0.9, 0.85, 1.05, 0.9], [0, 3.05, 1.8, 0.7, 0.85, 0.7], [0, 3.35, 2.3, 0.55, 0.55, 0.6],
+        ] },
+        { name: 'neck', bones: ['neck', 'neck2', 'neck3', 'neck4', 'head'], blend: 0.3, segs: 16, keys: [
+          [0, 3.45, 2.1, 0.55, 0.6, 0.6], [0, 4.4, 2.9, 0.38, 0.46, 0.5], [0, 5.5, 3.6, 0.27, 0.32, 0.37], [0, 6.55, 4.2, 0.2, 0.23, 0.28],
+          [0, 7.3, 4.6, 0.16, 0.17, 0.2],
+        ] },
+        { name: 'head', bones: ['head'], segs: 10, cap0: 2, cap1: 2, keys: [
+          [0, 7.4, 4.62, 0.15, 0.13, 0.15], [0, 7.32, 4.76, 0.16, 0.2, 0.16], [0, 7.3, 4.88, 0.14, 0.2, 0.15], [0, 7.14, 5.03, 0.135, 0.08, 0.12],
+          [0, 7.06, 5.17, 0.12, 0.06, 0.1], [0, 7.05, 5.22, 0.07, 0.04, 0.06],
+        ] },
+        { name: 'tail', bones: ['hips', 'tail1', 'tail2', 'tail3', 'tail4'], blend: 0.3, segs: 12, cap1: 2, keys: [
+          [0, 2.95, -2.5, 0.48, 0.5, 0.55], [0, 2.6, -3.6, 0.31, 0.37, 0.4], [0, 2.1, -5.0, 0.18, 0.2, 0.22], [0, 1.58, -6.1, 0.1, 0.12, 0.13],
+          [0, 1.12, -7.85, 0.03, 0.035, 0.035],
+        ] },
+        { name: 'fleg', mirror: true, bones: ['chest', 'armL', 'foreL', 'fmetaL', 'fpawL'], blend: 0.15, segs: 8, keys: [
+          [0.62, 2.85, 1.33, 0.38, 0.4, 0.4], [0.73, 2.1, 1.2, 0.28, 0.31, 0.33], [0.75, 1.75, 1.15, 0.27, 0.3, 0.33], [0.76, 0.9, 1.26, 0.215, 0.23, 0.23],
+          [0.76, 0.3, 1.34, 0.25, 0.25, 0.25], [0.76, 0.04, 1.36, 0.28, 0.04, 0.04],
+        ] },
+        { name: 'hleg', mirror: true, bones: ['hips', 'thighL', 'shinL', 'hmetaL', 'hpawL'], blend: 0.15, segs: 8, keys: [
+          [0.6, 2.7, -1.7, 0.42, 0.55, 0.55], [0.74, 1.9, -1.52, 0.33, 0.4, 0.4], [0.76, 1.5, -1.45, 0.3, 0.34, 0.36], [0.78, 0.75, -1.64, 0.245, 0.26, 0.28],
+          [0.79, 0.28, -1.6, 0.3, 0.3, 0.35], [0.8, 0.04, -1.52, 0.33, 0.04, 0.04],
+        ] },
+      ],
+      paint(P, C) {
+        cset(C, K.skin);
+        cmix(C, K.skinDk, sstep(0.3, 0.9, P.ny) * 0.35);
+        cmix(C, K.belly, sstep(-0.2, -0.7, P.ny) * 0.7);
+        cmix(C, K.skinDk, sstep(0.55, 0.8, noise(P.x * 1.3, P.y * 1.3, P.z * 1.3)) * 0.35);
+        cmul(C, 0.92 + 0.12 * noise(P.x * 9, P.y * 9, P.z * 9));
+        C.ro = 0.85;
+      },
+      // the hatchling: paler, with darker blotches along the back
+      babyPaint(P, C) {
+        cset(C, hex(0x958B76));
+        cmix(C, hex(0xB8AE98), sstep(-0.2, -0.7, P.ny) * 0.7);
+        cmix(C, hex(0x6A6252), sstep(0.5, 0.75, noise(P.x * 3, P.y * 3, P.z * 3)) * sstep(0.0, 0.6, P.ny) * 0.5);
+      },
+      accent: [
+        // the thumb claw on the inside of each front foot, three claws on each hind foot
+        { kind: 'sphere', bone: 'fpawL', c: [xF - 0.25, 0.12, 1.61], r: 0.07, s: [0.6, 1.0, 1.4], ws: 6, hs: 4, mirror: true, col: 0x3E3830 },
+        ...[-0.17, -0.06, 0.07].map((dx) => ({ kind: 'sphere', bone: 'hpawL', c: [xH + dx, 0.08, -1.11], r: 0.06, s: [0.7, 0.9, 1.4], ws: 6, hs: 4, mirror: true, col: 0x3E3830 })),
+      ],
+      accentRough: 0.6,
+      eyes: [{ bone: 'head', p: [0.128, 7.324, 4.784], r: 0.03, dir: [0.86, 0.12, 0.5], iris: 0x5A4020, irisR: 0.92, pupilR: 0.42 }],
+      mouth: [0, 7.008, 5.123],
+      anim: {
+        type: 'legged', walk: 1.3, trot: 2.2, run: 3.6, stride: 2.6, strideMax: 1.7, maxRate: 1.3,
+        duty: [0.72, 0.64, 0.56], lift: [0.2, 0.22], flexF: 0.25, flexH: 0.35, splay: 0,
+        // an amble: the lateral sequence walk of elephants at every speed
+        gaits: { w: [0.25, 0.75, 0.0, 0.5], t: [0.25, 0.75, 0.0, 0.5], g: [0.25, 0.75, 0.0, 0.5] },
+        bob: [0.03, 0.05, 0.08], pitchRun: 0.01, flexRun: 0.01, roll: 0.02,
+        legs: [
+          { n: ['armL', 'foreL', 'fmetaL', 'fpawL'], front: true, pole: [0, 0, -1] },
+          { n: ['thighL', 'shinL', 'hmetaL', 'hpawL'], front: false, pole: [0, 0, 1] },
+        ],
+        spine: ['hips', 'chest'], wave: 0,
+        // the neck sways a little with each step (neckSway) and swings down to the ground to eat
+        neck: ['neck', 'neck2', 'neck3', 'neck4', 'head'], neckDist: [0.26, 0.24, 0.2, 0.16, 0.14], nod: 0.015, neckSway: 0.04, runNeck: 0.08, trotNeck: 0.03,
+        chew: 0.03, chewRate: 3, eatY: 0.05, eatMax: 2.6, eatPitch: 0.04,
+        tail: ['tail1', 'tail2', 'tail3', 'tail4'], tailSway: 0.06, tailWalk: 0.08,
+        lookAmp: 0.5, breathe: 0.01,
+        sleep: { style: 'fold', neck: [2.0, 2.05], tail: [1.0, 0.0], roll: 0, bend: 0.3 },
+      },
+      // the hatchling: a fifth of the size (then the game's 0.42), a big head and eyes, a short neck and tail, chunky legs
+      baby: { head: 0.55, muzzle: 0.75, eye: 1.3, neck: [0.13, 0.21], body: [0.2, 0.2, 0.19], leg: [0.17, 0.24], tail: 0.13, rebind: true },
+    };
+  };
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -5647,7 +5755,9 @@ const Animals = (() => {
       _bs.addScaledVector(mp.c1, w).addScaledVector(mp.c0, -w);
       if (w > wb) { wb = w; role = mp.role; }
     }
-    out.sub(p).sub(_bs);
+    out.sub(p);
+    // round 8: a baby skinned about its own rest pose (baby.rebind, see applyAge) takes the whole offset
+    if (!ag.B.rebind) out.sub(_bs);
     // downy fluff for baby birds: puff the body out a little, unevenly
     if (ag.fluff && n && (role === 'body' || role === 'neck' || role === 'tail')) {
       const f = ag.fluff * (0.55 + 0.9 * noise(p.x * 90, p.y * 90, p.z * 90));
@@ -6078,6 +6188,8 @@ const Animals = (() => {
         px -= sw * Math.sin(S.sph * TAU - 2.2) * (i === 0 ? 0.8 : 0);
         if (last) px += chew;
         let py = (S.look + S.lean * 0.05) * d;
+        // round 8: a long neck swaying side to side with each step (brachiosaurus)
+        if (P.neckSway) py += P.neckSway * Math.sin(w2) * gaitOn * d;
         const sp = sl * (1 - swim * (BF ? 1 : 0));
         if (sp > 0.001) {
           const sx = (sp1 && sp1[2 + Math.min(i, 1)] != null && SL.style === 'ball') ? sp1[2 + Math.min(i, 1)] : SL.neck[1] * d;
@@ -7211,6 +7323,10 @@ const Animals = (() => {
       b.position.copy(b.userData.p0);
       R.rest[nm].lerpVectors(A.rest[nm], AG.rest1[nm], t);
     }
+    // round 8: a baby far smaller than the adult (baby.rebind: the brachiosaurus) is skinned about its own rest pose:
+    // the bind matrices follow the rest pose, so a vertex shared by two bones no longer swings about the adult's
+    // far-off pivots when the bones turn (that folded a hatchling's neck into a zigzag)
+    if (AG.B.rebind) for (let i = 0; i < defs.length; i++) { const r = R.rest[defs[i].name]; R.skel.boneInverses[i].makeTranslation(-r.x, -r.y, -r.z); }
     for (let i = 0; i < R.eyes.length; i++) {
       const e = R.eyes[i], ea = AG.eyes[i];
       e.position.lerpVectors(ea.p0, ea.p1, t);
@@ -7455,6 +7571,8 @@ const Animals = (() => {
   // round 7: cockatiel and crocodile
   COLLAR.cockatiel = { at: ['neck', 'head', 0.4] };
   COLLAR.crocodile = { at: ['chest', 'neck', 0.85], r: 1.6, w: 1.2 };
+  // round 8: brachiosaurus
+  COLLAR.brachiosaurus = { at: ['neck4', 'head', 0.3], r: 1.2 };
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)

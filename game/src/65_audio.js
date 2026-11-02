@@ -196,6 +196,9 @@ const Sound = (() => {
       case 'cockatiel': T({ t, f: 2100 * k, f2: 2900 * k, dur: 0.22, type: 'sine', vib: 9, vibAmt: 40, vol: vol * 0.7 }); T({ t: t + 0.26, f: 2900 * k, f2: 2300 * k, dur: 0.16, type: 'sine', vol: vol * 0.6 }); T({ t: t + 0.5, f: 3200 * k, f2: 3400 * k, dur: 0.06, type: 'triangle', vol: vol * 0.5 }); break;
       // Crocodile: a deep rumbling growl with a hiss (hatchlings chirp instead)
       case 'crocodile': if (k > 1) { for (let i = 0; i < 2; i++) T({ t: t + i * 0.18, f: 900, f2: 1300, dur: 0.1, type: 'triangle', vol: vol * 0.6 }); } else { T({ t, f: 62, f2: 48, dur: 1.1, a: 0.12, type: 'sawtooth', lp: 260, vib: 7, vibAmt: 6, vol: vol * 1.4 }); noise({ t: t + 0.05, f: 1800, q: 0.6, dur: 0.7, vol: vol * 0.35, pan }); } break;
+      // round 8: brachiosaurus
+      // Brachiosaurus: a long deep bellow that swells and falls over a low rumble (a hatchling gives a short honk)
+      case 'brachiosaurus': if (k > 1) { T({ t, f: 320, f2: 220, dur: 0.35, type: 'sawtooth', lp: 900, vol: vol * 0.7 }); } else { T({ t, f: 55, f2: 70, dur: 0.8, a: 0.25, type: 'sawtooth', lp: 220, vib: 4, vibAmt: 3, vol: vol * 1.5 }); T({ t: t + 0.7, f: 70, f2: 42, dur: 1.4, type: 'sawtooth', lp: 200, vib: 3, vibAmt: 4, vol: vol * 1.4 }); T({ t, f: 28, f2: 24, dur: 2.0, a: 0.4, type: 'sine', vol: vol * 1.2 }); } break;
     }
   }
 

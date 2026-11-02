@@ -471,6 +471,31 @@ Two more birds on `bird.py` and the biggest land animal on `ungulate.py`. Things
   legs). In the water it floats with the eyes, the nostrils and the back just above the surface (`floatDepth`,
   `swimPitch`, `swimHead`), the legs tucked back along the body (`swimTuck`) and the tail sweeping (`anim.swimSweep`).
 
+## The brachiosaurus (`brachiosaurus.py`)
+
+- Brachiosaurus altithorax at about 0.6 of its real size, so it stays playable: about 13.0 m long, the head 7.5 m up,
+  2.4 m wide. Units are meters like every other species, so it is sculpted coarse (`VOXEL=0.03`) on a rectilinear grid
+  that is finer over the head and the feet (`grid()`), with fine bake patches over the eye, the snout and the feet.
+- Shape: a deep trunk loft (`TRUNK`) on front legs longer than the hind legs, so the back slopes down to the tail; the
+  neck is a sweep (`NECK`) rising steeply like a giraffe's; the head is a loft in its own frame (`hframe()`: forward and
+  a little down) with the arched crest over the nostrils as a dome in front of the eyes, a broad rounded snout, a plain
+  lip line (no smile) and fleshy nostrils near the front; the tail is a sweep held off the ground. Pillar legs are
+  sweeps; the front foot is a horseshoe column open at the back with a curved thumb claw on the inside, the hind foot a
+  long pad with three claws on the inner toes turned out.
+- Skin (height field per texel): small domed scales everywhere (finer on the head), bigger plates over the back, long
+  wrinkles, creases across the neck and rings round the legs. Paint: muted gray-brown with an olive cast on top, soft
+  darker mottling, a paler belly. The hatchling has its own small color map (paler, bolder blotches).
+- Weights are the sculpt's own: the trunk and the tail by z, the neck by its place along the straight line from the
+  neck's pivot to the head's (nearest point on a bent path jumped between bones at the throat), the head on the head,
+  the legs by height down each leg, blending into the chest or the hips at the top. Claw tips just below the ground
+  fell outside every part box and went to the spine (spikes on the hatchling); the boxes now reach below the ground.
+- The hatchling is the game's baby maps (head 0.55, short neck and tail, chunky legs) with its own size
+  (`size.baby`, about 1 m long in the game). It is so much smaller than the adult that the usual relative baby morph
+  folded its neck into a zigzag when it bent: a vertex shared by two bones turned about the adult's far-off pivots.
+  `baby.rebind` (game, round 8) skins such a baby about its own rest pose instead: the morph carries the whole offset
+  and `applyAge` sets the bind matrices to the current rest pose. The paw pivots sit near the ground so the small feet
+  stand on it. `meta()` gives the belly point for lying down (the deepest part of the belly).
+
 ## Budget
 
 Pig: about 6.3k triangles, 4.8k vertices, 1024 x 1024 color and normal maps: 38 KB mesh (format 2; 136 KB before) +
@@ -654,3 +679,7 @@ blades (wings, tail, crest) and the eyes, 8.6k in the game; 768 color and normal
 Crocodile (`VOXEL=0.006 TRIS=3300 TEX=704 WEIGHTS=transfer`; TRIS here gives about twice as many in the game mesh):
 7.9k triangles; 704 color and normal maps (WebP 60 and 52), 384 hatchling color map: 62 KB mesh + 46 + 81 + 31 KB,
 222 KB of files, about 296 KB in the page. About 10 minutes for the whole run on the shared machine.
+
+Brachiosaurus (`VOXEL=0.03 TRIS=5300 TEX=1024 WEIGHTS=transfer`): 8.5k triangles; 1024 color (WebP 68) and normal (WebP
+50) maps, 384 hatchling color map: 58 KB mesh + 18 + 123 + 4 KB, 206 KB of files, about 275 KB in the page. About 4
+minutes for the whole run.
