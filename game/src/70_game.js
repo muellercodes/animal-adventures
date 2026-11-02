@@ -86,7 +86,8 @@ function camBlock(x, y, z, dist) {
 function followCamera(dt) {
   const b = Player.b, m = b.m, H = G.world.H, room = b.room;
   // animals shorter than 15 cm (a chickadee, a chick, a froglet) get a closer camera
-  const base = clamp(m.length * 1.35 + m.height * 1.5 + 0.75 * clamp(m.length / 0.15, 0.55, 1), 0.6, 8.5);
+  // and the giants (a brachiosaurus) a camera far enough back to see them
+  const base = clamp(m.length * 1.35 + m.height * 1.5 + 0.75 * clamp(m.length / 0.15, 0.55, 1), 0.6, Math.max(8.5, m.height * 2.4));
   let dist = base * Cam.zoom;
   const ty = b.pos.y + (b.mode === 'climb' ? m.length * 0.4 : m.eye * 0.8) + 0.05;
   if (Cam.snap) { Cam.target.set(b.pos.x, ty, b.pos.z); Cam.yaw = b.yaw; Cam.snap = false; }
