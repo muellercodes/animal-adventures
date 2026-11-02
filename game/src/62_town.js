@@ -5,7 +5,7 @@
    and scouts look in the woods for animals without homes and bring them to the adoption fair. */
 const KID_NAMES = ['Lily', 'Max', 'Zoe', 'Jack', 'Mia', 'Noah', 'Ella', 'Luke'];
 const PESTS = { weasel: 1, bunny: 1, raccoon: 1 };
-const BIG = { horse: 1, moose: 1, deer: 1, swan: 1, rhino: 1, eagle: 1, crocodile: 1 };
+const BIG = { horse: 1, moose: 1, deer: 1, swan: 1, rhino: 1, eagle: 1, crocodile: 1, brachiosaurus: 1 };
 // the school day, in seconds after sunrise (a day lasts 720 seconds)
 const T_LEAVE = 20, T_BELL = 70, T_RECESS = 280, T_CLASS2 = 340, T_OUT = 450, T_HOME = 560;
 const NO_POSE = { crouch: 0, reach: 0 };

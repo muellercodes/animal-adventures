@@ -400,6 +400,8 @@ const World = (() => {
           { sp: 'otter', n: 2, home: [xc(0), 0], range: 40, water: true },
           // round 7: a crocodile in the lagoon
           ...SP7([{ sp: 'crocodile', n: 1, home: [LAG.x, LAG.z], range: 14, water: true }]),
+          // round 8: a herd of brachiosauruses with a baby
+          ...SP7([{ sp: 'brachiosaurus', n: 2, kids: 1, home: [45, 35], range: 45 }]),
         ],
         ambient: [{ sp: 'parrot', w: 4 }, { sp: 'lizard', w: 3 }, { sp: 'frog', w: 2 }, { sp: 'snake', w: 2 }, { sp: 'turtle', w: 1, water: true }, { sp: 'otter', w: 1, water: true }],
         foods: { berries: 4, apple: 3, worm: 3, grass: 1, smallfish: 2, fish: 2, banana: 4, bugs: 3, twigs: 2, watermelon: 1, mushroom: 1 },
