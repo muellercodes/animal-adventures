@@ -74,6 +74,16 @@ function moveBody(b, dt, c) {
     tmpV.set(nx, 0, nz);
     if (w.collide(tmpV, m.radius * 0.8, p.y, !b.player, b.mode === 'fly' && p.y - H(nx, nz) >= 6)) b.blocked = true;
     nx = tmpV.x; nz = tmpV.z;
+    // a long animal (horse, moose, rhino, crocodile, brachiosaurus) also bumps with its head end and its tail end,
+    // so the front and back of it don't poke through fences and walls
+    if (b.player && !b.room && m.length > 2 && b.mode !== 'fly') {
+      const off = m.length * 0.32, r2 = m.radius * 0.8;
+      for (const s of [1, -1]) {
+        tmpV.set(nx + fx * off * s, 0, nz + fz * off * s);
+        const ox = tmpV.x, oz = tmpV.z;
+        if (w.collide(tmpV, r2, p.y, false, false)) { nx += tmpV.x - ox; nz += tmpV.z - oz; b.blocked = true; }
+      }
+    }
   }
   p.x = nx; p.z = nz;
 
