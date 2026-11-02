@@ -1,0 +1,111 @@
+{
+ "v": 2,
+ "id": "brachiosaurus",
+ "data": "brachiosaurus.bin",
+ "enc": "deflate",
+ "raw": 90315,
+ "maps": {
+  "color": "brachiosaurus-color.webp",
+  "normal": "brachiosaurus-normal.webp",
+  "babyColor": "brachiosaurus-color-baby.webp"
+ },
+ "nv": 3093,
+ "ntri": 4227,
+ "nbv": 3093,
+ "nbt": 4227,
+ "bbox": [
+  -1.179529,
+  -0.014213,
+  -7.860917,
+  1.179529,
+  7.484552,
+  5.212124
+ ],
+ "bones": [
+  "hips",
+  "chest",
+  "neck",
+  "neck2",
+  "neck3",
+  "neck4",
+  "head",
+  "tail1",
+  "tail2",
+  "tail3",
+  "tail4",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.128,
+   7.32381,
+   4.78413
+  ],
+  "r": 0.03,
+  "dir": [
+   0.8583,
+   0.1198,
+   0.499
+  ],
+  "lid": [
+   0.7,
+   -0.7,
+   0.3
+  ],
+  "iris": 6965794,
+  "irisR": 0.94,
+  "pupilR": 0.42,
+  "rim": 1708554,
+  "lidCol": 5656642
+ },
+ "collar": {
+  "at": [
+   "neck4",
+   "head",
+   0.3
+  ],
+  "r": 1.2
+ },
+ "mouth": [
+  0.0,
+  7.0078,
+  5.1229
+ ],
+ "belly": [
+  0.0,
+  1.58,
+  -1.7
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.07,
+  0.07,
+  0.06
+ ],
+ "flat": 8156258
+}
