@@ -51,7 +51,7 @@ function resize() {
 window.addEventListener('resize', resize);
 
 /* ---------- worlds ---------- */
-const R = { mode: 'title', paused: false, sheet: null, shopTab: 'animals', pack: null, gc: [7, 8], saveT: 5, wasNight: null, loading: false, hatch: null, sleeping: 0, naming: null, action: null, doorSeq: null };
+const R = { mode: 'title', paused: false, sheet: null, saveT: 5, wasNight: null, loading: false, hatch: null, sleeping: 0, naming: null, action: null, doorSeq: null };
 function loadWorld(id) {
   if (G.world) { scene.remove(G.world.group); Wild.clear(); Folk.clear(); Foods.clear(); G.world.dispose(); }
   const w = World.build(id); G.world = w; scene.add(w.group);
@@ -661,8 +661,7 @@ function renderSheet() {
   else if (R.sheet === 'animals') { t.textContent = 'My animals'; b.innerHTML = sheetAnimals(); if (R.naming) setTimeout(() => { const i = $('nameInput'); if (i) i.focus(); }, 60); }
   else if (R.sheet === 'settings') { t.textContent = 'Settings'; b.innerHTML = sheetSettings(); }
   else if (R.sheet === 'shop') {
-    t.textContent = R.shopTab === 'grownup' ? 'Leaf store' : 'Shop'; b.innerHTML = sheetShop();
-    if (R.shopTab === 'grownup') setTimeout(() => { const i = $('gcInput'); if (i) i.focus(); }, 60);
+    t.textContent = 'Shop'; b.innerHTML = sheetShop();
   }
 }
 function sheetMap() {
@@ -695,24 +694,14 @@ function sheetAnimals() {
       <div class="acts">${on ? '<span class="playing">Playing</span>' : `<button class="btn small" type="button" data-action="switch" data-v="${id}">Play</button>`}<button class="btn small ghost" type="button" data-action="name" data-v="${id}">Name</button></div></div>`;
   }).join('')}</div>`;
 }
+// every animal is free (Drew, Nov 2026): no prices, no leaf store, no grown-up check
 function sheetShop() {
-  if (R.shopTab === 'grownup') return gcView();
-  const tabsHtml = `<div class="tabs" role="tablist"><button class="tab" role="tab" type="button" aria-selected="${R.shopTab === 'animals'}" data-action="tab" data-v="animals">Animals</button><button class="tab" role="tab" type="button" aria-selected="${R.shopTab === 'leaves'}" data-action="tab" data-v="leaves">Leaves</button></div>`;
-  if (R.shopTab === 'leaves') return tabsHtml + `<p class="note">Playing earns leaves for free. A leaf pack gets you a lot more at once. This is a pretend store, so no real money gets spent.</p><div class="packs">${PACKS.map((p) => `<button class="pack" type="button" data-action="pack" data-v="${p.id}"><span class="pack-leaves">${LEAF_SVG}${p.leaves}</span><span class="pack-price">${p.price}</span></button>`).join('')}</div>`;
   const items = SHOP.filter((id) => !S.owned.includes(id));
-  if (!items.length) return tabsHtml + '<p class="note">You have every animal in the shop!</p>';
-  return tabsHtml + `<p class="note">You have <b>${S.leaves}</b> leaves. Eat food to earn more. New animals start as babies.</p><div class="list">${items.map((id) => {
-    const A = SPECIES[id], need = A.price - S.leaves;
-    return `<div class="arow"><img src="${animalIcon(id)}" alt=""><div><div class="aname">${A.name} ${tags(id)}</div>${foodChips(id)}${need > 0 ? `<span class="need">${need} more leaves to go</span>` : ''}</div><button class="btn small" type="button" data-action="buy" data-v="${id}"${need > 0 ? ' disabled' : ''}><span class="price">${LEAF_SVG}${A.price}</span></button></div>`;
+  if (!items.length) return '<p class="note">You have every animal!</p>';
+  return `<p class="note">Every animal is free. Tap Get to add one. New animals start as babies.</p><div class="list">${items.map((id) => {
+    const A = SPECIES[id];
+    return `<div class="arow"><img src="${animalIcon(id)}" alt=""><div><div class="aname">${A.name} ${tags(id)}</div>${foodChips(id)}</div><button class="btn small" type="button" data-action="buy" data-v="${id}">Get</button></div>`;
   }).join('')}</div>`;
-}
-function gcView() {
-  const p = PACKS.find((x) => x.id === R.pack) || PACKS[0];
-  return `<div class="gc"><h3>Grown-up check</h3><p>Ask a grown-up to answer this to get ${p.leaves} leaves for ${p.price} (pretend).</p>
-    <form id="gcForm" class="gcform" autocomplete="off"><label class="gcq" for="gcInput">What is ${R.gc[0]} × ${R.gc[1]}?</label>
-    <input id="gcInput" inputmode="numeric" pattern="[0-9]*" maxlength="4" aria-describedby="gcMsg">
-    <div class="row"><button class="btn green" type="submit">Check</button><button class="btn ghost" type="button" data-action="tab" data-v="leaves">Back</button></div>
-    <p class="gcmsg" id="gcMsg" role="status"></p></form></div>`;
 }
 function sheetSettings() {
   const sw = (id, label, val) => `<button class="switch" type="button" role="switch" aria-checked="${val}" data-action="${id}"><span class="knob"></span>${label}</button>`;
@@ -796,17 +785,11 @@ function switchAnimal(id) {
   if (born) beginLife(id);
 }
 function buyAnimal(id) {
-  const A = SPECIES[id]; if (!A || S.owned.includes(id) || S.leaves < A.price) return;
-  S.leaves -= A.price; S.owned.push(id); S.ages[id] = 0;
+  const A = SPECIES[id]; if (!A || S.owned.includes(id)) return;
+  S.owned.push(id); S.ages[id] = 0;
   Sound.chime();
   switchAnimal(id);
   UI.saved();
-}
-function newGc() { return [6 + ((Math.random() * 7) | 0), 6 + ((Math.random() * 7) | 0)]; }
-function checkGc() {
-  const i = $('gcInput'), p = PACKS.find((x) => x.id === R.pack); if (!i || !p) return;
-  if (parseInt(i.value, 10) === R.gc[0] * R.gc[1]) { S.leaves += p.leaves; R.shopTab = 'leaves'; renderSheet(); UI.toast(`+${p.leaves} leaves! Pretend purchase, no real money.`); save(); }
-  else { $('gcMsg').textContent = 'Not quite. Ask a grown-up to try again.'; i.value = ''; i.focus(); }
 }
 function showLoading(text, fn) {
   $('loadingText').textContent = text; $('loading').hidden = false;
@@ -993,9 +976,7 @@ document.addEventListener('click', (e) => {
     case 'playonline': R.cloudForm = true; openSheet('settings'); setTimeout(() => { const i = $('cName'); if (i) i.focus(); }, 50); break;
     case 'home': goHome(); break;
     case 'govet': goVet(); break;
-    case 'shop': R.shopTab = v || 'animals'; openSheet('shop'); break;
-    case 'tab': R.shopTab = v; renderSheet(); break;
-    case 'pack': R.pack = v; R.gc = newGc(); R.shopTab = 'grownup'; renderSheet(); break;
+    case 'shop': openSheet('shop'); break;
     case 'go': travel(v); break;
     case 'place': {
       const p = Plan.SPOTS[+v], b = Player.b;
@@ -1017,7 +998,6 @@ document.addEventListener('click', (e) => {
   }
 });
 document.addEventListener('submit', (e) => {
-  if (e.target.id === 'gcForm') { e.preventDefault(); checkGc(); }
   if (e.target.id === 'cloudForm') { e.preventDefault(); cloudSubmit((e.submitter && e.submitter.dataset.mode) || 'login'); }
   if (e.target.id === 'nameForm') {
     e.preventDefault();
