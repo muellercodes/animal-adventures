@@ -161,18 +161,7 @@ button.pill{cursor:pointer}
 .playing{font:900 15px/1 var(--display);padding:8px 12px;border-radius:12px;border:2px dashed var(--ink)}
 .price{display:inline-flex;align-items:center;gap:4px}
 .price svg{width:20px;height:20px}
-.tabs{display:flex;gap:8px;margin-bottom:12px}
-.tab{flex:1;min-height:46px;border:3px solid var(--ink);border-radius:14px;background:var(--paper-2);font:900 17px/1 var(--display);cursor:pointer}
-.tab[aria-selected="true"]{background:var(--sun);box-shadow:0 3px 0 var(--ink)}
-.packs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
-.pack{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 10px;background:#fff;border:3px solid var(--ink);border-radius:16px;box-shadow:0 4px 0 var(--ink);cursor:pointer}
-.pack-leaves{display:inline-flex;align-items:center;gap:6px;font:900 26px/1 var(--display);font-variant-numeric:tabular-nums}
-.pack-leaves svg{width:30px;height:30px}
-.pack-price{font:700 16px/1 var(--body);padding:6px 12px;border-radius:999px;background:var(--paper-2)}
-.gc{display:flex;flex-direction:column;gap:10px;max-width:420px}
-.gc h3{margin:0;font:900 22px/1.1 var(--display)}
-.gc p{margin:0;line-height:1.45}
-.gcq{font:900 24px/1.2 var(--display)}
+/* the sign-in form */
 .gcform{display:flex;flex-direction:column;gap:10px}
 .gcform input{font:900 26px/1 var(--display);width:140px;padding:8px 12px;border:3px solid var(--ink);border-radius:12px;background:#fff;color:var(--ink)}
 .gcform .row{display:flex;gap:10px;flex-wrap:wrap}
@@ -215,7 +204,7 @@ button.pill{cursor:pointer}
 .pick{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;width:100%}
 .pcard{width:116px;display:flex;flex-direction:column;align-items:center;gap:2px;background:#fff;border:3px solid var(--ink);border-radius:16px;box-shadow:0 4px 0 var(--ink);padding:6px 4px 10px;font:900 16px/1.1 var(--display);cursor:pointer}
 .pcard img{width:96px;height:96px;display:block;object-fit:contain}
-.pcard:active,.card:active:not([disabled]),.pack:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.pcard:active,.card:active:not([disabled]){transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
 
 @media (max-width:560px){
   .arow{grid-template-columns:64px minmax(0,1fr)}
@@ -270,7 +259,7 @@ button.pill{cursor:pointer}
     </button>
     <div class="stats">
       <span class="pill where" id="wherePill">Land</span>
-      <button class="pill" type="button" data-action="shop" data-v="leaves" aria-label="Leaves"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20C4 10 10 4 20 4C20 14 14 20 4 20Z" fill="#5DBB4E" stroke="#1D3124" stroke-width="2" stroke-linejoin="round"/><path d="M4 20L16 8M9 15V11M12 12V8.5M9 15H13M12 12H15.5" stroke="#1D3124" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg><span id="leafCount">0</span></button>
+      <button class="pill" type="button" data-action="shop" aria-label="Leaves you have collected"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20C4 10 10 4 20 4C20 14 14 20 4 20Z" fill="#5DBB4E" stroke="#1D3124" stroke-width="2" stroke-linejoin="round"/><path d="M4 20L16 8M9 15V11M12 12V8.5M9 15H13M12 12H15.5" stroke="#1D3124" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg><span id="leafCount">0</span></button>
       <span class="pill" id="clockPill">
         <span id="sunIco"><svg viewBox="0 0 24 24" aria-hidden="true"><g stroke="#1D3124" stroke-width="2" stroke-linecap="round"><path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3M4.8 4.8l2.1 2.1M17.1 17.1l2.1 2.1M4.8 19.2l2.1-2.1M17.1 6.9l2.1-2.1"/></g><circle cx="12" cy="12" r="5.2" fill="#FFC83A" stroke="#1D3124" stroke-width="2"/></svg></span>
         <span id="moonIco" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 3.2A8.8 8.8 0 1 0 20.8 15 7 7 0 0 1 15.5 3.2Z" fill="#F4EBC0" stroke="#1D3124" stroke-width="2" stroke-linejoin="round"/></svg></span>
