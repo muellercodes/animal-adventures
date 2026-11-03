@@ -181,6 +181,19 @@ const Sound = (() => {
         T({ t: t + 0.42, f: 70 * k, f2: 55 * k, dur: 0.45, type: 'sawtooth', lp: 300 * k, vol: vol * 0.45 });
         break;
       }
+      // round 10: fruit bat: a loud, harsh, squabbling chatter (a run of grating squawks that wobble up and down)
+      case 'bat': {
+        const n = 4 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < n; i++) {
+          const t0 = t + i * (0.09 + 0.03 * Math.random()), f = (1700 + 900 * Math.random()) * k;
+          T({ t: t0, f, f2: f * (i % 2 ? 0.7 : 1.3), dur: 0.07, a: 0.005, type: 'sawtooth', bp: f * 1.4, q: 2.2, vib: 70, vibAmt: f * 0.08, vol: vol * 0.5 });
+          noise({ t: t0, f: f * 1.6, q: 1.8, dur: 0.06, vol: vol * 0.28, pan });
+        }
+        break;
+      }
+      // round 10: butterflies make no call: a soft papery flutter of wingbeats; a caterpillar's is a tiny munch
+      case 'butterfly': for (let i = 0; i < 5; i++) noise({ t: t + i * 0.06, f: 2400 + 600 * Math.random(), q: 0.9, dur: 0.03, vol: vol * 0.12, pan }); break;
+      case 'caterpillar': for (let i = 0; i < 3; i++) noise({ t: t + i * 0.11, f: 3800, q: 2.5, dur: 0.025, vol: vol * 0.15, pan }); break;
       // round 7: the other cats meow a little higher or lower; the Siamese yowls long and loud; the fluffy white cat's
       // is soft and short; the hamster squeaks
       case 'blackcat': case 'orangecat': case 'calico': case 'whitecat': {
@@ -199,6 +212,18 @@ const Sound = (() => {
       // round 8: brachiosaurus
       // Brachiosaurus: a long deep bellow that swells and falls over a low rumble (a hatchling gives a short honk)
       case 'brachiosaurus': if (k > 1) { T({ t, f: 320, f2: 220, dur: 0.35, type: 'sawtooth', lp: 900, vol: vol * 0.7 }); } else { T({ t, f: 55, f2: 70, dur: 0.8, a: 0.25, type: 'sawtooth', lp: 220, vib: 4, vibAmt: 3, vol: vol * 1.5 }); T({ t: t + 0.7, f: 70, f2: 42, dur: 1.4, type: 'sawtooth', lp: 200, vib: 3, vibAmt: 4, vol: vol * 1.4 }); T({ t, f: 28, f2: 24, dur: 2.0, a: 0.4, type: 'sine', vol: vol * 1.2 }); } break;
+      // round 10: t. rex
+      // T. rex: a deep closed-mouth boom that swells and fades, like a big bird's or a crocodile's (a hatchling peeps)
+      case 'trex': if (k > 1) { for (let i = 0; i < 3; i++) T({ t: t + i * 0.16, f: 700, f2: 520, dur: 0.12, type: 'triangle', vol: vol * 0.6 }); } else { T({ t, f: 42, f2: 36, dur: 1.8, a: 0.35, type: 'sine', vib: 2.5, vibAmt: 2, vol: vol * 1.6 }); T({ t, f: 84, f2: 70, dur: 1.5, a: 0.3, type: 'sawtooth', lp: 180, vol: vol * 0.7 }); T({ t: t + 0.9, f: 40, f2: 34, dur: 1.2, a: 0.2, type: 'sine', vol: vol * 1.2 }); } break;
+      // round 10: giraffe
+      // Giraffe: a low soft hum with a snort (giraffes are quiet; they hum at night); a calf gives a soft bleat
+      case 'giraffe': if (k > 1) { T({ t, f: 380, f2: 300, dur: 0.45, type: 'sawtooth', bp: 900, q: 2, vib: 6, vibAmt: 12, vol: vol * 0.7 }); } else { T({ t, f: 92, f2: 88, dur: 1.4, a: 0.3, type: 'sine', vib: 3, vibAmt: 2, vol: vol * 1.1 }); T({ t, f: 184, f2: 176, dur: 1.3, a: 0.3, type: 'triangle', lp: 500, vol: vol * 0.35 }); noise({ t: t + 1.35, f: 900, q: 0.8, dur: 0.25, vol: vol * 0.4, pan }); } break;
+      // round 10: polar bear: a deep chuffing huff and a low growl (a cub's is a bleating squall)
+      case 'polarbear': if (k > 1) { T({ t, f: 420, f2: 300, dur: 0.35, type: 'sawtooth', bp: 900, q: 1.5, vib: 9, vibAmt: 30, vol: vol * 0.8 }); } else { for (let i = 0; i < 2; i++) noise({ t: t + i * 0.28, f: 380, q: 0.9, dur: 0.18, vol: vol * 0.9, pan }); T({ t: t + 0.6, f: 85, f2: 70, dur: 0.9, a: 0.1, type: 'sawtooth', lp: 380, vib: 22, vibAmt: 6, vol: vol * 1.3 }); } break;
+      // round 10: snow leopard: a low puffing chuff, a mew and a moan (snow leopards do not roar; a cub mews higher)
+      case 'snowleopard': for (let i = 0; i < 2; i++) noise({ t: t + i * 0.22, f: 700 * k, q: 1.2, dur: 0.12, vol: vol * 0.7, pan }); T({ t: t + 0.5, f: 300 * k, f2: 420 * k, dur: 0.25, type: 'sawtooth', bp: 900 * k, q: 1.6, vib: 6, vibAmt: 10, vol: vol * 0.8 }); T({ t: t + 0.72, f: 420 * k, f2: 230 * k, dur: 0.6, a: 0.04, type: 'sawtooth', bp: 700 * k, q: 1.6, vib: 5, vibAmt: 14, vol: vol * 0.8 }); break;
+      // round 10: saber-toothed cat: a deep rasping growl rising to a roar (a kitten's is a rasping mew)
+      case 'smilodon': if (k > 1) { T({ t, f: 380, f2: 250, dur: 0.4, type: 'sawtooth', bp: 800, q: 1.4, vib: 14, vibAmt: 25, vol: vol * 0.8 }); } else { T({ t, f: 70, f2: 95, dur: 0.6, a: 0.1, type: 'sawtooth', lp: 360, vib: 30, vibAmt: 6, vol: vol * 1.1 }); T({ t: t + 0.55, f: 120, f2: 70, dur: 1.2, a: 0.08, type: 'sawtooth', lp: 480, vib: 26, vibAmt: 8, vol: vol * 1.4 }); noise({ t: t + 0.5, f: 320, q: 0.7, dur: 1.0, vol: vol * 0.45, pan }); } break;
     }
   }
 

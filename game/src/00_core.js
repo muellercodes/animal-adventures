@@ -45,6 +45,8 @@ const FOODS = {
   seeds: { name: 'Seeds' }, corn: { name: 'Corn' }, lettuce: { name: 'Lettuce' }, mushroom: { name: 'Mushrooms' }, bugs: { name: 'Bugs' },
   twigs: { name: 'Leafy twigs' }, watermelon: { name: 'Watermelon' }, banana: { name: 'Bananas' }, bread: { name: 'Bread' },
   hotdog: { name: 'Hot dogs' }, petfood: { name: 'Pet food' }, hay: { name: 'Hay' },
+  // round 10: nectar, a wildflower bloom (for butterflies; 38_food draws it)
+  nectar: { name: 'Nectar' },
 };
 // swim/fly/hop/climb are what the animal can do; swimSpeed and flySpeed are m/s
 // egg: hatches from an egg (shell color); outdoor: when adopted it lives in a pen in the yard instead of inside the house
@@ -95,6 +97,21 @@ const SPECIES = {
   crocodile: { name: 'Crocodile', many: 'Crocodiles', eats: ['fish', 'smallfish', 'worm', 'bugs', 'hotdog'], fav: 'fish', swim: true, swimSpeed: 3, noJump: true, outdoor: true, hunter: true, price: 1300, egg: 0xf2efe6, baby: 'Baby crocodile' },
   // round 8: brachiosaurus
   brachiosaurus: { name: 'Brachiosaurus', many: 'Brachiosauruses', eats: ['twigs', 'apple', 'banana', 'pinecone', 'lettuce', 'hay'], fav: 'twigs', outdoor: true, noJump: true, price: 2000, egg: 0xe9e2cf, baby: 'Baby brachiosaurus' },
+  // round 10: t. rex
+  trex: { name: 'T. rex', many: 'T. rexes', eats: ['hotdog', 'fish', 'smallfish', 'worm', 'bugs'], fav: 'hotdog', outdoor: true, hunter: true, noJump: true, price: 2100, egg: 0xeee8da, baby: 'Baby T. rex' },
+  // round 10: giraffe
+  giraffe: { name: 'Giraffe', many: 'Giraffes', eats: ['twigs', 'lettuce', 'apple', 'banana', 'hay', 'watermelon'], fav: 'twigs', outdoor: true, noJump: true, price: 1700, baby: 'Giraffe calf' },
+  // round 10: polar bear
+  polarbear: { name: 'Polar bear', many: 'Polar bears', eats: ['fish', 'smallfish', 'berries', 'hotdog'], fav: 'fish', swim: true, swimSpeed: 2.5, outdoor: true, hunter: true, price: 1400, baby: 'Polar bear cub' },
+  // round 10: snow leopard
+  snowleopard: { name: 'Snow leopard', many: 'Snow leopards', eats: ['fish', 'smallfish', 'worm', 'hotdog', 'petfood'], fav: 'fish', climb: true, outdoor: true, hunter: true, price: 1200, baby: 'Snow leopard cub' },
+  // round 10: saber-toothed cat
+  smilodon: { name: 'Saber-toothed cat', many: 'Saber-toothed cats', eats: ['hotdog', 'fish', 'smallfish', 'worm'], fav: 'hotdog', outdoor: true, hunter: true, price: 1500, baby: 'Saber-toothed kitten' },
+  // round 10: fruit bat
+  bat: { name: 'Fruit bat', many: 'Fruit bats', eats: ['apple', 'banana', 'berries', 'watermelon'], fav: 'banana', fly: true, flySpeed: 8, nightEyes: true, price: 500, baby: 'Bat pup' },
+  // round 10: monarch butterfly; its baby is the caterpillar, a hidden species of its own (not in the shop)
+  butterfly: { name: 'Monarch butterfly', many: 'Monarch butterflies', eats: ['nectar', 'watermelon', 'banana', 'berries'], fav: 'nectar', fly: true, flySpeed: 4, price: 150, egg: 0xf2ecd2, baby: 'Caterpillar' },
+  caterpillar: { name: 'Monarch caterpillar', many: 'Monarch caterpillars', eats: ['lettuce', 'grass', 'twigs'], fav: 'lettuce', noJump: true, hidden: true, price: 150, baby: 'Caterpillar' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
@@ -111,11 +128,23 @@ SMALL_PREY.push('cockatiel');
 for (const id of ['chickadee', 'eagle', 'rhino']) { let i = SHOP.length; while (i > 0 && SPECIES[SHOP[i - 1]].price > SPECIES[id].price) i--; SHOP.splice(i, 0, id); }
 SMALL_PREY.push('chickadee', 'hamster');
 SPECIES.chickadee.eggSpeck = [0.72, 0.4, 0.28];   // reddish brown speckles
+// round 10: polar bear
+SHOP.push('polarbear');
+// round 10: snow leopard
+SHOP.push('snowleopard');
+// round 10: saber-toothed cat
+SHOP.push('smilodon');
 // round 7: the shop runs from cheap to dear
 SHOP.sort((a, b) => SPECIES[a].price - SPECIES[b].price);
 // round 8: brachiosaurus (the dearest animal, so it goes last)
 SHOP.push('brachiosaurus');
-const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow'];
+// round 10: fruit bat and monarch butterfly (into the shop list by price)
+for (const id of ['bat', 'butterfly']) { let i = SHOP.length; while (i > 0 && SPECIES[SHOP[i - 1]].price > SPECIES[id].price) i--; SHOP.splice(i, 0, id); }
+// round 10: t. rex
+SHOP.push('trex');
+// round 10: giraffe (after the price sort, so it sits at the end with the other round 10 animals)
+SHOP.push('giraffe');
+const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow', 'snow'];
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];
 const SKIN = ['#F3D3B8', '#E6B691', '#C98E66', '#9A6544', '#6B4430'];
 const HAIR = ['#2B1E16', '#5A3A22', '#A8692E', '#D9B66A', '#8B2E1F', '#1E1E1E', '#B8B2A8'];
@@ -130,7 +159,12 @@ const fresh = () => ({ v: 1, d3: true, saved: 0, leaves: 0, owned: [], animal: '
 const ADULT_AT = 1, FLY_AGE = 0.6;
 const ageOf = (sp) => (S.ages[sp] === undefined ? 1 : S.ages[sp]);
 const nameOf = (sp) => S.names[sp] || SPECIES[sp].name;
-const stageName = (sp) => { const a = ageOf(sp); return a < 0.4 ? SPECIES[sp].baby : a < 1 ? 'Young ' + SPECIES[sp].name.toLowerCase() : SPECIES[sp].name; };
+const stageName = (sp) => {
+  const a = ageOf(sp);
+  // round 10: a butterfly is a caterpillar until it makes its chrysalis (at FLY_AGE), then a grown butterfly
+  if (sp === 'butterfly') return a < FLY_AGE ? SPECIES[sp].baby : SPECIES[sp].name;
+  return a < 0.4 ? SPECIES[sp].baby : a < 1 ? 'Young ' + SPECIES[sp].name.toLowerCase() : SPECIES[sp].name;
+};
 // what day of the year is it (for holidays)
 const TODAY = (() => { const m = /date=(\d{4}-\d{2}-\d{2})/.exec(location.hash); return m ? new Date(m[1] + 'T12:00:00') : /assets/.test(location.hash) ? new Date(2026, 6, 1, 12) : new Date(); })();
 const HOLIDAY = (() => { const m = TODAY.getMonth() + 1, d = TODAY.getDate(); if (m === 10 || (m === 11 && d <= 2)) return 'halloween'; return null; })();

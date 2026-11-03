@@ -142,17 +142,19 @@ def tail_t(P):
     return _TT[k].astype(F), d.astype(F)
 
 
-TAIL_BONES = ['tail1', 'tail2', 'tail3']
-_TB = {'tail1': V(0, 0.205, -0.19), 'tail2': V(0, 0.185, -0.28), 'tail3': V(0, 0.15, -0.36)}
+# (a breed with its own tail names its bones and their pivots, as in the game: TAIL_BONES, TB)
+TAIL_BONES = _o('TAIL_BONES', ['tail1', 'tail2', 'tail3'])
+_TB = _o('TB', {'tail1': V(0, 0.205, -0.19), 'tail2': V(0, 0.185, -0.28), 'tail3': V(0, 0.15, -0.36)})
 TB_T = [float(_TT[np.linalg.norm(_TP[:, 1:] - _TB[b][1:], axis=1).argmin()]) for b in TAIL_BONES]
 
 
 def tail_weights(t):
-    w = np.zeros((len(t), 3), F)
+    nb = len(TAIL_BONES)
+    w = np.zeros((len(t), nb), F)
     edges = TB_T[1:]
-    for i in range(3):
+    for i in range(nb):
         lo = sstep(edges[i - 1] - 0.07, edges[i - 1] + 0.07, t) if i > 0 else np.ones_like(t)
-        hi = 1 - sstep(edges[i] - 0.07, edges[i] + 0.07, t) if i < 2 else np.ones_like(t)
+        hi = 1 - sstep(edges[i] - 0.07, edges[i] + 0.07, t) if i < nb - 1 else np.ones_like(t)
         w[:, i] = lo * hi
     return w / np.maximum(w.sum(1, keepdims=True), 1e-9)
 
@@ -427,7 +429,7 @@ def fix_weights(W, wpos, names, G, weld):
             W[neg, r] += W[neg, l]; W[neg, l] = 0
     # the tail: by position along its middle line, blending into the rump at its root
     tt, td = tail_t(Pm)
-    on = (z < -0.18) & (td < 0.025) & (y > 0.07)
+    on = (z < -0.18) & (td < _o('TAIL_TD', 0.025)) & (y > 0.07)
     if on.any():
         tw = tail_weights(tt[on])
         k = sstep(-0.18, -0.2, z[on])[:, None]

@@ -1,0 +1,118 @@
+{
+ "v": 2,
+ "id": "giraffe",
+ "data": "giraffe.bin",
+ "enc": "deflate",
+ "raw": 77694,
+ "maps": {
+  "color": "giraffe-color.webp",
+  "normal": "giraffe-normal.webp",
+  "babyColor": "giraffe-color-baby.webp"
+ },
+ "nv": 2782,
+ "ntri": 3212,
+ "nbv": 2782,
+ "nbt": 3212,
+ "bbox": [
+  -0.5022,
+  -0.000817,
+  -1.53511,
+  0.5022,
+  5.051058,
+  2.535256
+ ],
+ "bones": [
+  "hips",
+  "chest",
+  "neck",
+  "neck2",
+  "neck3",
+  "neck4",
+  "head",
+  "earL",
+  "earR",
+  "tail1",
+  "tail2",
+  "tail3",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.12,
+   4.76861,
+   2.10497
+  ],
+  "r": 0.03,
+  "dir": [
+   0.881,
+   0.0501,
+   0.4705
+  ],
+  "lid": [
+   0.667,
+   -0.667,
+   0.3
+  ],
+  "iris": 2759184,
+  "irisR": 0.97,
+  "pupil": "h",
+  "pupilR": 0.45,
+  "rim": 788229,
+  "lidCol": 9859409,
+  "lash": {
+   "n": 16,
+   "len": 0.022,
+   "col": 1971730
+  }
+ },
+ "collar": {
+  "at": [
+   "neck3",
+   "neck4",
+   0.5
+  ],
+  "r": 0.9
+ },
+ "mouth": [
+  0.0,
+  4.3844,
+  2.4724
+ ],
+ "belly": [
+  0.0,
+  1.9,
+  -0.85
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.08,
+  0.06,
+  0.05
+ ],
+ "flat": 9062950
+}

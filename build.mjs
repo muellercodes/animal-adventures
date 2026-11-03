@@ -5,7 +5,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
-const ORDER = ['00_core', '35_envkit', '36_city', '37_street', '38_food', '40_animals', '45_people', '49_plan', '50_world', '60_actors', '62_town', '63_traffic', '64_citylife', '65_audio', '68_net', '70_game'];
+const ORDER = ['00_core', '35_envkit', '36_city', '37_street', '38_food', '39_snow', '39_zoo', '40_animals', '45_people', '49_plan', '50_world', '60_actors', '62_town', '63_traffic', '64_citylife', '65_audio', '66_zoo', '68_net', '70_game'];
 const cfg = JSON.parse(readFileSync('game/config.json', 'utf8'));
 const api = process.env.API_BASE ?? cfg.apiBase ?? '';
 
@@ -55,14 +55,14 @@ const page = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="description" content="Animal Adventures: a game by Rosemary. Pick an animal, eat food, earn leaves and explore six worlds.">
+<meta name="description" content="Animal Adventures: a game by Rosemary. Pick an animal, eat food, earn leaves and explore seven worlds.">
 <meta name="theme-color" content="#2C5534">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Animal Adventures">
 <meta property="og:title" content="Animal Adventures">
-<meta property="og:description" content="A game by Rosemary. Pick an animal, eat food, earn leaves and explore six worlds.">
+<meta property="og:description" content="A game by Rosemary. Pick an animal, eat food, earn leaves and explore seven worlds.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script>window.AA_API = ${JSON.stringify(api)};</script>

@@ -10,18 +10,30 @@ const UPRIGHT = { duck: 1, swan: 1, chicken: 1, owl: 1, parrot: 1, eagle: 1, chi
 const FEAR = { chicken: 3, duck: 4.5, swan: 3, frog: 2.5, lizard: 3, snake: 2, bunny: 5, squirrel: 4.5, turtle: 1.5, fox: 6, owl: 5, deer: 10, parrot: 4, moose: 0,
   horse: 6, pig: 3, goat: 4, otter: 4, hedgehog: 2, raccoon: 4, weasel: 4, dog: 1.5, cat: 4,
   // round 7
-  lab: 1.5, dalmatian: 1.5, husky: 2, beagle: 2, chihuahua: 3, blackcat: 4, orangecat: 4, calico: 4, siamese: 4, whitecat: 4, hamster: 3, eagle: 6, chickadee: 3, rhino: 0, cockatiel: 3, crocodile: 2, brachiosaurus: 0 };
+  lab: 1.5, dalmatian: 1.5, husky: 2, beagle: 2, chihuahua: 3, blackcat: 4, orangecat: 4, calico: 4, siamese: 4, whitecat: 4, hamster: 3, eagle: 6, chickadee: 3, rhino: 0, cockatiel: 3, crocodile: 2, brachiosaurus: 0,
+  // round 10
+  trex: 0, giraffe: 5, polarbear: 2, snowleopard: 4, smilodon: 1, bat: 4, butterfly: 3 };
 // extra bump circles along a long body: [how far ahead of the body's middle, as a part of its length; radius, as a part
 // of its radius]. A brachiosaurus's middle is at its shoulders: the trunk runs back from there to its hips and tail
 // (its neck is high up, so fences pass under it)
-const BODY_COL = { long: [[0.32, 0.8], [-0.32, 0.8]], brachiosaurus: [[0.14, 0.92], [-0.23, 0.92], [-0.42, 0.3]] };
-const NOCTURNAL = { owl: 1, frog: 1, fox: 1, raccoon: 1, hedgehog: 1, hamster: 1 };
+// A T. rex's middle is over its hips: its chest is ahead and its belly and the base of its tail behind (the rest of the
+// tail and the head are high, above fences). A giraffe's middle is its shoulders.
+const BODY_COL = { long: [[0.32, 0.8], [-0.32, 0.8]], brachiosaurus: [[0.14, 0.92], [-0.23, 0.92], [-0.42, 0.3]],
+  trex: [[0.15, 0.9], [-0.105, 0.9], [-0.21, 0.9]], giraffe: [[0.26, 1.0], [-0.36, 1.0]] };
+const NOCTURNAL = { owl: 1, frog: 1, fox: 1, raccoon: 1, hedgehog: 1, hamster: 1, bat: 1 };
+// round 10: a butterfly starts out as a caterpillar. Below PUPA_AGE its body is the caterpillar (b.form, a hidden
+// species), and when it grows past it, it makes a chrysalis and comes out a grown monarch (70_game: Pupa). A butterfly
+// is full size when it comes out, so its body does not grow after that.
+const PUPA_AGE = FLY_AGE;
+const formOf = (sp, age) => (sp === 'butterfly' && age < PUPA_AGE ? 'caterpillar' : sp);
+// round 10: where a hanging fruit bat holds on (root space, before its scale; 40_animals SPEC.bat anim.hang.grip)
+const BAT_GRIP = 0.4;
 const nightNo = () => Math.floor(S.time / CYCLE);
 
 function newBody(sp, age = 1) {
-  const rig = Animals.build(sp);
+  const form = formOf(sp, clamp(age, 0, 1)), rig = Animals.build(form);
   rig.root.rotation.order = 'YXZ';
-  const b = { sp, rig, pos: new V3(), yaw: 0, speed: 0, vy: 0, mode: 'ground', hopCd: 0, hopping: false, eat: 0, idle: 0, turn: 0, pitch: 0, bob: Math.random() * 9, blocked: false,
+  const b = { sp, form: form !== sp ? form : null, rig, pos: new V3(), yaw: 0, speed: 0, vy: 0, mode: 'ground', hopCd: 0, hopping: false, eat: 0, idle: 0, turn: 0, pitch: 0, bob: Math.random() * 9, blocked: false,
     age: 1, k: 1, m: null, room: null, tree: null, ca: 0, sick: 0, happy: 0, stuck: 0,
     st: { t: 0, speed: 0, mode: 'ground', vy: 0, eat: 0, turn: 0, idle: 0, sick: 0, happy: 0, swimSleep: false } };
   setBodyAge(b, age);
@@ -31,8 +43,18 @@ function newBody(sp, age = 1) {
 function setBodyAge(b, age) {
   age = clamp(age, 0, 1);
   b.age = age;
-  if (b.rig.setAge) b.rig.setAge(age);
-  b.k = lerp(0.42, 1, age);
+  if (b.form === 'caterpillar') {
+    // a new caterpillar is half the size of a big one
+    const g = clamp(age / PUPA_AGE, 0, 1);
+    if (b.rig.setAge) b.rig.setAge(lerp(0.4, 1, g));
+    b.k = lerp(0.5, 1, g);
+  } else if (b.sp === 'butterfly') {
+    if (b.rig.setAge) b.rig.setAge(1);
+    b.k = 1;
+  } else {
+    if (b.rig.setAge) b.rig.setAge(age);
+    b.k = lerp(0.42, 1, age);
+  }
   b.rig.root.scale.setScalar(b.k);
   const r = b.rig, k = b.k;
   b.m = { length: r.length * k, height: r.height * k, radius: r.radius * k, eye: r.eyeHeight * k, float: r.floatDepth * k,
@@ -45,7 +67,7 @@ function jumpV(b) { const h = b.sp === 'frog' ? 0.45 * b.k : clamp(b.m.height * 
 // c = { dx, dz: wanted direction (any length, 0 = none), want: wanted speed m/s, face: optional yaw to turn to, jump, up, down, takeoff,
 //       climb: a tree to start climbing, climbV: -1..1 up/down while climbing, around: -1..1 around the trunk, letGo }
 function moveBody(b, dt, c) {
-  const w = G.world, H = w.H, sp = SPECIES[b.sp], m = b.m, p = b.pos, fly = canFlyNow(b), swim = !!sp.swim;
+  const w = G.world, H = w.H, sp = SPECIES[b.form || b.sp], m = b.m, p = b.pos, fly = canFlyNow(b), swim = !!sp.swim;
   if (c.climb && b.mode !== 'climb' && b.mode !== 'perch') startClimb(b, c.climb);
   if (b.mode === 'climb' || b.mode === 'perch') { climbStep(b, dt, c); return; }
   if (b.mode === 'sleep') { b.speed = 0; b.idle += dt; return; }
@@ -204,6 +226,8 @@ function poseBody(b, dt, animate) {
 const Player = {
   b: null, eatFood: null, ate: false, eatDur: 1.1, eatQueue: 0, hungryT: 0, emptyT: 0, sayT: 0,
   get sp() { return this.b && this.b.sp; },
+  // what the body is right now: a young butterfly is a caterpillar (it eats and moves like one)
+  get form() { return this.b && (this.b.form || this.b.sp); },
   get pos() { return this.b.pos; },
   get rig() { return this.b.rig; },
   get m() { return this.b.m; },
@@ -222,6 +246,8 @@ const Player = {
   },
   grow() {
     const b = this.b, a = ageOf(b.sp);
+    // a caterpillar big enough to turn into a butterfly: 70_game makes the chrysalis and swaps the body
+    if (formOf(b.sp, a) !== (b.form || b.sp)) { if (G.pupate) G.pupate(); return; }
     if (Math.abs(a - b.age) > 0.02 || (a >= 1 && b.age < 1)) setBodyAge(b, a);
   },
   place(x, z) {
@@ -338,7 +364,7 @@ const Sick = {
   label() { const k = this.kind(); return !k ? '' : k === 'tummy' ? 'Tummy ache' : k === 'paw' ? 'Hurt ' + this.limb(S.animal) : 'Has a cold'; },
   sync() { S.sick = S.ills && S.ills[S.animal] ? 1 : 0; },
   start(kind, why) {
-    if (S.sick > 0 || R.hatch) return;
+    if (S.sick > 0 || R.hatch || R.pupa) return;
     if (kind === 'paw' && S.animal === 'snake') kind = 'tummy';
     S.ills = S.ills || {}; S.ills[S.animal] = kind; S.sick = 1;
     const nm = SPECIES[S.animal].name.toLowerCase();
@@ -367,7 +393,7 @@ const Sick = {
     }
     // every so often you catch something: about once every half hour of play
     if (S.sickIn === undefined) S.sickIn = 600 + Math.random() * 900;
-    if (b.room || b.mode === 'sleep' || b.riding || R.hatch) return;
+    if (b.room || b.mode === 'sleep' || b.riding || R.hatch || R.pupa) return;
     S.sickIn -= dt;
     if (S.sickIn <= 0) { S.sickIn = 1200 + Math.random() * 1500; this.start(['cold', 'cold', 'tummy', 'paw'][(Math.random() * 4) | 0]); }
   },
@@ -449,7 +475,8 @@ const Wild = {
   spawnPound(room) {
     for (const b of this.list.filter((q) => q.caged)) { G.scene.remove(b.rig.root); }
     this.list = this.list.filter((q) => !q.caged);
-    const pool = Object.keys(SPECIES).filter((s) => !['moose', 'horse', 'deer', 'swan'].includes(s));
+    // no caterpillars (a hidden species), butterflies or bats in the pound
+    const pool = Object.keys(SPECIES).filter((s) => !['moose', 'horse', 'deer', 'swan', 'butterfly', 'bat'].includes(s) && !SPECIES[s].hidden);
     room.cages.forEach((cg, i) => {
       if (i % 3 === 2) return;
       const caught = Town.poundList[(i - Math.floor(i / 3)) | 0];
@@ -469,6 +496,27 @@ const Wild = {
       const b = this.make(sp, Math.random() < 0.3 ? 0.45 : 1, st.x, st.z, { caged: true, room, state: 'caged', timer: 3 + Math.random() * 5 });
       b.pos.y = 0; b.yaw = Math.atan2(room.ox - st.x, 0) + (Math.random() - 0.5) * 0.6;
     });
+  },
+  // a tree for a bat to hang in: near it, and inside its pen if it lives in one
+  roostTree(b) {
+    const w = G.world, pn = b.pen;
+    const ok = (t) => {
+      if (!t || t.top - t.base < 1.4) return false;
+      if (!pn) return true;
+      const c = Math.cos(-(pn.rot || 0)), s = Math.sin(-(pn.rot || 0)), lx = t.x - pn.x, lz = t.z - pn.z;
+      return Math.abs(lx * c - lz * s) < pn.hw - 1 && Math.abs(lx * s + lz * c) < pn.hd - 1;
+    };
+    const cx = pn ? pn.x : b.pos.x, cz = pn ? pn.z : b.pos.z;
+    // the nearest few good trees, and one of them at random (so a colony spreads over the trees)
+    const found = [];
+    for (const r of pn ? [0, 6] : [0, 9, 18, 27]) {
+      for (let i = 0; i < (r ? 6 : 1); i++) {
+        const a = (i / 6) * TAU + r, t = w.treeNear(cx + Math.cos(a) * r, cz + Math.sin(a) * r, 8);
+        if (ok(t) && !found.includes(t)) found.push(t);
+      }
+      if (found.length >= 3) break;
+    }
+    return found.length ? found[(Math.random() * found.length) | 0] : null;
   },
   pickTarget(b) {
     const w = G.world, sp = SPECIES[b.sp];
@@ -492,7 +540,7 @@ const Wild = {
       b.callT = (b.callT === undefined ? 5 + Math.random() * 40 : b.callT) - dt;
       if (b.callT <= 0) { b.callT = 18 + Math.random() * 40; if (b.mode !== 'sleep' && G.sound && (!P || P.room === b.room)) G.sound.wildCall(b, camPos, G.camYaw || 0); }
       const c = { dx: 0, dz: 0, want: 0 };
-      const sleepy = night ? !NOCTURNAL[b.sp] : (b.sp === 'owl' || b.sp === 'raccoon');
+      const sleepy = night ? !NOCTURNAL[b.sp] : (b.sp === 'owl' || b.sp === 'raccoon' || b.sp === 'bat');
       // think a few times a second
       b.think -= dt;
       if (P && b.think <= 0 && !b.caged && b.state !== 'kid' && b.state !== 'trapped' && b.state !== 'leash') {
@@ -568,7 +616,17 @@ const Wild = {
           b.timer -= dt;
           if (b.timer <= 0) {
             const r = Math.random();
-            if (sleepy && b.mode !== 'fly') { b.timer = 8 + Math.random() * 12; if (b.mode === 'ground' || b.mode === 'swim') b.mode = b.mode === 'swim' && b.sp !== 'otter' ? 'swim' : 'sleep'; }
+            // a fruit bat spends the day hanging under a branch (with no tree near, it stays awake)
+            if (sleepy && b.sp === 'bat') { const t = this.roostTree(b); if (t) { b.state = 'roost'; b.target = t; b.ra = Math.random() * TAU; b.timer = 25; b.hangAt = null; } else b.timer = 3; }
+            else if (sleepy && b.mode !== 'fly') { b.timer = 8 + Math.random() * 12; if (b.mode === 'ground' || b.mode === 'swim') b.mode = b.mode === 'swim' && b.sp !== 'otter' ? 'swim' : 'sleep'; }
+            else if ((b.sp === 'butterfly' || b.sp === 'bat') && canFlyNow(b) && r < 0.75) {
+              // a butterfly flutters from flower to flower and a bat flies about at night: short flights near where it is
+              const bat = b.sp === 'bat';
+              b.target = b.pen ? this.pickTarget(b) : G.world.ringPoint(b.pos.x, b.pos.z, bat ? 5 : 2, bat ? 25 : 9, false) || this.pickTarget(b);
+              if (!b.pen && b.target && Math.hypot(b.target.x - b.home.x, b.target.z - b.home.z) > b.range) b.target = this.pickTarget(b);
+              b.state = b.target ? 'wander' : 'idle'; b.timer = 2; b.pace = 1; b.stuck = 0; b.flutter = true;
+              b.flyH = bat ? (b.pen ? 1.2 : 3 + Math.random() * 4) : 0.5 + Math.random() * 1.2;
+            }
             else {
               if (b.mode === 'sleep') b.mode = 'ground';
               const raid = r < 0.3 && PESTS[b.sp] ? Town.raidTarget(b) : null;
@@ -583,9 +641,32 @@ const Wild = {
         case 'wander': {
           const t = b.target, dx = t.x - b.pos.x, dz = t.z - b.pos.z, d = Math.hypot(dx, dz);
           c.dx = dx; c.dz = dz; c.want = m.walk * b.pace;
-          if (b.mode === 'fly') { c.want = sp.flySpeed * 0.6; c.down = d < 6; c.up = d > 6 && b.pos.y - G.world.H(b.pos.x, b.pos.z) < b.flyH; }
+          if (b.flutter && b.mode !== 'fly' && d > 1 && canFlyNow(b)) c.takeoff = true;
+          if (b.mode === 'fly' && b.flutter) { c.want = sp.flySpeed * (b.sp === 'bat' ? 0.7 : 0.45); c.down = d < 1.2; c.up = !c.down && b.pos.y - G.world.H(b.pos.x, b.pos.z) < b.flyH; }
+          else if (b.mode === 'fly') { c.want = sp.flySpeed * 0.6; c.down = d < 6; c.up = d > 6 && b.pos.y - G.world.H(b.pos.x, b.pos.z) < b.flyH; }
           if (b.blocked || b.speed < 0.05) b.stuck += dt; else b.stuck = Math.max(0, b.stuck - dt);
-          if (d < 0.5 + m.radius || b.stuck > 2.5) { b.state = 'idle'; b.timer = 1 + Math.random() * 4; }
+          if (d < 0.5 + m.radius || b.stuck > 2.5) { b.state = 'idle'; b.timer = 1 + Math.random() * 4; b.flutter = false; }
+          break;
+        }
+        case 'roost': {
+          // round 10: a fruit bat flies to a tree and hangs upside down by its feet under the edge of the crown
+          const t = b.target;
+          if (!t || !sleepy) { b.state = 'idle'; b.timer = 1 + Math.random() * 2; if (b.hangAt) { b.hangAt = null; b.mode = 'air'; b.vy = 0; } break; }
+          if (b.hangAt) { b.mode = 'sleep'; b.pos.copy(b.hangAt); b.speed = 0; break; }
+          // (a pine's lowest needles reach down past its bare trunk: hang a little lower under them; and never higher
+          // than 2.4 m, below the leaves of a birch, where you can see it)
+          const R = t.r + 0.45, hx = t.x + Math.cos(b.ra) * R, hz = t.z + Math.sin(b.ra) * R;
+          const hy = clamp(t.top - (/pine/.test(t.type || '') ? 0.55 : 0.3), t.base + 1.3, t.base + 2.4);
+          const dx = hx - b.pos.x, dz = hz - b.pos.z, d = Math.hypot(dx, dz);
+          if (b.mode !== 'fly' && canFlyNow(b)) c.takeoff = true;
+          c.dx = dx; c.dz = dz; c.want = sp.flySpeed * clamp(d / 8, 0.15, 0.6);
+          c.up = b.pos.y < hy - 0.2; c.down = b.pos.y > hy + 0.5;
+          b.timer -= dt;
+          if ((d < 0.7 && Math.abs(b.pos.y - hy) < 0.8) || b.timer <= 0) {
+            b.yaw = Math.atan2(hx - t.x, hz - t.z) + Math.PI / 2;
+            b.hangAt = new V3(hx, hy - BAT_GRIP * b.k, hz);
+            b.pos.copy(b.hangAt); b.mode = 'sleep'; b.speed = 0; b.vy = 0;
+          }
           break;
         }
         case 'raid': {
@@ -743,6 +824,7 @@ const Folk = {
       if (p.visitor) { this.visitorStep(p, dt, P, dP, greet); continue; }
       if (p.staff) { this.staffStep(p, dt, P, dP); continue; }
       if (p.fairgoer) { Town.fairgoerStep(p, dt, P, dP, greet, playerReachable); continue; }
+      if (p.zoogoer) { Zoos.step(p, dt, P, dP); continue; }
       if (p.city) { const r = CityLife.step(p, dt, P, dP, greet, playerReachable); if (r) { p.sit = r.sit || 0; p.seatY = r.seatY; this.pose(p, dt, r.crouch, r.reach, camPos); continue; } }
       if (p.role) { const r = Town.step(p, dt, P, dP, greet, playerReachable) || NO_POSE; p.sit = r.sit || 0; p.seatY = r.seatY; this.pose(p, dt, r.crouch, r.reach, camPos); continue; }
       // evenings: people walk home and go inside (your person stays with you if you are at home together)
@@ -832,7 +914,7 @@ const Folk = {
           p.timer -= dt; crouch = 1; reach = 1; p.speed = damp(p.speed, 0, 8, dt); this.face(p, dt, P.pos.x, P.pos.z);
           if (!p.gave && p.timer < 1.0) {
             p.gave = true; p.offerT = 25;
-            const sp = SPECIES[P.sp], land = sp.eats.filter((f) => !FOODS[f].water && foodOK(f));
+            const sp = SPECIES[P.form || P.sp], land = sp.eats.filter((f) => !FOODS[f].water && foodOK(f));
             const type = land.includes(sp.fav) ? sp.fav : land[(Math.random() * land.length) | 0];
             const fx = Math.sin(p.yaw), fz = Math.cos(p.yaw), x = p.pos.x + fx * 0.6, z = p.pos.z + fz * 0.6;
             Foods.add(type, x, z, w.H(x, z), true);
@@ -917,6 +999,7 @@ const Folk = {
 // pets that live in a cage or tank at home, like real ones do
 const CAGED = { lizard: 'terrarium', snake: 'terrarium', frog: 'terrarium', turtle: 'terrarium', parrot: 'birdCage', bunny: 'hutch', hedgehog: 'hutch',
   chickadee: 'birdCage', cockatiel: 'birdCage' };   // round 7
+CAGED.butterfly = 'terrarium';   // round 10: a caterpillar (and then its butterfly) lives in a glass tank
 const CAGE_WORDS = { terrarium: 'a glass tank', birdCage: 'a big bird cage', hutch: 'a cozy pen' };
 const Homes = {
   penT: 0, kennel: null,
@@ -1009,7 +1092,7 @@ const Homes = {
     const day = nightNo();
     if (rm.bowlDay === day || Foods.list.some((f) => f.bowl === rm)) return;
     rm.bowlDay = day;
-    const sp = SPECIES[Player.sp], land = sp.eats.filter((f) => !FOODS[f].water && foodOK(f));
+    const sp = SPECIES[Player.form], land = sp.eats.filter((f) => !FOODS[f].water && foodOK(f));
     const type = land.includes(sp.fav) ? sp.fav : (land[0] || sp.eats[0]);
     const f = Foods.add(type, rm.bowl.x, rm.bowl.z, 0.06, true);
     f.bowl = rm;
@@ -1172,7 +1255,7 @@ const Foods = {
     return f;
   },
   refreshOne(f) {
-    const sp = Player.sp;
+    const sp = Player.form;
     f.edible = !!sp && canEat(sp, f.type);
     f.glow.visible = f.edible;
     const s = Player.b ? clamp(Player.m.length * 0.55, 0.32, 0.9) : 0.5;
@@ -1183,7 +1266,7 @@ const Foods = {
     if (f.gone) return;
     this.removeObj(f);
     this.list.splice(this.list.indexOf(f), 1);
-    const sp = SPECIES[Player.sp], fav = f.type === sp.fav, n = f.type === 'candy' ? 3 : fav ? 2 : 1;
+    const sp = SPECIES[Player.form], fav = f.type === sp.fav, n = f.type === 'candy' ? 3 : fav ? 2 : 1;
     S.leaves += n; S.hunger = Math.min(100, S.hunger + (fav ? 22 : 13));
     // too much junk food in a short time gives you a tummy ache
     const junk = JUNK[f.type] || 0;
@@ -1246,7 +1329,7 @@ const Foods = {
     const weights = Object.entries(w.def.foods).filter(([t, n]) => n > 0 && foodOK(t));
     const outdoors = this.list.filter((f) => !f.bowl && f.x < World.ROOM_X - 20);
     const land = outdoors.filter((f) => !f.fish).length, fish = outdoors.length - land;
-    const sp = SPECIES[P.sp];
+    const sp = SPECIES[P.form || P.sp];
     let added = 0;
     for (let k = 0; k < 12 && added < maxAdd; k++) {
       const wantFish = !!w.def.water && fish + added < 8 && Math.random() < 0.35;

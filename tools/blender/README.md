@@ -496,6 +496,75 @@ Two more birds on `bird.py` and the biggest land animal on `ungulate.py`. Things
   and `applyAge` sets the bind matrices to the current rest pose. The paw pivots sit near the ground so the small feet
   stand on it. `meta()` gives the belly point for lying down (the deepest part of the belly).
 
+## The T. rex (`trex.py`)
+
+- Tyrannosaurus rex at full size: 11.7 m long, 2.1 m wide, the hips 3.45 m up, the top of the back and the head 4.3 m.
+  The body is one loft from the tail tip to the chest (level, balanced over the hips, a keel under the hips that it
+  rests on lying down), the neck a short thick sweep, the head a loft in its own frame (`hframe()`): deep and wide at
+  the back so the eyes look forward, heavy brow bosses and small hornlets, a rugose snout, closed lips (`lip_u()`) with
+  only the tips of the upper teeth showing (`TEETH`), no grin. Huge thighs, thick shins, three big toes with claws
+  (`bird.toes`) and a dewclaw; tiny two-fingered arms with claws.
+- Skin (height field per texel): pebbly scales, bigger ones down the back, rugose knobs on the head, rings on the shins.
+  Paint: earthy brown with an olive top, a paler belly, faint darker bands and a darker mask round the eye.
+- It is a biped in the legged animator (`anim.biped`, round 10: the hind legs are the first legs in its list, so the
+  leg height comes from them): the two legs alternate at every speed; eating, it tips forward over the hips and bends
+  its knees (`eatPitch`, `eatDrop`); asleep it folds its legs under it and lays its head down (`sleep.style 'fold'`).
+- The hatchling: the game's baby maps with its own size (`size.baby`, `baby.rebind`), long legs, a big head with big
+  eyes, a short snout, and downy fuzz: fur shells on babies only (`FUR` with `babyOnly`, `fur()`, `flow()`), 4.5 cm in
+  rig units (the baby maps do not scale shell length). Its tiny arms take the role `arm` (`baby.roles`): as legs they
+  counted in how far the baby skeleton drops and left it floating. The eating crouch shrinks with it (`R.strideK`).
+- Weights are the sculpt's own: the body chain by z, the legs by height (the toes on the paw bone), the arms along the
+  upper arm and the forearm, rooted in the chest.
+- Two fixes for every `baby.rebind` baby (round 10): the baby collar plan took the bone offsets on top of a morph that
+  already carries them (the band and the tag landed far below the neck), and `baby.tagK` shrinks the tag for a baby far
+  smaller than the adult (crocodile 0.4, T. rex 0.3). The crocodile hatchling now uses `baby.rebind` too: its folds at
+  the front legs and the neck are gone.
+
+## The giraffe (`giraffe.py`)
+
+- A reticulated giraffe at full size: 5.05 m to the tips of the ossicones, 4.1 m from the lips to the rump, 1.0 m wide.
+  A short deep trunk loft on very long legs (sweeps with knobby knees, hocks and fetlocks, cloven hooves `U.cloven`), the
+  withers high and the back sloping down to the rump, the neck a sweep with a short mane along its top (`MANE`: round
+  cones on the neck's top line), the head a loft in its own frame with big eyes, two ossicones with black hair knobs
+  (`OSS`), a median lump, leaf ears (`U.ear`, on their own bones), soft lips; a long thin tail with a black tuft.
+- The coat is a Voronoi pattern (`_reticulate()`): polygon patches parted by thin white lines, darker centers, the cells
+  shrinking up the neck (0.18 to 0.1 m), down the legs and on the face; plain cream below the knees and the hocks, a
+  paler belly, a tan face, a pale muzzle. The calf has its own small color map: paler orange patches, wider lines.
+- Weights: the trunk by z, the neck along its straight line from the base to the poll, the head and the ears, the legs
+  by height (the hooves on the paw bones), the tail down its length.
+- Animation (game): a pace (both legs on one side together), a gallop with the hind legs first and the body rocking
+  (`pitchRun`), the neck nodding (`nod`, `runNeck`); eating, the front legs splay a little (`eatSplay`) and the neck
+  swings down to the ground; asleep it folds its legs and curls the neck back over its body (`sleep.neck` yaw 3.0).
+  The calf is the game's baby maps (long legs, a shorter neck, a bigger head and eyes): about 1.7 m tall in the game.
+
+## Round 10: the fruit bat (`bat.py`)
+
+A flying fox built on the carnivore helpers (head frame, eye, ear, coat strokes, fur shells), sculpted in its
+flight pose with the wings spread flat in the plane of the arm (y = `YM`). Things that are new or took a few tries:
+- The membranes are part of the sculpt: a thin plate (1.3 to 2 mm thick, rounded rims) cut to a 2D outline in the
+  x-z plane (`_outline()`: the leading edge in front of the arm and the 2nd finger, scalloped trailing edges between
+  the finger tips, the arm wing's long hollow edge back to the flank), its signed distance rastered once at 0.5 mm
+  (`_memb2d()`) and looked up bilinearly. The fingers, forearm, humerus and thumb are round cones in the same plane.
+  `grid()` samples y finely (0.5 mm) only across the wing plane, so the plate meshes cleanly at a 2 to 3 mm voxel.
+- Every skin weight is made in `fix_weights` (`WEIGHT_SMOOTH = (0, 0)`): the hand wing by the direction from the
+  wrist, between the two neighboring finger bones; the arm wing on its own bones (`f4` to `f9`, the game's
+  `BAT.plag`, like a bird's tertials and secondaries) between the two nearest along the arm, the arm itself at the
+  leading edge, the 5th finger behind the wrist, the hips at the flank. Weighting the arm wing to the hips and the
+  arm bones directly made huge panels when the wing folded (a vertex between two bones that turn 80 and 165 degrees
+  lands far from both); its own bones fold back along the arm with it, and the game shrinks them across the wing as
+  it folds (`fb[i].sc`), so the membrane gathers in like a real one.
+- Only wing parts may take wing weights: body vertices near the wing plane (the ruff, the cheeks) once took the arm's
+  and moved with the folding wing, and the thumb claw's tip stayed on the head (a spike from the folded wing back to
+  where the thumb was); `onw` now needs the wing parts nearer than the body, and everything out past the flank is wing.
+- A quick check for weights like these: dump the game's bone matrices for a pose (each bone's `matrixWorld` relative
+  to the rig root), skin the `-lo.npz` mesh with them in numpy, and list the vertices that land far from the body.
+  It found both bugs above faster than renders did.
+- Pups: the game gives them a bigger head and eyes and short wings (`baby.wing`); `baby_paint` makes them gray with a
+  pale wash where the ruff will be, and the fur shells are longer.
+
+The butterfly and the caterpillar (round 10) are procedural (no Blender files): see `SPEC.butterfly`,
+`SPEC.caterpillar` and their animators in `40_animals.js`.
+
 ## Budget
 
 Pig: about 6.3k triangles, 4.8k vertices, 1024 x 1024 color and normal maps: 38 KB mesh (format 2; 136 KB before) +
@@ -683,3 +752,86 @@ Crocodile (`VOXEL=0.006 TRIS=3300 TEX=704 WEIGHTS=transfer`; TRIS here gives abo
 Brachiosaurus (`VOXEL=0.03 TRIS=5300 TEX=1024 WEIGHTS=transfer`): 8.5k triangles; 1024 color (WebP 68) and normal (WebP
 50) maps, 384 hatchling color map: 58 KB mesh + 18 + 123 + 4 KB, 206 KB of files, about 275 KB in the page. About 4
 minutes for the whole run.
+
+T. rex (`VOXEL=0.03 TRIS=4400 TEX=768 WEIGHTS=transfer`): 6.9k triangles; 768 color (WebP 64) and normal (WebP 34) maps,
+256 hatchling color map, 384 fur map: 55 KB mesh + 14 + 51 + 3 + 8 KB, 134 KB of files, about 190 KB in the page plus
+about 33 KB of icons (the round 10 budget is about 220 KB per animal, icons included).
+
+Giraffe (`VOXEL=0.02 TRIS=3600 TEX=768 WEIGHTS=transfer`): 6.4k triangles; 768 color (WebP 40: the patch pattern is
+most of the bytes) and normal (WebP 44) maps, 192 calf color map: 48 KB mesh + 58 + 18 + 9 KB, 135 KB of files, about
+192 KB in the page plus about 45 KB of icons.
+
+## Round 10: the polar bear (`polarbear.py`)
+
+A polar bear, 2.45 m from the nose to the tail and 1.3 m at the shoulder, in meters like the other big animals (the
+cat template's numbers are cat sized; a bear is its own file in the cat file's layout). Things that are new:
+- The long coat is part of the sculpt (about 5 to 10 cm over the body, soft clumps of locks from a low frequency
+  noise, `_locks()`), with long fur shells over it (`len` 0.1, 5 layers), so it is bulky and a little shaggy far away
+  too. Its outline needs thick legs: as tubes under a fluffy body the legs read thin and the bear read as a sheep.
+- A long narrow head with a Roman nose (a ridge down the top of the muzzle), small round furry ears, small eyes, a big
+  black nose pad with slit nostrils, black lips painted as a thin band only toward the front (a wide band all along the
+  mouth read as a painted smile).
+- Plantigrade hind feet: the heel (`HEEL`) on the ground behind a long sole (`CV.paw` with a long pad); the front paws
+  turned in (`yaw` -0.18, the pigeon-toed walk). The game's rolling walk is `anim.roll`.
+- Swimming low with the head and the back above the water: `floatDepth` 1.12 and, in the game, `anim.swimTrail` (round
+  10): the hind legs trail behind with a small kick while the front legs paddle.
+- The collar: the neck is carried low, so a slice across it also cut the front paws and the shoulders below it; the
+  collar sits near the head (`at: ['neck2', 'head', 0.3]`) and ignores anything farther than `maxR` 0.3.
+- Budget (`VOXEL=0.01 TRIS=5600 TEX=768`, then rings across the body and the neck): 8.0k triangles, no cards; 768 color
+  and normal maps (normal WebP 58), 384 fur map, 256 cub color map: 70 KB mesh + 22 + 15 + 7 + 2 KB, about 160 KB in the
+  page plus about 30 KB of icons.
+
+## Round 10: big cats on the cat template (`bigcat.py`, `snowleopard.py`)
+
+A big cat is the house cat scaled up: `bigcat.load(breed)` runs `cat.py` in its own module with the breed's overrides
+(its own TRUNK, NECK, HEAD, TAIL tables and landmarks, in cat units), the breed replaces the functions it needs there
+(`C.paint = paint`, `C.head = head`; inside them it calls the template's hooks as `C.x`), and
+`bigcat.install(globals(), C, KS)` sets the pipeline's hooks in game meters: points are divided by KS on the way in and
+lengths multiplied by KS on the way out (shape, parts, grid, weights, rings in `lowpoly_fix`, meta, kitten offsets,
+whisker cards). All of the cat's masks, weights, coat strokes and kitten offsets work unchanged at any size. The game's
+skeleton is `SPEC.cat()` scaled by the same factor (`bigCat(k)` in 40_animals.js), with any bones the breed moves (its
+own tail) moved the same way in both places.
+
+`cat.py` takes three more overrides for this (its own defaults are unchanged, so the cats' files are too):
+`TAIL_BONES` and `TB` (a tail with more or fewer bones: the tail weights are spread over however many there are) and
+`TAIL_TD` (how far from the tail's middle line a point still rides on the tail bones: a thick tail needs more).
+
+The snow leopard (KS 2.5: about 1.2 m from the nose to the rump, a 1 m tail):
+- A deeper, wider body than the house cat's (the belly lower, so the legs look shorter), a thick neck and a full
+  throat, stout legs (`_stout`: the leg sections thickened most at the foot) on big round paws, small rounded ears,
+  smaller eyes with round pupils (a big cat's pupils are round; the house cat's slit pupils and big eyes made it read
+  as a white kitty).
+- A long thick tail on four bones, carried low and curling up at the tip (the cat's tail has three).
+- A coat in the sculpt (about 1 cm, `_locks()` noise) under long fur shells. The coat on the thighs fades out over the
+  hips: it made the thigh tops stand up over the back, worse on a cub.
+- Paint: smoky gray along the back, pale gray-cream sides, white underneath; open broken rosettes on the body (Worley
+  rings), small solid spots on the head and the legs, blotches and then rings on the tail and a dark tip. The first
+  palette rendered nearly white in the game's sunlight; the coat colors are about 20% darker than they look in a
+  photo. Cubs: grayer, with bold solid spots.
+- Budget (`VOXEL=0.0062 TRIS=4600 TEX=768`): 6.5k triangles plus 192 in whisker cards; 768 maps (color WebP 62,
+  normal 54), 256 cub map (`BABY_TEX`), fur and whisker textures: 63 KB mesh + 41 + 11 + 8 + 7 + 5 KB, about 187 KB in
+  the page plus about 31 KB of icons. (The rosettes make the color map the biggest of the three big cats'.)
+
+The saber-toothed cat, Smilodon fatalis (`smilodon.py`, KS 3.8: about 1.85 m from the nose to the rump, 0.95 m at the
+shoulder):
+- A heavy deep body, the back sloping from high humped shoulders (a big round cone over the shoulder blades) down to the
+  hips, very thick forelegs (`_stout` plus a great upper arm and forearm), big paws, a thick neck. The thigh tops are cut
+  off under the line of the back (`smax` with a plane): the house cat's thighs stood up over the hips.
+- A bobtail on two bones (`TAIL_BONES`, `TB`).
+- Its own `head()`, the house cat's with the muzzle lengthened (the head table's front rows and every muzzle part moved
+  forward by `_MS`: the house cat's short flat face read as a hamster with tusks), a lower forehead, brows over smaller
+  deep-set eyes, a bigger nose, and the flange of the lower jaw as a deep flat-fronted chin.
+- The sabers: two curved blades (round cones flattened across, `fang()`), set outside the lower jaw so they show from
+  the upper lip down (set inside it they showed only below the chin). Painted ivory from the same distance function,
+  no fur on them, kept by the decimation (`keep`), in the head's UV island, weighted to the head bone. A kitten's are
+  pulled up toward the gum in its baby offsets, so only the tips show.
+- A plain tawny coat, short (fur shells at 55% of the cat's lengths), faint darker spots, a pale muzzle and chin with
+  dark whisker spots, a dark tip to the tail. Kittens: bold dark spots. Whisker cards as the cat's.
+- Budget (`VOXEL=0.0085 TRIS=4800 TEX=768`): 6.9k triangles plus 192 in whisker cards; 768 maps (color WebP 72, normal
+  58), 384 kitten map, fur and whisker textures: 65 KB mesh + 26 + 14 + 9 + 5 + 6 KB, about 173 KB in the page plus about
+  27 KB of icons.
+
+Fruit bat (`VOXEL=0.002 TRIS=6500 TEX=768`, normal map WebP 64): 6.5k triangles (7.2k in the game with the eyes, 15.6k
+at detail 2 with 4 fur shell layers); 768 color and normal maps (the membranes get a smaller share of them,
+`uv_weight`), 256 pup color map, fur map: 45 KB mesh + 12 + 20 + 1 + 8 KB, about 120 KB in the page, 190 KB with its
+two icons. The procedural butterfly (2.9k triangles, 3.7k at detail 2) and caterpillar (2.2k) add only code and icons.

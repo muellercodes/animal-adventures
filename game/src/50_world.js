@@ -62,6 +62,92 @@ const World = (() => {
      rules: plants scattered everywhere, tile by tile ("per" = how many per 64 m tile at full strength)
      landmarks: what each 256 m region away from the middle may hold
      ambient: wild animals that show up around you out in the wilds */
+  /* ---------- round 10: the zoos (their layout is in 49_plan ZOOS) ---------- */
+  const PEN_NAMES = { giraffe: 'Giraffes', rhino: 'Rhinos', croc: 'Crocodiles', polar: 'Polar bears', leopard: 'Snow leopards', aviary: 'Birds', otter: 'Otters',
+    deer: 'Deer', moose: 'Moose', bats: 'Fruit bats', fox: 'Foxes', goats: 'Goats', pigs: 'Pigs', bunnies: 'Bunnies', hens: 'Chickens',
+    brachio: 'Brachiosaurus', trex: 'T. rex', saber: 'Saber-toothed cats' };
+  const SIDE_ROT = { n: 0, s: Math.PI, e: Math.PI / 2, w: -Math.PI / 2 };
+  function buildZoo(w, Z) {
+    const H = w.H, hw = Z.hw, hd = Z.hd, at = (lx, lz) => [Z.x + lx, Z.z + lz];
+    // the outer fence, open at the gate
+    const gw = Z.id === 'dino' ? 9 : 6;
+    const side = (a, b, open) => {
+      if (!open) { w.fenceLine([at(a[0], a[1]), at(b[0], b[1])], Z.wall); return; }
+      const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2, len = Math.hypot(b[0] - a[0], b[1] - a[1]), ux = (b[0] - a[0]) / len, uz = (b[1] - a[1]) / len;
+      w.fenceLine([at(a[0], a[1]), at(mx - ux * gw / 2, mz - uz * gw / 2)], Z.wall);
+      w.fenceLine([at(mx + ux * gw / 2, mz + uz * gw / 2), at(b[0], b[1])], Z.wall);
+    };
+    side([-hw, -hd], [hw, -hd], Z.gate === 's'); side([hw, -hd], [hw, hd], Z.gate === 'e'); side([hw, hd], [-hw, hd], Z.gate === 'n'); side([-hw, hd], [-hw, -hd], Z.gate === 'w');
+    // the entrance arch with the zoo's name
+    const [gx, gz] = Plan.zooGate(Z, 0), rot = SIDE_ROT[Z.gate];
+    if (Env.zooArch) {
+      const look = { cityzoo: { bg: '#2f6b3a' }, petting: { bg: '#b8572e', stone: 0x9a7c5c }, dino: { bg: '#3a3a30', ink: '#f2c23a', stone: 0x6a665e, h: 6.4 } }[Z.id] || {};
+      const a = Env.zooArch(Z.name, Object.assign({ w: gw }, look)); a.userData.bake = 1; w.addObj(a, gx, gz, rot);
+      for (const c of a.userData.colliders) { const [x, z] = toWorld(gx, gz, rot, c.x, c.z); w.addCollider({ x, z, r: c.r }); }
+    }
+    // the pens, each with its name on a sign by its gate
+    for (const p of Z.pens) {
+      const big = p.hw > 15;
+      w.addEnclosure({ x: p.wx, z: p.wz, hw: p.hw, hd: p.hd, rot: 0, style: p.style, gate: p.gate, gateLen: big ? 3 : 2, mud: p.mud, platform: p.platform, coop: p.coop, trough: !p.pool && !p.coop && Z.id !== 'dino' });
+      const out = { n: [0, p.hd + 1.3], s: [0, -p.hd - 1.3], e: [p.hw + 1.3, 0], w: [-p.hw - 1.3, 0] }[p.gate], along = p.gate === 'n' || p.gate === 's' ? [3.2, 0] : [0, 3.2];
+      if (PEN_NAMES[p.id]) w.addSign(PEN_NAMES[p.id], p.wx + out[0] + along[0], p.wz + out[1] + along[1], SIDE_ROT[p.gate]);
+      const inPen = (m) => (r) => [p.wx + (r() * 2 - 1) * (p.hw - m), p.wz + (r() * 2 - 1) * (p.hd - m)];
+      const dry = (x, z) => !p.pool || Math.hypot(x - p.pool.wx, z - p.pool.wz) > p.pool.r + 2.5;
+      // the whole pen counts as taken (addEnclosure), so its plants and rocks only keep apart from each other
+      const free = [];
+      if (p.trees) w.scatter({ type: p.id === 'giraffe' ? 'oak' : 'birch', variants: [0, 1], n: p.trees, tries: p.trees * 12, free, sample: inPen(4), test: dry, gap: 7, scale: [1.0, 1.3] });
+      if (p.rocks) w.scatter({ type: p.id === 'polar' ? 'snowrock' : 'rock', variants: [0, 1, 2], n: p.rocks, free, sample: inPen(2), test: dry, gap: 3, scale: [1.2, 2.4] });
+      if (p.jungle) {
+        w.scatter({ type: 'palm', variants: [0, 1], n: p.jungle, free, sample: inPen(5), test: dry, gap: 9, scale: [1.1, 1.5] });
+        w.scatter({ type: 'bigleaf', n: Math.round(p.jungle * 0.8), free, sample: inPen(3), test: dry, gap: 4, scale: [1.2, 1.8] });
+        w.scatter({ type: 'fern', n: p.jungle * 2, free, sample: inPen(2), test: dry, gap: 2, scale: [1.2, 1.8] });
+      }
+    }
+    // benches, lamps and trash cans along the paths (not on Dino Park's narrow walkway between the pens)
+    for (const [ax, az, bx, bz, wd] of Z.wpaths) {
+      const len = Math.hypot(bx - ax, bz - az), ux = (bx - ax) / len, uz = (bz - az) / len, nx = -uz, nz = ux;
+      const inside = (x, z) => Math.abs(x - Z.x) < hw - 2 && Math.abs(z - Z.z) < hd - 2;
+      for (let s = 9, k = 0; s < len - 6; s += 15, k++) {
+        const sd = k % 2 ? 1 : -1, x = ax + ux * s + nx * sd * (wd / 2 + 0.9), z = az + uz * s + nz * sd * (wd / 2 + 0.9);
+        if (!inside(x, z) || Plan.zooPathD(Z, x, z) < 0.3) continue;
+        const face = Math.atan2(-nx * sd, -nz * sd);
+        if (Z.id !== 'dino' && k % 3 !== 2) w.putProp('parkbench', 0, x, z, face);
+        else w.putProp('parklamp', 0, x, z, face);
+        if (k % 4 === 1) w.putProp('trashcan', 0, x + ux * 1.4, z + uz * 1.4, face);
+      }
+    }
+    // shade trees and flower beds between the pens and the paths
+    const free = (x, z) => !Z.pens.some((p) => Math.abs(x - p.wx) < p.hw + 2.5 && Math.abs(z - p.wz) < p.hd + 2.5) && Plan.zooPathD(Z, x, z) > 2.5 && Math.abs(x - Z.x) < hw - 3 && Math.abs(z - Z.z) < hd - 3;
+    const inZoo = (r) => [Z.x + (r() * 2 - 1) * (hw - 3), Z.z + (r() * 2 - 1) * (hd - 3)];
+    const shade = { cityzoo: [['oak', 16], ['maple', 12], ['birch', 10], ['bush', 14]], petting: [['oak', 3], ['apple', 2], ['bush', 4]], dino: [['palm', 18], ['bigleaf', 14], ['fern', 20]] }[Z.id] || [];
+    for (const [type, n] of shade) w.scatter({ type, variants: type === 'bigleaf' || type === 'fern' ? [0] : [0, 1], n, sample: inZoo, test: free, gap: type === 'bigleaf' || type === 'bush' ? 4 : type === 'fern' ? 2 : 8, scale: [1.0, 1.35], spot: type === 'apple' ? 'apple' : type === 'bush' ? 'berries' : null, spotR: type === 'bush' ? 1.1 : 2.6 });
+    if (Z.id !== 'dino') w.scatter({ type: 'flowerbed', variants: [0, 1], n: Z.id === 'cityzoo' ? 10 : 4, sample: inZoo, test: free, gap: 5 });
+    // the things each kind of zoo has by its gate
+    const [ix, iz] = Plan.zooGate(Z, -9), inward = rot + Math.PI;
+    const off = (d, s) => toWorld(ix, iz, rot, s, d);
+    if (Z.props === 'city') {
+      w.putProp('parkbooth', 0, ...off(2, 7), inward);
+      w.putProp('foodcart', 0, Z.x - hw + 14, Z.z - 8, Math.PI / 2);
+      for (let i = 0; i < 4; i++) w.putProp('picnic', 0, Z.x - hw + 9 + (i % 2) * 7, Z.z + 6 + Math.floor(i / 2) * 8, 0);
+      w.putProp('drinking', 0, ...off(-2, -6), inward);
+    } else if (Z.props === 'farm') {
+      w.scatter({ type: 'hay', n: 3, sample: (r) => [Z.x + (r() * 2 - 1) * 4, Z.z - hd + 3 + r() * 2], gap: 2.5, spot: 'hay', spotR: 1 });
+      w.putProp('picnic', 0, Z.x + 18, Z.z - hd + 4, 0);
+    } else if (Z.props === 'dino') {
+      w.putProp('kiosk', 0, ...off(2, 9), inward);
+      w.putProp('foodcart', 1, ...off(-1, -10), inward);
+      for (let i = 0; i < 3; i++) w.putProp('picnic', 0, Z.x - 30 - i * 9, Z.z + hd - 12, 0);
+      w.scatter({ type: 'palm', variants: [0, 1], n: 8, sample: (r) => [Z.x + (r() < 0.5 ? -1 : 1) * (8 + r() * 70), Z.z + hd - 4 - r() * 8], gap: 7, scale: [1.0, 1.3] });
+    }
+  }
+  function buildZoos(w) { for (const Z of Plan.ZOOS || []) buildZoo(w, Z); }
+  // the animals in the zoo pens (only species that are in the game)
+  const ZOO_ANIMALS = () => {
+    const out = [];
+    for (const Z of Plan.ZOOS || []) for (const p of Z.pens) for (const [sp, n, kids] of p.sp) out.push({ sp, n, kids, pen: { x: p.wx, z: p.wz, hw: p.hw - 1.5, hd: p.hd - 1.5, rot: 0 }, zoo: Z.id });
+    return SP7(out);
+  };
+
   const DEFS = {
     land(seed) {
       const n1 = makeNoise(seed), n2 = makeNoise(seed + 1), n3 = makeNoise(seed + 2), n4 = makeNoise(seed + 3), n5 = makeNoise(seed + 4);
@@ -174,6 +260,8 @@ const World = (() => {
             w.addScarecrow(PATCH.x + 2, PATCH.z - 2, 0.6);
             w.addScarecrow(GARDEN.x + 3, GARDEN.z + 1, 2.4);
           }
+          // round 10: the City Zoo, the petting zoo and Dino Park
+          buildZoos(w);
         },
         rules: [
           { type: 'oak', variants: [0, 1, 2], per: 1.2, test: away, gap: 11, spot: 'acorn', spotR: 4, minH: 0.7, scale: [1.1, 1.5], mask: (x, z) => 0.6 + 0.4 * woods(x, z) },
@@ -217,10 +305,14 @@ const World = (() => {
           ...SP7([{ sp: 'dog', n: 1, home: [BARN.x + 12, BARN.z + 10], range: 14 }, { sp: 'cat', n: 1, home: [BARN.x - 6, BARN.z + 8], range: 10 },
             { sp: 'chickadee', n: 4, home: [22, -76], range: 24 }, { sp: 'chickadee', n: 3, home: [Plan.CITY.x + 45, Plan.CITY.z - 15], range: 26 },
             { sp: 'eagle', n: 1, home: [LAKE.x, LAKE.z], range: 40 }]),
+          // round 10: butterflies by the farm's flowers
+          ...SP7([{ sp: 'butterfly', n: 5, home: [-20, -60], range: 30 }]),
+          // round 10: the zoo animals in their pens
+          ...ZOO_ANIMALS(),
         ],
         ambient: [{ sp: 'bunny', w: 3, kids: 1 }, { sp: 'deer', w: 2, kids: 1 }, { sp: 'squirrel', w: 2 }, { sp: 'fox', w: 1 }, { sp: 'raccoon', w: 1 }, { sp: 'hedgehog', w: 1 }, { sp: 'weasel', w: 1 }, { sp: 'duck', w: 2, water: true, kids: 3 }, { sp: 'swan', w: 1, water: true }, { sp: 'otter', w: 1, water: true }],
         foods: { grass: 4, worm: 3, apple: 3, carrot: 3, berries: 3, acorn: 2, pinecone: 1, smallfish: 3, fish: 2, pumpkin: AUTUMN ? 2 : 0,
-          seeds: 2, corn: 2, lettuce: 2, mushroom: 1, bugs: 3, twigs: 2, watermelon: 1, hay: 2, bread: 2, hotdog: 2, petfood: 2 },
+          seeds: 2, corn: 2, lettuce: 2, mushroom: 1, bugs: 3, twigs: 2, watermelon: 1, hay: 2, bread: 2, hotdog: 2, petfood: 2, nectar: 2 },
         walk: [[10, -2], [-30, -12], [18, 16], [25, -70], [-50, -12], [70, -55], [100, -55], [126, -55], [40, 10], [-20, 30], [60, -30], [-60, 40]],
         villageWalk: [[60, -55], [80, -55], [100, -55], [120, -55], [130, -55], [160, -55], [200, -55], [240, -55], [100, 2], [150, 2], [210, 2], [150, 54], [210, 54], [135, -20], [195, 30], [226, -26]],
         // places for town life (jobs, school, the fair)
@@ -292,6 +384,8 @@ const World = (() => {
           { sp: 'moose', n: 1, home: [LAKE.x - 30, LAKE.z - 20], range: 30 },
           // round 7
           ...SP7([{ sp: 'chickadee', n: 6, home: [0, 20], range: 50 }, { sp: 'eagle', n: 2, home: [LAKE.x, LAKE.z], range: 45 }]),
+          // round 10: fruit bats in the woods
+          ...SP7([{ sp: 'bat', n: 4, home: [-20, 40], range: 40 }]),
         ],
         ambient: [{ sp: 'squirrel', w: 3 }, { sp: 'deer', w: 2, kids: 1 }, { sp: 'fox', w: 2 }, { sp: 'owl', w: 2 }, { sp: 'bunny', w: 2 }, { sp: 'raccoon', w: 1 }, { sp: 'hedgehog', w: 1 }, { sp: 'moose', w: 1 }, { sp: 'otter', w: 1, water: true }],
         foods: { pinecone: 4, acorn: 2, berries: 3, worm: 3, grass: 1, smallfish: 2, fish: 2, mushroom: 4, bugs: 3, twigs: 3, seeds: 1 },
@@ -402,6 +496,8 @@ const World = (() => {
           ...SP7([{ sp: 'crocodile', n: 1, home: [LAG.x, LAG.z], range: 14, water: true }]),
           // round 8: a herd of brachiosauruses with a baby
           ...SP7([{ sp: 'brachiosaurus', n: 2, kids: 1, home: [45, 35], range: 45 }]),
+          // round 10: a T. rex in the far jungle
+          ...SP7([{ sp: 'trex', n: 1, home: [-110, -90], range: 40 }]),
         ],
         ambient: [{ sp: 'parrot', w: 4 }, { sp: 'lizard', w: 3 }, { sp: 'frog', w: 2 }, { sp: 'snake', w: 2 }, { sp: 'turtle', w: 1, water: true }, { sp: 'otter', w: 1, water: true }],
         foods: { berries: 4, apple: 3, worm: 3, grass: 1, smallfish: 2, fish: 2, banana: 4, bugs: 3, twigs: 2, watermelon: 1, mushroom: 1 },
@@ -465,9 +561,11 @@ const World = (() => {
           // round 7: rhinos on the open grass, hamsters in the fields, chickadees by the big tree
           ...SP7([{ sp: 'rhino', n: 2, kids: 1, home: [-40, 80], range: 40 }, { sp: 'hamster', n: 3, home: [30, -20], range: 30 },
             { sp: 'chickadee', n: 4, home: [GIANT[0], GIANT[1]], range: 24 }, { sp: 'cockatiel', n: 5, home: [70, 10], range: 35 }]),
+          // round 10: giraffes near the rhinos, butterflies over the flowers
+          ...SP7([{ sp: 'giraffe', n: 3, kids: 1, home: [-10, 95], range: 40 }, { sp: 'butterfly', n: 8, home: [10, 30], range: 45 }]),
         ],
         ambient: [{ sp: 'bunny', w: 3, kids: 2 }, { sp: 'deer', w: 2, kids: 1 }, { sp: 'fox', w: 1 }, { sp: 'goat', w: 1 }, { sp: 'hedgehog', w: 1 }, { sp: 'squirrel', w: 1 }, { sp: 'swan', w: 1, water: true }, { sp: 'duck', w: 1, water: true, kids: 3 }],
-        foods: { grass: 4, berries: 3, apple: 2, acorn: 2, worm: 2, smallfish: 2, pumpkin: AUTUMN ? 1 : 0, seeds: 3, bugs: 3, corn: 2, watermelon: 2, lettuce: 1, hay: 2, twigs: 1 },
+        foods: { grass: 4, berries: 3, apple: 2, acorn: 2, worm: 2, smallfish: 2, pumpkin: AUTUMN ? 1 : 0, seeds: 3, bugs: 3, corn: 2, watermelon: 2, lettuce: 1, hay: 2, twigs: 1, nectar: 3 },
         walk: [[8, 14], [-40, 14], [0, 4], [40, 12], [80, -4], [-30, 50], [30, -40], [-90, -10], [GIANT[0] + 12, GIANT[1]]],
       };
     },
@@ -515,8 +613,78 @@ const World = (() => {
         walk: [],
       };
     },
+
+    // round 10: snowy mountains to the north, pine woods and a frozen lake in the middle, an icy sea to the south
+    snow(seed) {
+      const n1 = makeNoise(seed), n2 = makeNoise(seed + 1), n3 = makeNoise(seed + 2), n4 = makeNoise(seed + 3);
+      const c = { snow: P(0xb9c3cf), shade: P(0x8e9fb3), blue: P(0x7f96b1), rock: P(0x3c3936), rockLt: P(0x5c5853), ice: P(0x5f93b0), iceDk: P(0x356c8c),
+        gravel: P(0x7c7a76), dark: P(0x3a3c3e) };
+      const SEA = (x) => 84 + 14 * Math.sin(x * 0.017 + 0.6) + 7 * Math.sin(x * 0.051);      // the shore: the sea lies south of it
+      const MTN = (x) => -62 + 16 * Math.sin(x * 0.013) + 8 * Math.sin(x * 0.041 + 2);    // the mountains rise north of it
+      const LAKE = { x: -62, z: 8, r: 24 };                                                   // frozen: flat ice just above the water
+      function H(x, z) {
+        let h = 1.8 + 5 * (fbm(n1, x * 0.008, z * 0.008, 4) * 0.5 + 0.5) + 0.6 * n2(x * 0.04, z * 0.04);
+        const m = smooth((MTN(x) - z) / 150);
+        if (m > 0) { const rid = 1 - Math.abs(fbm(n3, x * 0.011, z * 0.011, 4)); h += m * (6 + 44 * rid * rid) + m * m * 20 * (fbm(n4, x * 0.004, z * 0.004, 2) * 0.5 + 0.5); }
+        h = lerp(h, -3.4 + 0.8 * n2(x * 0.02, z * 0.02), smooth((z - SEA(x) + 4) / 24));
+        if (ring(x, z) < CORE + 20) {
+          const dx = x - LAKE.x, dz = z - LAKE.z, a = Math.atan2(dz, dx), r = LAKE.r * (1 + 0.15 * n4(Math.cos(a) * 1.4, Math.sin(a) * 1.4));
+          h = lerp(h, 0.08, 1 - smooth((Math.hypot(dx, dz) / r - 0.82) / 0.3));
+        }
+        return h;
+      }
+      const inLake = (x, z) => Math.hypot(x - LAKE.x, z - LAKE.z) < LAKE.r * 1.25;
+      const clear = (x, z) => Math.hypot(x, z - 20) > 10 && !inLake(x, z);
+      const woods = (x, z) => smooth((fbm(n4, x * 0.009, z * 0.009, 3) + 0.2) / 0.45);
+      return {
+        name: 'Snowy Mountains', blurb: 'Snowy peaks, pine woods, a frozen lake and an icy sea. Polar bears and snow leopards live here.', spawn: [0, 20],
+        H, fog: [45, 230], water: { color: 0x3f7088, deep: 0x13293a }, people: 0,
+        grassH: [0.05, 0.1], grassTint: [0.2, 0.3, 0.4, 0.7], flowerColors: [0xffffff],
+        paint(o, x, z, h) {
+          // drifts: soft blue-gray hollows between brighter wind-packed ridges, and long wind ripples
+          o.copy(c.snow); mix(o, c.shade, (n2(x * 0.05, z * 0.05) * 0.5 + 0.5) * 0.6); mix(o, c.blue, smooth(n3(x * 0.018, z * 0.018) + 0.15) * 0.45);
+          mix(o, c.shade, smooth(Math.sin(x * 0.9 + z * 0.35 + 3 * n4(x * 0.03, z * 0.03)) * 0.5 + 0.2) * 0.18);
+          // bare rock where the slope is too steep for snow to stay
+          const sl = Math.abs(H(x + 1.5, z) - H(x - 1.5, z)) + Math.abs(H(x, z + 1.5) - H(x, z - 1.5));
+          const rk = smooth((sl - 2.6) / 1.8) * (0.7 + 0.3 * n4(x * 0.2, z * 0.2));
+          if (rk > 0) { mix(o, c.rockLt, rk); mix(o, c.rock, rk * (0.5 + 0.5 * n2(x * 0.3, z * 0.3))); }
+          // the sea shore: wet gravel and dark stones under the water (not on the frozen lake)
+          if (!inLake(x, z)) shore(o, h, c.gravel, c.dark);
+          // the frozen lake: blue ice with darker cracks and wind-swept snow
+          if (inLake(x, z) && h < 0.2) { const k = smooth((0.2 - h) / 0.1); mix(o, c.ice, k); mix(o, c.iceDk, k * (Math.abs(n3(x * 0.15, z * 0.15)) < 0.05 ? 0.7 : 0)); mix(o, c.snow, k * smooth(n1(x * 0.09, z * 0.09) * 1.5 - 0.3) * 0.6); }
+        },
+        grassAt() { return 0; },
+        flowersAt() { return 0; },
+        build(w) {
+          // a few floes of sea ice close to the shore by the start
+          w.scatter({ type: 'icefloe', variants: [0, 1, 2], n: 7, sample: (r) => [-40 + r() * 80, SEA(0) + 12 + r() * 26], water: true, gap: 6 });
+        },
+        rules: [
+          { type: 'snowpine', variants: [0, 1, 2], per: 9, test: clear, gap: 5, spot: 'pinecone', spotR: 2.4, minH: 0.5, maxH: 36, scale: [0.9, 1.35], mask: woods },
+          { type: 'snowpine', variants: [0, 1], per: 1.2, test: clear, gap: 7, spot: 'pinecone', spotR: 2.4, minH: 0.5, maxH: 30, scale: [0.8, 1.1] },
+          { type: 'snowrock', variants: [0, 1, 2], per: 2.4, test: clear, gap: 3, scale: [0.9, 2.2], minH: 0.3 },
+          { type: 'snowrock', variants: [0, 1, 2], per: 5, gap: 5, scale: [1.8, 4.2], minH: 9 },
+          { type: 'snowbush', variants: [0, 1, 2], per: 0.9, test: clear, gap: 4, spot: 'berries', spotR: 1.1, scale: [1.0, 1.3], minH: 0.5, maxH: 14 },
+          { type: 'dead', variants: [0, 1], per: 0.35, test: clear, gap: 10, minH: 0.5, maxH: 20 },
+          { type: 'log', per: 0.3, test: clear, gap: 5, minH: 0.5, maxH: 12 },
+          { type: 'rock', variants: [0, 1], per: 3, minH: -1.2, maxH: 0.25, gap: 2.5, scale: [0.6, 1.3], test: (x, z) => !inLake(x, z), tries: 3 },
+          { type: 'icefloe', variants: [0, 0, 1, 1, 2], per: 5, minH: -9, maxH: -1.6, water: true, gap: 7, tries: 3 },
+        ],
+        landmarks: { lake: 2, pond: 2, none: 6 },
+        wildlife: [
+          { sp: 'fox', n: 2, kids: 1, home: [40, 0], range: 50 },
+          { sp: 'owl', n: 2, home: [-30, -20], range: 40 },
+          { sp: 'moose', n: 1, home: [-70, -30], range: 30 },
+          { sp: 'squirrel', n: 2, home: [24, -24], range: 30 },
+          ...SP7([{ sp: 'eagle', n: 1, home: [0, 90], range: 50 }, { sp: 'polarbear', n: 3, kids: 1, home: [10, 80], range: 45 }, { sp: 'snowleopard', n: 2, kids: 1, home: [-20, -120], range: 50 }, { sp: 'smilodon', n: 2, home: [90, -60], range: 45 }]),
+        ],
+        ambient: [{ sp: 'fox', w: 2 }, { sp: 'owl', w: 1 }, { sp: 'moose', w: 1 }, ...SP7([{ sp: 'polarbear', w: 2 }, { sp: 'snowleopard', w: 1 }])],
+        foods: { fish: 4, smallfish: 3, berries: 2, pinecone: 3, twigs: 2, seeds: 1 },
+        walk: [],
+      };
+    },
   };
-  const SEEDS = { land: 11, forest: 23, swamp: 37, jungle: 41, meadow: 53, sky: 67 };
+  const SEEDS = { land: 11, forest: 23, swamp: 37, jungle: 41, meadow: 53, sky: 67, snow: 79 };
   const META = {}; for (const id of WORLD_ORDER) { const d = DEFS[id](SEEDS[id]); META[id] = { name: d.name, blurb: d.blurb, needsFly: !!d.needsFly }; }
   const HOUSE_COLORS = ['white', 'yellow', 'blue', 'brick', 'gray'];
   const SHOP_NAMES = { general: 'general store', bakery: 'bakery', cafe: 'cafe', post: 'post office', library: 'library', icecream: 'ice cream shop', diner: 'diner', hardware: 'hardware store', flower: 'flower shop', toy: 'toy store', pet: 'pet store', books: 'bookstore', vet: 'vet', grocery: 'grocery store', clothes: 'clothes store',
@@ -782,6 +950,8 @@ const World = (() => {
       else { const ps = propSpot(type, pr); if (ps) addSpot(ps.type, { x, z, r: (ps.r || 1) * s, y: h }, owner); }
     }
     // hand-placed scatter for the middle of a world (near a point, or at listed spots)
+    // round 10: one prop at an exact spot on the ground
+    w.putProp = (type, variant, x, z, rot = 0, s = 1) => putProp(type, variant, x, z, H(x, z), rot, s);
     w.scatter = (o) => {
       const owner = w.own || w.stat;
       const variants = o.variants || [0];
@@ -794,14 +964,16 @@ const World = (() => {
         if (o.sample) { [x, z] = o.sample(r, k); k++; }
         else { const a = r() * TAU, d = Math.sqrt(r()) * o.nearR; x = o.near.x + Math.cos(a) * d; z = o.near.z + Math.sin(a) * d; }
         const h = H(x, z);
-        const ok = h >= minH && h <= maxH && (!o.test || o.test(x, z, h, H, w)) && gapOK(x, z, gap);
+        // o.free: a list of its own to keep apart from (inside a zoo pen, which is all marked as taken)
+        const spaced = o.free ? o.free.every((q) => Math.hypot(q.x - x, q.z - z) >= (q.gap + gap) * 0.5) : gapOK(x, z, gap);
+        const ok = h >= minH && h <= maxH && (!o.test || o.test(x, z, h, H, w)) && spaced;
         if (ok) {
           const variant = variants[(r() * variants.length) | 0], s = s0 + r() * (s1 - s0), rot = r() * TAU;
           placeProp(owner, o, o.type, variant, x, z, h, s, rot);
-          markPlaced(x, z, gap);
+          if (o.free) o.free.push({ x, z, gap }); else markPlaced(x, z, gap);
           placed++;
         }
-        if (o.sample && k >= o.n) break;
+        if (o.sample && k >= (o.tries || o.n)) break;
       }
     };
 
@@ -898,7 +1070,7 @@ const World = (() => {
       w.fenceLine([corner(-1.2, hd), corner(-hw, hd), corner(-hw, -hd)]);
     };
     // a fence along a list of points. style: 'split' (default), 'rail', 'wire', 'stone', 'picket' (true also means picket)
-    const FENCE_H = { split: 1.25, rail: 1.3, wire: 1.2, stone: 0.8, picket: 0.95 };
+    const FENCE_H = { split: 1.25, rail: 1.3, wire: 1.2, stone: 0.8, picket: 0.95, dino: 3.7 };
     w.fenceLine = (pts, style) => {
       if (style === true) style = 'picket';
       style = style || 'split';
@@ -922,7 +1094,7 @@ const World = (() => {
     w.addGate = (ax, az, ang, len, style) => {
       const mx = ax + Math.cos(ang) * len / 2, mz = az + Math.sin(ang) * len / 2, y = H(mx, mz);
       let g = null;
-      if (Env.gate) { g = Env.gate(len, style === 'stone' ? 'split' : style); g.position.set(ax, H(ax, az) - 0.04, az); g.rotation.y = -ang; out.add(shade(g)); if (w.own) w.own.objs.push(g); addBlocker(g, mx, mz, len / 2 + 0.4); }
+      if (Env.gate) { g = Env.gate(len, style === 'stone' ? 'split' : style === 'dino' ? 'rail' : style); g.position.set(ax, H(ax, az) - 0.04, az); g.rotation.y = -ang; out.add(shade(g)); if (w.own) w.own.objs.push(g); addBlocker(g, mx, mz, len / 2 + 0.4); }
       const col = addCollider({ box: true, x: mx, z: mz, hw: len / 2, hd: 0.12, co: Math.cos(ang), si: -Math.sin(ang), h: 1.3, y0: y });
       if (!g) col.off = true;
       addCollider({ box: true, x: mx, z: mz, hw: len / 2, hd: 0.2, co: Math.cos(ang), si: -Math.sin(ang), wild: true });

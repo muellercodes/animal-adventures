@@ -4456,10 +4456,18 @@ void main() {
     for (let i = -2; i <= 2; i++) { c.beginPath(); c.moveTo(0, i * 8); c.lineTo(10, i * 8 - 7); c.moveTo(0, i * 8); c.lineTo(-10, i * 8 - 7); c.stroke(); }
     c.restore();
   }, { clamp: true });
-  function fallingLeaves(count = 160) {
-    const r = rng(5150);
+  // a soft round snowflake
+  const snowSprite = () => canvasTex('snowFlake', 32, 32, (c, w, h) => {
+    c.clearRect(0, 0, w, h);
+    const g = c.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+    g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.55, 'rgba(255,255,255,1)'); g.addColorStop(0.7, 'rgba(255,255,255,0)');
+    c.fillStyle = g; c.fillRect(0, 0, w, h);
+  }, { clamp: true });
+  // falling leaves in autumn; with o.snow, falling snow (round flakes that do not tumble)
+  function fallingLeaves(count = 160, o = {}) {
+    const r = rng(o.snow ? 5160 : 5150);
     const seed = new Float32Array(count * 4), col = new Float32Array(count * 3), pos = new Float32Array(count * 3);
-    const pal = [0xd8a020, 0xe07a1a, 0xc0401a, 0x9a3a14, 0xc8a040, 0x8a5a24];
+    const pal = o.snow ? [0xffffff, 0xf4f8ff, 0xe8f0fa] : [0xd8a020, 0xe07a1a, 0xc0401a, 0x9a3a14, 0xc8a040, 0x8a5a24];
     for (let i = 0; i < count; i++) {
       seed[i * 4] = r() * 40; seed[i * 4 + 1] = r() * 40; seed[i * 4 + 2] = r(); seed[i * 4 + 3] = r();
       const c = L(pal[Math.floor(r() * pal.length)]);
@@ -4470,13 +4478,13 @@ void main() {
     geo.setAttribute('seed', new THREE.BufferAttribute(seed, 4));
     geo.setAttribute('leafColor', new THREE.BufferAttribute(col, 3));
     const u = THREE.UniformsUtils.merge([THREE.UniformsLib.fog, THREE.UniformsLib.lights]);
-    Object.assign(u, { uTime: { value: 0 }, uCenter: { value: new V3() }, uAmount: { value: 0 }, uMap: { value: leafSprite() }, uScale: { value: 300 } });
+    Object.assign(u, { uTime: { value: 0 }, uCenter: { value: new V3() }, uAmount: { value: 0 }, uMap: { value: o.snow ? snowSprite() : leafSprite() }, uScale: { value: 300 }, uSnow: { value: o.snow ? 1 : 0 } });
     const m = new THREE.ShaderMaterial({
       uniforms: u, fog: true, lights: true,
       vertexShader: `
 attribute vec4 seed;
 attribute vec3 leafColor;
-uniform float uTime, uAmount, uScale;
+uniform float uTime, uAmount, uScale, uSnow;
 uniform vec3 uCenter;
 varying vec3 vCol;
 varying float vA, vRot, vSquash;
@@ -4495,9 +4503,9 @@ void main() {
   float on = step(fract(seed.x * 7.31 + seed.y * 3.17), uAmount);
   vA = on * smoothstep(0.0, 0.6, y) * smoothstep(H, H - 2.0, y) * (1.0 - smoothstep(16.0, 20.0, length(xz - uCenter.xz)));
   vRot = t * (1.2 + seed.w * 2.5) + seed.x;
-  vSquash = 0.35 + 0.65 * abs(cos(t * (1.5 + seed.z * 2.0) + seed.y));
+  vSquash = mix(0.35 + 0.65 * abs(cos(t * (1.5 + seed.z * 2.0) + seed.y)), 1.0, uSnow);
   vCol = leafColor;
-  gl_PointSize = max(3.0, uScale * (0.24 + seed.z * 0.08) / -mvPosition.z);
+  gl_PointSize = max(mix(3.0, 2.0, uSnow), uScale * (0.24 + seed.z * 0.08) * mix(1.0, 0.45, uSnow) / -mvPosition.z);
   #include <fog_vertex>
 }`,
       fragmentShader: `
@@ -5814,7 +5822,31 @@ void main() {`);
     gs.push(boxG(Math.max(0.1, len - 0.08), 0.62, 0.36, len / 2, 0.3, 0, L(0x3a3834)));
     return fenceGroup('fence-stone', [meshOf(boxUV(merge(gs), 1.4), mat('rock', { map: TX.rock() }))], { len, h: 0.82, thick: 0.62 });
   }
-  const FENCE_STYLES = { rail: buildRailFence, wire: buildWireFence, stone: buildStoneWall };
+  // round 10: Dino Park's tall concrete walls with an electric fence on top (3.6 m)
+  function buildDinoWall(len) {
+    const r = rng(strSeed('dino' + len.toFixed(2))), gs = [], metal = [];
+    const panels = Math.max(1, Math.round(len / 3)), pl = len / panels;
+    for (let i = 0; i < panels; i++) {
+      const x0 = i * pl, tint = mulc(L(0x9a958c), 0.9 + r() * 0.16);
+      const g = boxG(pl - 0.04, 2.7, 0.42, x0 + pl / 2, 1.35, 0, tint, 2);
+      paint(g, (px, py, pz) => {
+        let c = mulc(tint, 0.85 + 0.15 * fbm(px * 2.2 + i, py * 2.2, pz * 2.2, 2));
+        c = mixc(c, L(0x4a4a3c), smooth(0.7, 0.0, py) * 0.45);                       // grime and moss at the bottom
+        c = mixc(c, L(0x5c5650), smooth(0.25, 0.45, fbm(px * 1.4 + 7, py * 4, pz, 2)) * 0.35); // rain streaks
+        return c;
+      });
+      gs.push(g);
+      // a yellow and black warning band near the top
+      for (let k = 0; k < 4; k++) gs.push(boxG(pl / 8 - 0.02, 0.22, 0.44, x0 + (k * 2 + 0.5) * pl / 8, 2.45, 0, L(0xe0b020), 1));
+    }
+    gs.push(boxG(len, 0.12, 0.5, len / 2, 2.76, 0, L(0x7c776e), 1));
+    // steel posts and the wires of the electric fence
+    const posts = Math.max(2, Math.round(len / 3) + 1), step = len / (posts - 1);
+    for (let i = 0; i < posts; i++) metal.push(boxG(0.08, 0.95, 0.08, i * step, 3.25, 0, L(0x3a3c40), 1));
+    for (const y of [3.0, 3.3, 3.6]) metal.push(boxG(len, 0.025, 0.025, len / 2, y, 0, L(0x8a8c90), 1));
+    return fenceGroup('fence-dino', [meshOf(boxUV(merge(gs), 1.4), mat('concrete', { std: true, roughness: 0.9 })), meshOf(merge(metal), mat('steel', { std: true, roughness: 0.4, metalness: 0.6 }))], { len, h: 3.7, thick: 0.5 });
+  }
+  const FENCE_STYLES = { rail: buildRailFence, wire: buildWireFence, stone: buildStoneWall, dino: buildDinoWall };
 
   // pentagon picket (pointed board) between z0 and z1, from y = 0.04 to h + tip
   function picketPrism(S, x, w, h, tip, z0, z1, c) {
