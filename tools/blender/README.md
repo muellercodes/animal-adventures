@@ -732,3 +732,73 @@ about 33 KB of icons (the round 10 budget is about 220 KB per animal, icons incl
 Giraffe (`VOXEL=0.02 TRIS=3600 TEX=768 WEIGHTS=transfer`): 6.4k triangles; 768 color (WebP 40: the patch pattern is
 most of the bytes) and normal (WebP 44) maps, 192 calf color map: 48 KB mesh + 58 + 18 + 9 KB, 135 KB of files, about
 192 KB in the page plus about 45 KB of icons.
+
+## Round 10: the polar bear (`polarbear.py`)
+
+A polar bear, 2.45 m from the nose to the tail and 1.3 m at the shoulder, in meters like the other big animals (the
+cat template's numbers are cat sized; a bear is its own file in the cat file's layout). Things that are new:
+- The long coat is part of the sculpt (about 5 to 10 cm over the body, soft clumps of locks from a low frequency
+  noise, `_locks()`), with long fur shells over it (`len` 0.1, 5 layers), so it is bulky and a little shaggy far away
+  too. Its outline needs thick legs: as tubes under a fluffy body the legs read thin and the bear read as a sheep.
+- A long narrow head with a Roman nose (a ridge down the top of the muzzle), small round furry ears, small eyes, a big
+  black nose pad with slit nostrils, black lips painted as a thin band only toward the front (a wide band all along the
+  mouth read as a painted smile).
+- Plantigrade hind feet: the heel (`HEEL`) on the ground behind a long sole (`CV.paw` with a long pad); the front paws
+  turned in (`yaw` -0.18, the pigeon-toed walk). The game's rolling walk is `anim.roll`.
+- Swimming low with the head and the back above the water: `floatDepth` 1.12 and, in the game, `anim.swimTrail` (round
+  10): the hind legs trail behind with a small kick while the front legs paddle.
+- The collar: the neck is carried low, so a slice across it also cut the front paws and the shoulders below it; the
+  collar sits near the head (`at: ['neck2', 'head', 0.3]`) and ignores anything farther than `maxR` 0.3.
+- Budget (`VOXEL=0.01 TRIS=5600 TEX=768`, then rings across the body and the neck): 8.0k triangles, no cards; 768 color
+  and normal maps (normal WebP 58), 384 fur map, 256 cub color map: 70 KB mesh + 22 + 15 + 7 + 2 KB, about 160 KB in the
+  page plus about 30 KB of icons.
+
+## Round 10: big cats on the cat template (`bigcat.py`, `snowleopard.py`)
+
+A big cat is the house cat scaled up: `bigcat.load(breed)` runs `cat.py` in its own module with the breed's overrides
+(its own TRUNK, NECK, HEAD, TAIL tables and landmarks, in cat units), the breed replaces the functions it needs there
+(`C.paint = paint`, `C.head = head`; inside them it calls the template's hooks as `C.x`), and
+`bigcat.install(globals(), C, KS)` sets the pipeline's hooks in game meters: points are divided by KS on the way in and
+lengths multiplied by KS on the way out (shape, parts, grid, weights, rings in `lowpoly_fix`, meta, kitten offsets,
+whisker cards). All of the cat's masks, weights, coat strokes and kitten offsets work unchanged at any size. The game's
+skeleton is `SPEC.cat()` scaled by the same factor (`bigCat(k)` in 40_animals.js), with any bones the breed moves (its
+own tail) moved the same way in both places.
+
+`cat.py` takes three more overrides for this (its own defaults are unchanged, so the cats' files are too):
+`TAIL_BONES` and `TB` (a tail with more or fewer bones: the tail weights are spread over however many there are) and
+`TAIL_TD` (how far from the tail's middle line a point still rides on the tail bones: a thick tail needs more).
+
+The snow leopard (KS 2.5: about 1.2 m from the nose to the rump, a 1 m tail):
+- A deeper, wider body than the house cat's (the belly lower, so the legs look shorter), a thick neck and a full
+  throat, stout legs (`_stout`: the leg sections thickened most at the foot) on big round paws, small rounded ears,
+  smaller eyes with round pupils (a big cat's pupils are round; the house cat's slit pupils and big eyes made it read
+  as a white kitty).
+- A long thick tail on four bones, carried low and curling up at the tip (the cat's tail has three).
+- A coat in the sculpt (about 1 cm, `_locks()` noise) under long fur shells. The coat on the thighs fades out over the
+  hips: it made the thigh tops stand up over the back, worse on a cub.
+- Paint: smoky gray along the back, pale gray-cream sides, white underneath; open broken rosettes on the body (Worley
+  rings), small solid spots on the head and the legs, blotches and then rings on the tail and a dark tip. The first
+  palette rendered nearly white in the game's sunlight; the coat colors are about 20% darker than they look in a
+  photo. Cubs: grayer, with bold solid spots.
+- Budget (`VOXEL=0.0062 TRIS=4600 TEX=768`): 6.5k triangles plus 192 in whisker cards; 768 maps (color WebP 62,
+  normal 54), 256 cub map (`BABY_TEX`), fur and whisker textures: 63 KB mesh + 41 + 11 + 8 + 7 + 5 KB, about 187 KB in
+  the page plus about 31 KB of icons. (The rosettes make the color map the biggest of the three big cats'.)
+
+The saber-toothed cat, Smilodon fatalis (`smilodon.py`, KS 3.8: about 1.85 m from the nose to the rump, 0.95 m at the
+shoulder):
+- A heavy deep body, the back sloping from high humped shoulders (a big round cone over the shoulder blades) down to the
+  hips, very thick forelegs (`_stout` plus a great upper arm and forearm), big paws, a thick neck. The thigh tops are cut
+  off under the line of the back (`smax` with a plane): the house cat's thighs stood up over the hips.
+- A bobtail on two bones (`TAIL_BONES`, `TB`).
+- Its own `head()`, the house cat's with the muzzle lengthened (the head table's front rows and every muzzle part moved
+  forward by `_MS`: the house cat's short flat face read as a hamster with tusks), a lower forehead, brows over smaller
+  deep-set eyes, a bigger nose, and the flange of the lower jaw as a deep flat-fronted chin.
+- The sabers: two curved blades (round cones flattened across, `fang()`), set outside the lower jaw so they show from
+  the upper lip down (set inside it they showed only below the chin). Painted ivory from the same distance function,
+  no fur on them, kept by the decimation (`keep`), in the head's UV island, weighted to the head bone. A kitten's are
+  pulled up toward the gum in its baby offsets, so only the tips show.
+- A plain tawny coat, short (fur shells at 55% of the cat's lengths), faint darker spots, a pale muzzle and chin with
+  dark whisker spots, a dark tip to the tail. Kittens: bold dark spots. Whisker cards as the cat's.
+- Budget (`VOXEL=0.0085 TRIS=4800 TEX=768`): 6.9k triangles plus 192 in whisker cards; 768 maps (color WebP 72, normal
+  58), 384 kitten map, fur and whisker textures: 65 KB mesh + 26 + 14 + 9 + 5 + 6 KB, about 173 KB in the page plus about
+  27 KB of icons.

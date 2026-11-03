@@ -99,6 +99,12 @@ const SPECIES = {
   trex: { name: 'T. rex', many: 'T. rexes', eats: ['hotdog', 'fish', 'smallfish', 'worm', 'bugs'], fav: 'hotdog', outdoor: true, hunter: true, noJump: true, price: 2100, egg: 0xeee8da, baby: 'Baby T. rex' },
   // round 10: giraffe
   giraffe: { name: 'Giraffe', many: 'Giraffes', eats: ['twigs', 'lettuce', 'apple', 'banana', 'hay', 'watermelon'], fav: 'twigs', outdoor: true, noJump: true, price: 1700, baby: 'Giraffe calf' },
+  // round 10: polar bear
+  polarbear: { name: 'Polar bear', many: 'Polar bears', eats: ['fish', 'smallfish', 'berries', 'hotdog'], fav: 'fish', swim: true, swimSpeed: 2.5, outdoor: true, hunter: true, price: 1400, baby: 'Polar bear cub' },
+  // round 10: snow leopard
+  snowleopard: { name: 'Snow leopard', many: 'Snow leopards', eats: ['fish', 'smallfish', 'worm', 'hotdog', 'petfood'], fav: 'fish', climb: true, outdoor: true, hunter: true, price: 1200, baby: 'Snow leopard cub' },
+  // round 10: saber-toothed cat
+  smilodon: { name: 'Saber-toothed cat', many: 'Saber-toothed cats', eats: ['hotdog', 'fish', 'smallfish', 'worm'], fav: 'hotdog', outdoor: true, hunter: true, price: 1500, baby: 'Saber-toothed kitten' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
@@ -115,6 +121,12 @@ SMALL_PREY.push('cockatiel');
 for (const id of ['chickadee', 'eagle', 'rhino']) { let i = SHOP.length; while (i > 0 && SPECIES[SHOP[i - 1]].price > SPECIES[id].price) i--; SHOP.splice(i, 0, id); }
 SMALL_PREY.push('chickadee', 'hamster');
 SPECIES.chickadee.eggSpeck = [0.72, 0.4, 0.28];   // reddish brown speckles
+// round 10: polar bear
+SHOP.push('polarbear');
+// round 10: snow leopard
+SHOP.push('snowleopard');
+// round 10: saber-toothed cat
+SHOP.push('smilodon');
 // round 7: the shop runs from cheap to dear
 SHOP.sort((a, b) => SPECIES[a].price - SPECIES[b].price);
 // round 8: brachiosaurus (the dearest animal, so it goes last)

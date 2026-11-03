@@ -1,0 +1,143 @@
+{
+ "v": 2,
+ "id": "snowleopard",
+ "data": "snowleopard.bin",
+ "enc": "deflate",
+ "raw": 93789,
+ "maps": {
+  "color": "snowleopard-color.webp",
+  "normal": "snowleopard-normal.webp",
+  "babyColor": "snowleopard-baby.webp",
+  "fur": "snowleopard-fur.webp",
+  "hair": "snowleopard-hair.webp"
+ },
+ "nv": 2473,
+ "ntri": 3271,
+ "nbv": 2473,
+ "nbt": 3271,
+ "bbox": [
+  -0.190912,
+  -0.003338,
+  -1.527539,
+  0.190912,
+  0.823309,
+  0.677812
+ ],
+ "bones": [
+  "hips",
+  "rump",
+  "chest",
+  "neck",
+  "neck2",
+  "head",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "earL",
+  "earR",
+  "tail1",
+  "tail2",
+  "tail3",
+  "tail4",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.04265,
+   0.73292,
+   0.59257
+  ],
+  "r": 0.0205,
+  "dir": [
+   0.3304,
+   0.0701,
+   0.9412
+  ],
+  "lid": [
+   1.0,
+   -0.9,
+   0.18
+  ],
+  "iris": 13160622,
+  "irisR": 0.97,
+  "pupil": "round",
+  "pupilR": 0.34,
+  "rim": 7238744,
+  "lidCol": 2762272,
+  "babyLidCol": 5919820,
+  "babyIris": 9084590
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "neck2",
+   0.75
+  ],
+  "lift": 0.5
+ },
+ "belly": [
+  0.0,
+  0.355,
+  -0.175
+ ],
+ "mouth": [
+  0.0,
+  0.6505,
+  0.6373
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.14,
+  0.14,
+  0.13
+ ],
+ "flat": 13025456,
+ "fur": {
+  "len": 0.08,
+  "n": 5,
+  "lean": 1.1,
+  "tile": 0.0027500000000000003,
+  "babyLen": 1.15,
+  "babyLean": 0.5,
+  "shade": 0.62,
+  "uvm": 1.6151
+ },
+ "cards": {
+  "nv": 240,
+  "ntri": 192,
+  "bbox": [
+   -0.208096,
+   0.613455,
+   0.579946,
+   0.208096,
+   0.801908,
+   0.665213
+  ],
+  "bscale": 2.1321284584701062e-06,
+  "rough": 0.45,
+  "alpha": 0.35
+ },
+ "bdelta": 0.054926
+}
