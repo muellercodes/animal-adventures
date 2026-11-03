@@ -199,6 +199,9 @@ const Sound = (() => {
       // round 8: brachiosaurus
       // Brachiosaurus: a long deep bellow that swells and falls over a low rumble (a hatchling gives a short honk)
       case 'brachiosaurus': if (k > 1) { T({ t, f: 320, f2: 220, dur: 0.35, type: 'sawtooth', lp: 900, vol: vol * 0.7 }); } else { T({ t, f: 55, f2: 70, dur: 0.8, a: 0.25, type: 'sawtooth', lp: 220, vib: 4, vibAmt: 3, vol: vol * 1.5 }); T({ t: t + 0.7, f: 70, f2: 42, dur: 1.4, type: 'sawtooth', lp: 200, vib: 3, vibAmt: 4, vol: vol * 1.4 }); T({ t, f: 28, f2: 24, dur: 2.0, a: 0.4, type: 'sine', vol: vol * 1.2 }); } break;
+      // round 10: t. rex
+      // T. rex: a deep closed-mouth boom that swells and fades, like a big bird's or a crocodile's (a hatchling peeps)
+      case 'trex': if (k > 1) { for (let i = 0; i < 3; i++) T({ t: t + i * 0.16, f: 700, f2: 520, dur: 0.12, type: 'triangle', vol: vol * 0.6 }); } else { T({ t, f: 42, f2: 36, dur: 1.8, a: 0.35, type: 'sine', vib: 2.5, vibAmt: 2, vol: vol * 1.6 }); T({ t, f: 84, f2: 70, dur: 1.5, a: 0.3, type: 'sawtooth', lp: 180, vol: vol * 0.7 }); T({ t: t + 0.9, f: 40, f2: 34, dur: 1.2, a: 0.2, type: 'sine', vol: vol * 1.2 }); } break;
     }
   }
 
