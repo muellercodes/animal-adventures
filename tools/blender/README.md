@@ -496,6 +496,47 @@ Two more birds on `bird.py` and the biggest land animal on `ungulate.py`. Things
   and `applyAge` sets the bind matrices to the current rest pose. The paw pivots sit near the ground so the small feet
   stand on it. `meta()` gives the belly point for lying down (the deepest part of the belly).
 
+## The T. rex (`trex.py`)
+
+- Tyrannosaurus rex at full size: 11.7 m long, 2.1 m wide, the hips 3.45 m up, the top of the back and the head 4.3 m.
+  The body is one loft from the tail tip to the chest (level, balanced over the hips, a keel under the hips that it
+  rests on lying down), the neck a short thick sweep, the head a loft in its own frame (`hframe()`): deep and wide at
+  the back so the eyes look forward, heavy brow bosses and small hornlets, a rugose snout, closed lips (`lip_u()`) with
+  only the tips of the upper teeth showing (`TEETH`), no grin. Huge thighs, thick shins, three big toes with claws
+  (`bird.toes`) and a dewclaw; tiny two-fingered arms with claws.
+- Skin (height field per texel): pebbly scales, bigger ones down the back, rugose knobs on the head, rings on the shins.
+  Paint: earthy brown with an olive top, a paler belly, faint darker bands and a darker mask round the eye.
+- It is a biped in the legged animator (`anim.biped`, round 10: the hind legs are the first legs in its list, so the
+  leg height comes from them): the two legs alternate at every speed; eating, it tips forward over the hips and bends
+  its knees (`eatPitch`, `eatDrop`); asleep it folds its legs under it and lays its head down (`sleep.style 'fold'`).
+- The hatchling: the game's baby maps with its own size (`size.baby`, `baby.rebind`), long legs, a big head with big
+  eyes, a short snout, and downy fuzz: fur shells on babies only (`FUR` with `babyOnly`, `fur()`, `flow()`), 4.5 cm in
+  rig units (the baby maps do not scale shell length). Its tiny arms take the role `arm` (`baby.roles`): as legs they
+  counted in how far the baby skeleton drops and left it floating. The eating crouch shrinks with it (`R.strideK`).
+- Weights are the sculpt's own: the body chain by z, the legs by height (the toes on the paw bone), the arms along the
+  upper arm and the forearm, rooted in the chest.
+- Two fixes for every `baby.rebind` baby (round 10): the baby collar plan took the bone offsets on top of a morph that
+  already carries them (the band and the tag landed far below the neck), and `baby.tagK` shrinks the tag for a baby far
+  smaller than the adult (crocodile 0.4, T. rex 0.3). The crocodile hatchling now uses `baby.rebind` too: its folds at
+  the front legs and the neck are gone.
+
+## The giraffe (`giraffe.py`)
+
+- A reticulated giraffe at full size: 5.05 m to the tips of the ossicones, 4.1 m from the lips to the rump, 1.0 m wide.
+  A short deep trunk loft on very long legs (sweeps with knobby knees, hocks and fetlocks, cloven hooves `U.cloven`), the
+  withers high and the back sloping down to the rump, the neck a sweep with a short mane along its top (`MANE`: round
+  cones on the neck's top line), the head a loft in its own frame with big eyes, two ossicones with black hair knobs
+  (`OSS`), a median lump, leaf ears (`U.ear`, on their own bones), soft lips; a long thin tail with a black tuft.
+- The coat is a Voronoi pattern (`_reticulate()`): polygon patches parted by thin white lines, darker centers, the cells
+  shrinking up the neck (0.18 to 0.1 m), down the legs and on the face; plain cream below the knees and the hocks, a
+  paler belly, a tan face, a pale muzzle. The calf has its own small color map: paler orange patches, wider lines.
+- Weights: the trunk by z, the neck along its straight line from the base to the poll, the head and the ears, the legs
+  by height (the hooves on the paw bones), the tail down its length.
+- Animation (game): a pace (both legs on one side together), a gallop with the hind legs first and the body rocking
+  (`pitchRun`), the neck nodding (`nod`, `runNeck`); eating, the front legs splay a little (`eatSplay`) and the neck
+  swings down to the ground; asleep it folds its legs and curls the neck back over its body (`sleep.neck` yaw 3.0).
+  The calf is the game's baby maps (long legs, a shorter neck, a bigger head and eyes): about 1.7 m tall in the game.
+
 ## Budget
 
 Pig: about 6.3k triangles, 4.8k vertices, 1024 x 1024 color and normal maps: 38 KB mesh (format 2; 136 KB before) +
@@ -683,3 +724,11 @@ Crocodile (`VOXEL=0.006 TRIS=3300 TEX=704 WEIGHTS=transfer`; TRIS here gives abo
 Brachiosaurus (`VOXEL=0.03 TRIS=5300 TEX=1024 WEIGHTS=transfer`): 8.5k triangles; 1024 color (WebP 68) and normal (WebP
 50) maps, 384 hatchling color map: 58 KB mesh + 18 + 123 + 4 KB, 206 KB of files, about 275 KB in the page. About 4
 minutes for the whole run.
+
+T. rex (`VOXEL=0.03 TRIS=4400 TEX=768 WEIGHTS=transfer`): 6.9k triangles; 768 color (WebP 64) and normal (WebP 34) maps,
+256 hatchling color map, 384 fur map: 55 KB mesh + 14 + 51 + 3 + 8 KB, 134 KB of files, about 190 KB in the page plus
+about 33 KB of icons (the round 10 budget is about 220 KB per animal, icons included).
+
+Giraffe (`VOXEL=0.02 TRIS=3600 TEX=768 WEIGHTS=transfer`): 6.4k triangles; 768 color (WebP 40: the patch pattern is
+most of the bytes) and normal (WebP 44) maps, 192 calf color map: 48 KB mesh + 58 + 18 + 9 KB, 135 KB of files, about
+192 KB in the page plus about 45 KB of icons.

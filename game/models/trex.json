@@ -1,0 +1,118 @@
+{
+ "v": 2,
+ "id": "trex",
+ "data": "trex.bin",
+ "enc": "deflate",
+ "raw": 84390,
+ "maps": {
+  "color": "trex-color.webp",
+  "normal": "trex-normal.webp",
+  "babyColor": "trex-color-baby.webp",
+  "fur": "trex-fur.webp"
+ },
+ "nv": 2653,
+ "ntri": 3453,
+ "nbv": 2653,
+ "nbt": 3453,
+ "bbox": [
+  -1.059772,
+  -0.010219,
+  -7.309671,
+  1.059772,
+  4.272904,
+  4.439589
+ ],
+ "bones": [
+  "hips",
+  "chest",
+  "neck",
+  "neck2",
+  "head",
+  "tail1",
+  "tail2",
+  "tail3",
+  "tail4",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.3,
+   4.075,
+   3.39774
+  ],
+  "r": 0.045,
+  "dir": [
+   0.5507,
+   0.1502,
+   0.8211
+  ],
+  "lid": [
+   0.667,
+   -0.667,
+   0.3
+  ],
+  "iris": 12092970,
+  "irisR": 0.92,
+  "pupilR": 0.42,
+  "rim": 2759178,
+  "lidCol": 4603183,
+  "babyIris": 8018474
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "neck2",
+   0.5
+  ],
+  "r": 1.2
+ },
+ "mouth": [
+  0.0,
+  3.577,
+  4.3527
+ ],
+ "belly": [
+  0.0,
+  1.66,
+  0.45
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.07,
+  0.07,
+  0.06
+ ],
+ "flat": 7891280,
+ "fur": {
+  "len": 0.045,
+  "n": 4,
+  "lean": 0.5,
+  "tile": 0.004,
+  "babyLen": 1.0,
+  "babyLean": 0.5,
+  "shade": 0.85,
+  "babyOnly": true,
+  "uvm": 6.6481
+ }
+}
