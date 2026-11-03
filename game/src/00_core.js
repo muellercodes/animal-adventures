@@ -45,6 +45,8 @@ const FOODS = {
   seeds: { name: 'Seeds' }, corn: { name: 'Corn' }, lettuce: { name: 'Lettuce' }, mushroom: { name: 'Mushrooms' }, bugs: { name: 'Bugs' },
   twigs: { name: 'Leafy twigs' }, watermelon: { name: 'Watermelon' }, banana: { name: 'Bananas' }, bread: { name: 'Bread' },
   hotdog: { name: 'Hot dogs' }, petfood: { name: 'Pet food' }, hay: { name: 'Hay' },
+  // round 10: nectar, a wildflower bloom (for butterflies; 38_food draws it)
+  nectar: { name: 'Nectar' },
 };
 // swim/fly/hop/climb are what the animal can do; swimSpeed and flySpeed are m/s
 // egg: hatches from an egg (shell color); outdoor: when adopted it lives in a pen in the yard instead of inside the house
@@ -95,6 +97,11 @@ const SPECIES = {
   crocodile: { name: 'Crocodile', many: 'Crocodiles', eats: ['fish', 'smallfish', 'worm', 'bugs', 'hotdog'], fav: 'fish', swim: true, swimSpeed: 3, noJump: true, outdoor: true, hunter: true, price: 1300, egg: 0xf2efe6, baby: 'Baby crocodile' },
   // round 8: brachiosaurus
   brachiosaurus: { name: 'Brachiosaurus', many: 'Brachiosauruses', eats: ['twigs', 'apple', 'banana', 'pinecone', 'lettuce', 'hay'], fav: 'twigs', outdoor: true, noJump: true, price: 2000, egg: 0xe9e2cf, baby: 'Baby brachiosaurus' },
+  // round 10: fruit bat
+  bat: { name: 'Fruit bat', many: 'Fruit bats', eats: ['apple', 'banana', 'berries', 'watermelon'], fav: 'banana', fly: true, flySpeed: 8, nightEyes: true, price: 500, baby: 'Bat pup' },
+  // round 10: monarch butterfly; its baby is the caterpillar, a hidden species of its own (not in the shop)
+  butterfly: { name: 'Monarch butterfly', many: 'Monarch butterflies', eats: ['nectar', 'watermelon', 'banana', 'berries'], fav: 'nectar', fly: true, flySpeed: 4, price: 150, egg: 0xf2ecd2, baby: 'Caterpillar' },
+  caterpillar: { name: 'Monarch caterpillar', many: 'Monarch caterpillars', eats: ['lettuce'], fav: 'lettuce', noJump: true, hidden: true, price: 150, baby: 'Caterpillar' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
@@ -115,6 +122,8 @@ SPECIES.chickadee.eggSpeck = [0.72, 0.4, 0.28];   // reddish brown speckles
 SHOP.sort((a, b) => SPECIES[a].price - SPECIES[b].price);
 // round 8: brachiosaurus (the dearest animal, so it goes last)
 SHOP.push('brachiosaurus');
+// round 10: fruit bat and monarch butterfly (into the shop list by price)
+for (const id of ['bat', 'butterfly']) { let i = SHOP.length; while (i > 0 && SPECIES[SHOP[i - 1]].price > SPECIES[id].price) i--; SHOP.splice(i, 0, id); }
 const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow'];
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];
 const SKIN = ['#F3D3B8', '#E6B691', '#C98E66', '#9A6544', '#6B4430'];

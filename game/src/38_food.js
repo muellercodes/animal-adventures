@@ -1307,3 +1307,49 @@
   const FOODS38 = { seeds: foodSeeds, corn: foodCorn, lettuce: foodLettuce, mushroom: foodMushroom, bugs: foodBugs, twigs: foodTwigs, watermelon: foodWatermelon, banana: foodBanana, bread: foodBread, hotdog: foodHotdog, petfood: foodPetfood, hay: foodHay };
   for (const type of Object.keys(FOODS38)) Env.addFood(type, FOODS38[type], type === 'bugs' ? { setup: setupBugs, update: updateBugs } : {});
 })();
+
+/* ---------- round 10: nectar, for the butterflies ----------
+   Env.food('nectar'): a low clump of purple coneflowers in bloom (the kind of wildflower monarchs drink from): three
+   flower heads on short stems, each a domed orange brown cone ringed by drooping pink purple petals, with a few
+   lance leaves at the base. About 10 cm tall, so a butterfly standing by it reaches the blooms. */
+(() => {
+  const K = Env._k;
+  const { TAU, V3, rng, L, mixc, prep, paint, merge, soup, path, tube, mat } = K;
+  const strip = (S, P, w, c0, c1, side) => {
+    for (let k = 0; k < 3; k++) {
+      const t0 = k / 3, t1 = (k + 1) / 3, w0 = w(t0), w1 = w(t1), p0 = P(t0), p1 = P(t1), a = mixc(c0, c1, t0), b = mixc(c0, c1, t1);
+      S.quad(p0.clone().addScaledVector(side, -w0), p1.clone().addScaledVector(side, -w1), p1.clone().addScaledVector(side, w1), p0.clone().addScaledVector(side, w0), a, b, b, a);
+    }
+  };
+  function foodNectar() {
+    const parts = [], r = rng(1031);
+    const green = L(0x3e6e2a), greenDk = L(0x2a4e1c);
+    for (const [x, z, h, s] of [[0.0, 0.0, 0.1, 1.0], [0.035, -0.025, 0.075, 0.85], [-0.03, 0.03, 0.06, 0.75]]) {
+      const top = new V3(x + (r() - 0.5) * 0.012, h, z + (r() - 0.5) * 0.012);
+      parts.push(tube(path([new V3(x, 0, z), new V3(x + (top.x - x) * 0.4, h * 0.5, z + (top.z - z) * 0.4), top], 6), 0.0028 * s, { radial: 5, color: () => green }));
+      // the cone: a dome of tiny florets, orange brown with darker tips
+      const cr = 0.013 * s;
+      const cone = prep(new THREE.SphereGeometry(cr, 12, 6, 0, TAU, 0, Math.PI / 2));
+      cone.scale(1, 0.85, 1); cone.translate(top.x, top.y, top.z);
+      parts.push(paint(cone, (px, py, pz) => mixc(L(0xB0501A), L(0x5A2A10), 0.5 + 0.5 * Math.sin(px * 2200) * Math.sin(pz * 2200))));
+      // petals: drooping strips round the cone, magenta at the base to pink at the tip
+      const S = soup(), n = 13;
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * TAU + r() * 0.2, d = new V3(Math.cos(a), 0, Math.sin(a)), side = new V3(-d.z, 0, d.x);
+        const len = 0.03 * s * (0.9 + r() * 0.2), w = 0.0055 * s;
+        const P = (t) => new V3(top.x + d.x * (cr * 0.9 + len * t), top.y - 0.002 - len * (0.15 * t + 0.55 * t * t), top.z + d.z * (cr * 0.9 + len * t));
+        strip(S, P, (t) => w * (t >= 1 ? 0.35 : 0.6 + 0.4 * Math.sin(Math.PI * (0.25 + 0.7 * t))), L(0x9A2A6A), L(0xD86AA8), side);
+      }
+      parts.push(S.geo(true));
+    }
+    // lance leaves at the foot of the stems
+    const S = soup();
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * TAU + 0.5, d = new V3(Math.cos(a), 0, Math.sin(a)), side = new V3(-d.z, 0, d.x), len = 0.07 + r() * 0.02;
+      strip(S, (t) => new V3(d.x * len * t, 0.004 + 0.03 * t - 0.03 * t * t, d.z * len * t), (t) => 0.012 * Math.sin(Math.PI * Math.max(0.12, Math.min(t, 0.94))), greenDk, green, side);
+    }
+    parts.push(S.geo(true));
+    return [{ geo: merge(parts.map((g) => prep(g))), mat: mat('f10nectar', { std: true, roughness: 0.6, side: THREE.DoubleSide, sway: 2.0, flutter: 0.003 }) }];
+  }
+  Env.addFood('nectar', foodNectar);
+})();
