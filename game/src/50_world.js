@@ -93,7 +93,7 @@ const World = (() => {
       if (PEN_NAMES[p.id]) w.addSign(PEN_NAMES[p.id], p.wx + out[0] + along[0], p.wz + out[1] + along[1], SIDE_ROT[p.gate]);
       const inPen = (m) => (r) => [p.wx + (r() * 2 - 1) * (p.hw - m), p.wz + (r() * 2 - 1) * (p.hd - m)];
       const dry = (x, z) => !p.pool || Math.hypot(x - p.pool.wx, z - p.pool.wz) > p.pool.r + 2.5;
-      if (p.trees) w.scatter({ type: p.id === 'giraffe' ? 'oak' : 'birch', variants: [0, 1], n: p.trees, sample: inPen(4), test: dry, gap: 7, scale: [1.0, 1.3] });
+      if (p.trees) w.scatter({ type: p.id === 'giraffe' ? 'oak' : 'birch', variants: [0, 1], n: p.trees, tries: p.trees * 12, sample: inPen(4), test: dry, gap: 7, scale: [1.0, 1.3] });
       if (p.rocks) w.scatter({ type: p.id === 'polar' ? 'snowrock' : 'rock', variants: [0, 1, 2], n: p.rocks, sample: inPen(2), test: dry, gap: 3, scale: [1.2, 2.4] });
       if (p.jungle) {
         w.scatter({ type: 'palm', variants: [0, 1], n: p.jungle, sample: inPen(5), test: dry, gap: 9, scale: [1.1, 1.5] });
@@ -969,7 +969,7 @@ const World = (() => {
           markPlaced(x, z, gap);
           placed++;
         }
-        if (o.sample && k >= o.n) break;
+        if (o.sample && k >= (o.tries || o.n)) break;
       }
     };
 

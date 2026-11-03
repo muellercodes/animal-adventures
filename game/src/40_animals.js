@@ -6495,7 +6495,7 @@ const Animals = (() => {
         cmul(C, 0.95 + 0.08 * grain(P, 600, 200));
         C.ro = 0.32;
       },
-      anim: { type: 'crawl', walk: 0.05, run: 0.12, names, z0, dz, r, lift: 0.0016, span: 1.1, tents: ['tfL', 'tfR', 'trL', 'trR'] },
+      anim: { type: 'crawl', walk: 0.18, run: 0.45, names, z0, dz, r, lift: 0.0016, span: 1.1, tents: ['tfL', 'tfR', 'trL', 'trR'] },
       baby: { head: 1.15, muzzle: 1.0, eye: 1.0, ear: 1.0, neck: [1, 1], body: [1, 1, 1], leg: [1, 1], tail: 1 },
     };
   };
@@ -9132,9 +9132,10 @@ const Animals = (() => {
       S.air = damp(S.air, mode === 'air' || mode === 'fly' ? 1 : 0, 8, dt);
       S.lean = damp(S.lean, clamp(st.turn || 0, -3, 3), 3, dt);
       const { z0, dz, r } = P, Lw = N * dz * 0.9;
-      // one wave per body length of travel, a slow idle ripple when still
+      // one wave per body length of travel (at most about 4 a second: the game lets it go faster than a real one),
+      // a slow idle ripple when still
       const moving = sstep(0.002, 0.008, S.spd);
-      S.ph += (S.spd / Lw + (1 - moving) * 0.05 * (1 - sl)) * dt * 1.6;
+      S.ph += (Math.min(S.spd / Lw, 2.6) + (1 - moving) * 0.05 * (1 - sl)) * dt * 1.6;
       const lookOn = sstep(1.0, 2.5, idle) * (1 - S.eat) * (1 - sl);
       S.look = damp(S.look, lookTarget(it, R.rnd, 3.0, 0.45) * lookOn + Math.sin(it * 4) * 0.25 * hap, 2, dt);
       S.lift = damp(S.lift, (lookOn * 0.0045 + hap * 0.004) * (1 - 0.7 * sick) - S.eat * 0.0012, 2, dt);

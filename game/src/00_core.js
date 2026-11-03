@@ -111,7 +111,7 @@ const SPECIES = {
   bat: { name: 'Fruit bat', many: 'Fruit bats', eats: ['apple', 'banana', 'berries', 'watermelon'], fav: 'banana', fly: true, flySpeed: 8, nightEyes: true, price: 500, baby: 'Bat pup' },
   // round 10: monarch butterfly; its baby is the caterpillar, a hidden species of its own (not in the shop)
   butterfly: { name: 'Monarch butterfly', many: 'Monarch butterflies', eats: ['nectar', 'watermelon', 'banana', 'berries'], fav: 'nectar', fly: true, flySpeed: 4, price: 150, egg: 0xf2ecd2, baby: 'Caterpillar' },
-  caterpillar: { name: 'Monarch caterpillar', many: 'Monarch caterpillars', eats: ['lettuce'], fav: 'lettuce', noJump: true, hidden: true, price: 150, baby: 'Caterpillar' },
+  caterpillar: { name: 'Monarch caterpillar', many: 'Monarch caterpillars', eats: ['lettuce', 'grass', 'twigs'], fav: 'lettuce', noJump: true, hidden: true, price: 150, baby: 'Caterpillar' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];

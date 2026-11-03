@@ -499,10 +499,19 @@ const Wild = {
   },
   // a tree for a bat to hang in: near it, and inside its pen if it lives in one
   roostTree(b) {
-    const t = G.world.treeNear(b.pos.x, b.pos.z, 12);
-    if (!t || !b.pen) return t;
-    const pn = b.pen, c = Math.cos(-(pn.rot || 0)), s = Math.sin(-(pn.rot || 0)), lx = t.x - pn.x, lz = t.z - pn.z;
-    return Math.abs(lx * c - lz * s) < pn.hw - 1 && Math.abs(lx * s + lz * c) < pn.hd - 1 ? t : null;
+    const w = G.world, pn = b.pen;
+    const ok = (t) => {
+      if (!t || t.top - t.base < 1.4) return false;
+      if (!pn) return true;
+      const c = Math.cos(-(pn.rot || 0)), s = Math.sin(-(pn.rot || 0)), lx = t.x - pn.x, lz = t.z - pn.z;
+      return Math.abs(lx * c - lz * s) < pn.hw - 1 && Math.abs(lx * s + lz * c) < pn.hd - 1;
+    };
+    const cx = pn ? pn.x : b.pos.x, cz = pn ? pn.z : b.pos.z;
+    for (const r of pn ? [0, 6] : [0, 9, 18, 27]) for (let i = 0; i < (r ? 6 : 1); i++) {
+      const a = (i / 6) * TAU + r, t = w.treeNear(cx + Math.cos(a) * r, cz + Math.sin(a) * r, 8);
+      if (ok(t)) return t;
+    }
+    return null;
   },
   pickTarget(b) {
     const w = G.world, sp = SPECIES[b.sp];
@@ -639,7 +648,8 @@ const Wild = {
           const t = b.target;
           if (!t || !sleepy) { b.state = 'idle'; b.timer = 1 + Math.random() * 2; if (b.hangAt) { b.hangAt = null; b.mode = 'air'; b.vy = 0; } break; }
           if (b.hangAt) { b.mode = 'sleep'; b.pos.copy(b.hangAt); b.speed = 0; break; }
-          const R = t.r + 0.45, hx = t.x + Math.cos(b.ra) * R, hz = t.z + Math.sin(b.ra) * R, hy = Math.max(t.top - 0.3, t.base + 1.6);
+          // (a pine's lowest needles reach down past its bare trunk: hang a little lower under them)
+          const R = t.r + 0.45, hx = t.x + Math.cos(b.ra) * R, hz = t.z + Math.sin(b.ra) * R, hy = Math.max(t.top - (/pine/.test(t.type || '') ? 0.55 : 0.3), t.base + 1.3);
           const dx = hx - b.pos.x, dz = hz - b.pos.z, d = Math.hypot(dx, dz);
           if (b.mode !== 'fly' && canFlyNow(b)) c.takeoff = true;
           c.dx = dx; c.dz = dz; c.want = sp.flySpeed * clamp(d / 8, 0.15, 0.6);

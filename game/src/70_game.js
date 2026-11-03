@@ -102,7 +102,7 @@ function followCamera(dt) {
     if (Cam.userT <= 0) Cam.yaw += angDiff(Cam.yaw, Math.atan2(talker.pos.x - b.pos.x, talker.pos.z - b.pos.z) + 0.35) * (1 - Math.exp(-2.5 * dt));
   }
   if (R.hatch) { minD = Math.max(minD, R.hatch.sp === 'butterfly' ? 0.45 : 1.1); }
-  if (R.pupa) { minD = Math.max(minD, 0.5); }
+  if (R.pupa) { minD = Math.max(minD, 0.5); fy0 = b.pos.y + 0.1; }
   Cam.frame = damp(Cam.frame || 0, minD, 3, dt);
   Cam.target.x = damp(Cam.target.x, fx0, 14, dt); Cam.target.z = damp(Cam.target.z, fz0, 14, dt); Cam.target.y = damp(Cam.target.y, fy0, 8, dt);
   Cam.userT -= dt;
@@ -474,7 +474,7 @@ function updatePupa(dt) {
   u.pod.scale.setScalar(clamp(q.t / 0.8, 0.05, 1));
   u.hang.rotation.z = Math.sin(q.t * 2.1) * 0.08 + (Math.sin(q.t * 0.9) > 0.9 ? Math.sin(q.t * 30) * 0.12 : 0);
   const dk = clamp((q.t - 2.2) / 1.6, 0, 1);
-  u.skin.color.setHex(0x67c27a).lerp(new THREE.Color(0x2a2018), dk); u.skin.emissiveIntensity = dk * 0.35;
+  u.skin.color.setHex(0x67c27a).lerp(new THREE.Color(0x1a120c), dk); u.skin.emissive.setHex(0xe06a12); u.skin.emissiveIntensity = dk * 0.5;
   if (!q.out && q.t > 4.2) {
     // out comes a grown monarch
     q.out = true; u.pod.visible = false;
