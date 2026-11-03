@@ -703,3 +703,34 @@ cat template's numbers are cat sized; a bear is its own file in the cat file's l
 - Budget (`VOXEL=0.01 TRIS=5600 TEX=768`, then rings across the body and the neck): 8.0k triangles, no cards; 768 color
   and normal maps (normal WebP 58), 384 fur map, 256 cub color map: 70 KB mesh + 22 + 15 + 7 + 2 KB, about 160 KB in the
   page plus about 30 KB of icons.
+
+## Round 10: big cats on the cat template (`bigcat.py`, `snowleopard.py`)
+
+A big cat is the house cat scaled up: `bigcat.load(breed)` runs `cat.py` in its own module with the breed's overrides
+(its own TRUNK, NECK, HEAD, TAIL tables and landmarks, in cat units), the breed replaces the functions it needs there
+(`C.paint = paint`, `C.head = head`; inside them it calls the template's hooks as `C.x`), and
+`bigcat.install(globals(), C, KS)` sets the pipeline's hooks in game meters: points are divided by KS on the way in and
+lengths multiplied by KS on the way out (shape, parts, grid, weights, rings in `lowpoly_fix`, meta, kitten offsets,
+whisker cards). All of the cat's masks, weights, coat strokes and kitten offsets work unchanged at any size. The game's
+skeleton is `SPEC.cat()` scaled by the same factor (`bigCat(k)` in 40_animals.js), with any bones the breed moves (its
+own tail) moved the same way in both places.
+
+`cat.py` takes three more overrides for this (its own defaults are unchanged, so the cats' files are too):
+`TAIL_BONES` and `TB` (a tail with more or fewer bones: the tail weights are spread over however many there are) and
+`TAIL_TD` (how far from the tail's middle line a point still rides on the tail bones: a thick tail needs more).
+
+The snow leopard (KS 2.5: about 1.2 m from the nose to the rump, a 1 m tail):
+- A deeper, wider body than the house cat's (the belly lower, so the legs look shorter), a thick neck and a full
+  throat, stout legs (`_stout`: the leg sections thickened most at the foot) on big round paws, small rounded ears,
+  smaller eyes with round pupils (a big cat's pupils are round; the house cat's slit pupils and big eyes made it read
+  as a white kitty).
+- A long thick tail on four bones, carried low and curling up at the tip (the cat's tail has three).
+- A coat in the sculpt (about 1 cm, `_locks()` noise) under long fur shells. The coat on the thighs fades out over the
+  hips: it made the thigh tops stand up over the back, worse on a cub.
+- Paint: smoky gray along the back, pale gray-cream sides, white underneath; open broken rosettes on the body (Worley
+  rings), small solid spots on the head and the legs, blotches and then rings on the tail and a dark tip. The first
+  palette rendered nearly white in the game's sunlight; the coat colors are about 20% darker than they look in a
+  photo. Cubs: grayer, with bold solid spots.
+- Budget (`VOXEL=0.0062 TRIS=4600 TEX=768`): 6.5k triangles plus 192 in whisker cards; 768 maps (color WebP 66,
+  normal 56), 384 cub map, fur and whisker textures: 63 KB mesh + 43 + 12 + 15 + 7 + 5 KB, about 198 KB in the page plus
+  about 32 KB of icons.
