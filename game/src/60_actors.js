@@ -16,7 +16,10 @@ const FEAR = { chicken: 3, duck: 4.5, swan: 3, frog: 2.5, lizard: 3, snake: 2, b
 // extra bump circles along a long body: [how far ahead of the body's middle, as a part of its length; radius, as a part
 // of its radius]. A brachiosaurus's middle is at its shoulders: the trunk runs back from there to its hips and tail
 // (its neck is high up, so fences pass under it)
-const BODY_COL = { long: [[0.32, 0.8], [-0.32, 0.8]], brachiosaurus: [[0.14, 0.92], [-0.23, 0.92], [-0.42, 0.3]] };
+// A T. rex's middle is over its hips: its chest is ahead and its belly and the base of its tail behind (the rest of the
+// tail and the head are high, above fences). A giraffe's middle is its shoulders.
+const BODY_COL = { long: [[0.32, 0.8], [-0.32, 0.8]], brachiosaurus: [[0.14, 0.92], [-0.23, 0.92], [-0.42, 0.3]],
+  trex: [[0.15, 0.9], [-0.105, 0.9], [-0.21, 0.9]], giraffe: [[0.26, 1.0], [-0.36, 1.0]] };
 const NOCTURNAL = { owl: 1, frog: 1, fox: 1, raccoon: 1, hedgehog: 1, hamster: 1, bat: 1 };
 const nightNo = () => Math.floor(S.time / CYCLE);
 
