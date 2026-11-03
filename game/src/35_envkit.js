@@ -4456,10 +4456,18 @@ void main() {
     for (let i = -2; i <= 2; i++) { c.beginPath(); c.moveTo(0, i * 8); c.lineTo(10, i * 8 - 7); c.moveTo(0, i * 8); c.lineTo(-10, i * 8 - 7); c.stroke(); }
     c.restore();
   }, { clamp: true });
-  function fallingLeaves(count = 160) {
-    const r = rng(5150);
+  // a soft round snowflake
+  const snowSprite = () => canvasTex('snowFlake', 32, 32, (c, w, h) => {
+    c.clearRect(0, 0, w, h);
+    const g = c.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+    g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.55, 'rgba(255,255,255,1)'); g.addColorStop(0.7, 'rgba(255,255,255,0)');
+    c.fillStyle = g; c.fillRect(0, 0, w, h);
+  }, { clamp: true });
+  // falling leaves in autumn; with o.snow, falling snow (round flakes that do not tumble)
+  function fallingLeaves(count = 160, o = {}) {
+    const r = rng(o.snow ? 5160 : 5150);
     const seed = new Float32Array(count * 4), col = new Float32Array(count * 3), pos = new Float32Array(count * 3);
-    const pal = [0xd8a020, 0xe07a1a, 0xc0401a, 0x9a3a14, 0xc8a040, 0x8a5a24];
+    const pal = o.snow ? [0xffffff, 0xf4f8ff, 0xe8f0fa] : [0xd8a020, 0xe07a1a, 0xc0401a, 0x9a3a14, 0xc8a040, 0x8a5a24];
     for (let i = 0; i < count; i++) {
       seed[i * 4] = r() * 40; seed[i * 4 + 1] = r() * 40; seed[i * 4 + 2] = r(); seed[i * 4 + 3] = r();
       const c = L(pal[Math.floor(r() * pal.length)]);
@@ -4470,13 +4478,13 @@ void main() {
     geo.setAttribute('seed', new THREE.BufferAttribute(seed, 4));
     geo.setAttribute('leafColor', new THREE.BufferAttribute(col, 3));
     const u = THREE.UniformsUtils.merge([THREE.UniformsLib.fog, THREE.UniformsLib.lights]);
-    Object.assign(u, { uTime: { value: 0 }, uCenter: { value: new V3() }, uAmount: { value: 0 }, uMap: { value: leafSprite() }, uScale: { value: 300 } });
+    Object.assign(u, { uTime: { value: 0 }, uCenter: { value: new V3() }, uAmount: { value: 0 }, uMap: { value: o.snow ? snowSprite() : leafSprite() }, uScale: { value: 300 }, uSnow: { value: o.snow ? 1 : 0 } });
     const m = new THREE.ShaderMaterial({
       uniforms: u, fog: true, lights: true,
       vertexShader: `
 attribute vec4 seed;
 attribute vec3 leafColor;
-uniform float uTime, uAmount, uScale;
+uniform float uTime, uAmount, uScale, uSnow;
 uniform vec3 uCenter;
 varying vec3 vCol;
 varying float vA, vRot, vSquash;
@@ -4495,9 +4503,9 @@ void main() {
   float on = step(fract(seed.x * 7.31 + seed.y * 3.17), uAmount);
   vA = on * smoothstep(0.0, 0.6, y) * smoothstep(H, H - 2.0, y) * (1.0 - smoothstep(16.0, 20.0, length(xz - uCenter.xz)));
   vRot = t * (1.2 + seed.w * 2.5) + seed.x;
-  vSquash = 0.35 + 0.65 * abs(cos(t * (1.5 + seed.z * 2.0) + seed.y));
+  vSquash = mix(0.35 + 0.65 * abs(cos(t * (1.5 + seed.z * 2.0) + seed.y)), 1.0, uSnow);
   vCol = leafColor;
-  gl_PointSize = max(3.0, uScale * (0.24 + seed.z * 0.08) / -mvPosition.z);
+  gl_PointSize = max(mix(3.0, 2.0, uSnow), uScale * (0.24 + seed.z * 0.08) * mix(1.0, 0.45, uSnow) / -mvPosition.z);
   #include <fog_vertex>
 }`,
       fragmentShader: `

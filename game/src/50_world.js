@@ -515,8 +515,78 @@ const World = (() => {
         walk: [],
       };
     },
+
+    // round 10: snowy mountains to the north, pine woods and a frozen lake in the middle, an icy sea to the south
+    snow(seed) {
+      const n1 = makeNoise(seed), n2 = makeNoise(seed + 1), n3 = makeNoise(seed + 2), n4 = makeNoise(seed + 3);
+      const c = { snow: P(0xb9c3cf), shade: P(0x8e9fb3), blue: P(0x7f96b1), rock: P(0x3c3936), rockLt: P(0x5c5853), ice: P(0x5f93b0), iceDk: P(0x356c8c),
+        gravel: P(0x7c7a76), dark: P(0x3a3c3e) };
+      const SEA = (x) => 84 + 14 * Math.sin(x * 0.017 + 0.6) + 7 * Math.sin(x * 0.051);      // the shore: the sea lies south of it
+      const MTN = (x) => -62 + 16 * Math.sin(x * 0.013) + 8 * Math.sin(x * 0.041 + 2);    // the mountains rise north of it
+      const LAKE = { x: -62, z: 8, r: 24 };                                                   // frozen: flat ice just above the water
+      function H(x, z) {
+        let h = 1.8 + 5 * (fbm(n1, x * 0.008, z * 0.008, 4) * 0.5 + 0.5) + 0.6 * n2(x * 0.04, z * 0.04);
+        const m = smooth((MTN(x) - z) / 150);
+        if (m > 0) { const rid = 1 - Math.abs(fbm(n3, x * 0.011, z * 0.011, 4)); h += m * (6 + 44 * rid * rid) + m * m * 20 * (fbm(n4, x * 0.004, z * 0.004, 2) * 0.5 + 0.5); }
+        h = lerp(h, -3.4 + 0.8 * n2(x * 0.02, z * 0.02), smooth((z - SEA(x) + 4) / 24));
+        if (ring(x, z) < CORE + 20) {
+          const dx = x - LAKE.x, dz = z - LAKE.z, a = Math.atan2(dz, dx), r = LAKE.r * (1 + 0.15 * n4(Math.cos(a) * 1.4, Math.sin(a) * 1.4));
+          h = lerp(h, 0.08, 1 - smooth((Math.hypot(dx, dz) / r - 0.82) / 0.3));
+        }
+        return h;
+      }
+      const inLake = (x, z) => Math.hypot(x - LAKE.x, z - LAKE.z) < LAKE.r * 1.25;
+      const clear = (x, z) => Math.hypot(x, z - 20) > 10 && !inLake(x, z);
+      const woods = (x, z) => smooth((fbm(n4, x * 0.009, z * 0.009, 3) + 0.2) / 0.45);
+      return {
+        name: 'Snowy Mountains', blurb: 'Snowy peaks, pine woods, a frozen lake and an icy sea. Polar bears and snow leopards live here.', spawn: [0, 20],
+        H, fog: [45, 230], water: { color: 0x3f7088, deep: 0x13293a }, people: 0,
+        grassH: [0.05, 0.1], grassTint: [0.2, 0.3, 0.4, 0.7], flowerColors: [0xffffff],
+        paint(o, x, z, h) {
+          // drifts: soft blue-gray hollows between brighter wind-packed ridges, and long wind ripples
+          o.copy(c.snow); mix(o, c.shade, (n2(x * 0.05, z * 0.05) * 0.5 + 0.5) * 0.6); mix(o, c.blue, smooth(n3(x * 0.018, z * 0.018) + 0.15) * 0.45);
+          mix(o, c.shade, smooth(Math.sin(x * 0.9 + z * 0.35 + 3 * n4(x * 0.03, z * 0.03)) * 0.5 + 0.2) * 0.18);
+          // bare rock where the slope is too steep for snow to stay
+          const sl = Math.abs(H(x + 1.5, z) - H(x - 1.5, z)) + Math.abs(H(x, z + 1.5) - H(x, z - 1.5));
+          const rk = smooth((sl - 2.6) / 1.8) * (0.7 + 0.3 * n4(x * 0.2, z * 0.2));
+          if (rk > 0) { mix(o, c.rockLt, rk); mix(o, c.rock, rk * (0.5 + 0.5 * n2(x * 0.3, z * 0.3))); }
+          // the sea shore: wet gravel and dark stones under the water (not on the frozen lake)
+          if (!inLake(x, z)) shore(o, h, c.gravel, c.dark);
+          // the frozen lake: blue ice with darker cracks and wind-swept snow
+          if (inLake(x, z) && h < 0.2) { const k = smooth((0.2 - h) / 0.1); mix(o, c.ice, k); mix(o, c.iceDk, k * (Math.abs(n3(x * 0.15, z * 0.15)) < 0.05 ? 0.7 : 0)); mix(o, c.snow, k * smooth(n1(x * 0.09, z * 0.09) * 1.5 - 0.3) * 0.6); }
+        },
+        grassAt() { return 0; },
+        flowersAt() { return 0; },
+        build(w) {
+          // a few floes of sea ice close to the shore by the start
+          w.scatter({ type: 'icefloe', variants: [0, 1, 2], n: 7, sample: (r) => [-40 + r() * 80, SEA(0) + 12 + r() * 26], water: true, gap: 6 });
+        },
+        rules: [
+          { type: 'snowpine', variants: [0, 1, 2], per: 9, test: clear, gap: 5, spot: 'pinecone', spotR: 2.4, minH: 0.5, maxH: 36, scale: [0.9, 1.35], mask: woods },
+          { type: 'snowpine', variants: [0, 1], per: 1.2, test: clear, gap: 7, spot: 'pinecone', spotR: 2.4, minH: 0.5, maxH: 30, scale: [0.8, 1.1] },
+          { type: 'snowrock', variants: [0, 1, 2], per: 2.4, test: clear, gap: 3, scale: [0.9, 2.2], minH: 0.3 },
+          { type: 'snowrock', variants: [0, 1, 2], per: 5, gap: 5, scale: [1.8, 4.2], minH: 9 },
+          { type: 'snowbush', variants: [0, 1, 2], per: 0.9, test: clear, gap: 4, spot: 'berries', spotR: 1.1, scale: [1.0, 1.3], minH: 0.5, maxH: 14 },
+          { type: 'dead', variants: [0, 1], per: 0.35, test: clear, gap: 10, minH: 0.5, maxH: 20 },
+          { type: 'log', per: 0.3, test: clear, gap: 5, minH: 0.5, maxH: 12 },
+          { type: 'rock', variants: [0, 1], per: 3, minH: -1.2, maxH: 0.25, gap: 2.5, scale: [0.6, 1.3], test: (x, z) => !inLake(x, z), tries: 3 },
+          { type: 'icefloe', variants: [0, 0, 1, 1, 2], per: 5, minH: -9, maxH: -1.6, water: true, gap: 7, tries: 3 },
+        ],
+        landmarks: { lake: 2, pond: 2, none: 6 },
+        wildlife: [
+          { sp: 'fox', n: 2, kids: 1, home: [40, 0], range: 50 },
+          { sp: 'owl', n: 2, home: [-30, -20], range: 40 },
+          { sp: 'moose', n: 1, home: [-70, -30], range: 30 },
+          { sp: 'squirrel', n: 2, home: [24, -24], range: 30 },
+          ...SP7([{ sp: 'eagle', n: 1, home: [0, 90], range: 50 }, { sp: 'polarbear', n: 3, kids: 1, home: [10, 80], range: 45 }, { sp: 'snowleopard', n: 2, kids: 1, home: [-20, -120], range: 50 }]),
+        ],
+        ambient: [{ sp: 'fox', w: 2 }, { sp: 'owl', w: 1 }, { sp: 'moose', w: 1 }, ...SP7([{ sp: 'polarbear', w: 2 }, { sp: 'snowleopard', w: 1 }])],
+        foods: { fish: 4, smallfish: 3, berries: 2, pinecone: 3, twigs: 2, seeds: 1 },
+        walk: [],
+      };
+    },
   };
-  const SEEDS = { land: 11, forest: 23, swamp: 37, jungle: 41, meadow: 53, sky: 67 };
+  const SEEDS = { land: 11, forest: 23, swamp: 37, jungle: 41, meadow: 53, sky: 67, snow: 79 };
   const META = {}; for (const id of WORLD_ORDER) { const d = DEFS[id](SEEDS[id]); META[id] = { name: d.name, blurb: d.blurb, needsFly: !!d.needsFly }; }
   const HOUSE_COLORS = ['white', 'yellow', 'blue', 'brick', 'gray'];
   const SHOP_NAMES = { general: 'general store', bakery: 'bakery', cafe: 'cafe', post: 'post office', library: 'library', icecream: 'ice cream shop', diner: 'diner', hardware: 'hardware store', flower: 'flower shop', toy: 'toy store', pet: 'pet store', books: 'bookstore', vet: 'vet', grocery: 'grocery store', clothes: 'clothes store',

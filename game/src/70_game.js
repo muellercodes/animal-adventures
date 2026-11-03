@@ -33,6 +33,7 @@ const sky = Env.sky(); scene.add(sky.mesh);
 const clouds = Env.clouds(14, 460, 150); scene.add(clouds.group);
 const flies = Env.fireflies(80); scene.add(flies.points);
 const leaves = Env.fallingLeaves(140); scene.add(leaves.points);
+const snowfall = Env.fallingLeaves(260, { snow: true }); scene.add(snowfall.points);   // round 10: snow in the Snowy Mountains
 Env.autumn(AUTUMN ? 0.9 : 0);
 let skyExtras = null;
 
@@ -469,6 +470,7 @@ function timeOfDay(dt, focus) {
   if (skyExtras) { skyExtras.low.update(dt, day, dusk); skyExtras.sea.update(dt, camera.position); }
   flies.update(G.t, focus, G.world && !G.world.def.islands && !room ? G.night : 0);
   leaves.update(G.t, focus, AUTUMN && G.world && !room && ['land', 'meadow', 'forest'].includes(G.world.id) ? 1 : 0);
+  snowfall.update(G.t, focus, G.world && !room && G.world.id === 'snow' ? 1 : 0);
   // shadow box follows the focus point
   const m = Player.b ? Player.m : null;
   const Rr = room ? 9 : m ? clamp(m.length * 9 + 9, 10, 30) : 30;
@@ -638,6 +640,7 @@ const WORLD_BG = {
   swamp: 'linear-gradient(160deg,#b8c4a8 0 30%,#5b6b3a 30% 60%,#4f6a52 60%)',
   jungle: 'linear-gradient(160deg,#a8d8c8 0 25%,#2f7a3c 25% 70%,#3fa3b8 70%)',
   meadow: 'linear-gradient(160deg,#c6e6f7 0 35%,#8fbd52 35%)',
+  snow: 'linear-gradient(160deg,#d6e6f2 0 30%,#8c96a4 30% 45%,#f2f5f9 45% 75%,#3f7088 75%)',
 };
 const worldBg = (id) => ASSETS.worlds[id] ? `url(${ASSETS.worlds[id]})` : WORLD_BG[id];
 
