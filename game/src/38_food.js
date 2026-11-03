@@ -1323,7 +1323,7 @@
   };
   function foodNectar() {
     const parts = [], r = rng(1031);
-    const green = L(0x3e6e2a), greenDk = L(0x2a4e1c);
+    const green = L(0x5a8a36), greenDk = L(0x3a6626);
     for (const [x, z, h, s] of [[0.0, 0.0, 0.1, 1.0], [0.035, -0.025, 0.075, 0.85], [-0.03, 0.03, 0.06, 0.75]]) {
       const top = new V3(x + (r() - 0.5) * 0.012, h, z + (r() - 0.5) * 0.012);
       parts.push(tube(path([new V3(x, 0, z), new V3(x + (top.x - x) * 0.4, h * 0.5, z + (top.z - z) * 0.4), top], 6), 0.0028 * s, { radial: 5, color: () => green }));
@@ -1338,7 +1338,7 @@
         const a = (i / n) * TAU + r() * 0.2, d = new V3(Math.cos(a), 0, Math.sin(a)), side = new V3(-d.z, 0, d.x);
         const len = 0.03 * s * (0.9 + r() * 0.2), w = 0.0055 * s;
         const P = (t) => new V3(top.x + d.x * (cr * 0.9 + len * t), top.y - 0.002 - len * (0.15 * t + 0.55 * t * t), top.z + d.z * (cr * 0.9 + len * t));
-        strip(S, P, (t) => w * (t >= 1 ? 0.35 : 0.6 + 0.4 * Math.sin(Math.PI * (0.25 + 0.7 * t))), L(0x9A2A6A), L(0xD86AA8), side);
+        strip(S, P, (t) => w * (t >= 1 ? 0.35 : 0.6 + 0.4 * Math.sin(Math.PI * (0.25 + 0.7 * t))), L(0xB4448A), L(0xE88CC2), side);
       }
       parts.push(S.geo(true));
     }
