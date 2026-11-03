@@ -520,6 +520,23 @@ Two more birds on `bird.py` and the biggest land animal on `ungulate.py`. Things
   smaller than the adult (crocodile 0.4, T. rex 0.3). The crocodile hatchling now uses `baby.rebind` too: its folds at
   the front legs and the neck are gone.
 
+## The giraffe (`giraffe.py`)
+
+- A reticulated giraffe at full size: 5.05 m to the tips of the ossicones, 4.1 m from the lips to the rump, 1.0 m wide.
+  A short deep trunk loft on very long legs (sweeps with knobby knees, hocks and fetlocks, cloven hooves `U.cloven`), the
+  withers high and the back sloping down to the rump, the neck a sweep with a short mane along its top (`MANE`: round
+  cones on the neck's top line), the head a loft in its own frame with big eyes, two ossicones with black hair knobs
+  (`OSS`), a median lump, leaf ears (`U.ear`, on their own bones), soft lips; a long thin tail with a black tuft.
+- The coat is a Voronoi pattern (`_reticulate()`): polygon patches parted by thin white lines, darker centers, the cells
+  shrinking up the neck (0.18 to 0.1 m), down the legs and on the face; plain cream below the knees and the hocks, a
+  paler belly, a tan face, a pale muzzle. The calf has its own small color map: paler orange patches, wider lines.
+- Weights: the trunk by z, the neck along its straight line from the base to the poll, the head and the ears, the legs
+  by height (the hooves on the paw bones), the tail down its length.
+- Animation (game): a pace (both legs on one side together), a gallop with the hind legs first and the body rocking
+  (`pitchRun`), the neck nodding (`nod`, `runNeck`); eating, the front legs splay a little (`eatSplay`) and the neck
+  swings down to the ground; asleep it folds its legs and curls the neck back over its body (`sleep.neck` yaw 3.0).
+  The calf is the game's baby maps (long legs, a shorter neck, a bigger head and eyes): about 1.7 m tall in the game.
+
 ## Budget
 
 Pig: about 6.3k triangles, 4.8k vertices, 1024 x 1024 color and normal maps: 38 KB mesh (format 2; 136 KB before) +
@@ -711,3 +728,7 @@ minutes for the whole run.
 T. rex (`VOXEL=0.03 TRIS=4400 TEX=768 WEIGHTS=transfer`): 6.9k triangles; 768 color (WebP 64) and normal (WebP 34) maps,
 256 hatchling color map, 384 fur map: 55 KB mesh + 14 + 51 + 3 + 8 KB, 134 KB of files, about 190 KB in the page plus
 about 33 KB of icons (the round 10 budget is about 220 KB per animal, icons included).
+
+Giraffe (`VOXEL=0.02 TRIS=3600 TEX=768 WEIGHTS=transfer`): 6.4k triangles; 768 color (WebP 40: the patch pattern is
+most of the bytes) and normal (WebP 44) maps, 192 calf color map: 48 KB mesh + 58 + 18 + 9 KB, 135 KB of files, about
+192 KB in the page plus about 45 KB of icons.

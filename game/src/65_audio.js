@@ -202,6 +202,9 @@ const Sound = (() => {
       // round 10: t. rex
       // T. rex: a deep closed-mouth boom that swells and fades, like a big bird's or a crocodile's (a hatchling peeps)
       case 'trex': if (k > 1) { for (let i = 0; i < 3; i++) T({ t: t + i * 0.16, f: 700, f2: 520, dur: 0.12, type: 'triangle', vol: vol * 0.6 }); } else { T({ t, f: 42, f2: 36, dur: 1.8, a: 0.35, type: 'sine', vib: 2.5, vibAmt: 2, vol: vol * 1.6 }); T({ t, f: 84, f2: 70, dur: 1.5, a: 0.3, type: 'sawtooth', lp: 180, vol: vol * 0.7 }); T({ t: t + 0.9, f: 40, f2: 34, dur: 1.2, a: 0.2, type: 'sine', vol: vol * 1.2 }); } break;
+      // round 10: giraffe
+      // Giraffe: a low soft hum with a snort (giraffes are quiet; they hum at night); a calf gives a soft bleat
+      case 'giraffe': if (k > 1) { T({ t, f: 380, f2: 300, dur: 0.45, type: 'sawtooth', bp: 900, q: 2, vib: 6, vibAmt: 12, vol: vol * 0.7 }); } else { T({ t, f: 92, f2: 88, dur: 1.4, a: 0.3, type: 'sine', vib: 3, vibAmt: 2, vol: vol * 1.1 }); T({ t, f: 184, f2: 176, dur: 1.3, a: 0.3, type: 'triangle', lp: 500, vol: vol * 0.35 }); noise({ t: t + 1.35, f: 900, q: 0.8, dur: 0.25, vol: vol * 0.4, pan }); } break;
     }
   }
 

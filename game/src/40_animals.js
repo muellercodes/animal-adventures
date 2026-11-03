@@ -5744,6 +5744,110 @@ const Animals = (() => {
     };
   };
 
+  // round 10: giraffe
+  ids.push('giraffe');
+  // GIRAFFE (a reticulated giraffe): the head about 5 m up, high shoulders with the back sloping down to the rump, a long
+  // neck with a short mane, two hair-tufted ossicones, very long legs on cloven hooves, a long tail with a black tuft;
+  // crisp liver-red polygon patches parted by thin white lines. It paces (both legs on one side together) with the neck
+  // bobbing and gallops with a rocking motion, splays its front legs and lowers its neck to eat from the ground and lies
+  // down to sleep with the neck curled back. The calf (no egg) is about 1.8 m tall with long wobbly legs, a shorter
+  // neck, a bigger head and eyes and paler patches.
+  SPEC.giraffe = () => {
+    const K = { patch: hex(0x7E3A1C), line: hex(0xF0E6D4), leg: hex(0xE8DCC4), face: hex(0xC4925E), dk: hex(0x1E1A16) };
+    const xF = 0.3, xH = 0.3;
+    return {
+      size: { length: 3.9, height: 5.0, radius: 0.55, eyeHeight: 4.75 },
+      tex: [256, 512], rough: 0.85,
+      detail: { kind: 'fur', tile: 0.2, amt: 0.08, bump: 0.2, sheen: 0.03 },
+      bones: [
+        ['hips', null, 0, 2.5, -0.85],
+        ['chest', 'hips', 0, 2.75, 0.5],
+        ['neck', 'chest', 0, 3.0, 0.9],
+        ['neck2', 'neck', 0, 3.55, 1.25],
+        ['neck3', 'neck2', 0, 4.05, 1.55],
+        ['neck4', 'neck3', 0, 4.45, 1.8],
+        ['head', 'neck4', 0, 4.72, 1.95],
+        ['earL', 'head', 0.1, 4.86, 1.95, 1],
+        ['tail1', 'hips', 0, 2.6, -1.3],
+        ['tail2', 'tail1', 0, 2.1, -1.42],
+        ['tail3', 'tail2', 0, 1.55, -1.47],
+        ['thighL', 'hips', xH, 2.35, -0.85, 1],
+        ['shinL', 'thighL', xH + 0.03, 1.8, -0.55, 1],
+        ['hmetaL', 'shinL', xH, 1.05, -1.02, 1],
+        ['hpawL', 'hmetaL', xH, 0.22, -0.92, 1],
+        ['armL', 'chest', xF, 2.45, 0.7, 1],
+        ['foreL', 'armL', xF, 1.85, 0.5, 1],
+        ['fmetaL', 'foreL', xF, 1.0, 0.55, 1],
+        ['fpawL', 'fmetaL', xF, 0.22, 0.6, 1],
+      ],
+      fur: [
+        { name: 'body', bones: ['hips', 'chest', 'neck'], blend: 0.3, segs: 14, cap0: 2, keys: [
+          [0, 2.35, -1.3, 0.22, 0.26, 0.22], [0, 2.35, -0.85, 0.38, 0.42, 0.45], [0, 2.4, -0.1, 0.39, 0.5, 0.52], [0, 2.5, 0.55, 0.35, 0.6, 0.6],
+          [0, 2.7, 0.9, 0.28, 0.45, 0.4],
+        ] },
+        { name: 'neck', bones: ['neck', 'neck2', 'neck3', 'neck4', 'head'], blend: 0.2, segs: 14, keys: [
+          [0, 2.85, 0.7, 0.33, 0.42, 0.4], [0, 3.55, 1.25, 0.22, 0.26, 0.3], [0, 4.05, 1.55, 0.17, 0.2, 0.24], [0, 4.45, 1.8, 0.135, 0.16, 0.19],
+          [0, 4.75, 1.95, 0.11, 0.13, 0.15],
+        ] },
+        { name: 'head', bones: ['head'], segs: 10, cap0: 2, cap1: 2, keys: [
+          [0, 4.8, 1.95, 0.11, 0.12, 0.12], [0, 4.72, 2.1, 0.13, 0.15, 0.13], [0, 4.6, 2.3, 0.085, 0.1, 0.1], [0, 4.5, 2.47, 0.08, 0.08, 0.08],
+        ] },
+        { name: 'tail', bones: ['tail1', 'tail2', 'tail3'], blend: 0.05, segs: 8, cap1: 2, keys: [
+          [0, 2.6, -1.28, 0.05, 0.05, 0.05], [0, 2.1, -1.42, 0.035, 0.035, 0.035], [0, 1.4, -1.47, 0.025, 0.025, 0.025], [0, 0.95, -1.48, 0.06, 0.06, 0.06],
+        ] },
+        { name: 'fleg', mirror: true, bones: ['chest', 'armL', 'foreL', 'fmetaL', 'fpawL'], blend: 0.08, segs: 8, keys: [
+          [0.3, 2.4, 0.68, 0.17, 0.2, 0.2], [0.3, 1.85, 0.5, 0.1, 0.13, 0.13], [0.3, 1.4, 0.52, 0.075, 0.09, 0.09], [0.3, 1.0, 0.55, 0.065, 0.08, 0.08],
+          [0.3, 0.6, 0.57, 0.045, 0.05, 0.05], [0.3, 0.12, 0.63, 0.05, 0.05, 0.05], [0.3, 0.03, 0.66, 0.08, 0.03, 0.03],
+        ] },
+        { name: 'hleg', mirror: true, bones: ['hips', 'thighL', 'shinL', 'hmetaL', 'hpawL'], blend: 0.08, segs: 8, keys: [
+          [0.3, 2.3, -0.85, 0.2, 0.28, 0.3], [0.33, 1.8, -0.6, 0.12, 0.17, 0.17], [0.32, 1.45, -0.8, 0.09, 0.12, 0.12], [0.3, 1.07, -1.0, 0.065, 0.08, 0.08],
+          [0.3, 0.65, -0.96, 0.045, 0.05, 0.05], [0.3, 0.12, -0.88, 0.05, 0.05, 0.05], [0.3, 0.03, -0.82, 0.08, 0.03, 0.03],
+        ] },
+      ],
+      paint(P, C) {
+        // patches parted by white lines (a cell pattern), plain cream legs below the knees, a tan face
+        const d = cells(P.x * 5 + 2.1, P.y * 5, P.z * 5);
+        cset(C, K.patch);
+        cmix(C, K.line, sstep(0.12, 0.06, d));
+        if (P.y < 1.1) cmix(C, K.leg, sstep(1.1, 0.8, P.y));
+        if (P.part === 'head') cmix(C, K.face, 0.5);
+        if (P.part === 'tail' && P.y < 1.2) cset(C, K.dk);
+        C.ro = 0.85;
+      },
+      babyPaint(P, C) {
+        const d = cells(P.x * 5 + 2.1, P.y * 5, P.z * 5);
+        cset(C, hex(0xB06A3A));
+        cmix(C, K.line, sstep(0.18, 0.1, d));
+        if (P.y < 1.1) cmix(C, K.leg, sstep(1.1, 0.8, P.y));
+      },
+      accent: [
+        // ossicones with black tufts
+        ...[0.065].map((x) => ({ kind: 'tube', bone: 'head', pts: [[x, 4.86, 1.96], [x + 0.02, 5.0, 1.92]], radii: [0.035, 0.03], segs: 5, mirror: true, col: 0xA87A4E, capEnd: true })),
+        { kind: 'sphere', bone: 'head', c: [0.087, 5.01, 1.92], r: 0.04, ws: 6, hs: 4, mirror: true, col: 0x1E1A16 },
+      ],
+      accentRough: 0.8,
+      eyes: [{ bone: 'head', p: [0.12, 4.812, 2.055], r: 0.03, dir: [0.88, 0.05, 0.47], iris: 0x2A1A10, irisR: 0.95, pupil: 'h', pupilR: 0.45 }],
+      mouth: [0, 4.38, 2.5],
+      anim: {
+        type: 'legged', walk: 1.4, trot: 2.8, run: 7.0, stride: 2.6, strideMax: 2.4, maxRate: 2.0,
+        duty: [0.66, 0.6, 0.4], lift: [0.2, 0.18], flexF: 0.9, flexH: 0.8, splay: 0,
+        // the walk is a pace (both legs on one side together); the gallop rocks, hind legs first
+        gaits: { w: [0.0, 0.5, 0.06, 0.56], t: [0.0, 0.5, 0.06, 0.56], g: [0.55, 0.65, 0.0, 0.1] },
+        bob: [0.02, 0.03, 0.08], pitchRun: 0.06, flexRun: 0.03, roll: 0.02,
+        spine: ['hips', 'chest'], wave: 0,
+        neck: ['neck', 'neck2', 'neck3', 'neck4', 'head'], neckDist: [0.28, 0.26, 0.2, 0.14, 0.12], nod: 0.06, runNeck: 0.3, trotNeck: 0.08,
+        // eating from the ground: the front legs splay out and the neck swings down
+        eatSplay: [0.3, 0.1], eatPitch: 0.12, eatMax: 2.6, eatY: 0.03, eatDrop: 0.15, chew: 0.03, chewRate: 3,
+        ears: ['earL', 'earR'],
+        tail: ['tail1', 'tail2', 'tail3'], tailSway: 0.15, tailWalk: 0.1,
+        lookAmp: 0.5, breathe: 0.006,
+        sleep: { style: 'fold', neck: [3.0, 1.5], tail: [0.4, 0.1], roll: 0, bend: 0.2 },
+      },
+      // the calf: long legs, a shorter neck, a bigger head with bigger eyes
+      baby: { head: 1.35, muzzle: 0.85, eye: 1.25, ear: 1.1, neck: [0.6, 0.8], body: [0.72, 0.72, 0.66], leg: [0.95, 0.72], tail: 0.6 },
+    };
+  };
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -7670,6 +7774,8 @@ const Animals = (() => {
   COLLAR.brachiosaurus = { at: ['neck4', 'head', 0.3], r: 1.2 };
   // round 10: t. rex
   COLLAR.trex = { at: ['neck', 'neck2', 0.5], r: 1.2 };
+  // round 10: giraffe
+  COLLAR.giraffe = { at: ['neck3', 'neck4', 0.5], r: 0.9 };
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)
