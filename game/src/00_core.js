@@ -99,6 +99,8 @@ const SPECIES = {
   polarbear: { name: 'Polar bear', many: 'Polar bears', eats: ['fish', 'smallfish', 'berries', 'hotdog'], fav: 'fish', swim: true, swimSpeed: 2.5, outdoor: true, hunter: true, price: 1400, baby: 'Polar bear cub' },
   // round 10: snow leopard
   snowleopard: { name: 'Snow leopard', many: 'Snow leopards', eats: ['fish', 'smallfish', 'worm', 'hotdog', 'petfood'], fav: 'fish', climb: true, outdoor: true, hunter: true, price: 1200, baby: 'Snow leopard cub' },
+  // round 10: saber-toothed cat
+  smilodon: { name: 'Saber-toothed cat', many: 'Saber-toothed cats', eats: ['hotdog', 'fish', 'smallfish', 'worm'], fav: 'hotdog', outdoor: true, hunter: true, price: 1500, baby: 'Saber-toothed kitten' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
@@ -120,6 +122,8 @@ SPECIES.chickadee.eggSpeck = [0.72, 0.4, 0.28];   // reddish brown speckles
 SHOP.push('polarbear');
 // round 10: snow leopard
 SHOP.push('snowleopard');
+// round 10: saber-toothed cat
+SHOP.push('smilodon');
 SHOP.sort((a, b) => SPECIES[a].price - SPECIES[b].price);
 // round 8: brachiosaurus (the dearest animal, so it goes last)
 SHOP.push('brachiosaurus');

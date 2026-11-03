@@ -5790,6 +5790,7 @@ const Animals = (() => {
     // the long thick tail, carried low and curling up at the tip (cat units, as in snowleopard.py)
     const TB = [['tail1', 'rump', 0.205, -0.19], ['tail2', 'tail1', 0.16, -0.3], ['tail3', 'tail2', 0.1, -0.43], ['tail4', 'tail3', 0.077, -0.53]];
     s.bones = s.bones.filter((b) => b[0].indexOf('tail') !== 0).concat(TB.map((t) => [t[0], t[1], 0, t[2] * k, t[3] * k]));
+    s.size.length = 0.9 * k;   // nose to tail tip
     const tl = s.fur.find((fp) => fp.name === 'tail');
     tl.bones = ['rump', 'tail1', 'tail2', 'tail3', 'tail4'];
     tl.keys = [[0.207, -0.18, 0.019], [0.19, -0.24, 0.022], [0.148, -0.325, 0.023], [0.1, -0.43, 0.022], [0.077, -0.53, 0.02], [0.103, -0.598, 0.012]]
@@ -5818,6 +5819,51 @@ const Animals = (() => {
       // asleep curled up, the tail wrapped round over its nose
       sleep: Object.assign({}, A.sleep, { tail: [3.4, 0.05] }),
       sit: Object.assign({}, A.sit, { tail: [0.9, 0.2, 0.1, 0.05], tailYaw: [0.5, 0.8, 0.8, 0.8], wrap: [1.2, 2.3, 3.0, 3.5], wrapY: [0.1, 0.0, -0.02, -0.02] }),
+    });
+    delete A.tailWalkLift;
+    return s;
+  };
+
+  // ===== round 10: saber-toothed cat =====
+  // Smilodon fatalis on the big-cat scaler (tools/blender/smilodon.py, KS 3.8): the cat's skeleton with a bobtail
+  ids.push('smilodon');
+  SPEC.smilodon = () => {
+    const k = 3.8, s = bigCat(k);
+    // the bobtail (cat units, as in smilodon.py)
+    const TB = [['tail1', 'rump', 0.205, -0.19], ['tail2', 'tail1', 0.19, -0.235]];
+    s.bones = s.bones.filter((b) => b[0].indexOf('tail') !== 0).concat(TB.map((t) => [t[0], t[1], 0, t[2] * k, t[3] * k]));
+    s.size.length = 0.58 * k;   // nose to the tip of the bobtail
+    const tl = s.fur.find((fp) => fp.name === 'tail');
+    tl.bones = ['rump', 'tail1', 'tail2'];
+    tl.keys = [[0.207, -0.18, 0.017], [0.2, -0.21, 0.016], [0.185, -0.25, 0.012], [0.172, -0.276, 0.007]]
+      .map((q) => [0, q[0] * k, q[1] * k, q[2] * k, q[2] * k, q[2] * k]);
+    // the fallback lofts: a heavier body and thick forelegs
+    for (const fp of s.fur) if (fp.name === 'body' || fp.name === 'fleg') fp.keys = fp.keys.map((q) => [q[0], q[1], q[2], q[3] * 1.2, q[4] * 1.2, q[5] * 1.2]);
+    const K = { ground: hex(0xB08A5A), back: hex(0x8C6A44), white: hex(0xE6DAC2), spot: hex(0x7C5A38) };
+    s.paint = (P, C) => {
+      cset(C, K.ground); cmix(C, K.back, sstep(0.3, 0.9, P.ny) * 0.5); cmix(C, K.white, sstep(-0.2, -0.7, P.ny) * 0.7);
+      cmix(C, K.spot, sstep(0.6, 0.7, noise(P.x * 30, P.y * 30, P.z * 30)) * 0.3);
+      C.ro = 0.86; C.fl = 0.5;
+    };
+    s.babyPaint = (P, C) => { cmix(C, hex(0xA48A68), 0.3); C.fl = 1; };
+    Object.assign(s.eyes[0], { iris: 0xC69A40, pupil: 'round', pupilR: 0.36, r: s.eyes[0].r * 0.8 });
+    // the nose and whiskers; the sabers as two ivory tubes
+    s.accent[0].col = 0x6E4640;
+    s.accent.push({ kind: 'tube', bone: 'head', mirror: true, segs: 4, col: 0xE8DEC4,
+      pts: [[0.0158, 0.2675, 0.2648], [0.0164, 0.2417, 0.2607], [0.017, 0.2178, 0.2525]].map((q) => q.map((v) => v * k)), radii: [0.004 * k, 0.0032 * k, 0.001 * k] });
+    s.shell.len = 0.009 * k;
+    // a kitten: big paws, a big head
+    s.baby = Object.assign({}, s.baby, { head: 1.55, ear: 1.15, leg: [0.72, 1.3], tail: 0.6 });
+    s.modelSpec = { baby: { eye: 1.04, fluff: 0, leg: [0.72, 1.04], body: [1.1, 1.1, 0.76] } };
+    const A = s.anim;
+    Object.assign(A, {
+      // a heavy walk, a short charge
+      walk: 1.1, trot: 2.6, run: 7.5, maxRate: 3.6, roll: 0.03, nod: 0.03, trotNeck: 0.08, runNeck: 0.18,
+      tail: ['tail1', 'tail2'], tailIdle: [-0.25, -0.1], tailRun: [0.15, 0.0], tailWalk: 0.04, tailSway: 0.05, tailFlick: 0.12, wag: 0.05,
+      climb: Object.assign({}, A.climb, { tail: [-0.2, 0.0] }),
+      // lies down like a big cat, the head up a little or laid on the paws
+      sleep: { style: 'flat', neck: [0.3, 0.45], tail: [0.4, 0.0] },
+      sit: Object.assign({}, A.sit, { tail: [0.6, 0.2], tailYaw: [0.3, 0.3], wrap: [0.5, 0.5], wrapY: [0.0, 0.0] }),
     });
     delete A.tailWalkLift;
     return s;
@@ -7753,6 +7799,8 @@ const Animals = (() => {
   COLLAR.polarbear = { at: ['neck2', 'head', 0.3], r: 0.8, maxR: 0.3 };
   // round 10: snow leopard
   COLLAR.snowleopard = COLLAR.cat;
+  // round 10: saber-toothed cat
+  COLLAR.smilodon = COLLAR.cat;
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)

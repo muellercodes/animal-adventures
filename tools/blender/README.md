@@ -731,6 +731,25 @@ The snow leopard (KS 2.5: about 1.2 m from the nose to the rump, a 1 m tail):
   rings), small solid spots on the head and the legs, blotches and then rings on the tail and a dark tip. The first
   palette rendered nearly white in the game's sunlight; the coat colors are about 20% darker than they look in a
   photo. Cubs: grayer, with bold solid spots.
-- Budget (`VOXEL=0.0062 TRIS=4600 TEX=768`): 6.5k triangles plus 192 in whisker cards; 768 maps (color WebP 66,
-  normal 56), 384 cub map, fur and whisker textures: 63 KB mesh + 43 + 12 + 15 + 7 + 5 KB, about 198 KB in the page plus
-  about 32 KB of icons.
+- Budget (`VOXEL=0.0062 TRIS=4600 TEX=768`): 6.5k triangles plus 192 in whisker cards; 768 maps (color WebP 62,
+  normal 54), 256 cub map (`BABY_TEX`), fur and whisker textures: 63 KB mesh + 41 + 11 + 8 + 7 + 5 KB, about 187 KB in
+  the page plus about 31 KB of icons. (The rosettes make the color map the biggest of the three big cats'.)
+
+The saber-toothed cat, Smilodon fatalis (`smilodon.py`, KS 3.8: about 1.85 m from the nose to the rump, 0.95 m at the
+shoulder):
+- A heavy deep body, the back sloping from high humped shoulders (a big round cone over the shoulder blades) down to the
+  hips, very thick forelegs (`_stout` plus a great upper arm and forearm), big paws, a thick neck. The thigh tops are cut
+  off under the line of the back (`smax` with a plane): the house cat's thighs stood up over the hips.
+- A bobtail on two bones (`TAIL_BONES`, `TB`).
+- Its own `head()`, the house cat's with the muzzle lengthened (the head table's front rows and every muzzle part moved
+  forward by `_MS`: the house cat's short flat face read as a hamster with tusks), a lower forehead, brows over smaller
+  deep-set eyes, a bigger nose, and the flange of the lower jaw as a deep flat-fronted chin.
+- The sabers: two curved blades (round cones flattened across, `fang()`), set outside the lower jaw so they show from
+  the upper lip down (set inside it they showed only below the chin). Painted ivory from the same distance function,
+  no fur on them, kept by the decimation (`keep`), in the head's UV island, weighted to the head bone. A kitten's are
+  pulled up toward the gum in its baby offsets, so only the tips show.
+- A plain tawny coat, short (fur shells at 55% of the cat's lengths), faint darker spots, a pale muzzle and chin with
+  dark whisker spots, a dark tip to the tail. Kittens: bold dark spots. Whisker cards as the cat's.
+- Budget (`VOXEL=0.0085 TRIS=4800 TEX=768`): 6.9k triangles plus 192 in whisker cards; 768 maps (color WebP 72, normal
+  58), 384 kitten map, fur and whisker textures: 65 KB mesh + 26 + 14 + 9 + 5 + 6 KB, about 173 KB in the page plus about
+  27 KB of icons.

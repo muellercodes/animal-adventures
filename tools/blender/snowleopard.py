@@ -276,5 +276,6 @@ def hair_texture():
 
 
 C.hair_texture = hair_texture
-C.MAP_QUALITY = (66, 56)
+C.MAP_QUALITY = (62, 54)
+C.BABY_TEX = 256     # (the page budget: the cub's map is small on screen)
 bigcat.install(globals(), C, KS)
