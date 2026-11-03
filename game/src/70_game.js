@@ -90,9 +90,9 @@ function followCamera(dt) {
   // and the giants (a brachiosaurus) a camera far enough back to see them
   // and the tiniest (a caterpillar, a butterfly: under 10 cm) closer still
   const tiny = Math.max(m.length, m.height) < 0.1;
-  const base = clamp(m.length * 1.35 + m.height * 1.5 + 0.75 * clamp(m.length / 0.15, tiny ? 0.3 : 0.55, 1), tiny ? 0.38 : 0.6, Math.max(8.5, m.height * 2.4));
+  const base = clamp(m.length * 1.35 + m.height * 1.5 + (tiny ? 0.5 : 0.75) * clamp(m.length / 0.15, tiny ? 0.3 : 0.55, 1), tiny ? 0.2 : 0.6, Math.max(8.5, m.height * 2.4));
   let dist = base * Cam.zoom;
-  const ty = b.pos.y + (b.mode === 'climb' ? m.length * 0.4 : m.eye * 0.8) + 0.05;
+  const ty = b.pos.y + (b.mode === 'climb' ? m.length * 0.4 : m.eye * 0.8) + (tiny ? 0.015 : 0.05);
   if (Cam.snap) { Cam.target.set(b.pos.x, ty, b.pos.z); Cam.yaw = b.yaw; Cam.snap = false; }
   // when a person is talking to us, pull back so both fit on screen
   let fx0 = b.pos.x, fz0 = b.pos.z, fy0 = ty, minD = 0;
@@ -119,7 +119,7 @@ function followCamera(dt) {
     x = clamp(x, room.ox - room.w / 2 + 0.3, room.ox + room.w / 2 - 0.3); z = clamp(z, room.oz - room.d / 2 + 0.3, room.oz + room.d / 2 - 0.3);
     y = clamp(y, 0.3, room.wallH - 0.25);
   } else {
-    const gh = G.world.groundAt ? G.world.groundAt(x, z, Cam.target.y + 1) : H(x, z), floor = Math.max(gh > -100 ? gh : -1e9, G.world.def.water ? WATER : -1e9) + Math.max(0.12, m.height * 0.45);
+    const gh = G.world.groundAt ? G.world.groundAt(x, z, Cam.target.y + 1) : H(x, z), floor = Math.max(gh > -100 ? gh : -1e9, G.world.def.water ? WATER : -1e9) + Math.max(tiny ? 0.05 : 0.12, m.height * 0.45);
     if (y < floor) y = floor;
     const k = camBlock(x, y, z, dist);
     Cam.block = k < (Cam.block || 1) ? k : damp(Cam.block || 1, k, 2.5, dt);

@@ -6495,7 +6495,7 @@ const Animals = (() => {
         cmul(C, 0.95 + 0.08 * grain(P, 600, 200));
         C.ro = 0.32;
       },
-      anim: { type: 'crawl', walk: 0.18, run: 0.45, names, z0, dz, r, lift: 0.0016, span: 1.1, tents: ['tfL', 'tfR', 'trL', 'trR'] },
+      anim: { type: 'crawl', walk: 0.25, run: 0.6, names, z0, dz, r, lift: 0.0016, span: 1.1, tents: ['tfL', 'tfR', 'trL', 'trR'] },
       baby: { head: 1.15, muzzle: 1.0, eye: 1.0, ear: 1.0, neck: [1, 1], body: [1, 1, 1], leg: [1, 1], tail: 1 },
     };
   };
