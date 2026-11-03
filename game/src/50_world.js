@@ -93,12 +93,14 @@ const World = (() => {
       if (PEN_NAMES[p.id]) w.addSign(PEN_NAMES[p.id], p.wx + out[0] + along[0], p.wz + out[1] + along[1], SIDE_ROT[p.gate]);
       const inPen = (m) => (r) => [p.wx + (r() * 2 - 1) * (p.hw - m), p.wz + (r() * 2 - 1) * (p.hd - m)];
       const dry = (x, z) => !p.pool || Math.hypot(x - p.pool.wx, z - p.pool.wz) > p.pool.r + 2.5;
-      if (p.trees) w.scatter({ type: p.id === 'giraffe' ? 'oak' : 'birch', variants: [0, 1], n: p.trees, tries: p.trees * 12, sample: inPen(4), test: dry, gap: 7, scale: [1.0, 1.3] });
-      if (p.rocks) w.scatter({ type: p.id === 'polar' ? 'snowrock' : 'rock', variants: [0, 1, 2], n: p.rocks, sample: inPen(2), test: dry, gap: 3, scale: [1.2, 2.4] });
+      // the whole pen counts as taken (addEnclosure), so its plants and rocks only keep apart from each other
+      const free = [];
+      if (p.trees) w.scatter({ type: p.id === 'giraffe' ? 'oak' : 'birch', variants: [0, 1], n: p.trees, tries: p.trees * 12, free, sample: inPen(4), test: dry, gap: 7, scale: [1.0, 1.3] });
+      if (p.rocks) w.scatter({ type: p.id === 'polar' ? 'snowrock' : 'rock', variants: [0, 1, 2], n: p.rocks, free, sample: inPen(2), test: dry, gap: 3, scale: [1.2, 2.4] });
       if (p.jungle) {
-        w.scatter({ type: 'palm', variants: [0, 1], n: p.jungle, sample: inPen(5), test: dry, gap: 9, scale: [1.1, 1.5] });
-        w.scatter({ type: 'bigleaf', n: Math.round(p.jungle * 0.8), sample: inPen(3), test: dry, gap: 4, scale: [1.2, 1.8] });
-        w.scatter({ type: 'fern', n: p.jungle * 2, sample: inPen(2), test: dry, gap: 2, scale: [1.2, 1.8] });
+        w.scatter({ type: 'palm', variants: [0, 1], n: p.jungle, free, sample: inPen(5), test: dry, gap: 9, scale: [1.1, 1.5] });
+        w.scatter({ type: 'bigleaf', n: Math.round(p.jungle * 0.8), free, sample: inPen(3), test: dry, gap: 4, scale: [1.2, 1.8] });
+        w.scatter({ type: 'fern', n: p.jungle * 2, free, sample: inPen(2), test: dry, gap: 2, scale: [1.2, 1.8] });
       }
     }
     // benches, lamps and trash cans along the paths (not on Dino Park's narrow walkway between the pens)
@@ -962,11 +964,13 @@ const World = (() => {
         if (o.sample) { [x, z] = o.sample(r, k); k++; }
         else { const a = r() * TAU, d = Math.sqrt(r()) * o.nearR; x = o.near.x + Math.cos(a) * d; z = o.near.z + Math.sin(a) * d; }
         const h = H(x, z);
-        const ok = h >= minH && h <= maxH && (!o.test || o.test(x, z, h, H, w)) && gapOK(x, z, gap);
+        // o.free: a list of its own to keep apart from (inside a zoo pen, which is all marked as taken)
+        const spaced = o.free ? o.free.every((q) => Math.hypot(q.x - x, q.z - z) >= (q.gap + gap) * 0.5) : gapOK(x, z, gap);
+        const ok = h >= minH && h <= maxH && (!o.test || o.test(x, z, h, H, w)) && spaced;
         if (ok) {
           const variant = variants[(r() * variants.length) | 0], s = s0 + r() * (s1 - s0), rot = r() * TAU;
           placeProp(owner, o, o.type, variant, x, z, h, s, rot);
-          markPlaced(x, z, gap);
+          if (o.free) o.free.push({ x, z, gap }); else markPlaced(x, z, gap);
           placed++;
         }
         if (o.sample && k >= (o.tries || o.n)) break;
