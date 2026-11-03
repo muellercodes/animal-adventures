@@ -443,7 +443,7 @@ def fix_weights(W, wpos, names, G, weld):
         Wl = np.zeros((len(Q), len(names)), F)
         # body: hips, neck, head along z; the head from just behind the skull
         L = HF.loc(Q)
-        th = sstep(-0.01, 0.008, L[:, 2])
+        th = sstep(-0.01, 0.008, L[:, 2]) * sstep(0.05, 0.04, Q[:, 0])
         tn = sstep(0.02, 0.07, Q[:, 2]) * (1 - th)
         Wl[:, nb['head']] = th
         Wl[:, nb['neck']] = tn
@@ -456,15 +456,16 @@ def fix_weights(W, wpos, names, G, weld):
         lw = np.zeros((len(Q), len(names)), F)
         k_sh = sstep(0.6, 0.95, tk)
         k_me = sstep(0.03, 0.019, Q[:, 1])
-        k_pw = sstep(0.012, 0.004, Q[:, 1]) * sstep(-0.086, -0.078, Q[:, 2])
+        # (the whole foot rides on the metatarsus: split onto the paw bone it came apart from the shin)
+        k_pw = np.zeros(len(Q), F)
         lw[:, nb['thigh']] = 1.0
         lw = lw * (1 - k_sh[:, None]); lw[:, nb['shin']] += k_sh
         lw = lw * (1 - k_me[:, None]); lw[:, nb['hmeta']] += k_me
         lw = lw * (1 - k_pw[:, None]); lw[:, nb['hpaw']] += k_pw
         Wl = Wl * (1 - kl[:, None]) + lw * kl[:, None]
         # the wing: arm, fingers and membranes, by where they lie in the wing plane
-        dwp = np.minimum(np.minimum(cs['memb'], cs['finger']), cs['arm'])
-        onw = (np.abs(Q[:, 1] - YM) < 0.016) & (Q[:, 0] > 0.026) & (dwp < cs['trunk'] - 0.0003) & (dwp < 0.004)
+        dwp = np.minimum(np.minimum(cs['memb'], cs['finger']), np.minimum(cs['arm'], np.where(Q[:, 0] > 0.1, cs['claw'], 1.0)))
+        onw = ((np.abs(Q[:, 1] - YM) < 0.016) & (Q[:, 0] > 0.026) & (dwp < cs['trunk'] - 0.0003) & (dwp < 0.004)) | ((Q[:, 0] > 0.065) & (Q[:, 1] > 0.06))
         wing = np.zeros((len(Q), len(names)), F)
         aw = _arm_w(Q, nb)
         hw = _hand_w(Q, nb)

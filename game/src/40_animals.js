@@ -5967,16 +5967,16 @@ const Animals = (() => {
           [0, 0.0036, 0.0111, 0.00016, 0.00016, 0.00016],
         ] },
         { name: 'legm', mirror: true, bones: ['lmL'], segs: 5, cap1: 2, keys: [
-          [0.0012, 0.0126, 0.001, 0.00042, 0.00042, 0.00042],
-          [0.0072, 0.0119, 0.0034, 0.00038, 0.00038, 0.00038],
-          [0.0084, 0.006, 0.0048, 0.0003, 0.0003, 0.0003],
-          [0.0094, 0.0004, 0.0062, 0.00024, 0.00024, 0.00024],
+          [0.0012, 0.0126, 0.001, 0.00034, 0.00034, 0.00034],
+          [0.0072, 0.0119, 0.0034, 0.0003, 0.0003, 0.0003],
+          [0.0084, 0.006, 0.0048, 0.00022, 0.00022, 0.00022],
+          [0.0094, 0.0004, 0.0062, 0.00016, 0.00016, 0.00016],
         ] },
         { name: 'legh', mirror: true, bones: ['lhL'], segs: 5, cap1: 2, keys: [
-          [0.0012, 0.0125, -0.0022, 0.00042, 0.00042, 0.00042],
-          [0.0075, 0.0116, -0.0058, 0.00038, 0.00038, 0.00038],
-          [0.0086, 0.006, -0.0085, 0.0003, 0.0003, 0.0003],
-          [0.0094, 0.0004, -0.0108, 0.00024, 0.00024, 0.00024],
+          [0.0012, 0.0125, -0.0022, 0.00034, 0.00034, 0.00034],
+          [0.0075, 0.0116, -0.0058, 0.0003, 0.0003, 0.0003],
+          [0.0086, 0.006, -0.0085, 0.00022, 0.00022, 0.00022],
+          [0.0094, 0.0004, -0.0108, 0.00016, 0.00016, 0.00016],
         ] },
       ],
       accent: [
@@ -5992,7 +5992,7 @@ const Animals = (() => {
         cset(C, K.body);
         // white spots on the head and the thorax, a few along the sides of the abdomen
         const sp = cells(P.x * 2600, P.y * 2600, P.z * 2600);
-        if (P.part === 'body' || P.part === 'head') cmix(C, K.spot, sstep(0.78, 0.86, sp) * 0.95);
+        if (P.part === 'body' || P.part === 'head') cmix(C, K.spot, sstep(0.7, 0.78, sp) * 0.95);
         if (P.part === 'abd') cmix(C, K.spot, sstep(0.84, 0.9, sp) * sstep(0.2, -0.3, P.ny) * 0.8);
         if (P.part === 'legm' || P.part === 'legh' || P.part === 'prob') cset(C, K.leg);
         cmul(C, 0.9 + 0.15 * grain(P, 900, 300));
@@ -6010,7 +6010,7 @@ const Animals = (() => {
         type: 'butterfly', walk: 0.04, run: 0.1, canFly: true,
         // wings (deg, + up): flapping about flapMid by flapAmp at rate (Hz) in bursts [flap s, glide s], gliding held at
         // glideA, at rest closed upright at closedA; basking: opened slowly to baskA now and then
-        rate: 8.5, flapMid: 18, flapAmp: 60, glideA: 26, closedA: 86, baskA: 14, baskEvery: 9, burst: [0.75, 0.45],
+        rate: 8.5, flapMid: 18, flapAmp: 60, glideA: 26, closedA: 86, baskA: 10, baskEvery: 8, burst: [0.75, 0.45],
         bob: 0.003, bobPath: 0.009, pitch: 0.28,
         prob: ['pb1', 'pb2', 'pb3', 'pb4'], coil: -1.4, abd: ['abd1', 'abd2'], ants: ['antL', 'antR'], legs: ['lmL', 'lmR', 'lhL', 'lhR'],
       },
@@ -6080,7 +6080,7 @@ const Animals = (() => {
         cmul(C, 0.95 + 0.08 * grain(P, 600, 200));
         C.ro = 0.32;
       },
-      anim: { type: 'crawl', walk: 0.012, run: 0.03, names, z0, dz, r, lift: 0.0016, span: 1.1, tents: ['tfL', 'tfR', 'trL', 'trR'] },
+      anim: { type: 'crawl', walk: 0.05, run: 0.12, names, z0, dz, r, lift: 0.0016, span: 1.1, tents: ['tfL', 'tfR', 'trL', 'trR'] },
       baby: { head: 1.15, muzzle: 1.0, eye: 1.0, ear: 1.0, neck: [1, 1], body: [1, 1, 1], leg: [1, 1], tail: 1 },
     };
   };
@@ -8636,8 +8636,9 @@ const Animals = (() => {
       S.fph += TAU * P.rate * dt * (0.35 + 0.65 * S.flap) * (1 + 0.2 * hap);
       const fl = S.fly;
       // wings: in flight flapping or held up in a gliding V; on the ground closed upright, basking open now and then
-      const baskF = fract(it / P.baskEvery + R.rnd * 5), baskOn = sstep(1.5, 3, idle) * (1 - S.eat) * (1 - sl) * (1 - fl);
-      S.bask = damp(S.bask, baskOn * sstep(0.0, 0.18, baskF) * (1 - sstep(0.5, 0.68, baskF)), 1.1, dt);
+      // (the first opening soon after it stops, then open for most of each spell)
+      const baskF = fract(Math.max(0, idle - 2) / P.baskEvery), baskOn = sstep(1.5, 2.5, idle) * (1 - S.eat) * (1 - sl) * (1 - fl);
+      S.bask = damp(S.bask, baskOn * (1 - sstep(0.62, 0.74, baskF)), 1.1, dt);
       S.flick = damp(S.flick, hap * (1 - fl) * Math.max(0, Math.sin(it * 11)), 12, dt);
       const restA = lerp(P.closedA, P.baskA, S.bask) - S.flick * 40 - sick * 14;
       for (const w of wings) {

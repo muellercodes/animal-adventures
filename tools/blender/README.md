@@ -496,6 +496,34 @@ Two more birds on `bird.py` and the biggest land animal on `ungulate.py`. Things
   and `applyAge` sets the bind matrices to the current rest pose. The paw pivots sit near the ground so the small feet
   stand on it. `meta()` gives the belly point for lying down (the deepest part of the belly).
 
+## Round 10: the fruit bat (`bat.py`)
+
+A flying fox built on the carnivore helpers (head frame, eye, ear, coat strokes, fur shells), sculpted in its
+flight pose with the wings spread flat in the plane of the arm (y = `YM`). Things that are new or took a few tries:
+- The membranes are part of the sculpt: a thin plate (1.3 to 2 mm thick, rounded rims) cut to a 2D outline in the
+  x-z plane (`_outline()`: the leading edge in front of the arm and the 2nd finger, scalloped trailing edges between
+  the finger tips, the arm wing's long hollow edge back to the flank), its signed distance rastered once at 0.5 mm
+  (`_memb2d()`) and looked up bilinearly. The fingers, forearm, humerus and thumb are round cones in the same plane.
+  `grid()` samples y finely (0.5 mm) only across the wing plane, so the plate meshes cleanly at a 2 to 3 mm voxel.
+- Every skin weight is made in `fix_weights` (`WEIGHT_SMOOTH = (0, 0)`): the hand wing by the direction from the
+  wrist, between the two neighboring finger bones; the arm wing on its own bones (`f4` to `f9`, the game's
+  `BAT.plag`, like a bird's tertials and secondaries) between the two nearest along the arm, the arm itself at the
+  leading edge, the 5th finger behind the wrist, the hips at the flank. Weighting the arm wing to the hips and the
+  arm bones directly made huge panels when the wing folded (a vertex between two bones that turn 80 and 165 degrees
+  lands far from both); its own bones fold back along the arm with it, and the game shrinks them across the wing as
+  it folds (`fb[i].sc`), so the membrane gathers in like a real one.
+- Only wing parts may take wing weights: body vertices near the wing plane (the ruff, the cheeks) once took the arm's
+  and moved with the folding wing, and the thumb claw's tip stayed on the head (a spike from the folded wing back to
+  where the thumb was); `onw` now needs the wing parts nearer than the body, and everything out past the flank is wing.
+- A quick check for weights like these: dump the game's bone matrices for a pose (each bone's `matrixWorld` relative
+  to the rig root), skin the `-lo.npz` mesh with them in numpy, and list the vertices that land far from the body.
+  It found both bugs above faster than renders did.
+- Pups: the game gives them a bigger head and eyes and short wings (`baby.wing`); `baby_paint` makes them gray with a
+  pale wash where the ruff will be, and the fur shells are longer.
+
+The butterfly and the caterpillar (round 10) are procedural (no Blender files): see `SPEC.butterfly`,
+`SPEC.caterpillar` and their animators in `40_animals.js`.
+
 ## Budget
 
 Pig: about 6.3k triangles, 4.8k vertices, 1024 x 1024 color and normal maps: 38 KB mesh (format 2; 136 KB before) +
@@ -683,3 +711,8 @@ Crocodile (`VOXEL=0.006 TRIS=3300 TEX=704 WEIGHTS=transfer`; TRIS here gives abo
 Brachiosaurus (`VOXEL=0.03 TRIS=5300 TEX=1024 WEIGHTS=transfer`): 8.5k triangles; 1024 color (WebP 68) and normal (WebP
 50) maps, 384 hatchling color map: 58 KB mesh + 18 + 123 + 4 KB, 206 KB of files, about 275 KB in the page. About 4
 minutes for the whole run.
+
+Fruit bat (`VOXEL=0.002 TRIS=6500 TEX=768`, normal map WebP 64): 6.5k triangles (7.2k in the game with the eyes, 15.6k
+at detail 2 with 4 fur shell layers); 768 color and normal maps (the membranes get a smaller share of them,
+`uv_weight`), 256 pup color map, fur map: 45 KB mesh + 12 + 20 + 1 + 8 KB, about 120 KB in the page, 190 KB with its
+two icons. The procedural butterfly (2.9k triangles, 3.7k at detail 2) and caterpillar (2.2k) add only code and icons.
