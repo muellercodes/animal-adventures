@@ -10,12 +10,14 @@ const UPRIGHT = { duck: 1, swan: 1, chicken: 1, owl: 1, parrot: 1, eagle: 1, chi
 const FEAR = { chicken: 3, duck: 4.5, swan: 3, frog: 2.5, lizard: 3, snake: 2, bunny: 5, squirrel: 4.5, turtle: 1.5, fox: 6, owl: 5, deer: 10, parrot: 4, moose: 0,
   horse: 6, pig: 3, goat: 4, otter: 4, hedgehog: 2, raccoon: 4, weasel: 4, dog: 1.5, cat: 4,
   // round 7
-  lab: 1.5, dalmatian: 1.5, husky: 2, beagle: 2, chihuahua: 3, blackcat: 4, orangecat: 4, calico: 4, siamese: 4, whitecat: 4, hamster: 3, eagle: 6, chickadee: 3, rhino: 0, cockatiel: 3, crocodile: 2, brachiosaurus: 0 };
+  lab: 1.5, dalmatian: 1.5, husky: 2, beagle: 2, chihuahua: 3, blackcat: 4, orangecat: 4, calico: 4, siamese: 4, whitecat: 4, hamster: 3, eagle: 6, chickadee: 3, rhino: 0, cockatiel: 3, crocodile: 2, brachiosaurus: 0,
+  // round 10
+  trex: 0, giraffe: 5, polarbear: 2, snowleopard: 4, smilodon: 1, bat: 4, butterfly: 3 };
 // extra bump circles along a long body: [how far ahead of the body's middle, as a part of its length; radius, as a part
 // of its radius]. A brachiosaurus's middle is at its shoulders: the trunk runs back from there to its hips and tail
 // (its neck is high up, so fences pass under it)
 const BODY_COL = { long: [[0.32, 0.8], [-0.32, 0.8]], brachiosaurus: [[0.14, 0.92], [-0.23, 0.92], [-0.42, 0.3]] };
-const NOCTURNAL = { owl: 1, frog: 1, fox: 1, raccoon: 1, hedgehog: 1, hamster: 1 };
+const NOCTURNAL = { owl: 1, frog: 1, fox: 1, raccoon: 1, hedgehog: 1, hamster: 1, bat: 1 };
 const nightNo = () => Math.floor(S.time / CYCLE);
 
 function newBody(sp, age = 1) {

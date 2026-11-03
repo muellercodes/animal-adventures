@@ -303,6 +303,8 @@ const World = (() => {
           ...SP7([{ sp: 'dog', n: 1, home: [BARN.x + 12, BARN.z + 10], range: 14 }, { sp: 'cat', n: 1, home: [BARN.x - 6, BARN.z + 8], range: 10 },
             { sp: 'chickadee', n: 4, home: [22, -76], range: 24 }, { sp: 'chickadee', n: 3, home: [Plan.CITY.x + 45, Plan.CITY.z - 15], range: 26 },
             { sp: 'eagle', n: 1, home: [LAKE.x, LAKE.z], range: 40 }]),
+          // round 10: butterflies by the farm's flowers
+          ...SP7([{ sp: 'butterfly', n: 5, home: [-20, -60], range: 30 }]),
           // round 10: the zoo animals in their pens
           ...ZOO_ANIMALS(),
         ],
@@ -380,6 +382,8 @@ const World = (() => {
           { sp: 'moose', n: 1, home: [LAKE.x - 30, LAKE.z - 20], range: 30 },
           // round 7
           ...SP7([{ sp: 'chickadee', n: 6, home: [0, 20], range: 50 }, { sp: 'eagle', n: 2, home: [LAKE.x, LAKE.z], range: 45 }]),
+          // round 10: fruit bats in the woods
+          ...SP7([{ sp: 'bat', n: 4, home: [-20, 40], range: 40 }]),
         ],
         ambient: [{ sp: 'squirrel', w: 3 }, { sp: 'deer', w: 2, kids: 1 }, { sp: 'fox', w: 2 }, { sp: 'owl', w: 2 }, { sp: 'bunny', w: 2 }, { sp: 'raccoon', w: 1 }, { sp: 'hedgehog', w: 1 }, { sp: 'moose', w: 1 }, { sp: 'otter', w: 1, water: true }],
         foods: { pinecone: 4, acorn: 2, berries: 3, worm: 3, grass: 1, smallfish: 2, fish: 2, mushroom: 4, bugs: 3, twigs: 3, seeds: 1 },
@@ -490,6 +494,8 @@ const World = (() => {
           ...SP7([{ sp: 'crocodile', n: 1, home: [LAG.x, LAG.z], range: 14, water: true }]),
           // round 8: a herd of brachiosauruses with a baby
           ...SP7([{ sp: 'brachiosaurus', n: 2, kids: 1, home: [45, 35], range: 45 }]),
+          // round 10: a T. rex in the far jungle
+          ...SP7([{ sp: 'trex', n: 1, home: [-110, -90], range: 40 }]),
         ],
         ambient: [{ sp: 'parrot', w: 4 }, { sp: 'lizard', w: 3 }, { sp: 'frog', w: 2 }, { sp: 'snake', w: 2 }, { sp: 'turtle', w: 1, water: true }, { sp: 'otter', w: 1, water: true }],
         foods: { berries: 4, apple: 3, worm: 3, grass: 1, smallfish: 2, fish: 2, banana: 4, bugs: 3, twigs: 2, watermelon: 1, mushroom: 1 },
@@ -553,6 +559,8 @@ const World = (() => {
           // round 7: rhinos on the open grass, hamsters in the fields, chickadees by the big tree
           ...SP7([{ sp: 'rhino', n: 2, kids: 1, home: [-40, 80], range: 40 }, { sp: 'hamster', n: 3, home: [30, -20], range: 30 },
             { sp: 'chickadee', n: 4, home: [GIANT[0], GIANT[1]], range: 24 }, { sp: 'cockatiel', n: 5, home: [70, 10], range: 35 }]),
+          // round 10: giraffes near the rhinos, butterflies over the flowers
+          ...SP7([{ sp: 'giraffe', n: 3, kids: 1, home: [-10, 95], range: 40 }, { sp: 'butterfly', n: 8, home: [10, 30], range: 45 }]),
         ],
         ambient: [{ sp: 'bunny', w: 3, kids: 2 }, { sp: 'deer', w: 2, kids: 1 }, { sp: 'fox', w: 1 }, { sp: 'goat', w: 1 }, { sp: 'hedgehog', w: 1 }, { sp: 'squirrel', w: 1 }, { sp: 'swan', w: 1, water: true }, { sp: 'duck', w: 1, water: true, kids: 3 }],
         foods: { grass: 4, berries: 3, apple: 2, acorn: 2, worm: 2, smallfish: 2, pumpkin: AUTUMN ? 1 : 0, seeds: 3, bugs: 3, corn: 2, watermelon: 2, lettuce: 1, hay: 2, twigs: 1 },
@@ -666,7 +674,7 @@ const World = (() => {
           { sp: 'owl', n: 2, home: [-30, -20], range: 40 },
           { sp: 'moose', n: 1, home: [-70, -30], range: 30 },
           { sp: 'squirrel', n: 2, home: [24, -24], range: 30 },
-          ...SP7([{ sp: 'eagle', n: 1, home: [0, 90], range: 50 }, { sp: 'polarbear', n: 3, kids: 1, home: [10, 80], range: 45 }, { sp: 'snowleopard', n: 2, kids: 1, home: [-20, -120], range: 50 }]),
+          ...SP7([{ sp: 'eagle', n: 1, home: [0, 90], range: 50 }, { sp: 'polarbear', n: 3, kids: 1, home: [10, 80], range: 45 }, { sp: 'snowleopard', n: 2, kids: 1, home: [-20, -120], range: 50 }, { sp: 'smilodon', n: 2, home: [90, -60], range: 45 }]),
         ],
         ambient: [{ sp: 'fox', w: 2 }, { sp: 'owl', w: 1 }, { sp: 'moose', w: 1 }, ...SP7([{ sp: 'polarbear', w: 2 }, { sp: 'snowleopard', w: 1 }])],
         foods: { fish: 4, smallfish: 3, berries: 2, pinecone: 3, twigs: 2, seeds: 1 },
