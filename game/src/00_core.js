@@ -159,7 +159,12 @@ const fresh = () => ({ v: 1, d3: true, saved: 0, leaves: 0, owned: [], animal: '
 const ADULT_AT = 1, FLY_AGE = 0.6;
 const ageOf = (sp) => (S.ages[sp] === undefined ? 1 : S.ages[sp]);
 const nameOf = (sp) => S.names[sp] || SPECIES[sp].name;
-const stageName = (sp) => { const a = ageOf(sp); return a < 0.4 ? SPECIES[sp].baby : a < 1 ? 'Young ' + SPECIES[sp].name.toLowerCase() : SPECIES[sp].name; };
+const stageName = (sp) => {
+  const a = ageOf(sp);
+  // round 10: a butterfly is a caterpillar until it makes its chrysalis (at FLY_AGE), then a grown butterfly
+  if (sp === 'butterfly') return a < FLY_AGE ? SPECIES[sp].baby : SPECIES[sp].name;
+  return a < 0.4 ? SPECIES[sp].baby : a < 1 ? 'Young ' + SPECIES[sp].name.toLowerCase() : SPECIES[sp].name;
+};
 // what day of the year is it (for holidays)
 const TODAY = (() => { const m = /date=(\d{4}-\d{2}-\d{2})/.exec(location.hash); return m ? new Date(m[1] + 'T12:00:00') : /assets/.test(location.hash) ? new Date(2026, 6, 1, 12) : new Date(); })();
 const HOLIDAY = (() => { const m = TODAY.getMonth() + 1, d = TODAY.getDate(); if (m === 10 || (m === 11 && d <= 2)) return 'halloween'; return null; })();

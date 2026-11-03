@@ -310,7 +310,7 @@ const World = (() => {
         ],
         ambient: [{ sp: 'bunny', w: 3, kids: 1 }, { sp: 'deer', w: 2, kids: 1 }, { sp: 'squirrel', w: 2 }, { sp: 'fox', w: 1 }, { sp: 'raccoon', w: 1 }, { sp: 'hedgehog', w: 1 }, { sp: 'weasel', w: 1 }, { sp: 'duck', w: 2, water: true, kids: 3 }, { sp: 'swan', w: 1, water: true }, { sp: 'otter', w: 1, water: true }],
         foods: { grass: 4, worm: 3, apple: 3, carrot: 3, berries: 3, acorn: 2, pinecone: 1, smallfish: 3, fish: 2, pumpkin: AUTUMN ? 2 : 0,
-          seeds: 2, corn: 2, lettuce: 2, mushroom: 1, bugs: 3, twigs: 2, watermelon: 1, hay: 2, bread: 2, hotdog: 2, petfood: 2 },
+          seeds: 2, corn: 2, lettuce: 2, mushroom: 1, bugs: 3, twigs: 2, watermelon: 1, hay: 2, bread: 2, hotdog: 2, petfood: 2, nectar: 2 },
         walk: [[10, -2], [-30, -12], [18, 16], [25, -70], [-50, -12], [70, -55], [100, -55], [126, -55], [40, 10], [-20, 30], [60, -30], [-60, 40]],
         villageWalk: [[60, -55], [80, -55], [100, -55], [120, -55], [130, -55], [160, -55], [200, -55], [240, -55], [100, 2], [150, 2], [210, 2], [150, 54], [210, 54], [135, -20], [195, 30], [226, -26]],
         // places for town life (jobs, school, the fair)
@@ -563,7 +563,7 @@ const World = (() => {
           ...SP7([{ sp: 'giraffe', n: 3, kids: 1, home: [-10, 95], range: 40 }, { sp: 'butterfly', n: 8, home: [10, 30], range: 45 }]),
         ],
         ambient: [{ sp: 'bunny', w: 3, kids: 2 }, { sp: 'deer', w: 2, kids: 1 }, { sp: 'fox', w: 1 }, { sp: 'goat', w: 1 }, { sp: 'hedgehog', w: 1 }, { sp: 'squirrel', w: 1 }, { sp: 'swan', w: 1, water: true }, { sp: 'duck', w: 1, water: true, kids: 3 }],
-        foods: { grass: 4, berries: 3, apple: 2, acorn: 2, worm: 2, smallfish: 2, pumpkin: AUTUMN ? 1 : 0, seeds: 3, bugs: 3, corn: 2, watermelon: 2, lettuce: 1, hay: 2, twigs: 1 },
+        foods: { grass: 4, berries: 3, apple: 2, acorn: 2, worm: 2, smallfish: 2, pumpkin: AUTUMN ? 1 : 0, seeds: 3, bugs: 3, corn: 2, watermelon: 2, lettuce: 1, hay: 2, twigs: 1, nectar: 3 },
         walk: [[8, 14], [-40, 14], [0, 4], [40, 12], [80, -4], [-30, 50], [30, -40], [-90, -10], [GIANT[0] + 12, GIANT[1]]],
       };
     },

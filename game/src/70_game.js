@@ -52,7 +52,7 @@ function resize() {
 window.addEventListener('resize', resize);
 
 /* ---------- worlds ---------- */
-const R = { mode: 'title', paused: false, sheet: null, saveT: 5, wasNight: null, loading: false, hatch: null, sleeping: 0, naming: null, action: null, doorSeq: null };
+const R = { mode: 'title', paused: false, sheet: null, saveT: 5, wasNight: null, loading: false, hatch: null, pupa: null, sleeping: 0, naming: null, action: null, doorSeq: null };
 function loadWorld(id) {
   if (G.world) { scene.remove(G.world.group); Wild.clear(); Folk.clear(); Foods.clear(); G.world.dispose(); }
   const w = World.build(id); G.world = w; scene.add(w.group);
@@ -88,7 +88,9 @@ function followCamera(dt) {
   const b = Player.b, m = b.m, H = G.world.H, room = b.room;
   // animals shorter than 15 cm (a chickadee, a chick, a froglet) get a closer camera
   // and the giants (a brachiosaurus) a camera far enough back to see them
-  const base = clamp(m.length * 1.35 + m.height * 1.5 + 0.75 * clamp(m.length / 0.15, 0.55, 1), 0.6, Math.max(8.5, m.height * 2.4));
+  // and the tiniest (a caterpillar, a butterfly: under 10 cm) closer still
+  const tiny = Math.max(m.length, m.height) < 0.1;
+  const base = clamp(m.length * 1.35 + m.height * 1.5 + 0.75 * clamp(m.length / 0.15, tiny ? 0.3 : 0.55, 1), tiny ? 0.38 : 0.6, Math.max(8.5, m.height * 2.4));
   let dist = base * Cam.zoom;
   const ty = b.pos.y + (b.mode === 'climb' ? m.length * 0.4 : m.eye * 0.8) + 0.05;
   if (Cam.snap) { Cam.target.set(b.pos.x, ty, b.pos.z); Cam.yaw = b.yaw; Cam.snap = false; }
@@ -99,7 +101,8 @@ function followCamera(dt) {
     fx0 = lerp(b.pos.x, talker.pos.x, 0.45); fz0 = lerp(b.pos.z, talker.pos.z, 0.45); fy0 = lerp(ty, talker.pos.y + talker.rig.height * 0.5, 0.5); minD = talker.rig.height * 1.7;
     if (Cam.userT <= 0) Cam.yaw += angDiff(Cam.yaw, Math.atan2(talker.pos.x - b.pos.x, talker.pos.z - b.pos.z) + 0.35) * (1 - Math.exp(-2.5 * dt));
   }
-  if (R.hatch) { minD = Math.max(minD, 1.1); }
+  if (R.hatch) { minD = Math.max(minD, R.hatch.sp === 'butterfly' ? 0.45 : 1.1); }
+  if (R.pupa) { minD = Math.max(minD, 0.5); }
   Cam.frame = damp(Cam.frame || 0, minD, 3, dt);
   Cam.target.x = damp(Cam.target.x, fx0, 14, dt); Cam.target.z = damp(Cam.target.z, fz0, 14, dt); Cam.target.y = damp(Cam.target.y, fy0, 8, dt);
   Cam.userT -= dt;
@@ -223,15 +226,15 @@ function readInput() {
   const kx = (keys.r ? 1 : 0) - (keys.l ? 1 : 0), ky = (keys.f ? 1 : 0) - (keys.b ? 1 : 0);
   if (kx || ky) { const m = Math.hypot(kx, ky); ix = kx / m; iy = ky / m; }
   const held = Town.busy() || !!(Player.b && Player.b.riding);
-  if (R.hatch || R.sleeping > 0 || R.doorSeq || held) { ix = 0; iy = 0; }
+  if (R.hatch || R.pupa || R.sleeping > 0 || R.doorSeq || held) { ix = 0; iy = 0; }
   const fx = Math.sin(Cam.yaw), fz = Math.cos(Cam.yaw), rx = -Math.cos(Cam.yaw), rz = Math.sin(Cam.yaw);
   inp.mx = fx * iy + rx * ix; inp.mz = fz * iy + rz * ix; inp.ix = ix; inp.iy = iy;
   inp.walk = !!keys.walk;
-  inp.dash = !!(press.dashHeld || keys.dash) && !R.hatch && !held;
-  inp.jump = press.jump && !R.hatch && !held; press.jump = false;
+  inp.dash = !!(press.dashHeld || keys.dash) && !R.hatch && !R.pupa && !held;
+  inp.jump = press.jump && !R.hatch && !R.pupa && !held; press.jump = false;
   inp.up = press.jumpHeld || !!keys.jump;
   inp.down = press.landHeld || !!keys.land;
-  inp.eat = press.eat && !R.hatch && !held; press.eat = false;
+  inp.eat = press.eat && !R.hatch && !R.pupa && !held; press.eat = false;
   inp.climb = null; inp.letGo = false;
 }
 
@@ -239,6 +242,7 @@ function readInput() {
 function findAction() {
   const b = Player.b, w = G.world; if (!b) return null;
   if (R.hatch) return R.hatch.done ? null : { id: 'hatch', label: 'Tap to hatch!' };
+  if (R.pupa) return null;
   if (R.sleeping > 0 || R.doorSeq || Town.busy()) return null;
   if (b.mode === 'climb' || b.mode === 'perch') return { id: 'letgo', label: 'Let go' };
   // the bus: get on at a stop when the doors are open, get off at any stop
@@ -376,11 +380,11 @@ function beginLife(sp) {
   const b = Player.b;
   if (SPECIES[sp].egg) {
     b.rig.setVisible(false);
-    const s = clamp(b.rig.height * 0.42 * 0.9, 0.035, 0.5);
+    const tinyEgg = sp === 'butterfly', s = tinyEgg ? 0.022 : clamp(b.rig.height * 0.42 * 0.9, 0.035, 0.5);
     const nest = Env.nest(), egg = Env.egg(SPECIES[sp].egg, true, SPECIES[sp].eggSpeck);
     let x = b.pos.x, z = b.pos.z, y = b.pos.y;
     if (b.mode === 'swim') { const pt = G.world.ringPoint(x, z, 1, 20, false); if (pt) { x = pt.x; z = pt.z; y = pt.h; b.pos.set(x, y, z); b.mode = 'ground'; } }
-    nest.scale.setScalar((s * 1.7) / 0.59); nest.position.set(x, y, z); scene.add(nest);
+    nest.scale.setScalar((s * 1.7) / 0.59); nest.position.set(x, y, z); if (!tinyEgg) scene.add(nest);
     egg.scale.setScalar(s); egg.position.set(x, y + s * 0.12, z); scene.add(egg);
     nest.traverse((o) => { if (o.isMesh) o.castShadow = true; }); egg.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     R.hatch = { sp, taps: 0, nest, egg, wob: 0, done: 0, s };
@@ -417,6 +421,71 @@ function updateHatch(dt) {
     if (h.done <= 0) { scene.remove(h.egg); scene.remove(h.nest); R.hatch = null; }
   }
 }
+
+/* ---------- round 10: a caterpillar turns into a butterfly ----------
+   When a butterfly grows past PUPA_AGE (60_actors) it hangs a jade green chrysalis with gold dots from a twig. The
+   chrysalis sways, slowly goes dark so you can see the orange wings inside, and a grown monarch comes out. */
+function makeChrysalis() {
+  const grp = new THREE.Group();
+  // a twig stuck in the ground with a short side branch to hang from
+  const bark = new THREE.MeshStandardMaterial({ color: 0x6a4a30, roughness: 0.9 });
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.0035, 0.005, 0.16, 6), bark); stem.position.y = 0.08; grp.add(stem);
+  const side = new THREE.Mesh(new THREE.CylinderGeometry(0.0025, 0.0032, 0.07, 6), bark);
+  side.rotation.z = Math.PI / 2 - 0.15; side.position.set(0.033, 0.152, 0); grp.add(side);
+  // the chrysalis: a fat drop shape 3.7 cm long hanging from a black stalk, with a band of gold dots near its top
+  const L = 0.037, prof = [[0, 0], [0.1, 0.17], [0.26, 0.31], [0.46, 0.36], [0.64, 0.33], [0.76, 0.26], [0.86, 0.21], [0.95, 0.11], [1, 0.02]];
+  const geo = new THREE.LatheGeometry(prof.map(([y, r]) => new THREE.Vector2(r * L, y * L)), 14);
+  const skin = new THREE.MeshStandardMaterial({ color: 0x67c27a, roughness: 0.35, emissive: 0xff7a10, emissiveIntensity: 0 });
+  const pod = new THREE.Group(), body = new THREE.Mesh(geo, skin); pod.add(body);
+  const gold = new THREE.MeshStandardMaterial({ color: 0xf2c440, metalness: 0.7, roughness: 0.3, emissive: 0x5a4210 });
+  const dot = new THREE.SphereGeometry(0.0013, 6, 4);
+  for (let i = 0; i < 9; i++) { const a = (i / 9) * TAU, d = new THREE.Mesh(dot, gold); d.position.set(Math.cos(a) * 0.27 * L, 0.76 * L, Math.sin(a) * 0.27 * L); pod.add(d); }
+  for (const a of [0.5, 2.6, 4.4]) { const d = new THREE.Mesh(dot, gold); d.position.set(Math.cos(a) * 0.2 * L, 0.2 * L, Math.sin(a) * 0.2 * L); pod.add(d); }
+  const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.0008, 0.0012, 0.006, 5), new THREE.MeshStandardMaterial({ color: 0x151515, roughness: 0.6 }));
+  stalk.position.y = L + 0.003; pod.add(stalk);
+  // the pod hangs down from the end of the side branch (its tip at the top)
+  const hang = new THREE.Group(); hang.position.set(0.064, 0.146, 0); grp.add(hang);
+  pod.position.y = -L - 0.006; hang.add(pod);
+  grp.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  grp.userData = { hang, pod, skin };
+  return grp;
+}
+function beginPupa() {
+  const b = Player.b; if (R.pupa || !b) return;
+  b.rig.setVisible(false); b.speed = 0;
+  const g = makeChrysalis();
+  // stand the twig beside where the caterpillar is, so the butterfly comes out right there
+  g.position.set(b.pos.x - Math.cos(b.yaw) * 0.06, b.pos.y, b.pos.z + Math.sin(b.yaw) * 0.06); g.rotation.y = b.yaw;
+  scene.add(g);
+  R.pupa = { t: 0, g, out: false };
+  Cam.zoom = 1;
+  UI.toast('Your caterpillar is making a chrysalis!', 3500);
+}
+function clearPupa() {
+  const q = R.pupa; if (!q) return;
+  scene.remove(q.g); R.pupa = null;
+  if (Player.b) Player.b.rig.setVisible(true);
+}
+function updatePupa(dt) {
+  const q = R.pupa; if (!q) return;
+  q.t += dt;
+  const u = q.g.userData;
+  // it forms, sways now and then, and darkens with the orange of the wings glowing through
+  u.pod.scale.setScalar(clamp(q.t / 0.8, 0.05, 1));
+  u.hang.rotation.z = Math.sin(q.t * 2.1) * 0.08 + (Math.sin(q.t * 0.9) > 0.9 ? Math.sin(q.t * 30) * 0.12 : 0);
+  const dk = clamp((q.t - 2.2) / 1.6, 0, 1);
+  u.skin.color.setHex(0x67c27a).lerp(new THREE.Color(0x2a2018), dk); u.skin.emissiveIntensity = dk * 0.35;
+  if (!q.out && q.t > 4.2) {
+    // out comes a grown monarch
+    q.out = true; u.pod.visible = false;
+    Player.set('butterfly'); Player.b.rig.setVisible(true); Foods.refresh(); Cam.snap = true;
+    UI.hearts(Player.b.pos, 6); Sound.hatch();
+    UI.toast('Your caterpillar turned into a monarch butterfly! Now you can fly.', 5000);
+    save();
+  }
+  if (q.t > 6) { scene.remove(q.g); R.pupa = null; }
+}
+G.pupate = beginPupa;
 
 /* ---------- the toy ball in each house ---------- */
 function updateBall(dt) {
@@ -557,7 +626,7 @@ function updateLabels(dt) {
 const hudState = {};
 function fmt(sec) { sec = Math.max(0, Math.ceil(sec)); return `${(sec / 60) | 0}:${String(sec % 60).padStart(2, '0')}`; }
 function updateHud() {
-  const h = hudState, di = dayInfo(), b = Player.b, sp = SPECIES[b.sp];
+  const h = hudState, di = dayInfo(), b = Player.b, sp = SPECIES[b.form || b.sp];
   if (h.leaves !== S.leaves) { h.leaves = S.leaves; $('leafCount').textContent = S.leaves; }
   const hv = Math.round(S.hunger);
   if (h.hunger !== hv) { h.hunger = hv; const f = $('hungerFill'); f.style.width = hv + '%'; f.style.backgroundColor = hv > 50 ? '#3E9A49' : hv > 20 ? '#F2B124' : '#E07A3A'; }
@@ -606,7 +675,7 @@ function updateHud() {
 const ICON = {};
 let iconR = null;
 function animalIcon(id, age) {
-  const key = id + (age !== undefined && age < 0.4 ? '-baby' : '');
+  const key = id + (age !== undefined && age < (id === 'butterfly' ? FLY_AGE : 0.4) ? '-baby' : '');
   if (ASSETS.icons[key]) return ASSETS.icons[key];
   if (ASSETS.icons[id] && key === id) return ASSETS.icons[id];
   if (ICON[key] !== undefined) return ICON[key];
@@ -769,7 +838,7 @@ function goVet() {
 }
 function switchAnimal(id) {
   if (!S.owned.includes(id)) return;
-  clearHatch();
+  clearHatch(); clearPupa();
   S.animal = id; hudState.name = null; Sick.sync();
   closeSheet();
   for (const p of Folk.list) Folk.cancel(p);
@@ -1039,6 +1108,7 @@ function tick(dt, raw, draw) {
       Homes.update(dt);
       updateDoorSeq(dt);
       updateHatch(dt);
+      updatePupa(dt);
       updateBall(dt);
       if (R.sleeping > 0) { R.sleeping -= dt; if (R.sleeping <= 0) wakeUp(); }
       const di = dayInfo();
