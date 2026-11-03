@@ -743,6 +743,7 @@ const Folk = {
       if (p.visitor) { this.visitorStep(p, dt, P, dP, greet); continue; }
       if (p.staff) { this.staffStep(p, dt, P, dP); continue; }
       if (p.fairgoer) { Town.fairgoerStep(p, dt, P, dP, greet, playerReachable); continue; }
+      if (p.zoogoer) { Zoos.step(p, dt, P, dP); continue; }
       if (p.city) { const r = CityLife.step(p, dt, P, dP, greet, playerReachable); if (r) { p.sit = r.sit || 0; p.seatY = r.seatY; this.pose(p, dt, r.crouch, r.reach, camPos); continue; } }
       if (p.role) { const r = Town.step(p, dt, P, dP, greet, playerReachable) || NO_POSE; p.sit = r.sit || 0; p.seatY = r.seatY; this.pose(p, dt, r.crouch, r.reach, camPos); continue; }
       // evenings: people walk home and go inside (your person stays with you if you are at home together)

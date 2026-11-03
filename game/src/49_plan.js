@@ -292,6 +292,68 @@ const Plan = (() => {
   }
   const roadY = (r, s) => { const f = s / r.step, i = Math.max(0, Math.min(r.prof.length - 2, Math.floor(f))), t = Math.max(0, Math.min(1, f - i)); return r.prof[i] + (r.prof[i + 1] - r.prof[i]) * t; };
   const SHOULDER = 6;
+
+  /* ---------- round 10: the zoos ----------
+     Each zoo is a level rectangle (center x, z, half sizes hw, hd, no rotation) with a gate on one side ('n' is the +z side,
+     's' the -z side, 'e' +x, 'w' -x), paths (local [ax, az, bx, bz, width]) and pens (local x, z, half sizes, gate side,
+     fence style, the animals in it, extras). Pools are bowls of water inside pens. 50_world builds them, 66_zoo walks the
+     visitors along the paths. Local x/z are offsets from the zoo's middle. */
+  const ZOOS = [
+    { id: 'cityzoo', name: 'City Zoo', d: 'Giraffes, rhinos, polar bears, crocodiles and more', x: 375, z: -312, hw: 78, hd: 62, gate: 'e', wall: 'wire',
+      paths: [[-48, -36, 48, -36, 4], [-48, 36, 48, 36, 4], [-48, -36, -48, 36, 4], [48, -36, 48, 36, 4], [48, 0, 100, 0, 5], [-76, 0, -48, 0, 3.5]],
+      pens: [
+        { id: 'giraffe', x: -22, z: 0, hw: 22, hd: 30, gate: 's', style: 'rail', sp: [['giraffe', 3, 1]], trees: 6 },
+        { id: 'rhino', x: 24, z: -15, hw: 20, hd: 14, gate: 's', style: 'rail', sp: [['rhino', 2, 1]], mud: true },
+        { id: 'croc', x: 24, z: 17, hw: 20, hd: 13, gate: 'n', style: 'rail', sp: [['crocodile', 3, 0]], pool: { x: 24, z: 17, r: 8, depth: -1.8 } },
+        { id: 'polar', x: -54, z: -50, hw: 18, hd: 9, gate: 'n', style: 'wire', sp: [['polarbear', 2, 1]], pool: { x: -60, z: -51, r: 5.5, depth: -2 }, rocks: 4 },
+        { id: 'leopard', x: -18, z: -50, hw: 14, hd: 9, gate: 'n', style: 'wire', sp: [['snowleopard', 2, 0]], rocks: 5 },
+        { id: 'aviary', x: 14, z: -50, hw: 14, hd: 9, gate: 'n', style: 'wire', sp: [['eagle', 1, 0], ['parrot', 2, 0], ['cockatiel', 3, 0]], trees: 2 },
+        { id: 'otter', x: 44, z: -50, hw: 12, hd: 9, gate: 'n', style: 'rail', sp: [['otter', 2, 1]], pool: { x: 44, z: -51, r: 5, depth: -1.6 } },
+        { id: 'deer', x: -54, z: 50, hw: 18, hd: 9, gate: 's', style: 'rail', sp: [['deer', 3, 1]], trees: 2 },
+        { id: 'moose', x: -18, z: 50, hw: 14, hd: 9, gate: 's', style: 'rail', sp: [['moose', 1, 0]] },
+        { id: 'bats', x: 14, z: 50, hw: 14, hd: 9, gate: 's', style: 'wire', sp: [['bat', 4, 0]], trees: 2 },
+        { id: 'fox', x: 44, z: 50, hw: 12, hd: 9, gate: 's', style: 'wire', sp: [['fox', 2, 0], ['raccoon', 1, 0]], trees: 1 },
+      ],
+      route: [[92, 0], [48, 0], [48, -36], [44, -36, 'otter'], [24, -36, 'rhino'], [14, -36, 'aviary'], [-16, -36, 'leopard'], [-24, -36, 'giraffe'], [-46, -36, 'polar'],
+        [-48, -36], [-48, 0], [-48, 36], [-46, 36, 'deer'], [-18, 36, 'moose'], [14, 36, 'bats'], [24, 36, 'croc'], [44, 36, 'fox'], [48, 36], [48, 0], [92, 0]],
+      props: 'city' },
+    { id: 'petting', name: 'Petting zoo', d: 'Goats, pigs, bunnies, chickens and hamsters to meet', x: 135, z: 104, hw: 26, hd: 18, gate: 's', wall: 'picket',
+      paths: [[0, -26, 0, 16, 3], [-24, 1, 24, 1, 3]],
+      pens: [
+        { id: 'goats', x: -14, z: -9, hw: 9, hd: 7, gate: 'e', style: 'split', sp: [['goat', 3, 2]], platform: true },
+        { id: 'pigs', x: 14, z: -9, hw: 9, hd: 7, gate: 'w', style: 'split', sp: [['pig', 2, 2]], mud: true },
+        { id: 'bunnies', x: -14, z: 10, hw: 9, hd: 6, gate: 'e', style: 'wire', sp: [['bunny', 3, 1], ['hamster', 2, 0]] },
+        { id: 'hens', x: 14, z: 10, hw: 9, hd: 6, gate: 'w', style: 'wire', sp: [['chicken', 4, 2]], coop: true },
+      ],
+      route: [[0, -26], [0, -9, 'goats'], [0, -8, 'pigs'], [0, 1], [-5, 1, 'bunnies'], [5, 1, 'hens'], [0, 1], [0, -26]],
+      props: 'farm' },
+    { id: 'dino', name: 'Dino Park', d: 'Brachiosauruses, a T. rex and saber-toothed cats', x: 160, z: -200, hw: 92, hd: 70, gate: 'n', wall: 'rail',
+      paths: [[1, -62, 1, 100, 6], [1, 40, 26, 40, 4], [-84, 58, 84, 58, 5]],
+      pens: [
+        { id: 'brachio', x: -46, z: -16, hw: 40, hd: 44, gate: 'e', style: 'dino', sp: [['brachiosaurus', 2, 1]], pool: { x: -62, z: -32, r: 11, depth: -1.5 }, jungle: 14 },
+        { id: 'trex', x: 46, z: -22, hw: 38, hd: 38, gate: 'w', style: 'dino', sp: [['trex', 1, 1]], jungle: 10 },
+        { id: 'saber', x: 46, z: 38, hw: 20, hd: 14, gate: 'w', style: 'dino', sp: [['smilodon', 2, 1]], rocks: 6 },
+      ],
+      route: [[1, 84], [1, 58], [1, 40], [20, 40, 'saber'], [1, 40], [1, 14, 'trex'], [1, 2, 'brachio'], [1, -30, 'trex'], [1, -46, 'brachio'], [1, -58], [1, 40], [1, 84]],
+      props: 'dino' },
+  ];
+  for (const Z of ZOOS) {
+    Z.rect = { x: Z.x, z: Z.z, hw: Z.hw, hd: Z.hd, rot: 0 };
+    for (const p of Z.pens) { p.wx = Z.x + p.x; p.wz = Z.z + p.z; if (p.pool) { p.pool.wx = Z.x + p.pool.x; p.pool.wz = Z.z + p.pool.z; } }
+    Z.wpaths = Z.paths.map(([ax, az, bx, bz, wd]) => [Z.x + ax, Z.z + az, Z.x + bx, Z.z + bz, wd]);
+  }
+  // a point out from the middle of a zoo's gate side (out = 0: on the gate line)
+  function zooGate(Z, out = 0) {
+    const g = Z.gate;
+    return g === 'e' ? [Z.x + Z.hw + out, Z.z] : g === 'w' ? [Z.x - Z.hw - out, Z.z] : g === 'n' ? [Z.x, Z.z + Z.hd + out] : [Z.x, Z.z - Z.hd - out];
+  }
+  const zooAt = (x, z, pad = 0) => ZOOS.find((Z) => Math.abs(x - Z.x) < Z.hw + pad && Math.abs(z - Z.z) < Z.hd + pad) || null;
+  // distance to the nearest zoo path center line, and that path's half width
+  function zooPathD(Z, x, z) {
+    let d = 1e9;
+    for (const [ax, az, bx, bz, wd] of Z.wpaths) { const t = segT(x, z, ax, az, bx, bz); d = Math.min(d, Math.hypot(x - ax - (bx - ax) * t, z - az - (bz - az) * t) - wd / 2); }
+    return d;
+  }
   function flats(h, x, z) {
     // Maple Town
     if (x > 30 && x < 290 && z > -100 && z < 100) for (const R of TOWN.flats) { const d = rectD(R, x, z); if (d < R.soft) h += (TY - h) * (1 - sm(d / R.soft)); }
@@ -303,6 +365,11 @@ const Plan = (() => {
       const R = t.rect;
       if (Math.abs(x - R.x) > R.hw + 24 || Math.abs(z - R.z) > R.hd + 24) continue;
       const d = rectD(R, x, z); h += (t.y - h) * (1 - sm(d / 22));
+    }
+    // the zoos: level ground with a soft edge
+    for (const Z of ZOOS) {
+      if (Math.abs(x - Z.x) > Z.hw + 20 || Math.abs(z - Z.z) > Z.hd + 20) continue;
+      const d = rectD(Z.rect, x, z); h += (Z.y - h) * (1 - sm(d / 18));
     }
     return h;
   }
@@ -324,11 +391,20 @@ const Plan = (() => {
       if (d < rr) h = -1.6 + (0.3 + 1.6) * sm((d - rr * 0.55) / (rr * 0.45));
       else if (d < rr + 4.5) h = 0.3 + (h - 0.3) * sm((d - rr) / 4.5);
     }
+    // zoo pools: a bowl of water inside a pen with a gentle bank
+    const Z = zooAt(x, z);
+    if (Z) for (const p of Z.pens) {
+      const q = p.pool; if (!q) continue;
+      const d = Math.hypot(x - q.wx, z - q.wz); if (d > q.r + 4) continue;
+      const a = Math.atan2(z - q.wz, x - q.wx), rr = q.r * (1 + 0.1 * Math.sin(a * 3 + q.r) + 0.06 * Math.sin(a * 5));
+      if (d < rr) h = q.depth + (0.3 - q.depth) * sm((d - rr * 0.5) / (rr * 0.5)); else if (d < rr + 3.5) h = 0.3 + (h - 0.3) * sm((d - rr) / 3.5);
+    }
     return h;
   }
   function init(baseH) {
     flatH = (x, z) => flats(baseH(x, z), x, z);
     for (const t of TOWNS) t.y = Math.max(1.6, Math.min(5.2, baseH(t.x, t.z)));
+    for (const Z of ZOOS) Z.y = Math.max(1.6, Math.min(4.6, baseH(Z.x, Z.z)));
     for (const r of ROADS) profile(r);
   }
 
@@ -349,6 +425,7 @@ const Plan = (() => {
     if (streetD(x, z) < RW / 2 + 1.5 + pad) return true;
     for (const t of TOWNS) if (inR(t.rect, x, z, pad)) return true;
     if (inR(TOWN.green, x, z, pad)) return true;
+    if (zooAt(x, z, pad + 2)) return true;
     return false;
   }
   // landmarks (lakes, farms, groves) keep this far away
@@ -356,6 +433,7 @@ const Plan = (() => {
     if (inR(CITY.rect, x, z, r + 40)) return true;
     for (const t of TOWNS) if (inR(t.rect, x, z, r + 30)) return true;
     if (inR(TOWN.area, x, z, r + 20)) return true;
+    for (const Z of ZOOS) if (inR(Z.rect, x, z, r + 30)) return true;
     for (const rd of ROADS) { const b = rd.bb, m = r + 24; if (x < b[0] - m || x > b[2] + m || z < b[1] - m || z > b[3] + m) continue; if (roadNear(rd, x, z)[0] < m) return true; }
     return false;
   }
@@ -364,11 +442,16 @@ const Plan = (() => {
     if (inCity(x, z, 3) && !inPark(x, z, -1)) { o.r += (c.pave.r - o.r) * 0.9; o.g += (c.pave.g - o.g) * 0.9; o.b += (c.pave.b - o.b) * 0.9; return; }
     const d = streetD(x, z);
     if (d < RW / 2 + 2.2) { const t = 0.85 * (1 - sm((d - RW / 2) / 2.2)); o.r += (c.gravel.r - o.r) * t; o.g += (c.gravel.g - o.g) * t; o.b += (c.gravel.b - o.b) * t; }
+    // zoo paths: packed gravel (a paler, sandier color in Dino Park)
+    const Z = zooAt(x, z, 30);
+    if (Z) { const pd = zooPathD(Z, x, z); if (pd < 0.8) { const t = 0.88 * (1 - sm((pd + 0.6) / 1.4)), g = Z.id === 'dino' ? c.sand || c.gravel : c.gravel; o.r += (g.r - o.r) * t; o.g += (g.g - o.g) * t; o.b += (g.b - o.b) * t; } }
   }
   // grass: none on streets, roads and city ground (the park keeps its lawn)
   function grass(x, z) {
     if (inCity(x, z, 1) && !inPark(x, z, -1)) return 0;
-    return sm((streetD(x, z) - RW / 2 - 0.4) / 1.2);
+    const Z = zooAt(x, z, 30);
+    const zp = Z ? sm((zooPathD(Z, x, z) + 0.2) / 1.0) : 1;
+    return sm((streetD(x, z) - RW / 2 - 0.4) / 1.2) * zp;
   }
 
   /* ---------- places you can go to from the map ---------- */
@@ -379,6 +462,8 @@ const Plan = (() => {
     { name: 'City park', d: 'The fountain, the pond and the bandstand', x: CITY.parkRect.x - 14, z: CZ },
   ];
   for (const t of TOWNS) SPOTS.push({ name: t.name, d: 'A small town', x: t.axis === 'x' ? t.x + 8 : t.x - t.roadSide * 4.6, z: t.axis === 'x' ? t.z - t.roadSide * 4.6 : t.z + 8 });
+  // round 10: just outside each zoo's gate
+  for (const Z of ZOOS) { const [gx, gz] = zooGate(Z, 6); SPOTS.push({ name: Z.name, d: Z.d, x: gx, z: gz }); }
 
   /* ---------- places made when you come near (50_world streams them like landmarks) ---------- */
   const PLACES = [];
@@ -399,5 +484,5 @@ const Plan = (() => {
     return null;
   }
 
-  return { placeName, PI, TOWN, CITY, TOWNS, ROADS, PLACES, BUS, SPOTS, RW, ST_W, TY, CY, init, H, busy, reserved, paint, grass, streetD, inCity, inPark, roadAt, roadY, roadNear, rectD, inR };
+  return { placeName, PI, TOWN, CITY, TOWNS, ROADS, PLACES, BUS, SPOTS, ZOOS, zooAt, zooGate, zooPathD, RW, ST_W, TY, CY, init, H, busy, reserved, paint, grass, streetD, inCity, inPark, roadAt, roadY, roadNear, rectD, inR };
 })();

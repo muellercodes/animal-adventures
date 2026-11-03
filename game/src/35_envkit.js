@@ -5822,7 +5822,31 @@ void main() {`);
     gs.push(boxG(Math.max(0.1, len - 0.08), 0.62, 0.36, len / 2, 0.3, 0, L(0x3a3834)));
     return fenceGroup('fence-stone', [meshOf(boxUV(merge(gs), 1.4), mat('rock', { map: TX.rock() }))], { len, h: 0.82, thick: 0.62 });
   }
-  const FENCE_STYLES = { rail: buildRailFence, wire: buildWireFence, stone: buildStoneWall };
+  // round 10: Dino Park's tall concrete walls with an electric fence on top (3.6 m)
+  function buildDinoWall(len) {
+    const r = rng(strSeed('dino' + len.toFixed(2))), gs = [], metal = [];
+    const panels = Math.max(1, Math.round(len / 3)), pl = len / panels;
+    for (let i = 0; i < panels; i++) {
+      const x0 = i * pl, tint = mulc(L(0x9a958c), 0.9 + r() * 0.16);
+      const g = boxG(pl - 0.04, 2.7, 0.42, x0 + pl / 2, 1.35, 0, tint, 2);
+      paint(g, (px, py, pz) => {
+        let c = mulc(tint, 0.85 + 0.15 * fbm(px * 2.2 + i, py * 2.2, pz * 2.2, 2));
+        c = mixc(c, L(0x4a4a3c), smooth(0.7, 0.0, py) * 0.45);                       // grime and moss at the bottom
+        c = mixc(c, L(0x5c5650), smooth(0.25, 0.45, fbm(px * 1.4 + 7, py * 4, pz, 2)) * 0.35); // rain streaks
+        return c;
+      });
+      gs.push(g);
+      // a yellow and black warning band near the top
+      for (let k = 0; k < 4; k++) gs.push(boxG(pl / 8 - 0.02, 0.22, 0.44, x0 + (k * 2 + 0.5) * pl / 8, 2.45, 0, L(0xe0b020), 1));
+    }
+    gs.push(boxG(len, 0.12, 0.5, len / 2, 2.76, 0, L(0x7c776e), 1));
+    // steel posts and the wires of the electric fence
+    const posts = Math.max(2, Math.round(len / 3) + 1), step = len / (posts - 1);
+    for (let i = 0; i < posts; i++) metal.push(boxG(0.08, 0.95, 0.08, i * step, 3.25, 0, L(0x3a3c40), 1));
+    for (const y of [3.0, 3.3, 3.6]) metal.push(boxG(len, 0.025, 0.025, len / 2, y, 0, L(0x8a8c90), 1));
+    return fenceGroup('fence-dino', [meshOf(boxUV(merge(gs), 1.4), mat('concrete', { std: true, roughness: 0.9 })), meshOf(merge(metal), mat('steel', { std: true, roughness: 0.4, metalness: 0.6 }))], { len, h: 3.7, thick: 0.5 });
+  }
+  const FENCE_STYLES = { rail: buildRailFence, wire: buildWireFence, stone: buildStoneWall, dino: buildDinoWall };
 
   // pentagon picket (pointed board) between z0 and z1, from y = 0.04 to h + tip
   function picketPrism(S, x, w, h, tip, z0, z1, c) {
