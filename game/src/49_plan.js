@@ -481,6 +481,7 @@ const Plan = (() => {
     if (inCity(x, z, 6)) return CITY.streetAt(x - CX, z - CZ) || 'The city';
     if (inR(TOWN.area, x, z, 4)) return 'Maple Town';
     for (const t of TOWNS) if (inR(t.rect, x, z, 6)) return t.name;
+    const Z = zooAt(x, z, 2); if (Z) return Z.name;
     return null;
   }
 
