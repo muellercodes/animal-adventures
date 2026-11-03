@@ -181,6 +181,19 @@ const Sound = (() => {
         T({ t: t + 0.42, f: 70 * k, f2: 55 * k, dur: 0.45, type: 'sawtooth', lp: 300 * k, vol: vol * 0.45 });
         break;
       }
+      // round 10: fruit bat: a loud, harsh, squabbling chatter (a run of grating squawks that wobble up and down)
+      case 'bat': {
+        const n = 4 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < n; i++) {
+          const t0 = t + i * (0.09 + 0.03 * Math.random()), f = (1700 + 900 * Math.random()) * k;
+          T({ t: t0, f, f2: f * (i % 2 ? 0.7 : 1.3), dur: 0.07, a: 0.005, type: 'sawtooth', bp: f * 1.4, q: 2.2, vib: 70, vibAmt: f * 0.08, vol: vol * 0.5 });
+          noise({ t: t0, f: f * 1.6, q: 1.8, dur: 0.06, vol: vol * 0.28, pan });
+        }
+        break;
+      }
+      // round 10: butterflies make no call: a soft papery flutter of wingbeats; a caterpillar's is a tiny munch
+      case 'butterfly': for (let i = 0; i < 5; i++) noise({ t: t + i * 0.06, f: 2400 + 600 * Math.random(), q: 0.9, dur: 0.03, vol: vol * 0.12, pan }); break;
+      case 'caterpillar': for (let i = 0; i < 3; i++) noise({ t: t + i * 0.11, f: 3800, q: 2.5, dur: 0.025, vol: vol * 0.15, pan }); break;
       // round 7: the other cats meow a little higher or lower; the Siamese yowls long and loud; the fluffy white cat's
       // is soft and short; the hamster squeaks
       case 'blackcat': case 'orangecat': case 'calico': case 'whitecat': {
