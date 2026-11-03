@@ -199,6 +199,8 @@ const Sound = (() => {
       // round 8: brachiosaurus
       // Brachiosaurus: a long deep bellow that swells and falls over a low rumble (a hatchling gives a short honk)
       case 'brachiosaurus': if (k > 1) { T({ t, f: 320, f2: 220, dur: 0.35, type: 'sawtooth', lp: 900, vol: vol * 0.7 }); } else { T({ t, f: 55, f2: 70, dur: 0.8, a: 0.25, type: 'sawtooth', lp: 220, vib: 4, vibAmt: 3, vol: vol * 1.5 }); T({ t: t + 0.7, f: 70, f2: 42, dur: 1.4, type: 'sawtooth', lp: 200, vib: 3, vibAmt: 4, vol: vol * 1.4 }); T({ t, f: 28, f2: 24, dur: 2.0, a: 0.4, type: 'sine', vol: vol * 1.2 }); } break;
+      // round 10: polar bear: a deep chuffing huff and a low growl (a cub's is a bleating squall)
+      case 'polarbear': if (k > 1) { T({ t, f: 420, f2: 300, dur: 0.35, type: 'sawtooth', bp: 900, q: 1.5, vib: 9, vibAmt: 30, vol: vol * 0.8 }); } else { for (let i = 0; i < 2; i++) noise({ t: t + i * 0.28, f: 380, q: 0.9, dur: 0.18, vol: vol * 0.9, pan }); T({ t: t + 0.6, f: 85, f2: 70, dur: 0.9, a: 0.1, type: 'sawtooth', lp: 380, vib: 22, vibAmt: 6, vol: vol * 1.3 }); } break;
     }
   }
 

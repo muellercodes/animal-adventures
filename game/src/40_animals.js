@@ -5651,6 +5651,122 @@ const Animals = (() => {
     };
   };
 
+  // ===== round 10: polar bear =====
+  ids.push('polarbear');
+  SPEC.polarbear = () => {
+    const xF = 0.26, xH = 0.26;
+    const K = { coat: hex(0xEAE2CC), shade: hex(0xD6CBAE), belly: hex(0xDDD2B6), black: hex(0x141210), pad: hex(0x1E1A18) };
+    return {
+      size: { length: 2.45, height: 1.38, radius: 0.36, eyeHeight: 1.05 },
+      tex: [256, 512], rough: 0.9,
+      detail: { kind: 'fur', tile: 0.05, amt: 0.2, bump: 0.35, sheen: 0.3 },
+      shell: { parts: ['body', 'head', 'hleg', 'fleg'], len: 0.06, n: 4, lean: 1.1, babyLen: 1.4 },
+      bones: [
+        ['hips', null, 0, 1.05, -0.45],
+        ['rump', 'hips', 0, 1.08, -0.78],
+        ['chest', 'hips', 0, 0.98, 0.3],
+        ['neck', 'chest', 0, 1.0, 0.55],
+        ['neck2', 'neck', 0, 0.98, 0.72],
+        ['head', 'neck2', 0, 0.97, 0.84],
+        ['tail1', 'rump', 0, 1.08, -1.13],
+        ['tail2', 'tail1', 0, 1.02, -1.21],
+        ['thighL', 'rump', xH, 1.0, -0.8, 1],
+        ['shinL', 'thighL', xH, 0.56, -0.62, 1],
+        ['hmetaL', 'shinL', xH, 0.12, -0.88, 1],
+        ['hpawL', 'hmetaL', xH, 0.05, -0.62, 1],
+        ['armL', 'chest', xF, 0.92, 0.45, 1],
+        ['foreL', 'armL', xF, 0.56, 0.34, 1],
+        ['fmetaL', 'foreL', xF, 0.15, 0.42, 1],
+        ['fpawL', 'fmetaL', xF, 0.05, 0.5, 1],
+        ['earL', 'head', 0.1, 1.1, 0.84, 1],
+      ],
+      fur: [
+        // a long, deep body, the rump higher than the shoulders, a long neck carried low
+        { name: 'body', bones: ['rump', 'hips', 'chest', 'neck', 'neck2', 'head'], blend: 0.12, segs: 14, cap0: 3, capLen0: 0.8, keys: [
+          [0, 1.1, -1.15, 0.12, 0.1, 0.12],
+          [0, 1.04, -1.02, 0.27, 0.3, 0.34],
+          [0, 1.0, -0.78, 0.33, 0.38, 0.42],
+          [0, 0.95, -0.45, 0.33, 0.39, 0.4],
+          [0, 0.92, -0.1, 0.35, 0.39, 0.38],
+          [0, 0.91, 0.25, 0.33, 0.39, 0.36],
+          [0, 0.95, 0.48, 0.25, 0.3, 0.27],
+          [0, 0.99, 0.63, 0.19, 0.22, 0.21],
+          [0, 0.98, 0.76, 0.15, 0.17, 0.17],
+        ] },
+        // a long narrow head with a Roman nose and a long muzzle
+        { name: 'head', bones: ['head'], segs: 14, cap0: 2, cap1: 3, capLen1: 0.5, keys: [
+          [0, 0.98, 0.78, 0.11, 0.1, 0.13],
+          [0, 0.98, 0.86, 0.13, 0.12, 0.15],
+          [0, 0.95, 0.98, 0.11, 0.09, 0.13],
+          [0, 0.91, 1.08, 0.075, 0.07, 0.1],
+          [0, 0.88, 1.17, 0.06, 0.055, 0.075],
+          [0, 0.86, 1.23, 0.045, 0.04, 0.05],
+        ] },
+        { name: 'tail', bones: ['rump', 'tail1', 'tail2'], blend: 0.05, segs: 8, cap1: 2, keys: [
+          [0, 1.09, -1.12, 0.06, 0.06, 0.06],
+          [0, 1.03, -1.21, 0.05, 0.05, 0.05],
+          [0, 0.95, -1.27, 0.03, 0.03, 0.03],
+        ] },
+        { name: 'hleg', mirror: true, bones: ['rump', 'thighL', 'shinL', 'hmetaL', 'hpawL'], blend: 0.08, segs: 10, cap1: 2, keys: [
+          [xH - 0.06, 1.05, -0.8, 0.2, 0.24, 0.26],
+          [xH, 0.8, -0.68, 0.17, 0.2, 0.22],
+          [xH, 0.57, -0.62, 0.13, 0.15, 0.16],
+          [xH, 0.32, -0.78, 0.1, 0.1, 0.12],
+          [xH, 0.12, -0.88, 0.09, 0.08, 0.1],
+          [xH, 0.06, -0.72, 0.12, 0.06, 0.06],
+          [xH, 0.05, -0.55, 0.12, 0.05, 0.05],
+        ] },
+        { name: 'fleg', mirror: true, bones: ['chest', 'armL', 'foreL', 'fmetaL', 'fpawL'], blend: 0.08, segs: 10, cap1: 2, keys: [
+          [xF - 0.05, 0.95, 0.45, 0.15, 0.17, 0.17],
+          [xF, 0.72, 0.38, 0.13, 0.15, 0.15],
+          [xF, 0.5, 0.36, 0.11, 0.11, 0.12],
+          [xF, 0.3, 0.4, 0.095, 0.09, 0.1],
+          [xF, 0.13, 0.43, 0.095, 0.085, 0.09],
+          [xF, 0.06, 0.52, 0.13, 0.06, 0.06],
+          [xF, 0.05, 0.62, 0.12, 0.05, 0.05],
+        ] },
+        // small round ears
+        { name: 'ear', mirror: true, bones: ['earL'], segs: 8, sub: 3, cap1: 2, capLen1: 0.8, keys: [
+          [0.095, 1.09, 0.84, 0.035, 0.02, 0.02],
+          [0.115, 1.13, 0.83, 0.03, 0.015, 0.015],
+        ] },
+      ],
+      accent: [{ kind: 'sphere', bone: 'head', c: [0, 0.875, 1.245], r: 0.032, s: [1.2, 0.85, 0.7], col: 0x141210 }],
+      accentRough: 0.35,
+      eyes: [{ bone: 'head', p: [0.068, 1.02, 1.0], r: 0.016, dir: [0.55, 0.1, 0.83], iris: 0x1C120C, irisR: 0.95, pupilR: 0.55, lidCol: 0x161210 }],
+      mouth: [0, 0.83, 1.17],
+      paint(P, C) {
+        cset(C, K.coat);
+        cmix(C, K.shade, sstep(-0.2, -0.8, P.ny) * 0.5);
+        if (P.part === 'hleg' || P.part === 'fleg') cmix(C, K.pad, sstep(-0.6, -0.9, P.ny) * sstep(0.05, 0.03, P.y));
+        if (P.part === 'head') cmix(C, K.black, sstep(1.21, 1.235, P.z) * 0.8);
+        cmul(C, 0.95 + 0.08 * grain(P, 60, 20));
+        C.ro = 0.9;
+        C.fl = P.part === 'ear' ? 0.3 : P.part === 'head' ? 0.5 : 1;
+      },
+      // cubs: a whiter, fluffier coat
+      babyPaint(P, C) { cmix(C, hex(0xF2EDE0), 0.5); C.fl = Math.min(1, C.fl * 1.3 + 0.1); },
+      baby: { head: 1.55, muzzle: 0.45, eye: 1.15, ear: 1.2, neck: [0.55, 1.2], body: [1.18, 1.15, 0.72], leg: [0.6, 1.3], tail: 0.6 },
+      modelSpec: { baby: { eye: 1.05 } },
+      anim: {
+        type: 'legged', walk: 1.3, trot: 3.2, run: 7.5, stride: 1.25, strideMax: 2.4, maxRate: 3.2,
+        duty: [0.66, 0.5, 0.34], lift: [0.12, 0.1], flexF: 1.2, flexH: 0.8,
+        // a rolling walk; a lope and a rotary gallop
+        gaits: { w: [0.25, 0.75, 0.0, 0.5], t: [0.5, 1.0, 0.0, 0.5], g: [0.55, 0.45, 0.0, 0.1] },
+        bob: [0.012, 0.03, 0.07], pitchRun: 0.08, flexRun: 0.16, rumpFlex: 0.7, roll: 0.06,
+        neck: ['neck', 'neck2', 'head'], neckDist: [0.45, 0.35, 0.2], nod: 0.05, runNeck: 0.16, trotNeck: 0.06, lookAmp: 0.6,
+        eatPitch: 0.12, eatDrop: 0.05, eatElev: [-45, -70, -95], chestEat: 0.08, chew: 0.05, chewRate: 6,
+        tail: ['tail1', 'tail2'], tailIdle: [-0.2, -0.1], tailSway: 0.04, tailWalk: 0.04, wag: 0.1,
+        ears: ['earL', 'earR'], earBack: 0.3, breathe: 0.008,
+        // swims low: the head and the back above the water, paddling with the front legs, the hind legs trailing
+        floatDepth: 1.12, swimHead: -0.25, swimPitch: -0.04, paddleR: 0.3, paddle: 1.0, swimTrail: [0.62, -0.45, -0.2],
+        // asleep sprawled flat on its belly, the head on its front paws
+        sleep: { style: 'flat', neck: [0.25, 0.55], tail: [0.2, 0.0] },
+        sit: { idle: 9, pitch: 0.6, drop: 0.5, rump: 0.45, chest: 0.12, front: [0.1, 0.0], hind: [0.25, 0.08, 0.0], neck: [0.05, 0.05, 0.0], tail: [0.4, 0.1], tailYaw: [0.0, 0.0] },
+      },
+    };
+  };
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -6077,6 +6193,10 @@ const Animals = (() => {
             // otter: front paws tucked to the chest, webbed hind feet trailing and sculling
             const tk = lg.front ? P.swimTuck.f : P.swimTuck.h, sc = lg.front ? 0 : Math.sin(S.sph * TAU + lg.idx * PI) * 0.25 * legH;
             swx = lg.Pp.x * tk[3]; swy = lg.Pp.y + tk[0] * legH + sc * 0.4; swz = lg.Pp.z + tk[1] * legH + sc; swFl = tk[2]; swq = lg.front ? 0.9 : 0.2;
+          } else if (P.swimTrail && !lg.front) {
+            // round 10: swimTrail [up, back, flex] (leg heights): the hind legs trail behind, kicking a little (a polar bear)
+            const tr = P.swimTrail, kk = Math.sin(S.sph * TAU + lg.idx * PI) * 0.05 * legH;
+            swx = lg.Pp.x; swy = lg.Pp.y + tr[0] * legH + kk * 0.5; swz = lg.Pp.z + tr[1] * legH + kk; swFl = tr[2]; swq = 0.15;
           } else {
             // paddling: alternate diagonal pairs in a circle under the body
             const sp = fract(S.sph + (lg.idx === 0 || lg.idx === 3 ? 0 : 0.5));
@@ -7573,6 +7693,8 @@ const Animals = (() => {
   COLLAR.crocodile = { at: ['chest', 'neck', 0.85], r: 1.6, w: 1.2 };
   // round 8: brachiosaurus
   COLLAR.brachiosaurus = { at: ['neck4', 'head', 0.3], r: 1.2 };
+  // round 10: polar bear
+  COLLAR.polarbear = { at: ['neck2', 'head', 0.3], r: 0.8, maxR: 0.3 };
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)

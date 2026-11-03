@@ -683,3 +683,23 @@ Crocodile (`VOXEL=0.006 TRIS=3300 TEX=704 WEIGHTS=transfer`; TRIS here gives abo
 Brachiosaurus (`VOXEL=0.03 TRIS=5300 TEX=1024 WEIGHTS=transfer`): 8.5k triangles; 1024 color (WebP 68) and normal (WebP
 50) maps, 384 hatchling color map: 58 KB mesh + 18 + 123 + 4 KB, 206 KB of files, about 275 KB in the page. About 4
 minutes for the whole run.
+
+## Round 10: the polar bear (`polarbear.py`)
+
+A polar bear, 2.45 m from the nose to the tail and 1.3 m at the shoulder, in meters like the other big animals (the
+cat template's numbers are cat sized; a bear is its own file in the cat file's layout). Things that are new:
+- The long coat is part of the sculpt (about 5 to 10 cm over the body, soft clumps of locks from a low frequency
+  noise, `_locks()`), with long fur shells over it (`len` 0.1, 5 layers), so it is bulky and a little shaggy far away
+  too. Its outline needs thick legs: as tubes under a fluffy body the legs read thin and the bear read as a sheep.
+- A long narrow head with a Roman nose (a ridge down the top of the muzzle), small round furry ears, small eyes, a big
+  black nose pad with slit nostrils, black lips painted as a thin band only toward the front (a wide band all along the
+  mouth read as a painted smile).
+- Plantigrade hind feet: the heel (`HEEL`) on the ground behind a long sole (`CV.paw` with a long pad); the front paws
+  turned in (`yaw` -0.18, the pigeon-toed walk). The game's rolling walk is `anim.roll`.
+- Swimming low with the head and the back above the water: `floatDepth` 1.12 and, in the game, `anim.swimTrail` (round
+  10): the hind legs trail behind with a small kick while the front legs paddle.
+- The collar: the neck is carried low, so a slice across it also cut the front paws and the shoulders below it; the
+  collar sits near the head (`at: ['neck2', 'head', 0.3]`) and ignores anything farther than `maxR` 0.3.
+- Budget (`VOXEL=0.01 TRIS=5600 TEX=768`, then rings across the body and the neck): 8.0k triangles, no cards; 768 color
+  and normal maps (normal WebP 58), 384 fur map, 256 cub color map: 70 KB mesh + 22 + 15 + 7 + 2 KB, about 160 KB in the
+  page plus about 30 KB of icons.
