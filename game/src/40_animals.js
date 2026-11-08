@@ -7517,42 +7517,49 @@ const Animals = (() => {
   // bone name) in base64 and color and normal maps as WebP data URIs. Everything else stays the same: the spec's
   // bones, animator, baby proportions (the per-vertex morph from the skin weights), eyes (placed by the model) and
   // the collar (a slice of the sculpted neck). Species without a model keep their procedural body.
-  const MODELS = (typeof window !== 'undefined' && window.AA_MODELS) || {};
+  // round 11: the models load from files beside the page (build.mjs) and arrive through useModels() before the game
+  // starts; with INLINE_MODELS they are in the page (window.AA_MODELS)
+  let MODELS = {};
   const modelCache = {};
-  // start decoding the maps right away; materials made before they arrive show a flat skin color and swap them in
   const modelMaps = {}, mapLoads = [];
-  for (const id in MODELS) {
-    const md = MODELS[id], mm = modelMaps[id] = { ready: 0, need: 0, waiters: [], tex: {} };
-    for (const k in md.maps || {}) {
-      mm.need++;
-      const img = new Image();
-      mapLoads.push(new Promise((res) => {
-        img.onload = () => {
-          const t = new THREE.Texture(img);
-          if (k === 'color' || k === 'hair' || k === 'babyColor' || (md.srgb && md.srgb.indexOf(k) >= 0)) t.encoding = THREE.sRGBEncoding;
-          t.anisotropy = 4; t.needsUpdate = true;
-          mm.tex[k] = t;
-          if (++mm.ready === mm.need) for (const f of mm.waiters.splice(0)) f();
-          res();
-        };
-        img.onerror = res;
-      }));
-      img.src = md.maps[k];
-    }
-  }
-  // round 7: a coat variant (md.base) borrows the maps it does not bring from the model it shares (normal, fur, hair)
-  for (const id in MODELS) {
-    const md = MODELS[id], bm = md.base ? modelMaps[md.base] : null, mm = modelMaps[id];
-    if (!bm) continue;
-    for (const k in MODELS[md.base].maps || {}) {
-      if (md.maps && md.maps[k]) continue;
-      mm.need++;
-      const take = () => { mm.tex[k] = bm.tex[k]; if (++mm.ready === mm.need) for (const f of mm.waiters.splice(0)) f(); };
-      if (bm.ready === bm.need) take(); else bm.waiters.push(take);
-    }
-  }
+  let readyNow;
   // resolves once every model's maps are decoded (tools that render pictures of the animals wait for it)
-  const ready = Promise.all(mapLoads);
+  const ready = new Promise((res) => { readyNow = res; });
+  function useModels(M) {
+    MODELS = M || {};
+    // start decoding the maps right away; materials made before they arrive show a flat skin color and swap them in
+    for (const id in MODELS) {
+      const md = MODELS[id], mm = modelMaps[id] = { ready: 0, need: 0, waiters: [], tex: {} };
+      for (const k in md.maps || {}) {
+        mm.need++;
+        const img = new Image();
+        mapLoads.push(new Promise((res) => {
+          img.onload = () => {
+            const t = new THREE.Texture(img);
+            if (k === 'color' || k === 'hair' || k === 'babyColor' || (md.srgb && md.srgb.indexOf(k) >= 0)) t.encoding = THREE.sRGBEncoding;
+            t.anisotropy = 4; t.needsUpdate = true;
+            mm.tex[k] = t;
+            if (++mm.ready === mm.need) for (const f of mm.waiters.splice(0)) f();
+            res();
+          };
+          img.onerror = res;
+        }));
+        img.src = md.maps[k];
+      }
+    }
+    // round 7: a coat variant (md.base) borrows the maps it does not bring from the model it shares (normal, fur, hair)
+    for (const id in MODELS) {
+      const md = MODELS[id], bm = md.base ? modelMaps[md.base] : null, mm = modelMaps[id];
+      if (!bm) continue;
+      for (const k in MODELS[md.base].maps || {}) {
+        if (md.maps && md.maps[k]) continue;
+        mm.need++;
+        const take = () => { mm.tex[k] = bm.tex[k]; if (++mm.ready === mm.need) for (const f of mm.waiters.splice(0)) f(); };
+        if (bm.ready === bm.need) take(); else bm.waiters.push(take);
+      }
+    }
+    Promise.all(mapLoads).then(() => readyNow());
+  }
   // raw deflate (RFC 1951) decoder for format 2 model data, small and synchronous
   const INF = {
     lb: [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258],
@@ -9226,5 +9233,5 @@ const Animals = (() => {
     return rig;
   }
 
-  return { ids, build, ready };
+  return { ids, build, ready, useModels };
 })();

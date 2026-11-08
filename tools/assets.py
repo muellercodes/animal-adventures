@@ -5,7 +5,7 @@
 # To redraw only some world pictures:  WORLDS=snow python3 tools/assets.py
 # PAGE=<path to a built index.html> uses another build than docs/index.html.
 # Needs Playwright with Chromium (WebGL runs in software, so this takes a few minutes).
-import base64, os, sys
+import base64, os, sys, threading, functools, http.server, socketserver
 from playwright.sync_api import sync_playwright
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -16,11 +16,18 @@ SHOTS = {  # camera position, look-at point (relative to the world spawn) for ea
     'jungle': ([-30, 16, 34], [20, 2, -6]), 'meadow': ([40, 16, 46], [-10, 2, -20]), 'sky': ([46, 30, 60], [0, 2, 0]),
     'snow': ([10, 14, 50], [-10, 8, -60]),
 }
+# the page loads its animal models from files beside it (build.mjs), so serve its folder over http
+class Quiet(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, *a): pass
+PAGE = os.environ.get('PAGE', os.path.join(ROOT, 'docs', 'index.html'))
+srv = socketserver.ThreadingTCPServer(('127.0.0.1', 0), functools.partial(Quiet, directory=os.path.dirname(os.path.abspath(PAGE))))
+srv.daemon_threads = True
+threading.Thread(target=srv.serve_forever, daemon=True).start()
 with sync_playwright() as p:
     b = p.chromium.launch(args=['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'])
     pg = b.new_page(viewport={'width': 640, 'height': 360}, device_scale_factor=1)
-    pg.goto('file://' + os.environ.get('PAGE', os.path.join(ROOT, 'docs', 'index.html')) + '#assets', wait_until='load')
-    pg.wait_for_function('window.__aa', timeout=60000)
+    pg.goto(f'http://127.0.0.1:{srv.server_address[1]}/' + os.path.basename(PAGE) + '#assets', wait_until='load')
+    pg.wait_for_function('window.__aa', timeout=180000)
     pg.evaluate('__aa.manual(true)')
     pg.evaluate('() => __aa.Animals.ready')   # sculpted models: their maps decode after the page loads
     only = sys.argv[1:]

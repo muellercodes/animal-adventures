@@ -77,12 +77,12 @@ game/assets/            pre-rendered menu pictures (made by tools/assets.py)
 game/models/            sculpted animal models (made by tools/blender, embedded by build.mjs)
 tools/blender/          the Blender pipeline that sculpts, bakes and exports those models
 game/config.json        address of the cloud save API
-build.mjs               builds docs/index.html
+build.mjs               builds docs/index.html and the animal model files beside it (docs/models-*.json)
 docs/                   the published site (GitHub Pages serves this folder)
 worker/                 Cloudflare Worker API + D1 schema
 ```
 
-Everything 3D is built from code when the game loads, using [three.js](https://threejs.org). The exceptions are the animals (all but the swan), whose bodies are sculpted by script in Blender (see [tools/blender](tools/blender/README.md)) and embedded in the page as small meshes with color and normal maps. Buildings in town are merged into a few big meshes when the world loads, and the city's towers, street furniture and cars are drawn instanced, so a big town stays smooth.
+Everything 3D is built from code when the game loads, using [three.js](https://threejs.org). The exceptions are the animals (all but the swan), whose bodies are sculpted by script in Blender (see [tools/blender](tools/blender/README.md)) and saved as small meshes with color and normal maps in a few files beside the page, which it loads before the game starts. Buildings in town are merged into a few big meshes when the world loads, and the city's towers, street furniture and cars are drawn instanced, so a big town stays smooth.
 
 ## Building
 
@@ -92,7 +92,7 @@ API_BASE=http://127.0.0.1:8787 node build.mjs    # point at a local worker
 API_BASE= node build.mjs                         # no cloud saves
 ```
 
-Then open `docs/index.html`, or serve the folder (`npx serve docs`).
+Then serve the folder (`npx serve docs`) and open it. Opened straight from the disk (file://) the page cannot load its model files and the animals get their simple built-in bodies; `INLINE_MODELS=1 node build.mjs` puts the models in the page instead, as before.
 
 To redraw the animal icons and world pictures in the menus after changing a model or a world:
 

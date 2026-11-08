@@ -1,7 +1,7 @@
 # Sculpted animal models (Blender pipeline)
 
 Makes a realistic body for one species with Blender, fitted to the skeleton the game already uses, and writes it to
-`game/models/<id>.*`. `build.mjs` embeds those files in the page and `game/src/40_animals.js` uses the model instead of
+`game/models/<id>.*`. `build.mjs` packs those files into `docs/models-*.json` beside the page (the sizes below that say "in the page" count what an animal adds to those files) and `game/src/40_animals.js` uses the model instead of
 the procedural loft body. Everything else (bones, walk/run/eat/sleep animation, baby proportions, eyes and blinking,
 collar, moods, swimming) keeps working through the same rig API. Models so far: the pig, frog, lizard, turtle,
 snake, horse, duck, hen, macaw, owl, fox, raccoon, otter, weasel, deer, goat, moose, bunny, squirrel, hedgehog, dog and

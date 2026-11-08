@@ -1171,4 +1171,7 @@ function start(data) {
   if (/test|assets/.test(location.hash)) window.__aa = { SPECIES, manual(on) { manual = on; if (!on) requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); }); }, step(n, dt = 1 / 30, draw = true) { for (let i = 0; i < n; i++) tick(dt, 1, draw && i === n - 1); }, S, G, R, Player, Wild, Folk, Foods, Homes, World, Cam, inp, keys, press, travel, switchAnimal, loadWorld, play, pickStarter, animalIcon, renderer, camera, scene, dayInfo, timeOfDay, findAction, doAction, Sound, setBodyAge, goHome, buyAnimal, Env, Animals, People, THREE, Net, Town, Nav, Traffic, Plan, CityLife, Sick, applySave, Zoos };
   requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); });
 }
-window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+// round 11: the animal models load from files beside the page first (build.mjs); the game starts when they are in
+const modelsIn = (window.AA_MODELS_READY || Promise.resolve(window.AA_MODELS || {})).then((M) => Animals.useModels(M));
+const boot = (data) => modelsIn.then(() => start(data));
+window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
