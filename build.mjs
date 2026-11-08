@@ -9,7 +9,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, unlink
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 
-const ORDER = ['00_core', '35_envkit', '36_city', '37_street', '38_food', '39_snow', '39_zoo', '40_animals', '45_people', '49_plan', '50_world', '60_actors', '62_town', '63_traffic', '64_citylife', '65_audio', '66_zoo', '68_net', '70_game'];
+const ORDER = ['00_core', '35_envkit', '36_city', '37_street', '38_food', '39_snow', '39_zoo', '39_savanna', '40_animals', '45_people', '49_plan', '50_world', '60_actors', '62_town', '63_traffic', '64_citylife', '65_audio', '66_zoo', '68_net', '70_game'];
 const cfg = JSON.parse(readFileSync('game/config.json', 'utf8'));
 const api = process.env.API_BASE ?? cfg.apiBase ?? '';
 

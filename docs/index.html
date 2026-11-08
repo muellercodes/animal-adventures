@@ -7793,6 +7793,8 @@ void main() {`);
     propCache, boxG, meshOf, wallQuadZ, wallQuadX, polyFan, polyX, polyZ, beam, roofX, roofHip, windowParts, addWindow, doorGeo,
     chimneyGeo, roundBox, doorRec, resolveDoors, setDoors, cachedDoors, cachedGroup, pivot, glassMat, glassMesh, quadTo, pipeGeo,
     vPanel, rrect, hexOf, sign, nightU, autumnU, windU,
+    // round 11: the tree parts, for 39_savanna's trees
+    crown, leafPart, trunkPts, branch, barkColor, flareRad, climbInfo, frond, FALL, C,
   };
   return {
     _k: KIT,
@@ -17988,6 +17990,126 @@ void main() {
   Env.addFood('nectar', foodNectar);
 })();
 
+/* ---------- round 11: meat, bamboo and dates ----------
+     meat    a raw beef rib steak with a rib bone: marbled red meat, a cream fat cap along one side (for the big cats)
+     bamboo  three cut bamboo canes lying together, green with pale ringed nodes and a white bloom below each node,
+             one with its leafy top still on (for pandas)
+     dates   a strand of ripe dates, glossy amber to dark brown, on their orange fruit stalks (for camels)
+   All about life size, lying on the ground at the origin, painted with vertex colors (no texture). */
+(() => {
+  const K = Env._k;
+  const { TAU, V3, rng, L, mixc, mulc, prep, paint, merge, soup, path, tube, mat, fbm, smooth, clamp } = K;
+  const DS = THREE.DoubleSide;
+  const toGround = (g) => { g.computeBoundingBox(); g.translate(0, -g.boundingBox.min.y, 0); return g; };
+
+  function foodMeat() {
+    const r = rng(1101), parts = [];
+    // the steak: a rounded outline, 2.4 cm thick with soft edges; x runs along the steak, the fat cap is on the far side
+    const sh = new THREE.Shape(), n = 22;
+    for (let i = 0; i <= n; i++) {
+      const a = (i / n) * TAU, rx = 0.1 * (1 + 0.08 * Math.cos(a * 2) + 0.05 * Math.sin(a * 3)), rz = 0.066 * (1 + 0.1 * Math.sin(a) - 0.05 * Math.cos(a * 3));
+      const x = Math.cos(a) * rx, z = Math.sin(a) * rz;
+      i ? sh.lineTo(x, z) : sh.moveTo(x, z);
+    }
+    const slab = prep(new THREE.ExtrudeGeometry(sh, { depth: 0.016, bevelEnabled: true, bevelThickness: 0.004, bevelSize: 0.005, bevelSegments: 2, curveSegments: 4 }));
+    slab.rotateX(Math.PI / 2); slab.translate(0, 0.022, 0);
+    const red = L(0x7a1216), redLt = L(0x9e2428), redDk = L(0x4a0a0e), fat = L(0xe8d2b8), fatDk = L(0xc8a888);
+    parts.push(paint(slab, (x, y, z, nx, ny) => {
+      const cap = smooth(0.042, 0.06, z + 0.006 * fbm(x * 40, 0, 1, 2));
+      // fine white marbling on the cut faces, a darker seared look round the sides
+      const m = fbm(x * 55 + 3, y * 10, z * 55, 3), streak = smooth(0.32, 0.5, Math.abs(Math.sin(x * 70 + m * 6)) * (0.5 + m));
+      let c = mixc(red, redLt, 0.5 + 0.5 * fbm(x * 30, 1, z * 30, 2));
+      c = mixc(c, L(0xd89a90), streak * 0.3);
+      if (Math.abs(ny) < 0.6) c = mixc(c, redDk, 0.45);
+      return mixc(c, Math.abs(ny) < 0.6 ? fatDk : fat, cap);
+    }));
+    // the rib bone along one end, coming out of the meat
+    const bone = [new V3(-0.08, 0.016, -0.03), new V3(-0.12, 0.017, -0.035), new V3(-0.165, 0.018, -0.03), new V3(-0.19, 0.017, -0.02)];
+    parts.push(tube(path(bone, 8), (i, t) => 0.009 * (1 + 0.6 * smooth(0.8, 1, t)), { radial: 8, cap: 'both', color: (t) => mixc(L(0xd8c8a8), L(0xf2e8d2), smooth(0.2, 0.7, t)) }));
+    const knob = prep(new THREE.SphereGeometry(0.014, 10, 8)); knob.scale(1, 0.85, 1.2); knob.translate(-0.192, 0.017, -0.019);
+    parts.push(paint(knob, L(0xeee2c8)));
+    return [{ geo: toGround(merge(parts.map((g) => prep(g)))), mat: mat('f11meat', { std: true, roughness: 0.62, side: DS }) }];
+  }
+
+  function foodBamboo() {
+    const r = rng(1102), parts = [];
+    const green = L(0x3e6a1c), greenLt = L(0x5e8a2a), node = L(0xa8a660), bloom = L(0x98a888);
+    const cane = (x0, z0, len, rad, yaw, leafy) => {
+      const nodes = Math.round(len / 0.13), seg = len / nodes;
+      for (let i = 0; i < nodes; i++) {
+        const g = prep(new THREE.CylinderGeometry(rad, rad * 1.02, seg * 0.98, 10, 2, i === 0 || i === nodes - 1));
+        g.rotateZ(Math.PI / 2); g.translate(-len / 2 + seg * (i + 0.5), 0, 0);
+        paint(g, (x) => {
+          const u = (x + len / 2) / seg - i;   // 0..1 along this internode
+          let c = mixc(green, greenLt, 0.4 + 0.3 * fbm(x * 30, i, 1, 2));
+          c = mixc(c, bloom, smooth(0.12, 0.0, u) * 0.7);           // waxy white bloom just below the node
+          return mixc(c, node, smooth(0.9, 1.0, u) * 0.8);
+        });
+        g.rotateY(yaw); g.translate(x0, rad, z0); parts.push(g);
+        // the ring at each node
+        if (i < nodes - 1) {
+          const ring = prep(new THREE.TorusGeometry(rad * 1.04, rad * 0.12, 4, 12));
+          ring.rotateY(Math.PI / 2); ring.translate(-len / 2 + seg * (i + 1), 0, 0); paint(ring, node);
+          ring.rotateY(yaw); ring.translate(x0, rad, z0); parts.push(ring);
+        }
+      }
+      // cut ends: a pale ring of wood round the hollow
+      for (const s of [-1, 1]) {
+        if (leafy && s > 0) continue;
+        const e = prep(new THREE.RingGeometry(rad * 0.7, rad, 12)); e.rotateY(s * Math.PI / 2); e.translate(s * len / 2, 0, 0); paint(e, L(0xe0d6a0));
+        e.rotateY(yaw); e.translate(x0, rad, z0); parts.push(e);
+      }
+      if (!leafy) return;
+      // leafy top: thin twigs with long narrow leaves fanning out
+      const S = soup(), tip = new V3(len / 2, 0, 0).applyAxisAngle(new V3(0, 1, 0), yaw).add(new V3(x0, rad, z0));
+      for (let k = 0; k < 9; k++) {
+        const a = yaw + (r() - 0.5) * 1.6, d = new V3(Math.cos(a), 0, -Math.sin(a)), side = new V3(-d.z, 0, d.x);
+        const L0 = 0.12 + r() * 0.08, w0 = 0.014 + r() * 0.006, base = tip.clone().addScaledVector(d, r() * 0.06);
+        const P = (t) => new V3(base.x + d.x * L0 * t, 0.004 + rad * 0.6 * (1 - t) + 0.01 * Math.sin(t * 3), base.z + d.z * L0 * t);
+        for (let q = 0; q < 4; q++) {
+          const t0 = q / 4, t1 = (q + 1) / 4, wa = w0 * Math.sin(Math.PI * Math.max(0.1, Math.min(t0, 0.95))), wb = w0 * Math.sin(Math.PI * Math.max(0.1, Math.min(t1, 0.95)));
+          const ca = mixc(L(0x3e6a1e), L(0x6a9a32), t0), cb = mixc(L(0x3e6a1e), L(0x6a9a32), t1);
+          S.quad(P(t0).addScaledVector(side, -wa), P(t1).addScaledVector(side, -wb), P(t1).addScaledVector(side, wb), P(t0).addScaledVector(side, wa), ca, cb, cb, ca);
+        }
+      }
+      parts.push(S.geo(true));
+    };
+    cane(0, 0, 0.52, 0.018, 0.05, true);
+    cane(0.01, 0.04, 0.46, 0.016, -0.08, false);
+    cane(-0.02, -0.035, 0.4, 0.015, 0.12, false);
+    return [{ geo: toGround(merge(parts.map((g) => prep(g)))), mat: mat('f11bamboo', { std: true, roughness: 0.78, side: DS }) }];
+  }
+
+  function foodDates() {
+    const r = rng(1103), parts = [];
+    const stalk = L(0xd08a2a), stalkDk = L(0x9a5a1a);
+    // the main stalk lies along x, with thin strands branching off it; dates hang on the strands
+    const main = [new V3(-0.09, 0.008, 0), new V3(-0.03, 0.01, 0.005), new V3(0.04, 0.009, -0.003), new V3(0.1, 0.007, 0.002)];
+    parts.push(tube(path(main, 10), 0.0045, { radial: 6, cap: 'both', color: (t) => mixc(stalkDk, stalk, t) }));
+    for (let i = 0; i < 6; i++) {
+      const t = 0.12 + i * 0.15, s = i % 2 ? 1 : -1, b0 = new V3(-0.09 + 0.19 * t, 0.009, 0);
+      const b1 = b0.clone().add(new V3(0.02 + r() * 0.02, 0.002, s * (0.04 + r() * 0.025)));
+      parts.push(tube(path([b0, b0.clone().lerp(b1, 0.5).add(new V3(0, 0.004, 0)), b1], 5), 0.0018, { radial: 4, color: () => stalk }));
+      // two or three dates per strand, each an oblong fruit with a little cap
+      for (let k = 0; k < 2 + (i % 2); k++) {
+        const p = b0.clone().lerp(b1, 0.45 + k * 0.28).add(new V3((r() - 0.5) * 0.01, 0, (r() - 0.5) * 0.01));
+        const g = prep(new THREE.SphereGeometry(0.011, 10, 8)); g.scale(1, 0.95, 1.75);
+        const ripe = r();
+        paint(g, (x, y, z) => {
+          const w = 0.5 + 0.5 * fbm(x * 300, y * 300, z * 300, 2);
+          return mixc(mixc(L(0x8a3c14), L(0x4a1a0c), ripe * 0.7 + w * 0.3), L(0xb86a24), smooth(-0.012, -0.019, z) * 0.6);
+        });
+        g.rotateY(Math.atan2(b1.x - b0.x, b1.z - b0.z) + (r() - 0.5) * 0.8); g.translate(p.x, 0.011, p.z); parts.push(g);
+        const cap = prep(new THREE.CylinderGeometry(0.004, 0.005, 0.003, 6)); cap.rotateX(Math.PI / 2); cap.translate(p.x, 0.016, p.z); paint(cap, L(0xc89038)); parts.push(cap);
+      }
+    }
+    return [{ geo: toGround(merge(parts.map((g) => prep(g)))), mat: mat('f11dates', { std: true, roughness: 0.32, side: DS }) }];
+  }
+  Env.addFood('meat', foodMeat);
+  Env.addFood('bamboo', foodBamboo);
+  Env.addFood('dates', foodDates);
+})();
+
 /* ============================================================
    Snow kit: props for the Snowy Mountains world (round 10)
      snowpine   a pine with snow lying on its tiers (the tops of the needle masses go white, the undersides stay dark)
@@ -18108,6 +18230,183 @@ void main() {
     grp.userData = { colliders: [{ x: -(W / 2 + 0.5), z: 0, r: 0.65 }, { x: W / 2 + 0.5, z: 0, r: 0.65 }] };
     return grp;
   };
+})();
+
+/* ============================================================
+   Savanna kit (round 11): props for the Savanna world, and bamboo for the pandas
+     acacia (3)    an umbrella thorn tree: a short trunk that splits into a few slanting limbs and a wide, flat crown
+                   of fine olive leaves (it keeps its leaves in the fall); leopards climb it
+     termite (2)   a termite mound of red earth, a lumpy tower with a spire or two
+     bamboo (2)    a clump of tall bamboo canes with narrow leaves in sprays at the top           spot bamboo
+     datepalm (2)  a date palm with long feathery fronds and strands of orange dates under them   spot dates
+   ============================================================ */
+(() => {
+  const K = Env._k;
+  const { TAU, V3, clamp, lerp, smooth, rng, fbm, L, mixc, mulc, prep, paint, merge, tube, path, mat, canvasTex, gray, PROPS, VARIANTS,
+    crown, leafPart, trunkPts, branch, barkColor, flareRad, climbInfo, TX } = K;
+
+  // fine acacia foliage: many tiny leaflets in feathery sprays (a leaf card texture, gray, colored by the crown)
+  const acaciaTex = () => canvasTex('acaciaLeaf', 128, 128, (c, w, h, r) => {
+    c.clearRect(0, 0, w, h);
+    c.lineCap = 'round';
+    for (let i = 0; i < 16; i++) {
+      const a = r() * TAU, d = Math.sqrt(r()) * 36, x0 = w / 2 + Math.cos(a) * d, y0 = h / 2 + Math.sin(a) * d, ang = r() * TAU, len = 18 + r() * 14;
+      const v = 0.6 + r() * 0.35;
+      for (let k = 0; k <= 10; k++) {
+        const t = k / 10, x = x0 + Math.cos(ang) * len * t, y = y0 + Math.sin(ang) * len * t;
+        for (const sd of [-1, 1]) {
+          c.fillStyle = gray(v * (0.85 + r() * 0.2));
+          c.beginPath(); c.ellipse(x + Math.cos(ang + sd * 1.4) * 3.2, y + Math.sin(ang + sd * 1.4) * 3.2, 2.6, 1.1, ang + sd * 1.4, 0, TAU); c.fill();
+        }
+      }
+      c.strokeStyle = gray(v * 0.55); c.lineWidth = 0.8; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x0 + Math.cos(ang) * len, y0 + Math.sin(ang) * len); c.stroke();
+    }
+    c.beginPath(); c.arc(w / 2, h / 2, 9, 0, TAU); c.fillStyle = gray(0.6); c.fill();
+  }, { clamp: true });
+  // bamboo foliage: long narrow pointed leaves fanning out from short twigs
+  const bambooTex = () => canvasTex('bambooLeaf', 128, 128, (c, w, h, r) => {
+    c.clearRect(0, 0, w, h);
+    for (let i = 0; i < 26; i++) {
+      const a = r() * TAU, d = Math.sqrt(r()) * 26, x = w / 2 + Math.cos(a) * d, y = h / 2 + Math.sin(a) * d, ang = r() * TAU, len = 26 + r() * 18, wid = 3 + r() * 1.5;
+      const v = 0.62 + r() * 0.33;
+      c.save(); c.translate(x, y); c.rotate(ang);
+      c.beginPath(); c.moveTo(0, 0); c.quadraticCurveTo(len * 0.35, -wid, len, 0); c.quadraticCurveTo(len * 0.35, wid, 0, 0);
+      const g = c.createLinearGradient(0, -wid, 0, wid); g.addColorStop(0, gray(v * 0.8)); g.addColorStop(0.5, gray(v)); g.addColorStop(1, gray(v * 0.7));
+      c.fillStyle = g; c.fill();
+      c.strokeStyle = gray(v * 0.6, 0.7); c.lineWidth = 0.7; c.beginPath(); c.moveTo(1, 0); c.lineTo(len * 0.92, 0); c.stroke();
+      c.restore();
+    }
+    c.beginPath(); c.arc(w / 2, h / 2, 8, 0, TAU); c.fillStyle = gray(0.6); c.fill();
+  }, { clamp: true });
+
+  function makeAcacia(v) {
+    const r = rng(11000 + v * 61), h = 5.6 + v * 0.7;
+    const trunkH = 1.5 + r() * 0.6;
+    const tp = trunkPts(r, trunkH, 0.15, 0.3, 5);
+    const barkC = barkColor(L(0x5e5448), L(0x3a332c), L(0x857a6c), 7);
+    const wood = [tube(tp, flareRad(0.26, 0.2, 0.45), { radial: 8, vLen: 1.2, uRep: 2, color: barkC })];
+    const top = tp[tp.length - 1], clumps = [];
+    const crownY = h - 0.7, spread = 3.6 + v * 0.5;
+    // the limbs slant out and up to the flat crown, each splitting once near the top
+    const nb = 3 + (v % 2);
+    for (let i = 0; i < nb; i++) {
+      const a = (i / nb) * TAU + r() * 0.7, out = spread * (0.55 + r() * 0.3);
+      const end = new V3(top.x + Math.cos(a) * out, crownY - 0.5 - r() * 0.4, top.z + Math.sin(a) * out);
+      const dir = end.clone().sub(top);
+      const b = branch(top.clone(), dir, dir.length(), 0.17, 0.08, r, 4, 6, 0);
+      wood.push(b.geo);
+      const e = b.pts[b.pts.length - 1];
+      for (const da of [-0.5, 0.5]) {
+        const f = branch(e.clone(), new V3(Math.cos(a + da), 0.55, Math.sin(a + da)), 1.4 + r() * 0.6, 0.07, 0.03, r, 3, 5);
+        wood.push(f.geo);
+        const fe = f.pts[f.pts.length - 1];
+        clumps.push({ x: fe.x, y: crownY + (r() - 0.5) * 0.3, z: fe.z, r: 1.5 + r() * 0.4, sx: 1.5, sy: 0.38, sz: 1.5, amp: 0.25, fq: 1.4, off: r() * 50, detail: 1 });
+      }
+    }
+    // the flat top: a layer of wide, thin clumps over the middle
+    for (let i = 0; i < 5; i++) {
+      const a = r() * TAU, d = r() * spread * 0.5;
+      clumps.push({ x: top.x + Math.cos(a) * d, y: crownY + 0.15, z: top.z + Math.sin(a) * d, r: 1.8 + r() * 0.4, sx: 1.6, sy: 0.32, sz: 1.6, amp: 0.2, fq: 1.2, off: r() * 50, detail: 1 });
+    }
+    const leaves = crown(clumps, { center: new V3(top.x, crownY, top.z), radii: { x: spread + 1, y: 0.8, z: spread + 1 }, dark: L(0x26341a), mid: L(0x4d5e2a), light: L(0x8c9748),
+      seed: 70 + v, bend: 0.75, cards: { count: 330, size: 0.95 } });
+    return {
+      parts: [
+        { geometry: merge(wood), material: mat('bark', { map: TX.bark() }), castShadow: true },
+        leafPart(leaves, 'leafAcacia', acaciaTex(), 0.01, 0.02),
+      ],
+      radius: 0.3,
+      ...climbInfo(tp, top.y - 0.1, 0.2),
+    };
+  }
+
+  function makeTermite(v) {
+    const r = rng(11100 + v * 7), H = 1.8 + v * 0.9, R = 0.75 + v * 0.15;
+    const parts = [];
+    // a lumpy tower: a lathe profile, pushed in and out by noise, with vertical runnels
+    const prof = [];
+    for (let i = 0; i <= 14; i++) { const t = i / 14; prof.push(new THREE.Vector2(Math.max(0.02, R * (1 - Math.pow(t, 0.75)) * (1 + 0.25 * Math.pow(1 - t, 3))), t * H)); }
+    const body = prep(new THREE.LatheGeometry(prof, 20));
+    const p = body.attributes.position.array;
+    for (let i = 0; i < p.length; i += 3) {
+      const x = p[i], y = p[i + 1], z = p[i + 2], a = Math.atan2(z, x), rr = Math.hypot(x, z);
+      const k = 1 + 0.22 * fbm(Math.cos(a) * 1.6 + v * 5, y * 1.2, Math.sin(a) * 1.6, 3) + 0.06 * Math.sin(a * 9 + y * 2);
+      p[i] = Math.cos(a) * rr * k; p[i + 2] = Math.sin(a) * rr * k;
+    }
+    body.computeVertexNormals();
+    parts.push(body);
+    // spires: thinner lumpy columns leaning off the main tower
+    for (let s = 0; s < 1 + v; s++) {
+      const a = r() * TAU, h2 = H * (0.5 + r() * 0.3), b0 = new V3(Math.cos(a) * R * 0.35, 0, Math.sin(a) * R * 0.35);
+      const pts = [b0, b0.clone().add(new V3(Math.cos(a) * 0.15, h2 * 0.5, Math.sin(a) * 0.15)), b0.clone().add(new V3(Math.cos(a) * 0.3, h2, Math.sin(a) * 0.3))];
+      parts.push(tube(path(pts, 6), (i, t) => R * 0.35 * (1 - t * 0.85) * (1 + 0.15 * Math.sin(t * 17 + s)), { radial: 9, cap: 'end' }));
+    }
+    const g = merge(parts.map((q) => prep(q)));
+    paint(g, (x, y, z) => {
+      const n = fbm(x * 3, y * 4, z * 3, 3);
+      let c = mixc(L(0x8a4a2a), L(0xb46e44), 0.5 + 0.5 * n);
+      c = mixc(c, L(0x6a3a22), smooth(0.2, 0.6, Math.abs(Math.sin(Math.atan2(z, x) * 7 + n * 3))) * 0.3);
+      return mixc(c, L(0x5a3a26), smooth(0.25, 0.0, y) * 0.5);
+    });
+    return { parts: [{ geometry: g, material: mat('termiteMound', { std: true, roughness: 0.95 }), castShadow: true }], radius: R * 0.9, sink: 0.08 };
+  }
+
+  function makeBamboo(v) {
+    const r = rng(11200 + v * 13), parts = [], clumps = [];
+    const n = 14 + v * 5;
+    for (let i = 0; i < n; i++) {
+      const a = r() * TAU, d = Math.sqrt(r()) * 0.9, x = Math.cos(a) * d, z = Math.sin(a) * d;
+      const h = 4.5 + r() * 2.5, lean = 0.4 + r() * 0.8, la = a + (r() - 0.5) * 0.6, rad = 0.035 + r() * 0.02;
+      const pts = [];
+      for (let k = 0; k <= 8; k++) { const t = k / 8; pts.push(new V3(x + Math.cos(la) * lean * t * t, h * t, z + Math.sin(la) * lean * t * t)); }
+      const nodes = Math.round(h / 0.32);
+      parts.push(tube(pts, (k, t) => rad * (1 - t * 0.35), {
+        radial: 6, cap: 'end',
+        color: (t) => { const u = (t * nodes) % 1; return mixc(mixc(L(0x4f7a24), L(0x7a9a36), t * 0.7), L(0xb8b26a), smooth(0.9, 1.0, u) * 0.75); },
+      }));
+      // leaf sprays along the top third
+      for (let k = 0; k < 3; k++) {
+        const t = 0.62 + k * 0.14, p = pts[Math.round(t * 8)];
+        clumps.push({ x: p.x + Math.cos(la) * 0.3, y: p.y, z: p.z + Math.sin(la) * 0.3, r: 0.7 + r() * 0.3, sx: 1.0, sy: 1.25, sz: 1.0, amp: 0.3, fq: 1.6, off: r() * 50, detail: 0 });
+      }
+    }
+    const leaves = crown(clumps, { center: new V3(0, 5, 0), radii: { x: 2.2, y: 2.2, z: 2.2 }, dark: L(0x24401a), mid: L(0x47702a), light: L(0x86aa48), seed: 90 + v, cards: { count: 260 + v * 80, size: 0.85 } });
+    return {
+      parts: [
+        { geometry: merge(parts.map((q) => prep(q))), material: mat('bambooCane', { std: true, roughness: 0.5 }), castShadow: true },
+        leafPart(leaves, 'leafBamboo', bambooTex(), 0.02, 0.03),
+      ],
+      radius: 0.8, spot: { type: 'bamboo', r: 1.8 },
+    };
+  }
+
+  function makeDatepalm(v) {
+    const base = PROPS.palm(v), r = rng(11300 + v);
+    // strands of dates hang in bunches below the fronds, on orange stalks
+    const top = new V3(0, 0, 0);
+    { const pa = base.parts[0].geometry.attributes.position.array; let my = -1; for (let i = 0; i < pa.length; i += 3) if (pa[i + 1] > my) { my = pa[i + 1]; top.set(pa[i], pa[i + 1], pa[i + 2]); } }
+    const extra = [];
+    for (let b = 0; b < 4; b++) {
+      const a = (b / 4) * TAU + r() * 0.5, s0 = new V3(top.x + Math.cos(a) * 0.25, top.y - 0.35, top.z + Math.sin(a) * 0.25);
+      for (let k = 0; k < 9; k++) {
+        const aa = a + (r() - 0.5) * 0.9, len = 0.6 + r() * 0.4;
+        const pts = [s0, s0.clone().add(new V3(Math.cos(aa) * 0.25, -len * 0.4, Math.sin(aa) * 0.25)), s0.clone().add(new V3(Math.cos(aa) * 0.35, -len, Math.sin(aa) * 0.35))];
+        extra.push(tube(path(pts, 4), 0.012, { radial: 4, color: () => L(0xd08a2a) }));
+        for (let q = 0; q < 4; q++) {
+          const p = pts[2].clone().lerp(pts[1], q * 0.22), g = prep(new THREE.IcosahedronGeometry(0.03, 0));
+          g.scale(0.8, 1.4, 0.8); g.translate(p.x + (r() - 0.5) * 0.05, p.y - 0.03, p.z + (r() - 0.5) * 0.05);
+          extra.push(paint(g, mixc(L(0xc0601a), L(0x6a2a10), r())));
+        }
+      }
+    }
+    return Object.assign({}, base, {
+      parts: [{ ...base.parts[0], geometry: merge([base.parts[0].geometry, ...extra.map((q) => prep(q))]) }, ...base.parts.slice(1)],
+      spot: { type: 'dates', r: 2.2 },
+    });
+  }
+
+  Object.assign(PROPS, { acacia: makeAcacia, termite: makeTermite, bamboo: makeBamboo, datepalm: makeDatepalm });
+  Object.assign(VARIANTS, { acacia: 3, termite: 2, bamboo: 2, datepalm: 2 });
 })();
 
 // ---------- Animals: procedural 3D animal rigs (three.js r149, skinned lofts) ----------
@@ -28652,7 +28951,7 @@ const Plan = (() => {
     if (inCity(x, z, 6)) return 'the city';
     if (inR(TOWN.area, x, z, 4)) return 'Maple Town';
     for (const t of TOWNS) if (inR(t.rect, x, z, 6)) return t.name;
-    const Z = zooAt(x, z, 2); if (Z) return Z.id === 'dino' ? Z.name : 'the ' + Z.name;
+    const Z = zooAt(x, z, 2); if (Z) return Z.id === 'dino' ? Z.name : Z.id === 'petting' ? 'the petting zoo' : 'the ' + Z.name;
     return null;
   }
   function placeName(x, z) {
@@ -29377,6 +29676,168 @@ const World = (() => {
     detailTex.wrapS = detailTex.wrapT = THREE.MirroredRepeatWrapping;
     detailTex.anisotropy = 4;
     return detailTex;
+  }
+
+  /* ---- round 11: realistic ground ----
+     The painted vertex colors (2 m apart) stay the world's colors; the ground shader adds the close-up detail of
+     what each spot is made of. Four detail pictures are drawn once when the game loads (no bytes in the page):
+     grass seen from above, soil (pebbles, clods, fine grit), rock (grain, cracks, lichen) and snow (soft drifts
+     and sparkle). They average out to gray 0.5, so they only add detail around the painted color. The shader tells
+     grass from soil, rock and snow by the painted color and by how steep the ground is, samples each picture by
+     world position (grass at two scales and rock from the side on slopes, so nothing repeats visibly), and adds a
+     slow patchiness on top. */
+  let groundTex = null;
+  function makeGroundTex() {
+    if (groundTex) return groundTex;
+    const N = 512, r = rng(4242);
+    const canvas = () => { const cv = document.createElement('canvas'); cv.width = cv.height = N; return cv; };
+    const tex = (cv, rep = true) => {
+      const t = new THREE.CanvasTexture(cv);
+      t.wrapS = t.wrapT = rep ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+      t.anisotropy = 8; t.minFilter = THREE.LinearMipmapLinearFilter;
+      return t;
+    };
+    const rgb = (a, b, c, al = 1) => `rgba(${Math.round(clamp(a, 0, 1) * 255)},${Math.round(clamp(b, 0, 1) * 255)},${Math.round(clamp(c, 0, 1) * 255)},${al})`;
+    // draw at a spot and at its wrapped copies, so the picture tiles without seams
+    const wrapped = (x, y, m, fn) => { for (const ox of [-N, 0, N]) for (const oy of [-N, 0, N]) { const X = x + ox, Y = y + oy; if (X > -m && X < N + m && Y > -m && Y < N + m) fn(X, Y); } };
+    // a soft noise layer: blotches of lighter and darker
+    const blotches = (c, n, r0, r1, a0, a1, col) => {
+      for (let i = 0; i < n; i++) {
+        const x = r() * N, y = r() * N, rr = r0 + r() * (r1 - r0), v = col(r());
+        wrapped(x, y, rr, (X, Y) => {
+          const g = c.createRadialGradient(X, Y, 0, X, Y, rr);
+          g.addColorStop(0, v.replace(/[\d.]+\)$/, `${a0 + r() * (a1 - a0)})`)); g.addColorStop(1, v.replace(/[\d.]+\)$/, '0)'));
+          c.fillStyle = g; c.fillRect(X - rr, Y - rr, rr * 2, rr * 2);
+        });
+      }
+    };
+    // grass from above: thousands of short blades, mostly mid green-gray around 0.5, some lighter and yellower
+    // (dry tips), some darker (shade between them) and bits of soil showing through
+    const grass = canvas(); {
+      const c = grass.getContext('2d');
+      c.fillStyle = rgb(0.42, 0.44, 0.40); c.fillRect(0, 0, N, N);
+      blotches(c, 70, 20, 70, 0.15, 0.35, (t) => (t < 0.5 ? rgb(0.30, 0.31, 0.29, 1) : rgb(0.56, 0.56, 0.48, 1)));
+      for (let i = 0; i < 260; i++) { const x = r() * N, y = r() * N; c.fillStyle = rgb(0.36, 0.32, 0.27, 0.8); wrapped(x, y, 4, (X, Y) => { c.beginPath(); c.ellipse(X, Y, 1 + r() * 2.5, 1 + r() * 2, r() * 3, 0, TAU); c.fill(); }); }
+      c.lineCap = 'round';
+      for (let i = 0; i < 26000; i++) {
+        const x = r() * N, y = r() * N, a = r() * TAU, l = 3 + r() * 9, t = r();
+        const v = t < 0.15 ? 0.30 + r() * 0.06 : t < 0.8 ? 0.44 + r() * 0.12 : 0.58 + r() * 0.1;
+        const dry = r() < 0.12 ? 0.08 : 0;
+        c.strokeStyle = rgb(v + dry, v + dry * 0.8, v - 0.04 - dry * 0.6, 0.85); c.lineWidth = 0.8 + r() * 1.1;
+        wrapped(x, y, 12, (X, Y) => { c.beginPath(); c.moveTo(X, Y); c.quadraticCurveTo(X + Math.cos(a + 0.4) * l * 0.5, Y + Math.sin(a + 0.4) * l * 0.5, X + Math.cos(a) * l, Y + Math.sin(a) * l); c.stroke(); });
+      }
+      // little clover and weed leaves here and there
+      for (let i = 0; i < 160; i++) {
+        const x = r() * N, y = r() * N, v = 0.5 + r() * 0.12;
+        wrapped(x, y, 8, (X, Y) => { for (let k = 0; k < 3; k++) { const a = r() * 0.4 + k * 2.1; c.fillStyle = rgb(v - 0.04, v + 0.03, v - 0.08, 0.9); c.beginPath(); c.ellipse(X + Math.cos(a) * 2.6, Y + Math.sin(a) * 2.6, 2.4, 1.8, a, 0, TAU); c.fill(); } });
+      }
+    }
+    // soil: fine grit, clods with a lit top and a shadow below, pebbles, a few twigs
+    const soil = canvas(); {
+      const c = soil.getContext('2d');
+      c.fillStyle = rgb(0.48, 0.47, 0.46); c.fillRect(0, 0, N, N);
+      blotches(c, 60, 25, 90, 0.2, 0.4, (t) => (t < 0.5 ? rgb(0.36, 0.35, 0.34, 1) : rgb(0.6, 0.58, 0.55, 1)));
+      for (let i = 0; i < 30000; i++) { const x = r() * N, y = r() * N, v = 0.3 + r() * 0.4; c.fillStyle = rgb(v, v * 0.98, v * 0.95, 0.5); c.fillRect(x, y, 1 + r() * 1.5, 1 + r() * 1.5); }
+      const lump = (n, s0, s1, vary) => {
+        for (let i = 0; i < n; i++) {
+          const x = r() * N, y = r() * N, rx = s0 + r() * (s1 - s0), ry = rx * (0.6 + r() * 0.4), a = r() * Math.PI, v = 0.42 + r() * vary;
+          wrapped(x, y, rx * 2, (X, Y) => {
+            c.fillStyle = rgb(0.2, 0.19, 0.18, 0.45); c.beginPath(); c.ellipse(X + rx * 0.25, Y + rx * 0.3, rx, ry, a, 0, TAU); c.fill();
+            const g = c.createRadialGradient(X - rx * 0.3, Y - ry * 0.35, 0, X, Y, rx * 1.1);
+            g.addColorStop(0, rgb(v + 0.2, v + 0.19, v + 0.17)); g.addColorStop(1, rgb(v - 0.06, v - 0.07, v - 0.08));
+            c.fillStyle = g; c.beginPath(); c.ellipse(X, Y, rx, ry, a, 0, TAU); c.fill();
+          });
+        }
+      };
+      lump(500, 2, 5, 0.15); lump(90, 5, 10, 0.2);
+      c.lineCap = 'round';
+      for (let i = 0; i < 40; i++) { const x = r() * N, y = r() * N, a = r() * TAU, l = 10 + r() * 22; c.strokeStyle = rgb(0.34, 0.3, 0.26, 0.8); c.lineWidth = 1.2 + r(); wrapped(x, y, 30, (X, Y) => { c.beginPath(); c.moveTo(X, Y); c.lineTo(X + Math.cos(a) * l, Y + Math.sin(a) * l); c.stroke(); }); }
+    }
+    // rock: mottled grain, darker cracks with a lit edge, pale and yellow lichen spots
+    const rock = canvas(); {
+      const c = rock.getContext('2d');
+      c.fillStyle = rgb(0.5, 0.5, 0.5); c.fillRect(0, 0, N, N);
+      blotches(c, 90, 15, 80, 0.25, 0.5, (t) => (t < 0.5 ? rgb(0.36, 0.36, 0.37, 1) : rgb(0.64, 0.63, 0.61, 1)));
+      for (let i = 0; i < 40000; i++) { const x = r() * N, y = r() * N, v = 0.32 + r() * 0.36; c.fillStyle = rgb(v, v, v * 1.01, 0.45); c.fillRect(x, y, 1.5, 1.5); }
+      c.lineCap = 'round'; c.lineJoin = 'round';
+      for (let i = 0; i < 34; i++) {
+        let x = r() * N, y = r() * N, a = r() * TAU; const pts = [[x, y]];
+        for (let k = 0; k < 10; k++) { a += (r() - 0.5) * 1.1; x += Math.cos(a) * (8 + r() * 14); y += Math.sin(a) * (8 + r() * 14); pts.push([x, y]); }
+        const w0 = 1 + r() * 2;
+        wrapped(pts[0][0], pts[0][1], 200, (X, Y) => {
+          const dx = X - pts[0][0], dy = Y - pts[0][1];
+          for (const [col, wd, o] of [[rgb(0.66, 0.66, 0.65, 0.6), w0 + 1, -1], [rgb(0.16, 0.16, 0.17, 0.9), w0, 0]]) {
+            c.strokeStyle = col; c.lineWidth = wd; c.beginPath(); c.moveTo(pts[0][0] + dx + o, pts[0][1] + dy + o);
+            for (const [px, py] of pts) c.lineTo(px + dx + o, py + dy + o); c.stroke();
+          }
+        });
+      }
+      for (let i = 0; i < 70; i++) {
+        const x = r() * N, y = r() * N, rr = 3 + r() * 10, yel = r() < 0.4;
+        wrapped(x, y, rr * 2, (X, Y) => { for (let k = 0; k < 6; k++) { c.fillStyle = yel ? rgb(0.62, 0.6, 0.42, 0.5) : rgb(0.66, 0.68, 0.64, 0.5); c.beginPath(); c.arc(X + (r() - 0.5) * rr, Y + (r() - 0.5) * rr, rr * (0.3 + r() * 0.4), 0, TAU); c.fill(); } });
+      }
+    }
+    // snow: almost even, soft wind ridges and tiny sparkles
+    const snow = canvas(); {
+      const c = snow.getContext('2d');
+      c.fillStyle = rgb(0.5, 0.5, 0.5); c.fillRect(0, 0, N, N);
+      blotches(c, 50, 40, 140, 0.2, 0.45, (t) => (t < 0.5 ? rgb(0.44, 0.45, 0.48, 1) : rgb(0.54, 0.54, 0.53, 1)));
+      for (let i = 0; i < 26; i++) {
+        const y0 = r() * N, amp = 6 + r() * 14, ph = r() * TAU, f = (1 + ((r() * 3) | 0)) * TAU / N;
+        c.strokeStyle = rgb(0.43, 0.44, 0.48, 0.35); c.lineWidth = 3 + r() * 4;
+        for (const oy of [-N, 0, N]) { c.beginPath(); for (let x = 0; x <= N; x += 8) { const y = y0 + oy + Math.sin(x * f + ph) * amp; x ? c.lineTo(x, y) : c.moveTo(x, y); } c.stroke(); }
+      }
+      for (let i = 0; i < 3000; i++) { c.fillStyle = rgb(0.62, 0.62, 0.64, 0.8); c.fillRect(r() * N, r() * N, 1, 1); }
+    }
+    // patchiness over tens of meters (the shader reads it slowly): drier and greener, lighter and darker patches
+    const macro = document.createElement('canvas'); macro.width = macro.height = 256; {
+      const c = macro.getContext('2d'), n = makeNoise(77), img = c.createImageData(256, 256);
+      for (let i = 0; i < 256 * 256; i++) {
+        const x = i % 256, y = (i / 256) | 0;
+        // periodic noise (wraps at 256) from four corners blended
+        const f = (u, v) => fbm(n, u / 48, v / 48, 4);
+        const ux = x / 256, uy = y / 256;
+        const v = f(x, y) * (1 - ux) * (1 - uy) + f(x - 256, y) * ux * (1 - uy) + f(x, y - 256) * (1 - ux) * uy + f(x - 256, y - 256) * ux * uy;
+        const w2 = fbm(n, x / 23 + 50, y / 23, 2);
+        img.data[i * 4] = clamp(128 + v * 170, 0, 255); img.data[i * 4 + 1] = clamp(128 + w2 * 170, 0, 255); img.data[i * 4 + 2] = 128; img.data[i * 4 + 3] = 255;
+      }
+      c.putImageData(img, 0, 0);
+    }
+    groundTex = { grass: tex(grass), soil: tex(soil), rock: tex(rock), snow: tex(snow), macro: tex(macro) };
+    return groundTex;
+  }
+  function groundMaterial() {
+    const T = makeGroundTex();
+    const m = new THREE.MeshLambertMaterial({ vertexColors: true });
+    m.onBeforeCompile = (sh) => {
+      Object.assign(sh.uniforms, { tGrass: { value: T.grass }, tSoil: { value: T.soil }, tRock: { value: T.rock }, tSnow: { value: T.snow }, tMacro: { value: T.macro } });
+      sh.vertexShader = 'varying vec3 vGW;\nvarying vec3 vGN;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+        vGW = (modelMatrix * vec4(transformed, 1.0)).xyz; vGN = normalize(mat3(modelMatrix) * objectNormal);`);
+      sh.fragmentShader = 'varying vec3 vGW;\nvarying vec3 vGN;\nuniform sampler2D tGrass, tSoil, tRock, tSnow, tMacro;\n' + sh.fragmentShader.replace('#include <color_fragment>', `
+        vec3 vc = vColor;
+        float lum = dot(vc, vec3(0.299, 0.587, 0.114));
+        float mx = max(vc.r, max(vc.g, vc.b)), mn = min(vc.r, min(vc.g, vc.b)), sat = (mx - mn) / max(mx, 1e-4);
+        vec3 gn = normalize(vGN);
+        float wSnow = smoothstep(0.42, 0.62, lum) * (1.0 - smoothstep(0.12, 0.3, sat));
+        float wGrass = smoothstep(-0.005, 0.05, vc.g - max(vc.r, vc.b) * 0.95) * (1.0 - wSnow);
+        float steep = 1.0 - smoothstep(0.6, 0.82, gn.y);
+        float wRock = max((1.0 - smoothstep(0.08, 0.2, sat)) * (1.0 - wSnow) * (1.0 - wGrass), steep * (1.0 - wSnow * 0.6));
+        wGrass *= 1.0 - steep;
+        float wSoil = max(0.0, 1.0 - wGrass - wRock - wSnow);
+        vec4 wt = vec4(wGrass, wSoil, wRock, wSnow); wt /= max(1e-3, wt.x + wt.y + wt.z + wt.w);
+        vec2 p = vGW.xz;
+        vec3 dG = mix(texture2D(tGrass, p / 1.7).rgb, texture2D(tGrass, mat2(0.8, -0.6, 0.6, 0.8) * p / 6.3).rgb, 0.4);
+        vec3 dS = mix(texture2D(tSoil, p / 2.1).rgb, texture2D(tSoil, mat2(0.6, 0.8, -0.8, 0.6) * p / 7.7).rgb, 0.3);
+        vec3 an = abs(gn); an = an * an; an /= (an.x + an.y + an.z);
+        vec3 dR = texture2D(tRock, vGW.zy / 3.1).rgb * an.x + texture2D(tRock, p / 3.1).rgb * an.y + texture2D(tRock, vGW.xy / 3.1).rgb * an.z;
+        vec3 dN = texture2D(tSnow, p / 5.0).rgb;
+        vec3 det = (dG * wt.x + dS * wt.y + dR * wt.z + dN * wt.w) * 2.0;
+        vec2 mc = texture2D(tMacro, p / 90.0).rg - 0.5;
+        // patches: lighter or darker everywhere, drier (yellower) or lusher only on grass
+        vec3 patchy = vec3(1.0 + mc.x * 0.22) * mix(vec3(1.0), vec3(1.0 + mc.y * 0.25, 1.0 + mc.y * 0.08, 1.0 - mc.y * 0.2), wt.x);
+        diffuseColor.rgb *= vc * det * patchy;`);
+    };
+    return m;
   }
 
   /* ---- build ---- */
@@ -30470,9 +30931,8 @@ const World = (() => {
     }
 
     /* the hand-made middle */
-    const tex = getDetail();
     const col = new THREE.Color();
-    const terrMat = new THREE.MeshLambertMaterial({ vertexColors: true, map: tex });
+    const terrMat = groundMaterial();
     w.disposables.push(terrMat);
     let poolDirty = true;
     def.build(w);

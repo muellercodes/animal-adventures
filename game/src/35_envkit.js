@@ -7237,6 +7237,8 @@ void main() {`);
     propCache, boxG, meshOf, wallQuadZ, wallQuadX, polyFan, polyX, polyZ, beam, roofX, roofHip, windowParts, addWindow, doorGeo,
     chimneyGeo, roundBox, doorRec, resolveDoors, setDoors, cachedDoors, cachedGroup, pivot, glassMat, glassMesh, quadTo, pipeGeo,
     vPanel, rrect, hexOf, sign, nightU, autumnU, windU,
+    // round 11: the tree parts, for 39_savanna's trees
+    crown, leafPart, trunkPts, branch, barkColor, flareRad, climbInfo, frond, FALL, C,
   };
   return {
     _k: KIT,
