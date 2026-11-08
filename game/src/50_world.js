@@ -65,7 +65,10 @@ const World = (() => {
   /* ---------- round 10: the zoos (their layout is in 49_plan ZOOS) ---------- */
   const PEN_NAMES = { giraffe: 'Giraffes', rhino: 'Rhinos', croc: 'Crocodiles', polar: 'Polar bears', leopard: 'Snow leopards', aviary: 'Birds', otter: 'Otters',
     deer: 'Deer', moose: 'Moose', bats: 'Fruit bats', fox: 'Foxes', goats: 'Goats', pigs: 'Pigs', bunnies: 'Bunnies', hens: 'Chickens',
-    brachio: 'Brachiosaurus', trex: 'T. rex', saber: 'Saber-toothed cats' };
+    brachio: 'Brachiosaurus', trex: 'T. rex', saber: 'Saber-toothed cats',
+    // round 11: Safari Park, and the petting zoo's cows
+    lions: 'Lions', tigers: 'Tigers', cheetahs: 'Cheetahs', camels: 'Camels', leopards: 'Leopards', ocelots: 'Ocelots', komodo: 'Komodo dragons', pandas: 'Giant pandas',
+    reptiles: 'Lizards', cows: 'Cows' };
   const SIDE_ROT = { n: 0, s: Math.PI, e: Math.PI / 2, w: -Math.PI / 2 };
   function buildZoo(w, Z) {
     const H = w.H, hw = Z.hw, hd = Z.hd, at = (lx, lz) => [Z.x + lx, Z.z + lz];
@@ -81,7 +84,8 @@ const World = (() => {
     // the entrance arch with the zoo's name
     const [gx, gz] = Plan.zooGate(Z, 0), rot = SIDE_ROT[Z.gate];
     if (Env.zooArch) {
-      const look = { cityzoo: { bg: '#2f6b3a' }, petting: { bg: '#b8572e', stone: 0x9a7c5c }, dino: { bg: '#3a3a30', ink: '#f2c23a', stone: 0x6a665e, h: 6.4 } }[Z.id] || {};
+      const look = { cityzoo: { bg: '#2f6b3a' }, petting: { bg: '#b8572e', stone: 0x9a7c5c }, dino: { bg: '#3a3a30', ink: '#f2c23a', stone: 0x6a665e, h: 6.4 },
+        safari: { bg: '#6a4a24', ink: '#f6e2a8', stone: 0x8a7a5c } }[Z.id] || {};
       const a = Env.zooArch(Z.name, Object.assign({ w: gw }, look)); a.userData.bake = 1; w.addObj(a, gx, gz, rot);
       for (const c of a.userData.colliders) { const [x, z] = toWorld(gx, gz, rot, c.x, c.z); w.addCollider({ x, z, r: c.r }); }
     }
@@ -95,7 +99,11 @@ const World = (() => {
       const dry = (x, z) => !p.pool || Math.hypot(x - p.pool.wx, z - p.pool.wz) > p.pool.r + 2.5;
       // the whole pen counts as taken (addEnclosure), so its plants and rocks only keep apart from each other
       const free = [];
-      if (p.trees) w.scatter({ type: p.id === 'giraffe' ? 'oak' : 'birch', variants: [0, 1], n: p.trees, tries: p.trees * 12, free, sample: inPen(4), test: dry, gap: 7, scale: [1.0, 1.3] });
+      if (p.trees) w.scatter({ type: p.treeType || (p.id === 'giraffe' ? 'oak' : 'birch'), variants: [0, 1], n: p.trees, tries: p.trees * 12, free, sample: inPen(4), test: dry, gap: 7, scale: [1.0, 1.3] });
+      // round 11: acacias for the big cats, bamboo for the pandas, date palms for the camels
+      if (p.acacia) w.scatter({ type: 'acacia', variants: [0, 1, 2], n: p.acacia, tries: p.acacia * 12, free, sample: inPen(6), test: dry, gap: 12, scale: [0.9, 1.15] });
+      if (p.bamboo) w.scatter({ type: 'bamboo', variants: [0, 1], n: p.bamboo, tries: p.bamboo * 12, free, sample: inPen(3), test: dry, gap: 5, scale: [0.9, 1.1] });
+      if (p.palms) w.scatter({ type: 'datepalm', variants: [0, 1], n: p.palms, tries: p.palms * 12, free, sample: inPen(4), test: dry, gap: 8, scale: [0.9, 1.1] });
       if (p.rocks) w.scatter({ type: p.id === 'polar' ? 'snowrock' : 'rock', variants: [0, 1, 2], n: p.rocks, free, sample: inPen(2), test: dry, gap: 3, scale: [1.2, 2.4] });
       if (p.jungle) {
         w.scatter({ type: 'palm', variants: [0, 1], n: p.jungle, free, sample: inPen(5), test: dry, gap: 9, scale: [1.1, 1.5] });
@@ -119,7 +127,8 @@ const World = (() => {
     // shade trees and flower beds between the pens and the paths
     const free = (x, z) => !Z.pens.some((p) => Math.abs(x - p.wx) < p.hw + 2.5 && Math.abs(z - p.wz) < p.hd + 2.5) && Plan.zooPathD(Z, x, z) > 2.5 && Math.abs(x - Z.x) < hw - 3 && Math.abs(z - Z.z) < hd - 3;
     const inZoo = (r) => [Z.x + (r() * 2 - 1) * (hw - 3), Z.z + (r() * 2 - 1) * (hd - 3)];
-    const shade = { cityzoo: [['oak', 16], ['maple', 12], ['birch', 10], ['bush', 14]], petting: [['oak', 3], ['apple', 2], ['bush', 4]], dino: [['palm', 18], ['bigleaf', 14], ['fern', 20]] }[Z.id] || [];
+    const shade = { cityzoo: [['oak', 16], ['maple', 12], ['birch', 10], ['bush', 14]], petting: [['oak', 3], ['apple', 2], ['bush', 4]], dino: [['palm', 18], ['bigleaf', 14], ['fern', 20]],
+      safari: [['acacia', 12], ['bush', 12], ['termite', 4]] }[Z.id] || [];
     for (const [type, n] of shade) w.scatter({ type, variants: type === 'bigleaf' || type === 'fern' ? [0] : [0, 1], n, sample: inZoo, test: free, gap: type === 'bigleaf' || type === 'bush' ? 4 : type === 'fern' ? 2 : 8, scale: [1.0, 1.35], spot: type === 'apple' ? 'apple' : type === 'bush' ? 'berries' : null, spotR: type === 'bush' ? 1.1 : 2.6 });
     if (Z.id !== 'dino') w.scatter({ type: 'flowerbed', variants: [0, 1], n: Z.id === 'cityzoo' ? 10 : 4, sample: inZoo, test: free, gap: 5 });
     // the things each kind of zoo has by its gate
@@ -157,7 +166,9 @@ const World = (() => {
       // the farmyard: animals live in fenced pens around the barn
       const PADDOCK = { x: -75, z: -33, hw: 8, hd: 11, rot: 0 }, PIGPEN = { x: -64, z: -61, hw: 5, hd: 4, rot: 0.15 };
       const GOATPEN = { x: -30, z: -41, hw: 6, hd: 5, rot: 0.4 }, COOP = { x: -46, z: -64, hw: 4.5, hd: 3.5, rot: 0.4 };
-      const PENS = [PADDOCK, PIGPEN, GOATPEN, COOP];
+      // round 11: a cow pasture west of the pig pen
+      const COWPEN = { x: -94, z: -60, hw: 11, hd: 8, rot: 0.15 };
+      const PENS = [PADDOCK, PIGPEN, GOATPEN, COOP, COWPEN];
       // the school and its playground behind the north side of Maple Street, and the adoption fair near the meadow path
       const SCHOOLYARD = { x: 98, z: -103, hw: 24, hd: 11, soft: 10 }, SCHOOL = { x: 86, z: -105, rot: 0 }, PLAY = { x: 110, z: -103, rot: 0 };
       const FAIR = { x: 38, z: 4, hw: 12, hd: 9, rot: 0 };
@@ -231,6 +242,7 @@ const World = (() => {
           w.addEnclosure(Object.assign({ style: 'split', gate: 'n', mud: true, shelter: true, trough: true }, PIGPEN));
           w.addEnclosure(Object.assign({ style: 'split', gate: 'w', platform: true, hay: true }, GOATPEN));
           w.addEnclosure(Object.assign({ style: 'wire', gate: 'n', coop: true }, COOP));
+          w.addEnclosure(Object.assign({ style: 'rail', gate: 'e', trough: true, shelter: true }, COWPEN));
           // Maple Town: houses, shops on Maple Street, the town green, the pound on Birch Street (49_plan)
           for (const L of TOWN.lots) w.addHouse(L);
           w.addTown(TOWN);
@@ -243,7 +255,7 @@ const World = (() => {
           for (const [L, a, d] of [[POND, 0.6, 0.45], [POND, 3.4, 0.5], [LAKE, 1.2, 0.5], [LAKE, 4.3, 0.55]]) w.addFishTrap(L.x + Math.cos(a) * L.r * d, L.z + Math.sin(a) * L.r * d);
           w.scatter({ type: 'hay', n: 6, sample: (r) => { const a = r() * TAU, d = 11 + r() * 8; return [BARN.x + Math.cos(a) * d, BARN.z + Math.sin(a) * d]; }, test: (x, z) => pathDist(x, z, PATH) > 2.5 && !inGarden(x, z, 2) && !inPen(x, z, 1.5), gap: 3 });
           // round 7: a cornfield and a melon patch by the pumpkin patch, lettuce beds by the garden, sunflowers and a bird feeder
-          const farmOK = (x, z) => pathDist(x, z, PATH) > 2.5 && !inGarden(x, z, 2) && !inRect(PIGPEN, x, z, 2) && !inRect(COOP, x, z, 2) && !inRect(PADDOCK, x, z, 2) && Math.hypot(x - BARN.x, z - BARN.z) > 12;
+          const farmOK = (x, z) => pathDist(x, z, PATH) > 2.5 && !inGarden(x, z, 2) && !inRect(PIGPEN, x, z, 2) && !inRect(COOP, x, z, 2) && !inRect(PADDOCK, x, z, 2) && !inRect(COWPEN, x, z, 2) && Math.hypot(x - BARN.x, z - BARN.z) > 12;
           if (HASP('cornrow')) w.scatter({ type: 'cornrow', n: 5, near: PATCH, nearR: PATCH.r + 9, gap: 3.5, test: (x, z) => farmOK(x, z) && Math.hypot(x - PATCH.x, z - PATCH.z) > PATCH.r + 1 });
           if (HASP('melonpatch')) w.scatter({ type: 'melonpatch', n: 2, near: PATCH, nearR: PATCH.r + 12, gap: 5, test: (x, z) => farmOK(x, z) && Math.hypot(x - PATCH.x, z - PATCH.z) > PATCH.r + 2 });
           if (HASP('lettucebed')) w.scatter({ type: 'lettucebed', n: 2, near: GARDEN, nearR: 11, gap: 4, test: (x, z) => farmOK(x, z) && !inGarden(x, z, 2.5) });
@@ -307,6 +319,8 @@ const World = (() => {
             { sp: 'eagle', n: 1, home: [LAKE.x, LAKE.z], range: 40 }]),
           // round 10: butterflies by the farm's flowers
           ...SP7([{ sp: 'butterfly', n: 5, home: [-20, -60], range: 30 }]),
+          // round 11: cows in their pasture
+          ...SP7([{ sp: 'cow', n: 3, kids: 1, pen: COWPEN }]),
           // round 10: the zoo animals in their pens
           ...ZOO_ANIMALS(),
         ],
@@ -318,7 +332,7 @@ const World = (() => {
         // places for town life (jobs, school, the fair)
         town: {
           schoolRoute: [[78, -57], [78, -92]], schoolyard: SCHOOLYARD, commute: [-48, -25], commuteFar: [-150, -12], barn: [BARN.x, BARN.z], garden: GARDEN,
-          pens: { horse: [PADDOCK, 'e'], pig: [PIGPEN, 'n'], goat: [GOATPEN, 'w'], chicken: [COOP, 'n'] }, pond: POND, lake: LAKE, fair: FAIR, village: TOWN.area,
+          pens: { horse: [PADDOCK, 'e'], pig: [PIGPEN, 'n'], goat: [GOATPEN, 'w'], chicken: [COOP, 'n'], cow: [COWPEN, 'e'] }, pond: POND, lake: LAKE, fair: FAIR, village: TOWN.area,
           fairFrom: [[20, -28], [-8, -4], [18, 16], [42, 40], [48, -55]],
           scoutSpots: [[-110, -110], [-140, 20], [120, 90], [10, 120], [150, 20], [10, 50], [22, -76], [80, 20], [30, -40], [-8, -84]],
         },
@@ -351,7 +365,8 @@ const World = (() => {
         },
         grassAt(x, z, h) { return h < 0.35 ? 0 : 0.35 * smooth(n3(x * 0.03, z * 0.03) + 0.3); },
         flowersAt() { return 0.03; },
-        build() {},
+        // round 11: a bamboo grove where the pandas live
+        build(w) { w.scatter({ type: 'bamboo', variants: [0, 1], n: 9, sample: (r) => { const a = r() * TAU, d = Math.sqrt(r()) * 16; return [70 + Math.cos(a) * d, -40 + Math.sin(a) * d]; }, gap: 5, scale: [0.9, 1.2] }); },
         rules: [
           { type: 'pine', variants: [0, 1, 2], per: 14, test: clear, gap: 4.8, spot: 'pinecone', spotR: 2.4, minH: 0.6, scale: [1.0, 1.4] },
           { type: 'birch', variants: [0, 1], per: 1.2, test: clear, gap: 6, minH: 0.6 },
@@ -386,9 +401,11 @@ const World = (() => {
           ...SP7([{ sp: 'chickadee', n: 6, home: [0, 20], range: 50 }, { sp: 'eagle', n: 2, home: [LAKE.x, LAKE.z], range: 45 }]),
           // round 10: fruit bats in the woods
           ...SP7([{ sp: 'bat', n: 4, home: [-20, 40], range: 40 }]),
+          // round 11: pandas in the bamboo grove
+          ...SP7([{ sp: 'panda', n: 2, kids: 1, home: [70, -40], range: 22 }]),
         ],
         ambient: [{ sp: 'squirrel', w: 3 }, { sp: 'deer', w: 2, kids: 1 }, { sp: 'fox', w: 2 }, { sp: 'owl', w: 2 }, { sp: 'bunny', w: 2 }, { sp: 'raccoon', w: 1 }, { sp: 'hedgehog', w: 1 }, { sp: 'moose', w: 1 }, { sp: 'otter', w: 1, water: true }],
-        foods: { pinecone: 4, acorn: 2, berries: 3, worm: 3, grass: 1, smallfish: 2, fish: 2, mushroom: 4, bugs: 3, twigs: 3, seeds: 1 },
+        foods: { pinecone: 4, acorn: 2, berries: 3, worm: 3, grass: 1, smallfish: 2, fish: 2, mushroom: 4, bugs: 3, twigs: 3, seeds: 1, bamboo: 1 },
         walk: [],
       };
     },
@@ -499,9 +516,13 @@ const World = (() => {
           ...SP7([{ sp: 'brachiosaurus', n: 2, kids: 1, home: [45, 35], range: 45 }]),
           // round 10: a T. rex in the far jungle
           ...SP7([{ sp: 'trex', n: 1, home: [-110, -90], range: 40 }]),
+          // round 11: tigers and ocelots, iguanas by the river, chameleons in the trees, Komodo dragons by the lagoon
+          ...SP7([{ sp: 'tiger', n: 2, kids: 1, home: [-40, -60], range: 45 }, { sp: 'ocelot', n: 2, home: [10, 60], range: 35 },
+            { sp: 'iguana', n: 3, home: [xc(20) - 10, 20], range: 25 }, { sp: 'chameleon', n: 3, home: [-20, 10], range: 30 },
+            { sp: 'komodo', n: 2, kids: 1, home: [LAG.x - 10, LAG.z + 25], range: 30 }]),
         ],
         ambient: [{ sp: 'parrot', w: 4 }, { sp: 'lizard', w: 3 }, { sp: 'frog', w: 2 }, { sp: 'snake', w: 2 }, { sp: 'turtle', w: 1, water: true }, { sp: 'otter', w: 1, water: true }],
-        foods: { berries: 4, apple: 3, worm: 3, grass: 1, smallfish: 2, fish: 2, banana: 4, bugs: 3, twigs: 2, watermelon: 1, mushroom: 1 },
+        foods: { berries: 4, apple: 3, worm: 3, grass: 1, smallfish: 2, fish: 2, banana: 4, bugs: 3, twigs: 2, watermelon: 1, mushroom: 1, meat: 1, lettuce: 1 },
         walk: [],
       };
     },
@@ -608,9 +629,11 @@ const World = (() => {
           { sp: 'owl', n: 2, home: [-62, 32], range: 12 },
           // round 7
           ...SP7([{ sp: 'eagle', n: 2, home: [0, 0], range: 30 }]),
+          // round 11: winged cats and unicorns live up in the sky
+          ...SP7([{ sp: 'wingcat', n: 3, home: [0, 0], range: 26 }, { sp: 'unicorn', n: 2, kids: 1, home: [64, -30], range: 14 }]),
         ],
         ambient: [{ sp: 'parrot', w: 3 }, { sp: 'owl', w: 1 }, { sp: 'swan', w: 1 }],
-        foods: { berries: 5, apple: 3, acorn: 1, worm: 1, grass: 2, seeds: 2, bugs: 2 },
+        foods: { berries: 5, apple: 3, acorn: 1, worm: 1, grass: 2, seeds: 2, bugs: 2, carrot: 1, smallfish: 1 },
         walk: [],
       };
     },
@@ -700,7 +723,7 @@ const World = (() => {
           ...SP7([{ sp: 'eagle', n: 1, home: [0, 90], range: 50 }, { sp: 'polarbear', n: 3, kids: 1, home: [10, 80], range: 45 }, { sp: 'polarbear', n: 3, kids: 2, home: [-40, 190], range: 80 }, { sp: 'snowleopard', n: 2, kids: 1, home: [-20, -120], range: 50 }, { sp: 'smilodon', n: 2, home: [90, -60], range: 45 }]),
         ],
         ambient: [{ sp: 'fox', w: 2 }, { sp: 'owl', w: 1 }, { sp: 'moose', w: 1 }, ...SP7([{ sp: 'polarbear', w: 2 }, { sp: 'snowleopard', w: 1 }])],
-        foods: { fish: 4, smallfish: 3, berries: 2, pinecone: 3, twigs: 2, seeds: 1 },
+        foods: { fish: 4, smallfish: 3, berries: 2, pinecone: 3, twigs: 2, seeds: 1, meat: 1 },
         walk: [],
       };
     },

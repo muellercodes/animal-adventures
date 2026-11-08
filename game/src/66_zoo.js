@@ -11,10 +11,16 @@ const ZOO_LINES = {
   goats: ['Can we pet the goats?', 'That goat is climbing!'], pigs: ['Oink oink!', 'The piglets are so little!'], bunnies: ['The bunnies are so soft!', 'Look, a hamster!'],
   hens: ['The chickens are pecking!', 'Cluck cluck!'], brachio: ['Its neck is so long!', 'It eats from the treetops!'], trex: ['Whoa, a T. rex!', 'Look at its tiny arms!'],
   saber: ['Look at those teeth!', 'A saber-toothed cat!'],
+  // round 11: Safari Park and the petting zoo's cows
+  lions: ['Listen to the lion roar!', 'Look at his big mane!'], tigers: ['Look at those stripes!', 'The tiger is swimming!'],
+  cheetahs: ['Cheetahs are so fast!', 'Look at its spots!'], camels: ['Look at the hump!', 'The camel has long eyelashes!'],
+  leopards: ['The leopard is up in the tree!', 'Look at its spots!'], ocelots: ['It looks like a little leopard!', 'So pretty!'],
+  komodo: ['That lizard is huge!', 'Look at its tongue!'], pandas: ['The pandas are eating bamboo!', 'Aww, a baby panda!'],
+  reptiles: ['The chameleon changed color!', 'Look at the iguana!', 'I see a gecko!'], cows: ['Moo!', 'Look at the little calf!'],
 };
 const Zoos = {
   t: 0,
-  max: { cityzoo: 7, petting: 4, dino: 6 },
+  max: { cityzoo: 7, petting: 4, dino: 6, safari: 7 },
   update(dt) {
     const w = G.world, P = Player.b;
     if (!w || w.id !== 'land' || !Plan.ZOOS || !P) return;
