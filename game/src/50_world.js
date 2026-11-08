@@ -450,7 +450,7 @@ const World = (() => {
 
     jungle(seed) {
       const n1 = makeNoise(seed), n2 = makeNoise(seed + 1), n3 = makeNoise(seed + 2), n4 = makeNoise(seed + 3);
-      const c = { g1: P(0x2f6a2c), g2: P(0x3f8a37), soil: P(0x6b4a2c), sand: P(0xc0a66a), mud: P(0x3a2e1e) };
+      const c = { g1: P(0x2f6a2c), g2: P(0x3f8a37), soil: P(0x6b4a2c), litter: P(0x5a3a20), sand: P(0xc0a66a), mud: P(0x3a2e1e) };
       const xc = (z) => 30 * Math.sin(z * 0.013) + 12 * Math.sin(z * 0.035 + 2) + 48;
       const ford = (z) => { const u = ((z + 50) % 120 + 120) % 120; return gauss(Math.min(u, 120 - u), 8); };
       const LAG = { x: -50, z: 45, r: 17 };
@@ -466,7 +466,8 @@ const World = (() => {
         name: 'Jungle', blurb: 'Giant leaves, palm trees, parrots, a long river and lagoons.', spawn: [-8, -8],
         H, fog: [24, 140], water: { color: 0x3fa3b8, deep: 0x124a52 }, people: 0,
         grassH: [0.12, 0.28], grassTint: [0.25, 0.33, 0.5, 0.8], flowerColors: [0xff3b6b, 0xffb020, 0xb44cf0, 0xff6a3d, 0xffffff],
-        paint(o, x, z, h) { o.copy(c.g1); mix(o, c.g2, n2(x * 0.05, z * 0.05) * 0.6 + 0.5); mix(o, c.soil, n3(x * 0.07, z * 0.07) * 0.5 - 0.05); shore(o, h, c.sand, c.mud); },
+        // round 11: a real jungle floor: brown leaf litter with mossy green patches and undergrowth
+        paint(o, x, z, h) { o.copy(c.g1); mix(o, c.g2, n2(x * 0.05, z * 0.05) * 0.6 + 0.5); mix(o, c.soil, smooth(n3(x * 0.07, z * 0.07) * 1.2 + 0.45) * 0.8); mix(o, c.litter, smooth(n4(x * 0.11, z * 0.11) * 1.5 + 0.2) * 0.5); shore(o, h, c.sand, c.mud); },
         grassAt(x, z, h) { return h < 0.35 ? 0 : 0.55; },
         flowersAt(x, z, h) { return h < 0.5 ? 0 : 0.2 * smooth(n3(x * 0.05, z * 0.05) + 0.2); },
         build(w) {
@@ -508,7 +509,7 @@ const World = (() => {
     meadow(seed) {
       const n1 = makeNoise(seed), n2 = makeNoise(seed + 1), n3 = makeNoise(seed + 2), n4 = makeNoise(seed + 3), n5 = makeNoise(seed + 4);
       const LAKE = { x: -70, z: -65, r: 34 }, POND = { x: 88, z: 72, r: 13 }, GIANT = [32, 34];
-      const c = { g1: P(0x6c9e3a), g2: P(0x8fbd52), dry: P(0xa9c25e), sand: P(0xb3a070), mud: P(0x3d3826), dirt: P(0x7d6a48) };
+      const c = { g1: P(0x587e34), g2: P(0x6e9642), dry: P(0x93a252), sand: P(0xb3a070), mud: P(0x3d3826), dirt: P(0x7d6a48) };   // round 11: deeper greens
       const PATH = [[-170, 30], [-80, 18], [-20, 6], [40, 12], [100, -8], [170, -20]];
       const woods = (x, z) => outer(x, z, 120, 210) * smooth((fbm(n5, x * 0.005, z * 0.005, 3) + 0.1) / 0.3);
       function H(x, z) {
@@ -521,7 +522,7 @@ const World = (() => {
       return {
         name: 'Meadow', blurb: 'Flowers everywhere, giant trees, lakes, farms, and people out for walks.', spawn: [8, 14],
         H, fog: [60, 260], water: {}, people: 3,
-        grassH: [0.12, 0.3], grassTint: [0.2, 0.28, 0.5, 0.9], flowerColors: [0xffffff, 0xffe066, 0xc9a0ff, 0xff9ec4, 0xff7b5a, 0x8fb8ff],
+        grassH: [0.12, 0.3], grassTint: [0.2, 0.28, 0.42, 0.72], flowerColors: [0xffffff, 0xffe066, 0xc9a0ff, 0xff9ec4, 0xff7b5a, 0x8fb8ff],
         paint(o, x, z, h) {
           o.copy(c.g1); mix(o, c.g2, fbm(n2, x * 0.02, z * 0.02, 2) * 0.8 + 0.5); mix(o, c.dry, n3(x * 0.01, z * 0.01) * 0.5 + 0.15);
           mix(o, c.dirt, 1 - smooth((pathD(x, z) - 0.6) / 1.0));
@@ -622,11 +623,25 @@ const World = (() => {
       const SEA = (x) => 84 + 14 * Math.sin(x * 0.017 + 0.6) + 7 * Math.sin(x * 0.051);      // the shore: the sea lies south of it
       const MTN = (x) => -62 + 16 * Math.sin(x * 0.013) + 8 * Math.sin(x * 0.041 + 2);    // the mountains rise north of it
       const LAKE = { x: -62, z: 8, r: 24 };                                                   // frozen: flat ice just above the water
+      const ICE_W = 230;                                                                      // round 11: how far the sea ice runs out
       function H(x, z) {
         let h = 1.8 + 5 * (fbm(n1, x * 0.008, z * 0.008, 4) * 0.5 + 0.5) + 0.6 * n2(x * 0.04, z * 0.04);
         const m = smooth((MTN(x) - z) / 150);
         if (m > 0) { const rid = 1 - Math.abs(fbm(n3, x * 0.011, z * 0.011, 4)); h += m * (6 + 44 * rid * rid) + m * m * 20 * (fbm(n4, x * 0.004, z * 0.004, 2) * 0.5 + 0.5); }
         h = lerp(h, -3.4 + 0.8 * n2(x * 0.02, z * 0.02), smooth((z - SEA(x) + 4) / 24));
+        // round 11: sea ice. Past the beach a flat plain of pack ice runs out about 230 m (more land for the polar
+        // bears): snow-covered ice just above the water, crossed by pressure ridges of piled-up blocks and by
+        // leads of open water, ending at a ragged edge with open sea beyond
+        const sz = z - SEA(x);
+        if (sz > 2) {
+          const shelf = smooth((sz - 3) / 9) * (1 - smooth((sz - ICE_W - 30 * n3(x * 0.01, 3.3)) / 6));
+          if (shelf > 0) {
+            let ih = 0.3 + 0.1 * n2(x * 0.05, z * 0.05);
+            ih += (1 - smooth(Math.abs(n3(x * 0.012, z * 0.012)) / 0.035)) * (0.8 + 0.7 * Math.abs(n1(x * 0.35, z * 0.35)));
+            ih = lerp(ih, -1.4, 1 - smooth((Math.abs(n4(x * 0.006 + 7, z * 0.006)) - 0.018) / 0.018));
+            h = lerp(h, ih, shelf);
+          }
+        }
         if (ring(x, z) < CORE + 20) {
           const dx = x - LAKE.x, dz = z - LAKE.z, a = Math.atan2(dz, dx), r = LAKE.r * (1 + 0.15 * n4(Math.cos(a) * 1.4, Math.sin(a) * 1.4));
           h = lerp(h, 0.08, 1 - smooth((Math.hypot(dx, dz) / r - 0.82) / 0.3));
@@ -634,7 +649,7 @@ const World = (() => {
         return h;
       }
       const inLake = (x, z) => Math.hypot(x - LAKE.x, z - LAKE.z) < LAKE.r * 1.25;
-      const clear = (x, z) => Math.hypot(x, z - 20) > 10 && !inLake(x, z);
+      const clear = (x, z) => Math.hypot(x, z - 20) > 10 && !inLake(x, z) && z - SEA(x) < 2;   // (round 11: and not out on the sea ice)
       const woods = (x, z) => smooth((fbm(n4, x * 0.009, z * 0.009, 3) + 0.2) / 0.45);
       return {
         name: 'Snowy Mountains', blurb: 'Snowy peaks, pine woods, a frozen lake and an icy sea. Polar bears and snow leopards live here.', spawn: [0, 20],
@@ -648,8 +663,14 @@ const World = (() => {
           const sl = Math.abs(H(x + 1.5, z) - H(x - 1.5, z)) + Math.abs(H(x, z + 1.5) - H(x, z - 1.5));
           const rk = smooth((sl - 2.6) / 1.8) * (0.7 + 0.3 * n4(x * 0.2, z * 0.2));
           if (rk > 0) { mix(o, c.rockLt, rk); mix(o, c.rock, rk * (0.5 + 0.5 * n2(x * 0.3, z * 0.3))); }
-          // the sea shore: wet gravel and dark stones under the water (not on the frozen lake)
-          if (!inLake(x, z)) shore(o, h, c.gravel, c.dark);
+          // the sea shore: wet gravel and dark stones under the water (not on the frozen lake or the sea ice)
+          const iceAt = z - SEA(x) > 4 && h > -0.3;
+          if (!inLake(x, z) && !iceAt) shore(o, h, c.gravel, c.dark);
+          // round 11: the sea ice: wind-packed snow, blue ice showing on the ridges, wet gray ice by the open leads
+          if (iceAt) {
+            mix(o, c.ice, smooth((h - 0.55) / 0.4) * 0.65);
+            mix(o, c.iceDk, smooth((0.2 - h) / 0.25) * 0.6);
+          }
           // the frozen lake: blue ice with darker cracks and wind-swept snow
           if (inLake(x, z) && h < 0.2) { const k = smooth((0.2 - h) / 0.1); mix(o, c.ice, k); mix(o, c.iceDk, k * (Math.abs(n3(x * 0.15, z * 0.15)) < 0.05 ? 0.7 : 0)); mix(o, c.snow, k * smooth(n1(x * 0.09, z * 0.09) * 1.5 - 0.3) * 0.6); }
         },
@@ -676,15 +697,108 @@ const World = (() => {
           { sp: 'owl', n: 2, home: [-30, -20], range: 40 },
           { sp: 'moose', n: 1, home: [-70, -30], range: 30 },
           { sp: 'squirrel', n: 2, home: [24, -24], range: 30 },
-          ...SP7([{ sp: 'eagle', n: 1, home: [0, 90], range: 50 }, { sp: 'polarbear', n: 3, kids: 1, home: [10, 80], range: 45 }, { sp: 'snowleopard', n: 2, kids: 1, home: [-20, -120], range: 50 }, { sp: 'smilodon', n: 2, home: [90, -60], range: 45 }]),
+          ...SP7([{ sp: 'eagle', n: 1, home: [0, 90], range: 50 }, { sp: 'polarbear', n: 3, kids: 1, home: [10, 80], range: 45 }, { sp: 'polarbear', n: 3, kids: 2, home: [-40, 190], range: 80 }, { sp: 'snowleopard', n: 2, kids: 1, home: [-20, -120], range: 50 }, { sp: 'smilodon', n: 2, home: [90, -60], range: 45 }]),
         ],
         ambient: [{ sp: 'fox', w: 2 }, { sp: 'owl', w: 1 }, { sp: 'moose', w: 1 }, ...SP7([{ sp: 'polarbear', w: 2 }, { sp: 'snowleopard', w: 1 }])],
         foods: { fish: 4, smallfish: 3, berries: 2, pinecone: 3, twigs: 2, seeds: 1 },
         walk: [],
       };
     },
+    // round 11: the Savanna: rolling golden grassland with flat-topped acacias, termite mounds, granite kopjes and a
+    // watering hole, and to the west a desert of sand dunes with a palm oasis. Lions, cheetahs, leopards, giraffes,
+    // rhinos and camels live here.
+    savanna(seed) {
+      const n1 = makeNoise(seed), n2 = makeNoise(seed + 1), n3 = makeNoise(seed + 2), n4 = makeNoise(seed + 3), n5 = makeNoise(seed + 4);
+      const c = { gold: P(0x86703a), straw: P(0x9a8452), olive: P(0x58582c), green: P(0x4a5a26), red: P(0x7a4628), sand: P(0xc2a272), sandDk: P(0xa08458),
+        mud: P(0x4e3e2a), rock: P(0x6a6258), rockLt: P(0x8a8072) };
+      const HOLE = { x: 34, z: 26, r: 15 }, OASIS = { x: -205, z: -10, r: 9 };
+      const DUNE_X = -130;                                                     // the desert starts west of here
+      const KOPJES = [[78, -56, 16], [-44, 96, 13], [140, 70, 18]];             // granite hills: x, z, size
+      const desert = (x) => smooth((DUNE_X + 25 - x) / 45);
+      const kop = (x, z) => { let k = 0; for (const [kx, kz, ks] of KOPJES) k = Math.max(k, Math.exp(-((x - kx) ** 2 + (z - kz) ** 2) / (ks * ks))); return k; };
+      function H(x, z) {
+        let h = 1.4 + 3.2 * (fbm(n1, x * 0.0055, z * 0.0055, 3) * 0.5 + 0.5) + 0.35 * n2(x * 0.03, z * 0.03);
+        const d = smooth((DUNE_X - x) / 70);
+        if (d > 0) {
+          // dunes: long crests running north-south with a gentle windward side and a steeper lee
+          const u = x * 0.05 + 1.6 * n3(x * 0.006, z * 0.006) + z * 0.012, s = u - Math.floor(u);
+          h += d * (2 + 6 * (s < 0.7 ? s / 0.7 : (1 - s) / 0.3) * (0.6 + 0.4 * (fbm(n4, x * 0.01, z * 0.01, 2) * 0.5 + 0.5)));
+        }
+        h += 5 * kop(x, z) + 1.2 * kop(x, z) * n5(x * 0.2, z * 0.2);
+        if (ring(x, z) < CORE + 20) h = water(n4, h, x, z, HOLE, -1.3);
+        if (Math.abs(x - OASIS.x) < 40 && Math.abs(z - OASIS.z) < 40) h = water(n5, lerp(h, 2, smooth(1 - Math.hypot(x - OASIS.x, z - OASIS.z) / 30)), x, z, OASIS, -1.0);
+        return h;
+      }
+      const nearHole = (x, z) => Math.hypot(x - HOLE.x, z - HOLE.z) < HOLE.r + 8;
+      const nearOasis = (x, z) => Math.hypot(x - OASIS.x, z - OASIS.z) < OASIS.r + 12;
+      const open = (x, z) => Math.hypot(x - 6, z - 6) > 10 && !nearHole(x, z) && kop(x, z) < 0.35;
+      return {
+        name: 'Savanna', blurb: 'Golden grass, acacia trees, a watering hole and desert dunes. Lions, cheetahs, giraffes and camels live here.', spawn: [6, 6],
+        H, fog: [70, 300], water: { color: 0x6a7a52, deep: 0x2e3a24 }, people: 0, dryGrass: true,
+        grassH: [0.3, 0.65], grassTint: [0.1, 0.15, 0.62, 0.95],
+        // golden grass on the plains, sand in the desert, bare red earth, granite on the kopjes, mud by the water
+        surface(x, z, h) {
+          const ds = desert(x), k = smooth((kop(x, z) - 0.35) / 0.3), wet = h < 0.3 ? smooth((0.3 - h) / 0.5) : 0;
+          const red = smooth((n5(x * 0.03, z * 0.03) - 0.3) / 0.25) * 0.7;
+          const grass = Math.max(0, (1 - ds) * (1 - k) * (1 - red * 0.7) * (1 - wet));
+          return [grass, Math.max(0, 1 - grass - k), k, 0];
+        }, flowerColors: [0xf2e6a0, 0xffffff, 0xd88a4a],
+        paint(o, x, z, h) {
+          o.copy(c.gold); mix(o, c.straw, fbm(n2, x * 0.02, z * 0.02, 2) * 0.8 + 0.5); mix(o, c.olive, smooth(n3(x * 0.012, z * 0.012) + 0.1) * 0.55);
+          // bare red earth showing through in patches and along game trails
+          mix(o, c.red, smooth((n5(x * 0.03, z * 0.03) - 0.3) / 0.25) * 0.7);
+          mix(o, c.red, smooth(1 - Math.abs(n4(x * 0.008, z * 0.008)) * 30) * 0.5);
+          // greener around the watering hole, sand in the desert, granite on the kopjes
+          const wet = smooth(1 - (Math.hypot(x - HOLE.x, z - HOLE.z) - HOLE.r) / 18); mix(o, c.green, wet * 0.6);
+          const ds = desert(x); if (ds > 0) { mix(o, c.sand, ds); mix(o, c.sandDk, ds * smooth(n2(x * 0.05, z * 0.05) + 0.3) * 0.35); }
+          const oas = smooth(1 - (Math.hypot(x - OASIS.x, z - OASIS.z) - OASIS.r) / 10); mix(o, c.green, oas * 0.7);
+          const k = smooth((kop(x, z) - 0.35) / 0.3); if (k > 0) { mix(o, c.rockLt, k); mix(o, c.rock, k * (0.5 + 0.5 * n1(x * 0.25, z * 0.25))); }
+          shore(o, h, c.mud, c.mud);
+        },
+        grassAt(x, z, h) { return h < 0.25 ? 0 : (1 - desert(x)) * (1 - smooth((kop(x, z) - 0.3) / 0.3)) * (0.22 + 0.3 * smooth(n3(x * 0.05, z * 0.05) + 0.5)); },
+        flowersAt(x, z, h) { return h < 0.5 ? 0 : 0.12 * (1 - desert(x)); },
+        build(w) {
+          // the kopjes: piles of big rounded granite boulders
+          for (const [kx, kz, ks] of KOPJES) {
+            w.scatter({ type: 'rock', variants: [0, 1, 2], n: 9, sample: (r) => { const a = r() * TAU, d = Math.sqrt(r()) * ks * 0.55; return [kx + Math.cos(a) * d, kz + Math.sin(a) * d]; }, gap: 4, scale: [2.6, 5.5] });
+            w.scatter({ type: 'rock', variants: [0, 1, 2], n: 12, sample: (r) => { const a = r() * TAU, d = ks * (0.5 + r() * 0.5); return [kx + Math.cos(a) * d, kz + Math.sin(a) * d]; }, gap: 3, scale: [0.9, 2.2] });
+          }
+          // the oasis: date palms round the pool
+          w.scatter({ type: 'datepalm', variants: [0, 1], n: 7, sample: (r) => { const a = r() * TAU, d = OASIS.r + 2 + r() * 6; return [OASIS.x + Math.cos(a) * d, OASIS.z + Math.sin(a) * d]; }, gap: 4, scale: [0.9, 1.15] });
+          // a big acacia by the watering hole
+          w.scatter({ type: 'acacia', variants: [2], n: 1, sample: () => [HOLE.x - HOLE.r - 9, HOLE.z + 6], gap: 10, scale: [1.3, 1.3] });
+        },
+        rules: [
+          { type: 'acacia', variants: [0, 1, 2], per: 0.55, test: (x, z) => open(x, z) && desert(x) < 0.5, gap: 20, minH: 0.5, scale: [0.9, 1.3] },
+          { type: 'termite', variants: [0, 1], per: 0.35, test: (x, z) => open(x, z) && desert(x) < 0.3, gap: 14, minH: 0.5, scale: [0.8, 1.2] },
+          { type: 'bush', variants: [0, 1, 2], per: 1.0, test: (x, z) => open(x, z) && desert(x) < 0.6, gap: 5, spot: 'berries', spotR: 1.1, scale: [0.9, 1.3] },
+          { type: 'dead', variants: [0, 1], per: 0.18, test: open, gap: 14, minH: 0.5, scale: [0.6, 0.9] },
+          { type: 'rock', variants: [0, 1, 2], per: 0.7, test: open, gap: 5, scale: [0.6, 1.6] },
+          { type: 'cattail', per: 10, minH: -0.35, maxH: 0.2, gap: 1.6, tries: 4 },
+          ...R7([{ type: 'melonpatch', per: 0.15, test: (x, z) => desert(x) > 0.3 && desert(x) < 0.9, gap: 12, minH: 0.7 }]),
+        ],
+        landmarks: { pond: 1, none: 9 },
+        wildlife: [
+          { sp: 'eagle', n: 1, home: [HOLE.x, HOLE.z], range: 60 },
+          ...SP7([
+            { sp: 'lion', n: 3, kids: 2, home: [KOPJES[0][0], KOPJES[0][1]], range: 40 },
+            { sp: 'cheetah', n: 2, kids: 1, home: [-60, -40], range: 60 },
+            { sp: 'leopard', n: 1, kids: 1, home: [KOPJES[1][0], KOPJES[1][1]], range: 30 },
+            { sp: 'giraffe', n: 4, kids: 1, home: [-10, 60], range: 50 },
+            { sp: 'rhino', n: 2, kids: 1, home: [HOLE.x + 30, HOLE.z - 20], range: 40 },
+            { sp: 'camel', n: 3, kids: 1, home: [-180, 20], range: 45 },
+            { sp: 'beardeddragon', n: 3, home: [-160, -40], range: 30 },
+            { sp: 'gecko', n: 2, home: [-150, 40], range: 25 },
+            { sp: 'crocodile', n: 1, home: [HOLE.x, HOLE.z], range: 8, water: true },
+          ]),
+        ],
+        ambient: [{ sp: 'giraffe', w: 2 }, { sp: 'rhino', w: 1 }, ...SP7([{ sp: 'lion', w: 1, kids: 1 }, { sp: 'cheetah', w: 1 }])],
+        foods: { grass: 4, seeds: 3, bugs: 3, meat: 2, twigs: 2, berries: 1, watermelon: 1, dates: 1, hay: 1 },
+        walk: [],
+      };
+    },
   };
-  const SEEDS = { land: 11, forest: 23, swamp: 37, jungle: 41, meadow: 53, sky: 67, snow: 79 };
+  const SEEDS = { land: 11, forest: 23, swamp: 37, jungle: 41, meadow: 53, sky: 67, snow: 79, savanna: 97 };
   const META = {}; for (const id of WORLD_ORDER) { const d = DEFS[id](SEEDS[id]); META[id] = { name: d.name, blurb: d.blurb, needsFly: !!d.needsFly }; }
   const HOUSE_COLORS = ['white', 'yellow', 'blue', 'brick', 'gray'];
   const SHOP_NAMES = { general: 'general store', bakery: 'bakery', cafe: 'cafe', post: 'post office', library: 'library', icecream: 'ice cream shop', diner: 'diner', hardware: 'hardware store', flower: 'flower shop', toy: 'toy store', pet: 'pet store', books: 'bookstore', vet: 'vet', grocery: 'grocery store', clothes: 'clothes store',
@@ -838,36 +952,52 @@ const World = (() => {
     groundTex = { grass: tex(grass), soil: tex(soil), rock: tex(rock), snow: tex(snow), macro: tex(macro) };
     return groundTex;
   }
+  // what the ground is made of at a spot, as weights (grass, soil, rock, snow) written into out at k: the world's own
+  // surface(x, z, h) when it has one (the savanna's golden grass is not green), else guessed from the painted color
+  function surfaceOf(d, col, x, z, h, out, k) {
+    let g, s, r, n;
+    if (d && d.surface) [g, s, r, n] = d.surface(x, z, h, col);
+    else {
+      const lum = 0.299 * col.r + 0.587 * col.g + 0.114 * col.b, mx = Math.max(col.r, col.g, col.b), mn = Math.min(col.r, col.g, col.b);
+      const sat = (mx - mn) / Math.max(mx, 1e-4), st = (a, b, v) => smooth((v - a) / (b - a));
+      n = st(0.42, 0.62, lum) * (1 - st(0.12, 0.3, sat));
+      g = st(-0.005, 0.05, col.g - Math.max(col.r, col.b) * 0.95) * (1 - n);
+      r = (1 - st(0.08, 0.2, sat)) * (1 - n) * (1 - g);
+      s = Math.max(0, 1 - g - r - n);
+    }
+    const t = Math.max(1e-3, g + s + r + n);
+    out[k] = g / t; out[k + 1] = s / t; out[k + 2] = r / t; out[k + 3] = n / t;
+  }
   function groundMaterial() {
     const T = makeGroundTex();
     const m = new THREE.MeshLambertMaterial({ vertexColors: true });
     m.onBeforeCompile = (sh) => {
       Object.assign(sh.uniforms, { tGrass: { value: T.grass }, tSoil: { value: T.soil }, tRock: { value: T.rock }, tSnow: { value: T.snow }, tMacro: { value: T.macro } });
-      sh.vertexShader = 'varying vec3 vGW;\nvarying vec3 vGN;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
-        vGW = (modelMatrix * vec4(transformed, 1.0)).xyz; vGN = normalize(mat3(modelMatrix) * objectNormal);`);
-      sh.fragmentShader = 'varying vec3 vGW;\nvarying vec3 vGN;\nuniform sampler2D tGrass, tSoil, tRock, tSnow, tMacro;\n' + sh.fragmentShader.replace('#include <color_fragment>', `
+      sh.vertexShader = 'attribute vec4 surf;\nvarying vec3 vGW;\nvarying vec3 vGN;\nvarying vec4 vSurf;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+        vGW = (modelMatrix * vec4(transformed, 1.0)).xyz; vGN = normalize(mat3(modelMatrix) * objectNormal); vSurf = surf;`);
+      sh.fragmentShader = 'varying vec3 vGW;\nvarying vec3 vGN;\nvarying vec4 vSurf;\nuniform sampler2D tGrass, tSoil, tRock, tSnow, tMacro;\n' + sh.fragmentShader.replace('#include <color_fragment>', `
         vec3 vc = vColor;
-        float lum = dot(vc, vec3(0.299, 0.587, 0.114));
-        float mx = max(vc.r, max(vc.g, vc.b)), mn = min(vc.r, min(vc.g, vc.b)), sat = (mx - mn) / max(mx, 1e-4);
         vec3 gn = normalize(vGN);
-        float wSnow = smoothstep(0.42, 0.62, lum) * (1.0 - smoothstep(0.12, 0.3, sat));
-        float wGrass = smoothstep(-0.005, 0.05, vc.g - max(vc.r, vc.b) * 0.95) * (1.0 - wSnow);
+        // steep ground shows rock whatever it is painted
         float steep = 1.0 - smoothstep(0.6, 0.82, gn.y);
-        float wRock = max((1.0 - smoothstep(0.08, 0.2, sat)) * (1.0 - wSnow) * (1.0 - wGrass), steep * (1.0 - wSnow * 0.6));
-        wGrass *= 1.0 - steep;
-        float wSoil = max(0.0, 1.0 - wGrass - wRock - wSnow);
-        vec4 wt = vec4(wGrass, wSoil, wRock, wSnow); wt /= max(1e-3, wt.x + wt.y + wt.z + wt.w);
+        vec4 wt = vSurf * (1.0 - steep) + vec4(0.0, 0.0, steep * (1.0 - vSurf.w * 0.6), steep * vSurf.w * 0.6);
+        wt /= max(1e-3, wt.x + wt.y + wt.z + wt.w);
+        float leafy = smoothstep(-0.005, 0.05, vc.g - max(vc.r, vc.b) * 0.95);
         vec2 p = vGW.xz;
         vec3 dG = mix(texture2D(tGrass, p / 1.7).rgb, texture2D(tGrass, mat2(0.8, -0.6, 0.6, 0.8) * p / 6.3).rgb, 0.4);
         vec3 dS = mix(texture2D(tSoil, p / 2.1).rgb, texture2D(tSoil, mat2(0.6, 0.8, -0.8, 0.6) * p / 7.7).rgb, 0.3);
         vec3 an = abs(gn); an = an * an; an /= (an.x + an.y + an.z);
         vec3 dR = texture2D(tRock, vGW.zy / 3.1).rgb * an.x + texture2D(tRock, p / 3.1).rgb * an.y + texture2D(tRock, vGW.xy / 3.1).rgb * an.z;
         vec3 dN = texture2D(tSnow, p / 5.0).rgb;
-        vec3 det = (dG * wt.x + dS * wt.y + dR * wt.z + dN * wt.w) * 2.0;
+        // the grass detail a bit stronger (blades, shade between them, bare bits) than the others
+        vec3 det = ((dG - 0.5) * 1.5 * wt.x + (dS - 0.5) * wt.y + (dR - 0.5) * wt.z + (dN - 0.5) * wt.w) * 2.0 + 1.0;
         vec2 mc = texture2D(tMacro, p / 90.0).rg - 0.5;
         // patches: lighter or darker everywhere, drier (yellower) or lusher only on grass
-        vec3 patchy = vec3(1.0 + mc.x * 0.22) * mix(vec3(1.0), vec3(1.0 + mc.y * 0.25, 1.0 + mc.y * 0.08, 1.0 - mc.y * 0.2), wt.x);
-        diffuseColor.rgb *= vc * det * patchy;`);
+        vec3 patchy = vec3(1.0 + mc.x * 0.3) * mix(vec3(1.0), vec3(1.0 + mc.y * 0.4, 1.0 + mc.y * 0.12, 1.0 - mc.y * 0.3), wt.x * leafy);
+        // real grass is deeper and less yellow than the painted colors read under the bright sun
+        // (green grass only: golden savanna grass keeps its color)
+        vec3 grade = mix(vec3(0.86), vec3(0.5, 0.6, 0.42), wt.x * leafy);
+        diffuseColor.rgb *= vc * grade * det * patchy;`);
     };
     return m;
   }
@@ -1981,7 +2111,7 @@ const World = (() => {
       const N = TSEG, S = TILE / N, W = N + 3, x0 = t.x0, z0 = t.z0;
       const hs = new Float32Array(W * W);
       for (let j = 0; j < W; j++) for (let i = 0; i < W; i++) hs[j * W + i] = H(x0 + (i - 1) * S, z0 + (j - 1) * S);
-      const V = (N + 1) * (N + 1), pos = new Float32Array(V * 3), nor = new Float32Array(V * 3), cols = new Float32Array(V * 3), uvs = new Float32Array(V * 2);
+      const V = (N + 1) * (N + 1), pos = new Float32Array(V * 3), nor = new Float32Array(V * 3), cols = new Float32Array(V * 3), uvs = new Float32Array(V * 2), surf = new Float32Array(V * 4);
       let v = 0;
       for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++, v++) {
         const x = x0 + i * S, z = z0 + j * S, h = hs[(j + 1) * W + i + 1];
@@ -1991,6 +2121,7 @@ const World = (() => {
         def.paint(col, x, z, h);
         cols[v * 3] = col.r; cols[v * 3 + 1] = col.g; cols[v * 3 + 2] = col.b;
         uvs[v * 2] = x / 3.5; uvs[v * 2 + 1] = z / 3.5;
+        surfaceOf(def, col, x, z, h, surf, v * 4);
       }
       const idx = new Uint16Array(N * N * 6); let q = 0;
       for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
@@ -2002,6 +2133,7 @@ const World = (() => {
       g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
       g.setAttribute('color', new THREE.BufferAttribute(cols, 3));
       g.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+      g.setAttribute('surf', new THREE.BufferAttribute(surf, 4));
       g.setIndex(new THREE.BufferAttribute(idx, 1));
       g.computeBoundingSphere();
       const mesh = new THREE.Mesh(g, terrMat); mesh.receiveShadow = true;
@@ -2011,7 +2143,8 @@ const World = (() => {
       const RINGS = 12, SEGS = 56, DEPTH = I.r * 1.1;
       const pos = [], cols = [], uvs = [], idx = [];
       const nU = makeNoise(Math.round(I.x * 13 + I.z));
-      const vtx = (x, y, z, under) => { def.paint(col, x, z, y, under); pos.push(x, y, z); cols.push(col.r, col.g, col.b); uvs.push(x / 3.5, z / 3.5); return pos.length / 3 - 1; };
+      const sf = new Float32Array(4), surfs = [];
+      const vtx = (x, y, z, under) => { def.paint(col, x, z, y, under); pos.push(x, y, z); cols.push(col.r, col.g, col.b); uvs.push(x / 3.5, z / 3.5); surfaceOf(def, col, x, z, y, sf, 0); surfs.push(sf[0], sf[1], sf[2], sf[3]); return pos.length / 3 - 1; };
       const top = [];
       for (let j = 0; j <= RINGS; j++) {
         const row = [];
@@ -2045,6 +2178,7 @@ const World = (() => {
       g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
       g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
       g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+      g.setAttribute('surf', new THREE.Float32BufferAttribute(surfs, 4));
       g.setIndex(idx); g.computeVertexNormals();
       const mesh = new THREE.Mesh(g, terrMat); mesh.receiveShadow = true; mesh.castShadow = true;
       return mesh;
@@ -2231,7 +2365,7 @@ const World = (() => {
     }
 
     /* ---- ground cover: grass blades and flowers generated around the viewer ---- */
-    const Gr = Env.grass();
+    const Gr = Env.grass(def.dryGrass ? { dry: true } : {});
     patchGrass(Gr.material);
     w.cover.push(makeCover({
       geo: Gr.geometry, mat: Gr.material, cap: 9000, cell: 2, radius: 22,
@@ -2244,7 +2378,8 @@ const World = (() => {
           const d = def.grassAt(x, z, y);
           if (rr() > d) continue;
           const s = h0 + rr() * (h1 - h0);
-          col.setHSL(t0 + rr() * (t1 - t0), 0.3 + rr() * 0.25, l0 + rr() * (l1 - l0));
+          // round 11: deeper, more varied greens than before (they read as neon under the sun), a few dry ones
+          col.setHSL(t0 + rr() * (t1 - t0) - (rr() < 0.15 ? 0.06 : 0), 0.3 + rr() * 0.22, (l0 + rr() * (l1 - l0)) * 0.48);
           outA.push(x, y - 0.02, z, rr() * TAU, s * (0.55 + rr() * 0.35), s, col.r, col.g, col.b);
         }
       },
@@ -2537,9 +2672,9 @@ const World = (() => {
 
   /* trample: grass near the player flattens so small animals stay visible */
   const PUSH = { value: new THREE.Vector4(0, 0, 0.6, 1) };
-  let patched = false;
+  const patchedMats = new WeakSet();
   function patchGrass(mat) {
-    if (patched) return; patched = true;
+    if (patchedMats.has(mat)) return; patchedMats.add(mat);
     const prev = mat.onBeforeCompile;
     mat.onBeforeCompile = (sh, rr) => {
       prev(sh, rr);

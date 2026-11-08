@@ -366,7 +366,7 @@ const Env = (() => {
     const corners = [[-1, -1], [1, -1], [1, 1], [-1, -1], [1, 1], [-1, 1]];
     for (let s = 0; s < cnt; s++) {
       const q = sites[s], size = o.size * (0.75 + r() * 0.5), ang = r() * TAU, ca = Math.cos(ang), sa = Math.sin(ang);
-      const push = (o.push == null ? 0.18 : o.push) * size;
+      const push = (o.push == null ? 0.18 : o.push) * size * (0.3 + r() * 1.6);   // round 11: ragged crowns
       const br = (0.9 + r() * 0.3 + Math.max(0, q[4]) * 0.15) / 0.62;
       for (let k = 0; k < 6; k++) {
         const v = s * 6 + k, cx = corners[k][0], cy = corners[k][1];
@@ -437,29 +437,36 @@ const Env = (() => {
   // grayscale detail maps (linear, multiply vertex colors; values stay near 1)
   const TX = {
     // leaf cluster with alpha for billboard cards (center always opaque for the core blobs)
-    cluster: () => canvasTex('cluster', 128, 128, (c, w, h, r) => {
+    // round 11: a more realistic leaf cluster: 256 px, many smaller leaves of a few sizes, each lit from above with a
+    // darker half across its midrib and a lighter edge, overlapping in depth (back ones darker), with gaps toward the
+    // rim so the crown's outline breaks up (center always opaque for the core blobs)
+    cluster: () => canvasTex('cluster2', 256, 256, (c, w, h, r) => {
       c.clearRect(0, 0, w, h);
       const leaf = (x, y, len, wid, a, v) => {
         c.save(); c.translate(x, y); c.rotate(a);
         c.beginPath(); c.moveTo(0, 0);
-        c.quadraticCurveTo(len * 0.45, -wid, len, 0);
-        c.quadraticCurveTo(len * 0.45, wid, 0, 0);
+        c.bezierCurveTo(len * 0.2, -wid * 1.05, len * 0.7, -wid * 0.95, len, 0);
+        c.bezierCurveTo(len * 0.7, wid * 0.95, len * 0.2, wid * 1.05, 0, 0);
         const g = c.createLinearGradient(0, -wid, 0, wid);
-        g.addColorStop(0, gray(v * 0.82)); g.addColorStop(0.5, gray(v)); g.addColorStop(1, gray(v * 0.7));
+        g.addColorStop(0, gray(v * 1.02)); g.addColorStop(0.48, gray(v * 0.9)); g.addColorStop(0.52, gray(v * 0.74)); g.addColorStop(1, gray(v * 0.62));
         c.fillStyle = g; c.fill();
-        c.strokeStyle = gray(v * 0.6, 0.6); c.lineWidth = 1;
-        c.beginPath(); c.moveTo(len * 0.05, 0); c.lineTo(len * 0.9, 0); c.stroke();
+        c.strokeStyle = gray(v * 0.55, 0.5); c.lineWidth = 0.8;
+        c.beginPath(); c.moveTo(len * 0.04, 0); c.lineTo(len * 0.92, 0); c.stroke();
+        for (let k = 1; k < 4; k++) { const t = k / 4; c.beginPath(); c.moveTo(len * t, 0); c.lineTo(len * (t + 0.12), -wid * 0.7); c.moveTo(len * t, 0); c.lineTo(len * (t + 0.12), wid * 0.7); c.stroke(); }
         c.restore();
       };
-      // scattered small pointed leaves, denser in the middle, random directions
-      for (let i = 0; i < 70; i++) {
-        const a = r() * TAU, d = Math.sqrt(r()) * 44;
+      // back to front: deeper leaves first and darker
+      for (let i = 0; i < 230; i++) {
+        const depth = i / 230, a = r() * TAU, d = Math.pow(r(), 0.6) * 104;
+        if (d > 80 && r() < 0.45) continue;   // ragged rim
         const x = w / 2 + Math.cos(a) * d, y = h / 2 + Math.sin(a) * d;
-        const ang = r() * TAU, len = 16 + r() * 9;
-        const depth = 1 - d / 50;
-        leaf(x - Math.cos(ang) * len * 0.5, y - Math.sin(ang) * len * 0.5, len, 5 + r() * 2.5, ang, 0.6 + depth * 0.25 + r() * 0.15);
+        const ang = r() * TAU, len = 16 + r() * 16, v = 0.42 + depth * 0.4 + r() * 0.16;
+        leaf(x - Math.cos(ang) * len * 0.5, y - Math.sin(ang) * len * 0.5, len, len * (0.22 + r() * 0.1), ang, Math.min(1, v));
       }
-      c.beginPath(); c.arc(w / 2, h / 2, 10, 0, TAU); c.fillStyle = gray(0.62); c.fill();
+      // a few twig bits showing between the leaves
+      c.strokeStyle = gray(0.35); c.lineWidth = 1.6;
+      for (let i = 0; i < 6; i++) { const a = r() * TAU; c.beginPath(); c.moveTo(w / 2, h / 2); c.lineTo(w / 2 + Math.cos(a) * 60, h / 2 + Math.sin(a) * 60); c.stroke(); }
+      c.beginPath(); c.arc(w / 2, h / 2, 18, 0, TAU); c.fillStyle = gray(0.55); c.fill();
     }, { clamp: true }),
     // conifer spray card: twigs radiating from the center with short needles, alpha cut
     spray: () => canvasTex('spray', 128, 128, (c, w, h, r) => {
@@ -969,12 +976,13 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
 
   /* autumn palettes (gold / orange / red mixes), strength and brightness per species */
   const FALL = {
-    oak: { a: 0x9a4214, b: 0xc0701c, c: 0xc8a032, k: 0.95, br: 1.15 },
-    apple: { a: 0xa86a1e, b: 0xc49a30, c: 0x8a7a2a, k: 0.8, br: 1.0 },
-    maple: { a: 0xb81a12, b: 0xe2581a, c: 0xeeaa22, k: 1.0, br: 1.2 },
-    birch: { a: 0xd8a818, b: 0xecc63a, c: 0xc89028, k: 1.0, br: 1.15 },
-    willow: { a: 0xb8b040, b: 0xd2b83a, c: 0x9aa838, k: 0.6, br: 1.0 },
-    bush: { a: 0x8a1a1c, b: 0xb04a1a, c: 0x9a6a22, k: 0.5, br: 1.0 },
+    // round 11: muted to the browns, rusts and golds real fall leaves have
+    oak: { a: 0x6e3a18, b: 0x9a5a24, c: 0x8a7a34, k: 0.9, br: 0.95 },
+    apple: { a: 0x8a5a22, b: 0xa48434, c: 0x6e6a2a, k: 0.75, br: 0.95 },
+    maple: { a: 0x9a2414, b: 0xc4521c, c: 0xd0962a, k: 0.95, br: 1.0 },
+    birch: { a: 0xb88c1c, b: 0xd0aa36, c: 0xa07c28, k: 0.95, br: 1.0 },
+    willow: { a: 0x9a9438, b: 0xb4a036, c: 0x8a9634, k: 0.6, br: 0.95 },
+    bush: { a: 0x7a2a1e, b: 0x96481e, c: 0x86622a, k: 0.5, br: 0.95 },
   };
   /* foliage part with leaf cards: o { map, sway, flutter, fall, hang } */
   function leafPart(geo, key = 'leafCards', map = TX.cluster(), sway = 0.012, flutter = 0.02, extra = {}) {
@@ -3418,12 +3426,14 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
      Sways in the shared wind; instanceColor tints the clump.
      ============================================================ */
   let grassObj = null;
+  const dryGrassObj = {};
   function grass(opts = {}) {
-    if (grassObj) return grassObj;
+    if (opts.dry ? dryGrassObj.v : grassObj) return opts.dry ? dryGrassObj.v : grassObj;
     const S = soup();
     const blades = opts.blades || 3;
     const r = rng(99);
-    const baseC = L(0x1f4414), tipC = L(0x9cc45a);
+    // round 11: less yellow tips; the dry (savanna) kind is pale straw with a brown base and its own material
+    const baseC = opts.dry ? L(0x6a5a3a) : L(0x1c3c12), tipC = opts.dry ? L(0xf0e2b8) : L(0x7aa646);
     for (let b = 0; b < blades; b++) {
       const a = (b / blades) * TAU + r() * 0.8;
       const off = b === 0 ? 0 : 0.06;
@@ -3487,8 +3497,9 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     const prevGrass = material.onBeforeCompile;
     material.onBeforeCompile = (sh) => { prevGrass(sh); noFlip(sh); };
     material.customProgramCacheKey = () => 'env-grass';
-    grassObj = { geometry, material, uniforms };
-    return grassObj;
+    const out = { geometry, material, uniforms };
+    if (opts.dry) dryGrassObj.v = out; else grassObj = out;
+    return out;
   }
 
   /* ============================================================

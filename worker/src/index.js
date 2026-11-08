@@ -141,7 +141,7 @@ const routes = {
 };
 
 /* ---- multiplayer ---- */
-const WORLDS = ['land', 'forest', 'swamp', 'jungle', 'meadow', 'sky', 'snow'];
+const WORLDS = ['land', 'forest', 'swamp', 'jungle', 'meadow', 'sky', 'snow', 'savanna'];
 const SPECIES = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny', 'squirrel', 'hedgehog', 'turtle', 'pig', 'goat', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose', 'weasel', 'dog', 'cat',
   // round 7
   'lab', 'dalmatian', 'husky', 'beagle', 'chihuahua', 'eagle', 'chickadee', 'rhino', 'blackcat', 'orangecat', 'calico', 'siamese', 'whitecat', 'hamster', 'cockatiel', 'crocodile',

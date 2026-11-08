@@ -14,7 +14,7 @@ os.makedirs(OUT, exist_ok=True)
 SHOTS = {  # camera position, look-at point (relative to the world spawn) for each world picture
     'land': ([28, 20, -14], [92, 2, -58]), 'forest': ([30, 14, 48], [-6, 6, 4]), 'swamp': ([26, 11, 30], [-6, 0, -4]),
     'jungle': ([-30, 16, 34], [20, 2, -6]), 'meadow': ([40, 16, 46], [-10, 2, -20]), 'sky': ([46, 30, 60], [0, 2, 0]),
-    'snow': ([10, 14, 50], [-10, 8, -60]),
+    'snow': ([10, 14, 50], [-10, 8, -60]), 'savanna': ([40, 9, 40], [-20, 3, -10]),
 }
 # the page loads its animal models from files beside it (build.mjs), so serve its folder over http
 class Quiet(http.server.SimpleHTTPRequestHandler):

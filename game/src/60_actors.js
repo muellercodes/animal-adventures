@@ -1316,7 +1316,7 @@ const Foods = {
     if (this.dirty) this.draw();
     // keep a ring of food around the player (not indoors)
     this.tick -= dt;
-    if (this.tick <= 0 && !P.room) { this.tick = 0.4; this.fill(4); }
+    if (this.tick <= 0 && !P.room) { this.tick = 0.3; this.fill(5); }
   },
   fill(maxAdd) {
     const P = Player.b, w = G.world; if (!P || P.room) return;
@@ -1332,11 +1332,12 @@ const Foods = {
     const sp = SPECIES[P.form || P.sp];
     let added = 0;
     for (let k = 0; k < 12 && added < maxAdd; k++) {
-      const wantFish = !!w.def.water && fish + added < 8 && Math.random() < 0.35;
-      if (!wantFish && land + added >= 56) break;
+      // round 11: more food on the map (up to 80 on land and 12 fish around you)
+      const wantFish = !!w.def.water && fish + added < 12 && Math.random() < 0.35;
+      if (!wantFish && land + added >= 80) break;
       let pool = weights.filter(([t]) => !!FOODS[t].water === wantFish);
       if (!pool.length) continue;
-      if (Math.random() < 0.6) { const ed = pool.filter(([t]) => sp.eats.includes(t)); if (ed.length) pool = ed; }
+      if (Math.random() < 0.7) { const ed = pool.filter(([t]) => sp.eats.includes(t)); if (ed.length) pool = ed; }
       let sum = 0; for (const [, n] of pool) sum += n;
       let pick = Math.random() * sum, type = pool[0][0];
       for (const [t, n] of pool) { pick -= n; if (pick <= 0) { type = t; break; } }

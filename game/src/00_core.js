@@ -146,7 +146,7 @@ for (const id of ['bat', 'butterfly']) { let i = SHOP.length; while (i > 0 && SP
 SHOP.push('trex');
 // round 10: giraffe (after the price sort, so it sits at the end with the other round 10 animals)
 SHOP.push('giraffe');
-const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow', 'snow'];
+const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow', 'snow', 'savanna'];
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];
 const SKIN = ['#F3D3B8', '#E6B691', '#C98E66', '#9A6544', '#6B4430'];
 const HAIR = ['#2B1E16', '#5A3A22', '#A8692E', '#D9B66A', '#8B2E1F', '#1E1E1E', '#B8B2A8'];
