@@ -343,7 +343,7 @@ const World = (() => {
       const stream = (x, z) => Math.abs(z - zc(x)) < 9;
       return {
         name: 'Forest', blurb: 'Tall pines, birches, mushrooms, a long stream and quiet lakes.', spawn: [0, 16],
-        H, fog: [34, 170], water: { color: 0x4f8fb0, deep: 0x1d3a4a }, people: 0,
+        H, fog: [34, 170], water: { color: 0x3e6e7e, deep: 0x15303c }, people: 0,
         grassH: [0.07, 0.16], grassTint: [0.22, 0.3, 0.4, 0.7], flowerColors: [0xffffff, 0xd8c8ff],
         paint(o, x, z, h) {
           o.copy(c.moss); mix(o, c.needle, n2(x * 0.04, z * 0.04) * 0.6 + 0.45); mix(o, c.deep, n3(x * 0.1, z * 0.1) * 0.5 + 0.2);
@@ -464,7 +464,7 @@ const World = (() => {
       const clear = (x, z) => Math.hypot(x + 8, z + 8) > 10;
       return {
         name: 'Jungle', blurb: 'Giant leaves, palm trees, parrots, a long river and lagoons.', spawn: [-8, -8],
-        H, fog: [24, 140], water: { color: 0x3fa3b8, deep: 0x124a52 }, people: 0,
+        H, fog: [24, 140], water: { color: 0x4a7a6a, deep: 0x16322a }, people: 0,
         grassH: [0.12, 0.28], grassTint: [0.25, 0.33, 0.5, 0.8], flowerColors: [0xff3b6b, 0xffb020, 0xb44cf0, 0xff6a3d, 0xffffff],
         // round 11: a real jungle floor: brown leaf litter with mossy green patches and undergrowth
         paint(o, x, z, h) { o.copy(c.g1); mix(o, c.g2, n2(x * 0.05, z * 0.05) * 0.6 + 0.5); mix(o, c.soil, smooth(n3(x * 0.07, z * 0.07) * 1.2 + 0.45) * 0.8); mix(o, c.litter, smooth(n4(x * 0.11, z * 0.11) * 1.5 + 0.2) * 0.5); shore(o, h, c.sand, c.mud); },

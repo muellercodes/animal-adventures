@@ -3508,9 +3508,10 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
   const waterUniforms = { time: { value: 0 } };
   function water(size = 40, opts = {}) {
     const swampy = !!opts.swampy;
-    const shallow = lcol(opts.color != null ? opts.color : swampy ? 0x6a6e3e : 0x4aa6cf);
-    const deep = lcol(opts.deep != null ? opts.deep : swampy ? 0x3a3a20 : 0x154d75);
-    const opacity = opts.opacity != null ? opts.opacity : swampy ? 0.93 : 0.8;
+    // round 11: the deeper, greener blues of real lakes and ponds (it was a bright swimming-pool blue)
+    const shallow = lcol(opts.color != null ? opts.color : swampy ? 0x6a6e3e : 0x3c7484);
+    const deep = lcol(opts.deep != null ? opts.deep : swampy ? 0x3a3a20 : 0x0f3446);
+    const opacity = opts.opacity != null ? opts.opacity : swampy ? 0.93 : 0.88;
     const seg = Math.max(8, Math.min(64, Math.round(size / 2)));
     const geo = new THREE.PlaneGeometry(size, size, seg, seg);
     geo.rotateX(-Math.PI / 2);
@@ -3928,13 +3929,19 @@ void main() {
      Clouds: billboarded soft sprites, several puffs per cloud
      ============================================================ */
   function puffTexture() {
-    return canvasTex('puff', 256, 256, (c, w, h, r) => {
+    return canvasTex('puff2', 256, 256, (c, w, h, r) => {
       // cumulus heap: round lobes piled on a flat base; drawn as soft discs, then shaded top-lit
       const lobes = [];
       const base = h * 0.7;
       for (let i = 0; i < 7; i++) { const x = w * (0.2 + 0.6 * (i / 6)), rr = w * (0.09 + r() * 0.05); lobes.push([x, base - rr * 0.55, rr]); }
       for (let i = 0; i < 5; i++) { const x = w * (0.3 + 0.4 * (i / 4)) + (r() - 0.5) * w * 0.05, rr = w * (0.11 + r() * 0.05); lobes.push([x, base - rr * 1.25 - (0.5 - Math.abs(i / 4 - 0.5)) * w * 0.12, rr]); }
       lobes.push([w * (0.45 + r() * 0.1), base - w * 0.33, w * (0.13 + r() * 0.03)]);
+      // round 11: cauliflower detail: many small billows along the top of each big lobe, so the outline is lumpy
+      // like a real cumulus instead of a few smooth bumps
+      for (const [x, y, rr] of lobes.slice()) for (let k = 0; k < 5; k++) {
+        const a = -Math.PI * (0.15 + 0.7 * r()), d = rr * (0.7 + r() * 0.25), q = rr * (0.22 + r() * 0.18);
+        if (y + Math.sin(a) * d < base - 2) lobes.push([x + Math.cos(a) * d, y + Math.sin(a) * d, q]);
+      }
       for (const [x, y, rr] of lobes) {
         const g = c.createRadialGradient(x, y, 0, x, y, rr);
         g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.62, 'rgba(255,255,255,0.9)'); g.addColorStop(0.85, 'rgba(255,255,255,0.35)'); g.addColorStop(1, 'rgba(255,255,255,0)');
