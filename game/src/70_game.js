@@ -637,7 +637,12 @@ function updateHud() {
   if (h.status !== status) { h.status = status; $('meStatus').textContent = status; $('meStatus').hidden = !status; }
   const shopName = (rm) => { const n = (rm.house && rm.house.name || 'the shop').replace(/^the /, ''); return n[0].toUpperCase() + n.slice(1); };
   const where = b.room ? (b.room.pound ? 'Animal pound' : b.room.barn ? 'Barn' : b.room.school ? 'School' : b.room.store ? shopName(b.room) : (Homes.homeOf(b.sp) && Homes.homeOf(b.sp).room === b.room ? 'Home' : 'A house')) : (S.world === 'land' && Plan.placeName(b.pos.x, b.pos.z)) || World.META[S.world].name;
-  if (h.where !== where) { h.where = where; $('wherePill').textContent = where; }
+  if (h.where !== where) {
+    h.where = where; $('wherePill').textContent = where;
+    // round 11: leaves for finding a town, the city, the park or a zoo for the first time
+    const k = !b.room && S.world === 'land' && Plan.placeKey(b.pos.x, b.pos.z);
+    if (k && !S.found.includes(k)) { S.found.push(k); S.leaves += LEAVES.place; UI.toast(`You found ${k}! +${LEAVES.place} leaves`); UI.leafPop(b.pos, LEAVES.place); save(); }
+  }
   const ct = fmt(di.left);
   if (h.clock !== ct || h.night !== di.night) {
     h.clock = ct; h.night = di.night; $('clockText').textContent = ct; $('clockWord').textContent = di.night ? 'Night' : 'Day';
@@ -766,13 +771,13 @@ function sheetAnimals() {
       <div class="acts">${on ? '<span class="playing">Playing</span>' : `<button class="btn small" type="button" data-action="switch" data-v="${id}">Play</button>`}<button class="btn small ghost" type="button" data-action="name" data-v="${id}">Name</button></div></div>`;
   }).join('')}</div>`;
 }
-// every animal is free (Drew, Nov 2026): no prices, no leaf store, no grown-up check
+// round 11: animals cost leaves again, earned only by playing (no leaf store, no grown-up check); cheapest first
 function sheetShop() {
-  const items = SHOP.filter((id) => !S.owned.includes(id));
-  if (!items.length) return '<p class="note">You have every animal!</p>';
-  return `<p class="note">Every animal is free. Tap Get to add one. New animals start as babies.</p><div class="list">${items.map((id) => {
-    const A = SPECIES[id];
-    return `<div class="arow"><img src="${animalIcon(id)}" alt=""><div><div class="aname">${A.name} ${tags(id)}</div>${foodChips(id)}</div><button class="btn small" type="button" data-action="buy" data-v="${id}">Get</button></div>`;
+  const items = SHOP.filter((id) => !S.owned.includes(id)).sort((a, b) => priceOf(a) - priceOf(b));
+  if (!items.length) return '<p class="note">You have every animal in the shop!</p>';
+  return `<p class="note">You have <b>${S.leaves}</b> leaves. Eat food, find new places and grow up to earn more. New animals start as babies.</p><div class="list">${items.map((id) => {
+    const A = SPECIES[id], need = priceOf(id) - S.leaves;
+    return `<div class="arow"><img src="${animalIcon(id)}" alt=""><div><div class="aname">${A.name} ${tags(id)}</div>${foodChips(id)}${need > 0 ? `<span class="need">${need} more leaves to go</span>` : ''}</div><button class="btn small" type="button" data-action="buy" data-v="${id}"${need > 0 ? ' disabled' : ''}><span class="price">${LEAF_SVG}${priceOf(id)}</span></button></div>`;
   }).join('')}</div>`;
 }
 function sheetSettings() {
@@ -800,7 +805,7 @@ function travel(id, after) {
     Player.set(S.animal);
     Player.b.room = null; Player.b.yaw = 0; Player.place(G.world.def.spawn[0], G.world.def.spawn[1]);
     Cam.snap = true; Foods.fill(60);
-    if (!S.visited.includes(id)) { S.visited.push(id); S.leaves += 10; UI.toast(`You found the ${World.META[id].name}! +10 leaves`); }
+    if (!S.visited.includes(id)) { S.visited.push(id); S.leaves += LEAVES.world; UI.toast(`You found the ${World.META[id].name}! +${LEAVES.world} leaves`); }
     else UI.toast(`Welcome to the ${World.META[id].name}`);
     R.paused = false; UI.saved(); save();
     if (after) after();
@@ -857,8 +862,8 @@ function switchAnimal(id) {
   if (born) beginLife(id);
 }
 function buyAnimal(id) {
-  const A = SPECIES[id]; if (!A || S.owned.includes(id)) return;
-  S.owned.push(id); S.ages[id] = 0;
+  const A = SPECIES[id]; if (!A || S.owned.includes(id) || S.leaves < priceOf(id)) return;
+  S.leaves -= priceOf(id); S.owned.push(id); S.ages[id] = 0;
   Sound.chime();
   switchAnimal(id);
   UI.saved();
@@ -906,6 +911,7 @@ function applySave(d) {
   S.junk = 0;
   S.hatched = Array.isArray(d.hatched) ? d.hatched.filter((id) => SPECIES[id]) : [];
   S.treats = obj(d.treats);
+  S.found = Array.isArray(d.found) ? d.found.filter((k) => typeof k === 'string').slice(0, 60) : [];
   S.sound = d.sound !== false; S.music = d.music !== false;
   if (World.META[S.world].needsFly && !(SPECIES[S.animal].fly && ageOf(S.animal) >= FLY_AGE)) S.world = 'land';
 }

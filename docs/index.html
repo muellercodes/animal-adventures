@@ -532,8 +532,14 @@ const SHOES = ['#2A2A2A', '#5A3A22', '#E8E8E8', '#7A2E2E'];
 /* ---------- save state ---------- */
 // ages: species -> 0 (newborn) .. 1 (grown up). names: nicknames. homes: species -> the person who adopted it.
 const fresh = () => ({ v: 1, d3: true, saved: 0, leaves: 0, owned: [], animal: 'duck', world: 'land', visited: [], time: 120, hunger: 100, x: null, z: null, started: false,
-  ages: {}, names: {}, homes: {}, sick: 0, ills: {}, hatched: [], treats: {}, sound: true, music: true });
+  ages: {}, names: {}, homes: {}, sick: 0, ills: {}, hatched: [], treats: {}, found: [], sound: true, music: true });
 const ADULT_AT = 1, FLY_AGE = 0.6;
+// round 11: animals cost leaves again (Drew, Nov 2026: earned by playing only, no store, no math), at a fifth of the
+// old list prices (SPECIES price) so a new animal takes a play session or two
+const priceOf = (id) => Math.max(20, Math.round((SPECIES[id].price || 100) / 50) * 10);
+// leaves you earn: per food (more for your favorite and for candy), for finding a world or a place, for growing up and
+// for being adopted
+const LEAVES = { food: 2, fav: 4, candy: 5, world: 25, place: 15, grown: 50, adopted: 20, treat: 5 };
 const ageOf = (sp) => (S.ages[sp] === undefined ? 1 : S.ages[sp]);
 const nameOf = (sp) => S.names[sp] || SPECIES[sp].name;
 const stageName = (sp) => {
@@ -28640,6 +28646,15 @@ const Plan = (() => {
   }
 
   // the name of the place you are in, for the top bar
+  // the place without the street (for the leaves you get for finding it)
+  function placeKey(x, z) {
+    if (inPark(x, z, 2)) return 'the City park';
+    if (inCity(x, z, 6)) return 'the city';
+    if (inR(TOWN.area, x, z, 4)) return 'Maple Town';
+    for (const t of TOWNS) if (inR(t.rect, x, z, 6)) return t.name;
+    const Z = zooAt(x, z, 2); if (Z) return Z.id === 'dino' ? Z.name : 'the ' + Z.name;
+    return null;
+  }
   function placeName(x, z) {
     if (inPark(x, z, 2)) return 'City park';
     if (inCity(x, z, 6)) return CITY.streetAt(x - CX, z - CZ) || 'The city';
@@ -28649,7 +28664,7 @@ const Plan = (() => {
     return null;
   }
 
-  return { placeName, PI, TOWN, CITY, TOWNS, ROADS, PLACES, BUS, SPOTS, ZOOS, zooAt, zooGate, zooPathD, RW, ST_W, TY, CY, init, H, busy, reserved, paint, grass, streetD, inCity, inPark, roadAt, roadY, roadNear, rectD, inR };
+  return { placeName, placeKey, PI, TOWN, CITY, TOWNS, ROADS, PLACES, BUS, SPOTS, ZOOS, zooAt, zooGate, zooPathD, RW, ST_W, TY, CY, init, H, busy, reserved, paint, grass, streetD, inCity, inPark, roadAt, roadY, roadNear, rectD, inR };
 })();
 
 /* ---------- worlds: endless terrain in tiles, water, plants, farms, colliders, houses, ground cover ---------- */
@@ -32117,11 +32132,11 @@ const Homes = {
       if (best >= 0) houseIdx = best;
     }
     S.homes[sp] = { name: p.name, look: p.look, house: Math.max(0, houseIdx) };
-    S.leaves += 5;
+    S.leaves += LEAVES.adopted;
     const hh = homes[Math.max(0, houseIdx)], street = (hh && hh.street) || 'Maple Street';
     const outdoor = SPECIES[sp].outdoor, color = Homes.color(hh, houseIdx), cage = CAGED[sp];
     G.ui.bubble(p, `Welcome to the family, ${nameOf(sp)}! Here's your collar.`, 3);
-    G.ui.hearts(P.pos, 6); G.ui.leafPop(P.pos, 5);
+    G.ui.hearts(P.pos, 6); G.ui.leafPop(P.pos, LEAVES.adopted);
     // a tamed animal always wears a collar with its person's number on it
     const got = `${p.name} took you home and put a collar on you!`;
     G.ui.toast(outdoor ? `${got} Your home is the pen behind the ${color} house on ${street}.`
@@ -32280,7 +32295,7 @@ const Homes = {
     if (G.sound) G.sound.knock();
     setTimeout(() => { if (Folk.list.includes(p)) Folk.remove(p); }, 3200);
     for (let i = 0; i < 2; i++) { const x = d.x + Math.sin(d.yaw) * 0.6 + (i - 0.5) * 0.3, z = d.z + Math.cos(d.yaw) * 0.6; Foods.add('candy', x, z, w.H(x, z), true); }
-    S.leaves += 3; G.ui.leafPop(Player.pos, 3);
+    S.leaves += LEAVES.treat; G.ui.leafPop(Player.pos, LEAVES.treat);
     G.save();
   },
 };
@@ -32357,7 +32372,7 @@ const Foods = {
     if (f.gone) return;
     this.removeObj(f);
     this.list.splice(this.list.indexOf(f), 1);
-    const sp = SPECIES[Player.form], fav = f.type === sp.fav, n = f.type === 'candy' ? 3 : fav ? 2 : 1;
+    const sp = SPECIES[Player.form], fav = f.type === sp.fav, n = f.type === 'candy' ? LEAVES.candy : fav ? LEAVES.fav : LEAVES.food;
     S.leaves += n; S.hunger = Math.min(100, S.hunger + (fav ? 22 : 13));
     // too much junk food in a short time gives you a tummy ache
     const junk = JUNK[f.type] || 0;
@@ -32370,7 +32385,7 @@ const Foods = {
       Player.grow();
       if (before < 0.4 && after >= 0.4) G.ui.toast(`You're getting bigger! You're a young ${sp.name.toLowerCase()} now.`);
       if (sp.fly && before < FLY_AGE && after >= FLY_AGE) G.ui.toast('Your wings are strong now. You can fly! Jump, then jump again in the air.', 5000);
-      if (after >= 1 && before < 1) { G.ui.toast(`You're all grown up!`); G.ui.hearts(Player.pos, 5); }
+      if (after >= 1 && before < 1) { S.leaves += LEAVES.grown; G.ui.toast(`You're all grown up! +${LEAVES.grown} leaves`); G.ui.hearts(Player.pos, 5); G.ui.leafPop(Player.pos, LEAVES.grown); }
       Foods.refresh();
     }
     G.ui.leafPop(tmpV.set(f.x, f.y, f.z), n);
@@ -35242,7 +35257,12 @@ function updateHud() {
   if (h.status !== status) { h.status = status; $('meStatus').textContent = status; $('meStatus').hidden = !status; }
   const shopName = (rm) => { const n = (rm.house && rm.house.name || 'the shop').replace(/^the /, ''); return n[0].toUpperCase() + n.slice(1); };
   const where = b.room ? (b.room.pound ? 'Animal pound' : b.room.barn ? 'Barn' : b.room.school ? 'School' : b.room.store ? shopName(b.room) : (Homes.homeOf(b.sp) && Homes.homeOf(b.sp).room === b.room ? 'Home' : 'A house')) : (S.world === 'land' && Plan.placeName(b.pos.x, b.pos.z)) || World.META[S.world].name;
-  if (h.where !== where) { h.where = where; $('wherePill').textContent = where; }
+  if (h.where !== where) {
+    h.where = where; $('wherePill').textContent = where;
+    // round 11: leaves for finding a town, the city, the park or a zoo for the first time
+    const k = !b.room && S.world === 'land' && Plan.placeKey(b.pos.x, b.pos.z);
+    if (k && !S.found.includes(k)) { S.found.push(k); S.leaves += LEAVES.place; UI.toast(`You found ${k}! +${LEAVES.place} leaves`); UI.leafPop(b.pos, LEAVES.place); save(); }
+  }
   const ct = fmt(di.left);
   if (h.clock !== ct || h.night !== di.night) {
     h.clock = ct; h.night = di.night; $('clockText').textContent = ct; $('clockWord').textContent = di.night ? 'Night' : 'Day';
@@ -35371,13 +35391,13 @@ function sheetAnimals() {
       <div class="acts">${on ? '<span class="playing">Playing</span>' : `<button class="btn small" type="button" data-action="switch" data-v="${id}">Play</button>`}<button class="btn small ghost" type="button" data-action="name" data-v="${id}">Name</button></div></div>`;
   }).join('')}</div>`;
 }
-// every animal is free (Drew, Nov 2026): no prices, no leaf store, no grown-up check
+// round 11: animals cost leaves again, earned only by playing (no leaf store, no grown-up check); cheapest first
 function sheetShop() {
-  const items = SHOP.filter((id) => !S.owned.includes(id));
-  if (!items.length) return '<p class="note">You have every animal!</p>';
-  return `<p class="note">Every animal is free. Tap Get to add one. New animals start as babies.</p><div class="list">${items.map((id) => {
-    const A = SPECIES[id];
-    return `<div class="arow"><img src="${animalIcon(id)}" alt=""><div><div class="aname">${A.name} ${tags(id)}</div>${foodChips(id)}</div><button class="btn small" type="button" data-action="buy" data-v="${id}">Get</button></div>`;
+  const items = SHOP.filter((id) => !S.owned.includes(id)).sort((a, b) => priceOf(a) - priceOf(b));
+  if (!items.length) return '<p class="note">You have every animal in the shop!</p>';
+  return `<p class="note">You have <b>${S.leaves}</b> leaves. Eat food, find new places and grow up to earn more. New animals start as babies.</p><div class="list">${items.map((id) => {
+    const A = SPECIES[id], need = priceOf(id) - S.leaves;
+    return `<div class="arow"><img src="${animalIcon(id)}" alt=""><div><div class="aname">${A.name} ${tags(id)}</div>${foodChips(id)}${need > 0 ? `<span class="need">${need} more leaves to go</span>` : ''}</div><button class="btn small" type="button" data-action="buy" data-v="${id}"${need > 0 ? ' disabled' : ''}><span class="price">${LEAF_SVG}${priceOf(id)}</span></button></div>`;
   }).join('')}</div>`;
 }
 function sheetSettings() {
@@ -35405,7 +35425,7 @@ function travel(id, after) {
     Player.set(S.animal);
     Player.b.room = null; Player.b.yaw = 0; Player.place(G.world.def.spawn[0], G.world.def.spawn[1]);
     Cam.snap = true; Foods.fill(60);
-    if (!S.visited.includes(id)) { S.visited.push(id); S.leaves += 10; UI.toast(`You found the ${World.META[id].name}! +10 leaves`); }
+    if (!S.visited.includes(id)) { S.visited.push(id); S.leaves += LEAVES.world; UI.toast(`You found the ${World.META[id].name}! +${LEAVES.world} leaves`); }
     else UI.toast(`Welcome to the ${World.META[id].name}`);
     R.paused = false; UI.saved(); save();
     if (after) after();
@@ -35462,8 +35482,8 @@ function switchAnimal(id) {
   if (born) beginLife(id);
 }
 function buyAnimal(id) {
-  const A = SPECIES[id]; if (!A || S.owned.includes(id)) return;
-  S.owned.push(id); S.ages[id] = 0;
+  const A = SPECIES[id]; if (!A || S.owned.includes(id) || S.leaves < priceOf(id)) return;
+  S.leaves -= priceOf(id); S.owned.push(id); S.ages[id] = 0;
   Sound.chime();
   switchAnimal(id);
   UI.saved();
@@ -35511,6 +35531,7 @@ function applySave(d) {
   S.junk = 0;
   S.hatched = Array.isArray(d.hatched) ? d.hatched.filter((id) => SPECIES[id]) : [];
   S.treats = obj(d.treats);
+  S.found = Array.isArray(d.found) ? d.found.filter((k) => typeof k === 'string').slice(0, 60) : [];
   S.sound = d.sound !== false; S.music = d.music !== false;
   if (World.META[S.world].needsFly && !(SPECIES[S.animal].fly && ageOf(S.animal) >= FLY_AGE)) S.world = 'land';
 }

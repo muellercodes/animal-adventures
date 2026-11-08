@@ -1026,11 +1026,11 @@ const Homes = {
       if (best >= 0) houseIdx = best;
     }
     S.homes[sp] = { name: p.name, look: p.look, house: Math.max(0, houseIdx) };
-    S.leaves += 5;
+    S.leaves += LEAVES.adopted;
     const hh = homes[Math.max(0, houseIdx)], street = (hh && hh.street) || 'Maple Street';
     const outdoor = SPECIES[sp].outdoor, color = Homes.color(hh, houseIdx), cage = CAGED[sp];
     G.ui.bubble(p, `Welcome to the family, ${nameOf(sp)}! Here's your collar.`, 3);
-    G.ui.hearts(P.pos, 6); G.ui.leafPop(P.pos, 5);
+    G.ui.hearts(P.pos, 6); G.ui.leafPop(P.pos, LEAVES.adopted);
     // a tamed animal always wears a collar with its person's number on it
     const got = `${p.name} took you home and put a collar on you!`;
     G.ui.toast(outdoor ? `${got} Your home is the pen behind the ${color} house on ${street}.`
@@ -1189,7 +1189,7 @@ const Homes = {
     if (G.sound) G.sound.knock();
     setTimeout(() => { if (Folk.list.includes(p)) Folk.remove(p); }, 3200);
     for (let i = 0; i < 2; i++) { const x = d.x + Math.sin(d.yaw) * 0.6 + (i - 0.5) * 0.3, z = d.z + Math.cos(d.yaw) * 0.6; Foods.add('candy', x, z, w.H(x, z), true); }
-    S.leaves += 3; G.ui.leafPop(Player.pos, 3);
+    S.leaves += LEAVES.treat; G.ui.leafPop(Player.pos, LEAVES.treat);
     G.save();
   },
 };
@@ -1266,7 +1266,7 @@ const Foods = {
     if (f.gone) return;
     this.removeObj(f);
     this.list.splice(this.list.indexOf(f), 1);
-    const sp = SPECIES[Player.form], fav = f.type === sp.fav, n = f.type === 'candy' ? 3 : fav ? 2 : 1;
+    const sp = SPECIES[Player.form], fav = f.type === sp.fav, n = f.type === 'candy' ? LEAVES.candy : fav ? LEAVES.fav : LEAVES.food;
     S.leaves += n; S.hunger = Math.min(100, S.hunger + (fav ? 22 : 13));
     // too much junk food in a short time gives you a tummy ache
     const junk = JUNK[f.type] || 0;
@@ -1279,7 +1279,7 @@ const Foods = {
       Player.grow();
       if (before < 0.4 && after >= 0.4) G.ui.toast(`You're getting bigger! You're a young ${sp.name.toLowerCase()} now.`);
       if (sp.fly && before < FLY_AGE && after >= FLY_AGE) G.ui.toast('Your wings are strong now. You can fly! Jump, then jump again in the air.', 5000);
-      if (after >= 1 && before < 1) { G.ui.toast(`You're all grown up!`); G.ui.hearts(Player.pos, 5); }
+      if (after >= 1 && before < 1) { S.leaves += LEAVES.grown; G.ui.toast(`You're all grown up! +${LEAVES.grown} leaves`); G.ui.hearts(Player.pos, 5); G.ui.leafPop(Player.pos, LEAVES.grown); }
       Foods.refresh();
     }
     G.ui.leafPop(tmpV.set(f.x, f.y, f.z), n);

@@ -157,8 +157,14 @@ const SHOES = ['#2A2A2A', '#5A3A22', '#E8E8E8', '#7A2E2E'];
 /* ---------- save state ---------- */
 // ages: species -> 0 (newborn) .. 1 (grown up). names: nicknames. homes: species -> the person who adopted it.
 const fresh = () => ({ v: 1, d3: true, saved: 0, leaves: 0, owned: [], animal: 'duck', world: 'land', visited: [], time: 120, hunger: 100, x: null, z: null, started: false,
-  ages: {}, names: {}, homes: {}, sick: 0, ills: {}, hatched: [], treats: {}, sound: true, music: true });
+  ages: {}, names: {}, homes: {}, sick: 0, ills: {}, hatched: [], treats: {}, found: [], sound: true, music: true });
 const ADULT_AT = 1, FLY_AGE = 0.6;
+// round 11: animals cost leaves again (Drew, Nov 2026: earned by playing only, no store, no math), at a fifth of the
+// old list prices (SPECIES price) so a new animal takes a play session or two
+const priceOf = (id) => Math.max(20, Math.round((SPECIES[id].price || 100) / 50) * 10);
+// leaves you earn: per food (more for your favorite and for candy), for finding a world or a place, for growing up and
+// for being adopted
+const LEAVES = { food: 2, fav: 4, candy: 5, world: 25, place: 15, grown: 50, adopted: 20, treat: 5 };
 const ageOf = (sp) => (S.ages[sp] === undefined ? 1 : S.ages[sp]);
 const nameOf = (sp) => S.names[sp] || SPECIES[sp].name;
 const stageName = (sp) => {

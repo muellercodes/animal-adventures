@@ -476,6 +476,15 @@ const Plan = (() => {
   }
 
   // the name of the place you are in, for the top bar
+  // the place without the street (for the leaves you get for finding it)
+  function placeKey(x, z) {
+    if (inPark(x, z, 2)) return 'the City park';
+    if (inCity(x, z, 6)) return 'the city';
+    if (inR(TOWN.area, x, z, 4)) return 'Maple Town';
+    for (const t of TOWNS) if (inR(t.rect, x, z, 6)) return t.name;
+    const Z = zooAt(x, z, 2); if (Z) return Z.id === 'dino' ? Z.name : Z.id === 'petting' ? 'the petting zoo' : 'the ' + Z.name;
+    return null;
+  }
   function placeName(x, z) {
     if (inPark(x, z, 2)) return 'City park';
     if (inCity(x, z, 6)) return CITY.streetAt(x - CX, z - CZ) || 'The city';
@@ -485,5 +494,5 @@ const Plan = (() => {
     return null;
   }
 
-  return { placeName, PI, TOWN, CITY, TOWNS, ROADS, PLACES, BUS, SPOTS, ZOOS, zooAt, zooGate, zooPathD, RW, ST_W, TY, CY, init, H, busy, reserved, paint, grass, streetD, inCity, inPark, roadAt, roadY, roadNear, rectD, inR };
+  return { placeName, placeKey, PI, TOWN, CITY, TOWNS, ROADS, PLACES, BUS, SPOTS, ZOOS, zooAt, zooGate, zooPathD, RW, ST_W, TY, CY, init, H, busy, reserved, paint, grass, streetD, inCity, inPark, roadAt, roadY, roadNear, rectD, inR };
 })();
