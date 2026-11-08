@@ -933,7 +933,7 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     oakDark: L(0x1f3d17), oakMid: L(0x3e6b26), oakLight: L(0x7da53e),
     appleDark: L(0x24461a), appleMid: L(0x467a2c), appleLight: L(0x8ab54a),
     pineDark: L(0x0f2a20), pineMid: L(0x22483a), pineLight: L(0x3f6a50),
-    palmDark: L(0x24481a), palmMid: L(0x3a6e24), palmLight: L(0x6e9a3a),
+    palmDark: L(0x22401a), palmMid: L(0x2e5a22), palmLight: L(0x587c34),   // round 11: less lime
     snag: L(0x8d8a82), snagDark: L(0x55524c),
   };
   function barkColor(base, dark, light, seed) {
@@ -1158,32 +1158,39 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
   }
 
   /* palm frond: strip of leaflets along a drooping curve (double sided) */
+  // round 11: a real pinnate palm frond: a curving midrib with two rows of narrow leaflets that droop from it and
+  // sweep a little toward the tip (it was a few broad paper triangles)
   function frond(S, base, dir, len, r, colA, colB) {
     const pts = [], seg = 12;
     const d = dir.clone().normalize();
     const side = new V3(-d.z, 0, d.x).normalize();
     let p = base.clone();
-    let up = 0.55 + r() * 0.3;
+    const up = 0.55 + r() * 0.3;
     for (let i = 0; i <= seg; i++) {
       const t = i / seg;
       pts.push(p.clone());
       const step = len / seg;
       p = p.clone().add(new V3(d.x * step, (up - t * 1.9) * step, d.z * step));
     }
+    const at = (t) => { const f = t * seg, i = Math.min(seg - 1, Math.floor(f)); return pts[i].clone().lerp(pts[i + 1], f - i); };
+    // the midrib: a thin strip seen from above
     for (let i = 0; i < seg; i++) {
-      const t = i / seg, t1 = (i + 1) / seg;
-      const a = pts[i], b = pts[i + 1];
-      const w = Math.sin(Math.min(1, t * 1.15) * Math.PI) * len * 0.21 + 0.03;
-      const w1 = Math.sin(Math.min(1, t1 * 1.15) * Math.PI) * len * 0.21 + 0.03;
-      const col = mixc(colA, colB, t);
+      const a = pts[i], b = pts[i + 1], wa = 0.035 * (1 - i / seg) + 0.006, wb = 0.035 * (1 - (i + 1) / seg) + 0.006, rib = mulc(colA, 0.85);
+      S.quad(a.clone().addScaledVector(side, -wa), b.clone().addScaledVector(side, -wb), b.clone().addScaledVector(side, wb), a.clone().addScaledVector(side, wa), rib, rib, rib, rib);
+    }
+    const n = 22;
+    for (let k = 1; k <= n; k++) {
+      const t = 0.08 + 0.9 * (k / n), q = at(t);
+      const lf = len * 0.3 * Math.sin(Math.PI * Math.pow(t, 0.8)) + 0.08, w = len * 0.028 * (1 - t * 0.5) + 0.012;
+      const col = mixc(colA, colB, t * 0.8 + r() * 0.2), yel = r() < 0.08 ? mixc(col, L(0x9a8a3a), 0.5) : col, tipC = mulc(yel, 0.78);
       for (const sd of [-1, 1]) {
-        // leaflet: base on the rib, tip swept back and drooping
-        const tipP = b.clone().addScaledVector(side, sd * w1).add(new V3(0, -w1 * 0.55, 0)).addScaledVector(d, len / seg * 0.6);
-        const mid = a.clone().lerp(b, 0.5).addScaledVector(side, sd * w * 0.45).add(new V3(0, -w * 0.12, 0));
-        const tip2 = a.clone().addScaledVector(side, sd * w * 0.98).add(new V3(0, -w * 0.5, 0)).addScaledVector(d, len / seg * 0.3);
-        const cDark = mulc(col, 0.72);
-        if (sd > 0) { S.tri(a, b, tipP, col, col, cDark); S.tri(a, mid, tip2, col, col, cDark); }
-        else { S.tri(b, a, tipP, col, col, cDark); S.tri(mid, a, tip2, col, col, cDark); }
+        const out = side.clone().multiplyScalar(sd), lift = (sd > 0 ? 1 : -1) * (k % 2 ? 0.02 : -0.02);
+        const m1 = q.clone().addScaledVector(out, lf * 0.5).addScaledVector(d, lf * 0.08).add(new V3(0, -lf * 0.12 + lift, 0));
+        const tip = q.clone().addScaledVector(out, lf * 0.95).addScaledVector(d, lf * 0.3).add(new V3(0, -lf * 0.48 + lift, 0));
+        const a0 = q.clone().addScaledVector(d, -w), a1 = q.clone().addScaledVector(d, w);
+        const b0 = m1.clone().addScaledVector(d, -w * 0.8), b1 = m1.clone().addScaledVector(d, w * 0.8);
+        if (sd > 0) { S.quad(a0, b0, b1, a1, yel, yel, yel, yel); S.tri(b0, tip, b1, yel, tipC, yel); }
+        else { S.quad(a1, b1, b0, a0, yel, yel, yel, yel); S.tri(b1, tip, b0, yel, tipC, yel); }
       }
     }
     return pts;

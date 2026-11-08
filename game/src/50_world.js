@@ -467,7 +467,7 @@ const World = (() => {
 
     jungle(seed) {
       const n1 = makeNoise(seed), n2 = makeNoise(seed + 1), n3 = makeNoise(seed + 2), n4 = makeNoise(seed + 3);
-      const c = { g1: P(0x2f6a2c), g2: P(0x3f8a37), soil: P(0x6b4a2c), litter: P(0x5a3a20), sand: P(0xc0a66a), mud: P(0x3a2e1e) };
+      const c = { g1: P(0x34582a), g2: P(0x46703a), soil: P(0x6b4a2c), litter: P(0x5a3a20), sand: P(0xc0a66a), mud: P(0x3a2e1e) };
       const xc = (z) => 30 * Math.sin(z * 0.013) + 12 * Math.sin(z * 0.035 + 2) + 48;
       const ford = (z) => { const u = ((z + 50) % 120 + 120) % 120; return gauss(Math.min(u, 120 - u), 8); };
       const LAG = { x: -50, z: 45, r: 17 };
