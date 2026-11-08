@@ -47,6 +47,8 @@ const FOODS = {
   hotdog: { name: 'Hot dogs' }, petfood: { name: 'Pet food' }, hay: { name: 'Hay' },
   // round 10: nectar, a wildflower bloom (for butterflies; 38_food draws it)
   nectar: { name: 'Nectar' },
+  // round 11: meat for the big cats, bamboo for pandas, dates for camels (38_food draws them)
+  meat: { name: 'Meat' }, bamboo: { name: 'Bamboo' }, dates: { name: 'Dates' },
 };
 // swim/fly/hop/climb are what the animal can do; swimSpeed and flySpeed are m/s
 // egg: hatches from an egg (shell color); outdoor: when adopted it lives in a pen in the yard instead of inside the house
