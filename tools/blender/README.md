@@ -835,3 +835,32 @@ Fruit bat (`VOXEL=0.002 TRIS=6500 TEX=768`, normal map WebP 64): 6.5k triangles 
 at detail 2 with 4 fur shell layers); 768 color and normal maps (the membranes get a smaller share of them,
 `uv_weight`), 256 pup color map, fur map: 45 KB mesh + 12 + 20 + 1 + 8 KB, about 120 KB in the page, 190 KB with its
 two icons. The procedural butterfly (2.9k triangles, 3.7k at detail 2) and caterpillar (2.2k) add only code and icons.
+
+## Round 11: the cheetah on the cat template with longer legs (`cheetah.py`)
+
+A cheetah (KS 2.6: about 1.25 m from the nose to the rump, 0.78 m at the shoulder, a 0.8 m tail). New on the way:
+- `bigcat.LegWarp` (`bigcat.install(..., warp=W)`): a map from the cat's units to the species' own that lifts the body by
+  `dy` and stretches the legs between heights `ya` and `yb` to make up for it (smooth over `w`, so there is no crease);
+  behind the rump (z below `z1`, fading out by `z0`) points are only lifted, so a tail that hangs low keeps its round
+  section. Every hook goes through it (points in through the inverse, positions out through the map, baby offsets as the
+  difference of two mapped points), so all of cat.py's shapes, masks and weights still work. The game moves the bones,
+  lofts, eyes and accents with the same numbers (`legWarp` in 40_animals.js). Without a warp `install` does exactly what
+  it did before (the snow leopard's and Smilodon's hooks give the same numbers bit for bit).
+- A smaller head without new tables: `HeadFrame` (in cheetah.py) is the cat's head frame with every local length scaled
+  by `HS` (0.8), so the head's parts, eyes, mouth, masks and whiskers all shrink together; `head()` hands back its
+  distances times HS. The game scales the fallback's head, ears, eyes and nose about the same origin.
+- The cheetah's own head (rounder skull, high forehead, flatter cheeks, smaller whisker pads, a broad nose), a deep chest
+  and a tucked-up waist (no belly flap), long lean thighs cut off under the back line, slender legs, small narrow paws.
+- Paint: solid round spots from a Worley grid laid out in the cheetah's own height (`WARP.fwd`, so the stretched legs do
+  not stretch them), smaller on the legs and the head, faint on the white belly; the tail's spots turn into rings, then
+  a white tip. The tear lines are a line in the head frame's (up, along) plane on the +x side of the face (a line in two
+  of the three coordinates lands once on the convex face; the first try in all three ran inside the head). A white
+  crescent under the eyes only (a full pale ring made cartoon eyes), cream whisker pads, black lips.
+- Cubs: smoky dark with the silvery mantle: a pale band over the crown, the nape and the back in the cub's color map, a
+  ridge of hair along it in the baby offsets (6.5 mm), and the adult's nape crest fur (longer fur along the mantle) times
+  `babyLen` 2.
+- In the game: the fastest runner (run 15 m/s, a stride of up to 4.6 m at 3.4 strides a second, a short stance, the back
+  flexing hard: `flexRun` 0.42); asleep lying with the legs folded under (`fold`: the cat's curl stuck its long legs out).
+- Budget (`VOXEL=0.0065 TRIS=4600 TEX=768`): 7.4k triangles plus 192 in whisker cards; 768 maps (color WebP 60, normal
+  54), 256 cub map, fur and whisker textures: 74 KB mesh + 43 + 13 + 2 + 6 + 5 KB, 148 KB of files, about 197 KB in the
+  page plus about 31 KB of icons.

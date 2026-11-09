@@ -6500,6 +6500,80 @@ const Animals = (() => {
     };
   };
 
+  // ===== round 11: cheetah =====
+  // A cheetah on the big-cat scaler (tools/blender/cheetah.py, KS 2.6) with longer legs and a smaller head. legWarp(...)
+  // is the same map as bigcat.LegWarp in the Blender scripts (cat units in, the species' height out): the body lifted
+  // by dy, the legs between ya and yb stretched to make up for it, only lifted behind the rump (z below z1, fading out
+  // by z0). Keep its numbers the same in both places.
+  const legWarp = (ya, yb, dy, w, z0, z1) => {
+    const s = 1 + dy / (yb - ya);
+    const ss = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+    const J = (y, a, b) => { const u = clamp((y - a) / (b - a), 0, 1); return (b - a) * (u * u * u - 0.5 * u * u * u * u) + Math.max(y - b, 0); };
+    const D = (y) => (s - 1) * (J(y, ya - w, ya + w) - J(y, yb - w, yb + w));
+    return (y, z) => { const Z = ss(z0, z1, z); return y + Z * D(y) + dy * (1 - Z); };
+  };
+  ids.push('cheetah');
+  SPEC.cheetah = () => {
+    const k = 2.6, s = bigCat(k), wy = legWarp(0.035, 0.12, 0.055, 0.016, -0.228, -0.198);
+    // the tail hanging low with the tip turned up, on four bones, and the ears on the small head (cat units, as in cheetah.py)
+    const TB = [['tail1', 'rump', 0.205, -0.19], ['tail2', 'tail1', 0.148, -0.252], ['tail3', 'tail2', 0.067, -0.288], ['tail4', 'tail3', 0.019, -0.345]];
+    s.bones = s.bones.filter((b) => b[0].indexOf('tail') !== 0).concat(TB.map((t) => [t[0], t[1], 0, t[2] * k, t[3] * k]));
+    const ear = s.bones.find((b) => b[0] === 'earL');
+    ear[2] = 0.02 * k; ear[3] = 0.3063 * k; ear[4] = 0.1903 * k;
+    const tl = s.fur.find((fp) => fp.name === 'tail');
+    tl.bones = ['rump', 'tail1', 'tail2', 'tail3', 'tail4'];
+    tl.keys = [[0.207, -0.18, 0.013], [0.183, -0.24, 0.0128], [0.107, -0.27, 0.012], [0.033, -0.31, 0.0114], [0.021, -0.36, 0.0118], [0.046, -0.386, 0.009]]
+      .map((q) => [0, q[0] * k, q[1] * k, q[2] * k, q[2] * k, q[2] * k]);
+    // the small head: the fallback's head, ears, eyes, nose and whiskers scaled by HS about the head frame's origin
+    const HS = 0.8, HO = [0, 0.292 * k, 0.178 * k];
+    const hs = (p) => p.map((v, i) => HO[i] + (v - HO[i]) * HS);
+    for (const fp of s.fur) if (fp.name === 'head' || fp.name === 'ear') fp.keys = fp.keys.map((q) => hs(q.slice(0, 3)).concat(q.slice(3, 6).map((v) => v * HS), q.slice(6)));
+    for (const e of s.eyes) { e.p = hs(e.p); e.r *= HS; }
+    for (const a of s.accent) { if (a.c) a.c = hs(a.c); if (a.r) a.r *= HS; if (a.pts) a.pts = a.pts.map(hs); if (a.radii) a.radii = a.radii.map((v) => v * HS); }
+    s.mouth = hs(s.mouth);
+    // then the long legs: every point lifted and stretched by the warp (in cat units)
+    const wp = (p) => [p[0], wy(p[1] / k, p[2] / k) * k, p[2]];
+    for (const b of s.bones) b[3] = wy(b[3] / k, b[4] / k) * k;
+    for (const fp of s.fur) fp.keys = fp.keys.map((q) => wp(q).concat(q.slice(3)));
+    for (const e of s.eyes) e.p = wp(e.p);
+    for (const a of s.accent) { if (a.c) a.c = wp(a.c); if (a.pts) a.pts = a.pts.map(wp); }
+    s.mouth = wp(s.mouth);
+    Object.assign(s.size, { length: 0.66 * k, height: (0.35 + 0.055) * k, radius: 0.085 * k, eyeHeight: s.eyes[0].p[1] });
+    // the fallback's coat: golden with round black spots, a white belly
+    const K = { gold: hex(0xB48A4E), back: hex(0xA67A3C), white: hex(0xDCD4C0), spot: hex(0x1A1410) };
+    s.paint = (P, C) => {
+      cset(C, K.gold); cmix(C, K.back, sstep(0.3, 0.9, P.ny) * 0.5); cmix(C, K.white, sstep(-0.2, -0.7, P.ny) * 0.85);
+      cmix(C, K.spot, sstep(0.66, 0.72, noise(P.x * 55, P.y * 55, P.z * 55)) * 0.85);
+      C.ro = 0.86; C.fl = 0.6;
+    };
+    s.babyPaint = (P, C) => { cmix(C, hex(0x3A3530), 0.75); cmix(C, hex(0xA8A49C), sstep(0.5, 0.9, P.ny) * 0.6); C.fl = 1; };
+    Object.assign(s.eyes[0], { iris: 0xB27A2E, pupil: 'round', pupilR: 0.34 });
+    s.accent[0].col = 0x2C2422;
+    s.shell.len = 0.0088 * k;
+    // a cub: a big head, big paws, still long legs
+    s.baby = Object.assign({}, s.baby, { head: 1.6, ear: 1.2, leg: [0.74, 1.25], tail: 0.55 });
+    s.modelSpec = { baby: { eye: 1.04, fluff: 0, leg: [0.72, 1.04], body: [1.12, 1.12, 0.74] } };
+    const A = s.anim;
+    Object.assign(A, {
+      // the fastest runner in the game: a long, stretched-out double suspension gallop, the back flexing hard with
+      // every stride (stride: m per cycle at the walk; it grows with the speed up to strideMax times that)
+      walk: 1.25, trot: 3.2, run: 15.0, stride: 1.3, strideMax: 4.6, maxRate: 3.4,
+      duty: [0.62, 0.42, 0.26], lift: [0.1, 0.12], flexF: 1.6, flexH: 1.1,
+      gaits: { g: [0.42, 0.56, 0.0, 0.12] },
+      bob: [0.006, 0.018, 0.07], pitchRun: 0.12, flexRun: 0.42, rumpFlex: 0.8, roll: 0.012,
+      nod: 0.03, trotNeck: 0.08, runNeck: 0.24,
+      // the tail hangs low; at a run it streams out behind as a rudder
+      tail: ['tail1', 'tail2', 'tail3', 'tail4'], tailIdle: [0.0, 0.0, 0.05, 0.1], tailRun: [0.55, 0.05, -0.1, -0.15],
+      tailWalk: 0.05, tailSway: 0.06, tailFlick: 0.15, wag: 0.08,
+      climb: Object.assign({}, A.climb, { tail: [-0.3, -0.05, 0, 0] }),
+      // asleep lying with the long legs folded under, the head turned round onto the flank
+      sleep: { style: 'fold', neck: [1.4, 0.35], tail: [1.2, 0.1], bend: 0.4, roll: 0.15 },
+      sit: Object.assign({}, A.sit, { tail: [0.4, 0.3, 0.2, 0.1], tailYaw: [0.4, 0.6, 0.7, 0.7], wrap: [1.0, 1.9, 2.6, 3.1], wrapY: [0.1, 0.0, -0.02, -0.02] }),
+    });
+    delete A.tailWalkLift;
+    return s;
+  };
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -8467,6 +8541,8 @@ const Animals = (() => {
   COLLAR.snowleopard = COLLAR.cat;
   // round 10: saber-toothed cat
   COLLAR.smilodon = COLLAR.cat;
+  // ===== round 11: cheetah
+  COLLAR.cheetah = COLLAR.cat;
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)
