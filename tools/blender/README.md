@@ -835,3 +835,39 @@ Fruit bat (`VOXEL=0.002 TRIS=6500 TEX=768`, normal map WebP 64): 6.5k triangles 
 at detail 2 with 4 fur shell layers); 768 color and normal maps (the membranes get a smaller share of them,
 `uv_weight`), 256 pup color map, fur map: 45 KB mesh + 12 + 20 + 1 + 8 KB, about 120 KB in the page, 190 KB with its
 two icons. The procedural butterfly (2.9k triangles, 3.7k at detail 2) and caterpillar (2.2k) add only code and icons.
+
+## Round 11: the winged cat (`wingcat.py`)
+
+A legged animal with feathered bird wings: the birds' wing (bones and atlas blades, `stdWing`) grafted on a cat.
+- In the game each spec adds the bird wing bones (`wingL`, `wforeL`, `whandL` and the feather bones) with `parent:
+  'chest'`, and `spec.feathers` returns the atlas blades for the model (procedural blades for the fallback body).
+  `anim.wings` (round 11, `animLegged`; null for every other species) poses them with the bird animator's linkage:
+  folded along the back on the ground, half open and shaken when happy, beating with glides between a few beats in
+  flight (`every`, `beats`, `climb` as the eagle's soar), the body bobbing a little with each downstroke (`bob`), the
+  legs tucked in their own flight pose (`legs.f`, `legs.h`: up and forward in leg heights, flex, toe curl). The folded
+  wings take the chest's own pitch and yaw back out, so they stay along the back while the chest bends to eat, sit or
+  curl up asleep. `spec.lowerBlink = false` keeps the mammal's upper lid blink (a spec with `feathers` blinks like a
+  bird otherwise).
+- The folded pose: the shoulder pivots sit on top of the back, so a bird's folded wing (trailing edge up over the
+  back) stood up like a fin, and lower rolls sank it into the coat. What works is a moderate roll (-30 for the cat)
+  with `foldedPos` lifting the shoulder out of the coat and a little out to the side; the wings
+  then lie on the back like a cape and cover it from above. `wtune.py`-style tuning (set the shoulder bones by hand
+  after the animator has folded everything else) saves a rebuild per try.
+- The sculpt has the feathered wing arm (`bird.wing_arm`) in the rest pose, spread straight out from the shoulder
+  pivot, so the bounds reach out along x: `grid()` takes coarse steps out along the wing (it changes slowly along its
+  span) and fine ones across its thickness. The arm's skin
+  weights are set in `fix_weights` (place along the span, blended at the joints, the root into the chest over a few
+  centimeters); nothing else may keep weights on the wing or feather bones (the procedural rig's blades are in the weight
+  transfer source). Rings across the arm only around the shoulder, elbow and wrist (rings all
+  along it took 1,500 triangles). The arm is painted with `bird.plumage` coverts and has no fur shells.
+- Each writes its own feather atlas (`extra_maps` / `export_extra`: only the atlases, not the birds' baby maps) with
+  five cells (primaries, secondaries, greater and lesser coverts, tertials) and a down atlas for the babies' wings.
+- Winged cat: the tabby template with a silver mackerel tabby palette (the cat's `K`, about 20% darker than it looks:
+  the first try rendered white with black stripes), green eyes, barn-owl gray wings (coverts finely peppered, flight
+  feathers paling to white with faint bars). Kittens: the tabby kitten's body and stripes, small down wings
+  (`baby.wing` 0.5). It still climbs like the other cats.
+
+Winged cat (`VOXEL=0.0025 TRIS=3300 TEX=768`): 7.3k triangles plus 192 in the whiskers (10.0k in the game with the
+wing blades and eyes, 29k at detail 2 with 4 fur shell layers); 768 color (WebP 56) and normal (44) maps, 256 kitten
+color map, fur map, feather atlas 512 x 256 and its down atlas: 69 KB mesh and cards + 33 + 16 + 7 + 8 + 6 + 13 + 1 +
+4 KB, about 220 KB in the page plus its two icons (29 KB).

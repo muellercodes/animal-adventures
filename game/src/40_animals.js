@@ -6500,6 +6500,53 @@ const Animals = (() => {
     };
   };
 
+  // ===== round 11: winged cat =====
+  // A silver tabby house cat with a pair of feathered wings growing from its shoulders, soft gray to white like a
+  // barn owl's or a dove's. The wings are bird wings (the birds' wing bones and feather blades, stdWing) on the cat's
+  // chest; the legged animator folds them along the back on the ground and beats them in flight (anim.wings). The
+  // sculpted model (tools/blender/wingcat.py) brings the feathered wing arm and the feather atlas.
+  ids.push('wingcat');
+  const wingcatWing = (atlas) => stdWing({
+    s: 1.35, sh: [0.026, 0.24, 0.086], parent: 'chest', prim: 1.0, wid: 1.25, tip: 0.5, secTip: 0.6, atlas,
+    folded: { roll: -30, yaw: 2, pitch: 2 }, foldedPos: [0.01, 0.01, -0.005],
+    featherFold: { tert: [112, 104], sec: [106, 92], prim: [97, 90] },
+    primSpread: [70, 8],
+    flap: { amp: 50, rate: 3.6, upFold: 0.35, twist: 10, glide: 3 },
+    cells: { prim: 0, sec: 1, gcov: 2, lcov: 3, tert: 4, pcov: 3, mcov: 3 },
+  });
+  SPEC.wingcat = () => {
+    const s = SPEC.cat(), W = wingcatWing(false), WA = wingcatWing(true), tabby = s.paint;
+    s.bones.push(...W.bones);
+    // silver mackerel tabby for the procedural body: black stripes on pale silver, a white chin
+    s.paint = (P, C) => {
+      tabby(P, C);
+      const l = lum(C);
+      cset(C, l < 0.3 ? mixc(hex(0x1A1A1C), hex(0x5E5E60), sstep(0.06, 0.3, l)) : mixc(hex(0x9A9A98), hex(0xE8E6E2), sstep(0.34, 0.75, l)));
+    };
+    s.eyes[0].iris = 0x8CAE48; s.eyes[0].lid = [0.7, -0.72, 0.2];
+    // a mammal: it blinks with the upper lid (spec.feathers alone would make it blink like a bird)
+    s.lowerBlink = false;
+    const K = { gray: hex(0xA8ACB0), grayDk: hex(0x80858A), pale: hex(0xDCDEDF), white: hex(0xF2F2F0) };
+    s.feathers = (rest, md) => ({
+      tex: [256, 128], rough: 0.8,
+      list: (md ? WA : W).feathers,
+      paint(u, t, C) {
+        const k = Math.floor(u * FNC), sx = fract(u * FNC);
+        if (k === 0 || k === 1) { vane(sx, t, C, K.pale, K.grayDk, K.white); cmix(C, K.white, (1 - t) * 0.5); }
+        else vane(sx, t, C, K.gray, K.pale, K.grayDk);
+      },
+      babyPaint: downFeather(hex(0xC8CACB), hex(0xE2E3E3), null),
+    });
+    // kittens: small fluffy wings
+    s.baby.wing = 0.5;
+    s.modelSpec.baby.wing = 0.5;
+    // flying: wingbeats with glides between, the front paws tucked under the chest and the hind legs stretched back
+    // ([up, forward] in leg heights, flex, toe curl), the tail streaming out behind, the body bobbing with each beat
+    s.anim.wings = { wing: W.wing, every: 4.5, beats: 5, climb: 0.6, bob: 0.008, legs: { f: [0.36, 0.12, 1.9, 1.0], h: [0.3, -0.42, 0.25, 0.9] } };
+    s.anim.tailAir = [0.32, 0.14, 0.06];
+    return s;
+  };
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -6770,6 +6817,41 @@ const Animals = (() => {
     R.hooks.push(refresh);
     const nN = neck.length, nT = tail.length;
     const Hp = new THREE.Vector3(), qSl = new THREE.Quaternion(), vSl = new THREE.Vector3();
+    // round 11 (winged cat, unicorn): anim.wings: a pair of bird wings on the chest (the birds' wing bones and feather
+    // blades, birdWing), folded along the back on the ground, beating and gliding in flight with the legs tucked. The
+    // wing pose is the bird animator's (spread and folded orientations slerped by the fold amount). Off (null) for
+    // every other species, which then run exactly as before.
+    const WG = P.wings || null, WW = WG ? WG.wing : null;
+    const wside = (s) => ({ sh: B['wing' + s], el: B['wfore' + s], wr: B['whand' + s], fs: WW.fb.map((f) => B[f.name.slice(0, -1) + s]) });
+    const wl = WG ? wside('L') : null, wr = WG ? wside('R') : null;
+    if (WG) { S.wfold = 1; S.wfly = 0; S.wgl = 0; S.wflap = 0; S.wph = R.rnd * TAU; }
+    const wE1 = new THREE.Euler(0, 0, 0, 'YZX'), wE2 = new THREE.Euler(0, 0, 0, 'YXZ'), wE3 = new THREE.Euler(0, 0, 0, 'YXZ');
+    const wq1 = new THREE.Quaternion(), wq2 = new THREE.Quaternion(), wq3 = new THREE.Quaternion();
+    // (ch: the chest's own rotation, taken back out of the folded wings so they keep lying along the back while the
+    // chest bends to eat, sit or curl up asleep)
+    function wingPose(f, flapRoll, twist, g, bodyPitch, ch) {
+      const F = WW.fold, sp = WW.spread, fo = WW.folded, sh0 = wl.sh.userData.p0, fpo = WW.foldedPos || [0, 0, 0];
+      wE1.set(sp.pitch * DEG + twist, sp.yaw * DEG, sp.roll * DEG + flapRoll);
+      wE2.set(fo.pitch * DEG, fo.yaw * DEG, fo.roll * DEG + flapRoll * 0.3);
+      wq1.setFromEuler(wE1); wq2.setFromEuler(wE2);
+      wq1.slerp(wq2, f);
+      wq3.setFromAxisAngle(AX, -bodyPitch * (1 - f));
+      wq1.premultiply(wq3);
+      const k2 = Math.min(1, f + (1 - f) * g);
+      wq3.setFromAxisAngle(AY, F.hum * DEG * Math.min(1, f + (1 - f) * g * 0.3));
+      wl.sh.quaternion.multiplyQuaternions(wq1, wq3);
+      wl.el.quaternion.setFromAxisAngle(AY, F.elb * DEG * k2);
+      wl.wr.quaternion.setFromAxisAngle(AY, F.wri * DEG * k2);
+      for (let i = 0; i < wl.fs.length; i++) wl.fs[i].quaternion.setFromAxisAngle(AY, WW.fb[i].d * k2);
+      wl.sh.position.set(sh0.x + fpo[0] * f, sh0.y + fpo[1] * f, sh0.z + fpo[2] * f);
+      wr.sh.position.set(-wl.sh.position.x, wl.sh.position.y, wl.sh.position.z);
+      mirrorQ(wl.sh.quaternion, wr.sh.quaternion); mirrorQ(wl.el.quaternion, wr.el.quaternion); mirrorQ(wl.wr.quaternion, wr.wr.quaternion);
+      for (let i = 0; i < wl.fs.length; i++) mirrorQ(wl.fs[i].quaternion, wr.fs[i].quaternion);
+      if (ch) {
+        wq3.setFromEuler(wE3.set(-ch.rotation.x * f, -ch.rotation.y * f, 0));
+        wl.sh.quaternion.premultiply(wq3); wr.sh.quaternion.premultiply(wq3);
+      }
+    }
 
     return function update(dt, st) {
       dt = clamp(dt || 0, 0, 0.1);
@@ -6783,6 +6865,7 @@ const Animals = (() => {
       S.spd = damp(S.spd, sleeping ? 0 : spdIn, 5, dt);
       const spd = S.spd, it = S.it;
       spring(S, 'air', inAir ? 1 : 0, hop ? 14 : 9, dt);
+      if (WG) spring(S, 'wfly', mode === 'fly' ? 1 : 0, 5, dt);
       spring(S, 'swim', mode === 'swim' || floatSleep || (sleeping && st.swimSleep) ? 1 : 0, 4, dt);
       spring(S, 'climb', climbing ? 1 : 0, 5, dt);
       spring(S, 'move', spdIn > 0.04 && !sleeping ? 1 : 0, 4, dt);
@@ -6963,6 +7046,11 @@ const Animals = (() => {
             af = pu[2] * u + pd[2] * d + pm[2] * m0; aq = (lg.front ? 0.2 : 0.9) * u;
           } else {
             ay = legH * (lg.front ? 0.38 : 0.28); az = lg.front ? legH * 0.08 : -legH * 0.1; af = lg.front ? 1.7 : 0.8; aq = 1.0;
+            // round 11 (anim.wings): flying, the legs tuck in their own pose [up, forward (leg heights), flex, toe]
+            if (WG && WG.legs && S.wfly > 0.001) {
+              const wg = lg.front ? WG.legs.f : WG.legs.h, k = sat(S.wfly);
+              ay = lerp(ay, wg[0] * legH, k); az = lerp(az, wg[1] * legH, k); af = lerp(af, wg[2], k); aq = lerp(aq, wg[3], k);
+            }
           }
           ty = lerp(ty, lg.Pp.y + ay, air); tz = lerp(tz, lg.Pp.z + az, air); flx = lerp(flx, af, air); tq = lerp(tq, aq, air);
         }
@@ -7018,6 +7106,27 @@ const Animals = (() => {
           else { tx = lerp(tx, lg.Pp.x + side * SI.hind[1] * legH, sit); ty = lerp(ty, lg.Pp.y + 0.002, sit); tz = lerp(tz, Hp.z + SI.hind[0] * legH, sit); flx = lerp(flx, lg.a0 + SI.hind[2], sit); tq = lerp(tq, 0.1, sit); }
         }
         solveLeg(lg, root, tx, ty, tz, flx, tq);
+      }
+
+      // ----- wings (round 11, anim.wings) -----
+      if (WG) {
+        const flying = mode === 'fly', vy = st.vy || 0;
+        // glides on still wings while sinking, and between a few wingbeats every so often
+        const f = fract(it / WG.every + R.rnd * 3), bt = WG.beats / (WW.flap.rate * WG.every);
+        S.wgl = damp(S.wgl, flying && vy < WG.climb ? 1 - sstep(0.0, 0.02, f) * (1 - sstep(bt, bt + 0.03, f)) : 0, 3, dt);
+        // happy on the ground: now and then it half opens its wings and shakes them
+        const flutter = hap2 * 0.3 * sstep(0.2, 0.8, Math.sin(it * 3.1)) * still * ground;
+        spring(S, 'wfold', flying ? 0 : 1 - flutter, flying ? 6 : 4, dt);
+        const wf = sat(S.wfold);
+        S.wph += TAU * WW.flap.rate * (1 + sat(vy / 2) * 0.25 - S.wgl * 0.3 + hap2 * (1 - S.wfly) * 1.2) * dt;
+        S.wflap = damp(S.wflap, (1 - S.wgl * 0.92) * (1 - wf), 6, dt);
+        const amp = WW.flap.amp * DEG, droop = sick * 0.12 * (1 - S.wfly);
+        const roll = amp * Math.cos(S.wph) * S.wflap + S.wgl * (1 - wf) * (WW.flap.glide || 6) * DEG - droop;
+        const g = Math.max(0, -Math.sin(S.wph)) * WW.flap.upFold * S.wflap;
+        const twist = Math.sin(S.wph) * (WW.flap.twist || 12) * DEG * S.wflap;
+        wingPose(wf, roll, twist, g, hips.rotation.x + (chest ? chest.rotation.x : 0), chest);
+        // the body rises a little with each downstroke
+        hips.position.y -= Math.sin(S.wph) * (WG.bob || 0) * S.wflap * S.wfly;
       }
 
       // ----- neck and head -----
@@ -8194,7 +8303,7 @@ const Animals = (() => {
     for (const nm in bones) { const b = bones[nm]; b.userData.p0 = b.position.clone(); }
     const rest = {};
     for (const nm in A.rest) rest[nm] = A.rest[nm].clone();
-    return { root, bones, list, skel, meshes, eyes, lashes, eyeMat, lowerBlink: !!A.spec.feathers, noBlink: !!(A.spec.eyes && A.spec.eyes[0] && A.spec.eyes[0].noBlink), mouth, rnd, extras, extraList, rest, belly: A.belly.clone(), eat: A.eat0, age: 1, ageDrop: 0, hooks: [], sneezeReq: false, autoSneeze: true, onSneeze: null, detail: 1, shellM: {} };
+    return { root, bones, list, skel, meshes, eyes, lashes, eyeMat, lowerBlink: A.spec.lowerBlink != null ? !!A.spec.lowerBlink : !!A.spec.feathers, noBlink: !!(A.spec.eyes && A.spec.eyes[0] && A.spec.eyes[0].noBlink), mouth, rnd, extras, extraList, rest, belly: A.belly.clone(), eat: A.eat0, age: 1, ageDrop: 0, hooks: [], sneezeReq: false, autoSneeze: true, onSneeze: null, detail: 1, shellM: {} };
   }
 
   // set proportions for an age (0 newborn .. 1 adult). Not per frame: lerps rest bones, eyes and mouth, sets the
@@ -8467,6 +8576,8 @@ const Animals = (() => {
   COLLAR.snowleopard = COLLAR.cat;
   // round 10: saber-toothed cat
   COLLAR.smilodon = COLLAR.cat;
+  // ===== round 11: winged cat =====
+  COLLAR.wingcat = COLLAR.cat;
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)
