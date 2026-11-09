@@ -882,3 +882,29 @@ the cat's three tail bones.
 - Budget (`VOXEL=0.004 TRIS=4200 TEX=768`): 6.8k triangles plus 192 in whisker cards; 768 maps (color WebP 60, normal
   56), 256 kitten map, fur and whisker textures: 64 KB mesh + 49 + 14 + 10 + 6 + 6 KB, 153 KB of files, about 204 KB in
   the page plus about 33 KB of icons.
+
+## Round 11: the giant panda on the polar bear's file (`panda.py`)
+
+A giant panda, about 1.45 m from the nose to the tail and 0.78 m at the shoulder. `panda.py` runs `polarbear.py` in its
+own module (as `bigcat.load` runs cat.py), replaces its tables and the parts that differ, all in the polar bear's
+units, and `bigcat.install(globals(), B, KP)` scales the hooks by KP = 0.6 into game meters (install works for any
+species file with the usual hooks; the panda adds a plain `grid()`). The game's skeleton is the polar bear's with the
+neck, head and ear bones moved, scaled by the same factor (`SPEC.panda`).
+- Shape: a level back (the polar bear's rump stands higher), a slimmer trunk, a short thick neck with the head close to
+  the shoulders, a big round head (the head frame scaled by HK 1.15, as the cheetah's is scaled down) with full cheeks
+  (the jaw muscles), a crown, a short broad muzzle and a small black nose pad, round thick ears standing on top, small
+  eyes, the polar bear's thick legs, big paws (pigeon-toed in front) and woolly coat in the sculpt.
+- A short mouth line (a long deep cut along the lips read as a grin with white teeth under it).
+- The pattern from 3D masks (`_black()`): eye patches as ovals in the head frame's (side, up) plane, their long axis
+  running down and out from the brow over the cheek; the ears and a ring round their base; the legs (where the leg
+  parts are nearer than the trunk), up over the thighs to the hips; the band over the shoulders, its middle moving
+  forward as it runs down each side to the front legs, and under the chest between them; the neck and the throat stay
+  white. Cubs: the same pattern, the white a little whiter.
+- In the game: it sits back on its haunches to eat with its front paws at its mouth (`eatSit`, a round 11 option of the
+  legged animator, off for every other species: with `eatUp` the food is picked up head down, then the sit pose takes
+  over instead of the hamster's sit-up, the front paws go to `paws` [up, forward, flex] from the shoulder and the neck
+  bends by `neck`, chewing); it climbs (the cat's climb settings), sleeps flat on its front with its head on its paws,
+  sits now and then when it stands still.
+- Budget (`VOXEL=0.006 TRIS=5200 TEX=768`, then rings across the body and the neck): 7.4k triangles, no cards; 768 color
+  and normal maps (WebP 70 and 56: the coat is mostly flat white and black), 256 cub map, 384 fur map: 67 KB mesh + 22 +
+  17 + 4 + 7 KB, 120 KB of files, about 160 KB in the page plus about 49 KB of icons.

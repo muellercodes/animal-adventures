@@ -228,6 +228,8 @@ const Sound = (() => {
       case 'cheetah': for (let i = 0; i < 2; i++) T({ t: t + i * 0.3, f: 1250 * k, f2: 1650 * k, glide: 0.05, dur: 0.14, type: 'triangle', vib: 18, vibAmt: 30, vol: vol * 0.7 }); if (k <= 1) T({ t: t + 0.7, f: 160, f2: 150, dur: 0.6, a: 0.05, type: 'sawtooth', lp: 600, vib: 24, vibAmt: 10, vol: vol * 0.6 }); break;
       // round 11: ocelot: a low yowling meow, longer and hoarser than a house cat's (a kitten mews)
       case 'ocelot': T({ t, f: 330 * k, f2: 520 * k, dur: 0.25, type: 'sawtooth', bp: 1000 * k, q: 1.6, vib: 5, vibAmt: 12, vol: vol * 0.8 }); T({ t: t + 0.22, f: 520 * k, f2: 300 * k, dur: 0.6, a: 0.04, type: 'sawtooth', bp: 800 * k, q: 1.6, vib: 5, vibAmt: 18, vol: vol * 0.8 }); noise({ t: t + 0.2, f: 900 * k, q: 1.0, dur: 0.4, vol: vol * 0.25, pan }); break;
+      // round 11: giant panda: a bleating honk and a soft huff (a cub squeals)
+      case 'panda': if (k > 1) { T({ t, f: 900, f2: 1300, dur: 0.3, type: 'sawtooth', bp: 1600, q: 1.5, vib: 12, vibAmt: 40, vol: vol * 0.7 }); T({ t: t + 0.35, f: 1200, f2: 800, dur: 0.35, type: 'sawtooth', bp: 1500, q: 1.5, vib: 10, vibAmt: 30, vol: vol * 0.6 }); } else { T({ t, f: 300, f2: 340, dur: 0.45, type: 'sawtooth', bp: 800, q: 2, vib: 7, vibAmt: 25, vol: vol * 0.8 }); noise({ t: t + 0.55, f: 420, q: 0.9, dur: 0.2, vol: vol * 0.6, pan }); } break;
     }
   }
 
