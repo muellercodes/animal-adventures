@@ -116,6 +116,8 @@ const SPECIES = {
   caterpillar: { name: 'Monarch caterpillar', many: 'Monarch caterpillars', eats: ['lettuce', 'grass', 'twigs'], fav: 'lettuce', noJump: true, hidden: true, price: 150, baby: 'Caterpillar' },
   // round 11: lion
   lion: { name: 'Lion', many: 'Lions', eats: ['meat', 'fish', 'hotdog'], fav: 'meat', outdoor: true, hunter: true, price: 1600, baby: 'Lion cub' },
+  // round 11: tiger
+  tiger: { name: 'Tiger', many: 'Tigers', eats: ['meat', 'fish', 'hotdog'], fav: 'meat', swim: true, swimSpeed: 2.2, outdoor: true, hunter: true, price: 1700, baby: 'Tiger cub' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
@@ -140,6 +142,8 @@ SHOP.push('snowleopard');
 SHOP.push('smilodon');
 // round 11: lion
 SHOP.push('lion');
+// round 11: tiger
+SHOP.push('tiger');
 // round 7: the shop runs from cheap to dear
 SHOP.sort((a, b) => SPECIES[a].price - SPECIES[b].price);
 // round 8: brachiosaurus (the dearest animal, so it goes last)

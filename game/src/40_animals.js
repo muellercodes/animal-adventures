@@ -6559,6 +6559,33 @@ const Animals = (() => {
     return s;
   };
 
+  // ===== round 11: tiger =====
+  ids.push('tiger');
+  SPEC.tiger = () => {
+    const k = 4.0;
+    const s = bigPanthera(k, {
+      // the house cat's tail, thicker (tools/blender/tiger.py)
+      tb: [['tail1', 'rump', 0.205, -0.19], ['tail2', 'tail1', 0.185, -0.28], ['tail3', 'tail2', 0.15, -0.36]],
+      tail: [[0.207, -0.18, 0.0145], [0.193, -0.245, 0.0128], [0.167, -0.32, 0.0116], [0.13, -0.395, 0.0104], [0.106, -0.443, 0.0082]],
+      length: 0.74, iris: 0xD49A30, nose: 0xC08474, shell: 0.012,
+      anim: (A) => ({
+        tailIdle: [-0.45, 0.05, 0.45], tailRun: [0.15, 0.0, 0.1],
+        // swimming low in the water, the head held up, paddling with all four legs
+        floatDepth: 0.23 * k, swimHead: -0.3, swimPitch: -0.04, paddle: 1.0,
+        sit: Object.assign({}, A.sit, { tail: [0.7, 0.3, 0.2], tailYaw: [0.3, 0.5, 0.5], wrap: [0.8, 1.6, 2.2], wrapY: [0.05, 0.0, -0.02] }),
+      }),
+    });
+    const K = { ground: hex(0xB8622A), white: hex(0xECE6DA), stripe: hex(0x141010) };
+    s.paint = (P, C) => {
+      cset(C, K.ground); cmix(C, K.white, sstep(-0.2, -0.6, P.ny) * 0.85);
+      cmix(C, K.stripe, sstep(0.75, 0.9, Math.sin((P.z / k) * 300 + 3 * noise(P.x * 8, P.y * 8, P.z * 8))) * 0.9);
+      if (P.part === 'ear') cset(C, K.stripe);
+      C.ro = 0.86; C.fl = 0.5;
+    };
+    s.babyPaint = (P, C) => { cmix(C, hex(0xC07E48), 0.25); C.fl = 1; };
+    return s;
+  };
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -8528,6 +8555,8 @@ const Animals = (() => {
   COLLAR.smilodon = COLLAR.cat;
   // ===== round 11: lion =====
   COLLAR.lion = COLLAR.cat;
+  // ===== round 11: tiger =====
+  COLLAR.tiger = COLLAR.cat;
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)

@@ -877,3 +877,24 @@ The lion (`lion.py`, KS 4.2: about 2.05 m from the nose to the rump, 1.05 m at t
 - Budget (`VOXEL=0.0092 TRIS=5000 TEX=768`): 6.9k triangles plus 224 in whisker cards; 768 maps (color WebP 70, normal
   56), 256 cub map, fur and whisker textures: 72 KB mesh and cards + 28 + 18 + 5 + 7 + 5 KB, 138 KB of files, about 185
   KB in the page plus about 33 KB of icons. About 12 minutes for the whole run on the shared machine.
+
+The Bengal tiger (`tiger.py`, KS 4.0: about 1.95 m from the nose to the rump, 1 m at the shoulder, the house cat's tail
+made thicker, about 1.05 m):
+- A long low body with a loose belly fold, heavy shoulders and forelegs, a round head with a ruff of fur flaring over
+  the cheeks (`RUFF`, part of the head's field), a broad muzzle, small round ears set wide with a white spot on each
+  black back (`EAR_SPOT`).
+- The stripes come from `_bands()`: one group of stripes per whole number of a coordinate, each group a single stripe
+  or a pair that forks (the gap between the two opens toward one end), each with its own length and tapering to points
+  at both ends. Down the flanks the coordinate runs along the body and leans back lower down, and the stripes stop a
+  little short of the spine (the half body is mirrored, so stripes reaching the spine would join their twins into bands
+  across it); gentle arcs round the haunch on the thighs (from a far center: a near one drew targets); few on the
+  shoulders and forelegs; broken bars across the forehead (wavy lines there read as a zebra's), lines back over the
+  crown and the white cheeks, a line back from each eye; rings on the tail and a black tip. White on the belly, the
+  insides of the legs, the chest, the cheeks and the ruff, the muzzle and chin, and a spot over each eye; no pale ring
+  round the eyes (`NO_EYERING`: the house cat's ring made goggles).
+- Cubs wear the grown-up's coat (no cub color map: the stripes would cost the page as much again); their fluff is the
+  longer fur shells, and the game gives them the big head and paws.
+- It swims: low in the water (`floatDepth` 0.23 times k), the head and the top of the back out, paddling.
+- Budget (`VOXEL=0.0088 TRIS=4300 TEX=768`): 6.6k triangles plus 224 in whisker cards; 768 maps (color WebP 52: the
+  stripes are most of the bytes, normal 50), fur and whisker textures: 64 KB mesh and cards + 52 + 13 + 5 + 5 KB, 143 KB
+  of files, about 191 KB in the page plus about 31 KB of icons.
