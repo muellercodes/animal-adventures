@@ -148,7 +148,9 @@ const SPECIES = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny', 
   // round 8
   'brachiosaurus',
   // round 10
-  'trex', 'giraffe', 'polarbear', 'snowleopard', 'smilodon', 'bat', 'butterfly'];
+  'trex', 'giraffe', 'polarbear', 'snowleopard', 'smilodon', 'bat', 'butterfly',
+  // round 11
+  'lion', 'tiger', 'leopard', 'cheetah', 'ocelot', 'panda', 'cow', 'camel', 'gecko', 'wingcat', 'unicorn', 'beardeddragon', 'iguana', 'chameleon', 'komodo'];
 const MODES = ['ground', 'air', 'swim', 'fly', 'climb', 'perch', 'sleep'];
 const MAX_IN_WORLD = 60;
 
