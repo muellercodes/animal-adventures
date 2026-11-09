@@ -226,6 +226,8 @@ const Sound = (() => {
       case 'smilodon': if (k > 1) { T({ t, f: 380, f2: 250, dur: 0.4, type: 'sawtooth', bp: 800, q: 1.4, vib: 14, vibAmt: 25, vol: vol * 0.8 }); } else { T({ t, f: 70, f2: 95, dur: 0.6, a: 0.1, type: 'sawtooth', lp: 360, vib: 30, vibAmt: 6, vol: vol * 1.1 }); T({ t: t + 0.55, f: 120, f2: 70, dur: 1.2, a: 0.08, type: 'sawtooth', lp: 480, vib: 26, vibAmt: 8, vol: vol * 1.4 }); noise({ t: t + 0.5, f: 320, q: 0.7, dur: 1.0, vol: vol * 0.45, pan }); } break;
       // round 11: cheetah: high bird-like chirps and a churr (cheetahs do not roar; a cub's chirps are higher and thinner)
       case 'cheetah': for (let i = 0; i < 2; i++) T({ t: t + i * 0.3, f: 1250 * k, f2: 1650 * k, glide: 0.05, dur: 0.14, type: 'triangle', vib: 18, vibAmt: 30, vol: vol * 0.7 }); if (k <= 1) T({ t: t + 0.7, f: 160, f2: 150, dur: 0.6, a: 0.05, type: 'sawtooth', lp: 600, vib: 24, vibAmt: 10, vol: vol * 0.6 }); break;
+      // round 11: ocelot: a low yowling meow, longer and hoarser than a house cat's (a kitten mews)
+      case 'ocelot': T({ t, f: 330 * k, f2: 520 * k, dur: 0.25, type: 'sawtooth', bp: 1000 * k, q: 1.6, vib: 5, vibAmt: 12, vol: vol * 0.8 }); T({ t: t + 0.22, f: 520 * k, f2: 300 * k, dur: 0.6, a: 0.04, type: 'sawtooth', bp: 800 * k, q: 1.6, vib: 5, vibAmt: 18, vol: vol * 0.8 }); noise({ t: t + 0.2, f: 900 * k, q: 1.0, dur: 0.4, vol: vol * 0.25, pan }); break;
     }
   }
 

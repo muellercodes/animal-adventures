@@ -864,3 +864,21 @@ A cheetah (KS 2.6: about 1.25 m from the nose to the rump, 0.78 m at the shoulde
 - Budget (`VOXEL=0.0065 TRIS=4600 TEX=768`): 7.4k triangles plus 192 in whisker cards; 768 maps (color WebP 60, normal
   54), 256 cub map, fur and whisker textures: 74 KB mesh + 43 + 13 + 2 + 6 + 5 KB, 148 KB of files, about 197 KB in the
   page plus about 31 KB of icons.
+
+## Round 11: the ocelot on the cat template (`ocelot.py`)
+
+An ocelot (KS 1.6: about 0.8 m from the nose to the rump, 0.4 m at the shoulder, a 0.35 m tail), the house cat's
+skeleton and animation at about twice its size: a sturdier body (deeper and wider, the belly lower), a thick neck,
+stout legs on big front paws (the "fat hands", a heavier forearm), rounded ears, big golden eyes, a longer muzzle than
+the house cat's with a low ridge down the bridge of the nose and narrower cheeks (its own `head()`), a shorter tail on
+the cat's three tail bones.
+- Paint: chains of open blotches along the flanks from a Worley grid stretched along the body and sloping down toward
+  the rear (`_marks()`: black rims, broken here and there, cinnamon centers), four bold nape stripes from the crown to
+  the shoulders, solid spots on the legs, the white belly and the head, a banded tail with a dark tip, two black stripes
+  on each cheek and a line from the inner corner of each eye down beside the nose (`_face()`), white rings round the
+  eyes (narrow: a wide ring made cartoon eyes), black ear backs with a white spot in the middle of each.
+- Kittens: grayer and softer, the marks bold, fuzzy and filled in, blue eyes.
+- In the game: walk 0.9, run 6 m/s; climbs and swims with the house cat's poses (the head held a little higher swimming).
+- Budget (`VOXEL=0.004 TRIS=4200 TEX=768`): 6.8k triangles plus 192 in whisker cards; 768 maps (color WebP 60, normal
+  56), 256 kitten map, fur and whisker textures: 64 KB mesh + 49 + 14 + 10 + 6 + 6 KB, 153 KB of files, about 204 KB in
+  the page plus about 33 KB of icons.

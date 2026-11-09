@@ -6574,6 +6574,43 @@ const Animals = (() => {
     return s;
   };
 
+  // ===== round 11: ocelot =====
+  // An ocelot on the big-cat scaler (tools/blender/ocelot.py, KS 1.6): the house cat's skeleton and animation at about
+  // twice its size, sturdier, with a shorter tail; it climbs and swims
+  ids.push('ocelot');
+  SPEC.ocelot = () => {
+    const k = 1.6, s = bigCat(k);
+    s.size.length = 0.69 * k;   // nose to tail tip
+    const tl = s.fur.find((fp) => fp.name === 'tail');
+    tl.keys = [[0.207, -0.18, 0.016], [0.193, -0.245, 0.015], [0.163, -0.322, 0.014], [0.133, -0.38, 0.012], [0.122, -0.4, 0.008]]
+      .map((q) => [0, q[0] * k, q[1] * k, q[2] * k, q[2] * k, q[2] * k]);
+    for (const fp of s.fur) if (fp.name === 'body' || fp.name === 'fleg') fp.keys = fp.keys.map((q) => [q[0], q[1], q[2], q[3] * 1.1, q[4] * 1.1, q[5] * 1.1]);
+    // the fallback's coat: tawny gold with dark blotches, a white belly
+    const K = { gold: hex(0xAE8654), back: hex(0x9C7444), white: hex(0xDCD6C8), spot: hex(0x17120E) };
+    s.paint = (P, C) => {
+      cset(C, K.gold); cmix(C, K.back, sstep(0.3, 0.9, P.ny) * 0.5); cmix(C, K.white, sstep(-0.2, -0.7, P.ny) * 0.85);
+      cmix(C, K.spot, sstep(0.6, 0.7, noise(P.x * 40, P.y * 60, P.z * 25)) * 0.8);
+      C.ro = 0.84; C.fl = 0.6;
+    };
+    s.babyPaint = (P, C) => { cmix(C, hex(0x8A7A66), 0.35); C.fl = 1; };
+    Object.assign(s.eyes[0], { iris: 0xA8782E });
+    s.accent[0].col = 0xA86A5E;
+    s.shell.len = 0.01 * k;
+    s.baby = Object.assign({}, s.baby, { head: 1.6, ear: 1.15, leg: [0.72, 1.2], tail: 0.55 });
+    s.modelSpec = { baby: { eye: 1.05, fluff: 0, leg: [0.7, 1.03], body: [1.12, 1.12, 0.72] } };
+    const A = s.anim;
+    Object.assign(A, {
+      walk: 0.9, trot: 2.0, run: 6.0, maxRate: 6.5,
+      // a low, careful prowl; the tail carried low with the tip lifted
+      nod: 0.03, trotNeck: 0.06, runNeck: 0.16,
+      tailIdle: [-0.3, 0.15, 0.3], tailRun: [0.2, 0.0, 0.0], tailWalk: 0.05, tailSway: 0.08, tailFlick: 0.2, wag: 0.12,
+      // swims well, the head held up
+      swimHead: -0.3,
+    });
+    delete A.tailWalkLift;
+    return s;
+  };
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -8543,6 +8580,8 @@ const Animals = (() => {
   COLLAR.smilodon = COLLAR.cat;
   // ===== round 11: cheetah
   COLLAR.cheetah = COLLAR.cat;
+  // ===== round 11: ocelot
+  COLLAR.ocelot = COLLAR.cat;
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)
