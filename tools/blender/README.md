@@ -609,12 +609,19 @@ A dromedary at full size: 3.0 m from the lips to the rump, 1.9 m at the shoulder
   each toe; knee calluses and the chest pad are sculpted and painted dark.
 - The head: a rounded skull, heavy brows over hooded eyes (`LID_OFF` below the middle, long lashes), small round ears
   standing up at the back, slit nostrils on top of the muzzle, a split upper lip over a droopy lower lip.
+- Standing tall behind (second pass): the croup runs nearly level from the hump to the tail, the stifle sits high under
+  the belly (1.24 m) inside a flank fold, the hock well behind (z -1.02) and about level with the knees in front, the
+  hind cannon upright. The first rig had the stifle low and forward and the hock under the rump, so the camel looked
+  like it was squatting; the rig's hind leg pivots and the sculpt's `HIND` sweep moved together.
 - Kneeling to sleep is the game's `fold` style with the legs tucked straight under (`front: [0.1, 1.6, 1.4]`,
-  `hind: [0.1, 0, 0.12]`, no roll) and the neck held up (`neck: [0.2, -0.2]`; the chest pad is the belly point).
+  `hind: [0.19, 0, 0.12]`, the hind feet a little forward so they stay under the rump with the longer hind leg, no
+  roll) and the neck held up (`neck: [0.2, -0.2]`; the chest pad is the belly point).
   Eating it splays its front legs a little without dropping (a camel's neck reaches the ground).
 - The calf: its own pale color map (`paint_baby`, darker than it looks in a photo: the game's sunlight washes it
   out) and woolly fur shells on babies only (`FUR` with `babyOnly`, 5 cm in rig units), the game's baby maps (very
   long legs, a short body, a shorter neck) with `modelSpec.baby.eye` 1.0 (the sculpted sockets grow with the head).
+  Its closed lids get their own color (`babyLidCol` from `paint_baby` round the eye in `stats()`): with the adult's
+  they showed as brown balls on the pale calf. The gecko hatchling does the same.
 
 
 ## Round 11: the leopard gecko (`gecko.py`)
@@ -916,8 +923,8 @@ triangles (7.4k in the game with the eyes); 768 color map with both sides (1536 
 (WebP 58), no calf map (the calf has the same patches): 38 KB mesh (with the calf's udder offsets) + 32 + 15 KB, about
 116 KB in the page plus about 61 KB of icons. About 9 minutes for the whole run on the shared machine.
 
-Camel (`VOXEL=0.008 TRIS=3700 TEX=768 WEIGHTS=transfer`, then rings across the neck, the legs and the tail): 7.1k
-triangles (7.8k in the game with the eyes; the calf's fur shells at detail 2 on top); 768 color (WebP 72) and normal
+Camel (`VOXEL=0.008 TRIS=3700 TEX=768 WEIGHTS=transfer`, then rings across the neck, the legs and the tail): 7.3k
+triangles (8.0k in the game with the eyes; the calf's fur shells at detail 2 on top); 768 color (WebP 72) and normal
 (WebP 58) maps, 256 calf color map, 384 fur map (calf only): 49 KB mesh (with the calf's hump offsets) + 12 + 14 + 1 +
 5 KB, about 112 KB in the page plus about 55 KB of icons. About 9 minutes for the whole run.
 

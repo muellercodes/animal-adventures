@@ -498,8 +498,12 @@ BABY_SIZE = 256
 def stats(P, N, c, col):
     R = _regions(P, N, c)
     m = R['lid'] * sstep(EYE_R + 0.0018, EYE_R + 0.0009, R['eyeD'])
+    rgb = lambda v: int(round(v[0] * 255)) << 16 | int(round(v[1] * 255)) << 8 | int(round(v[2] * 255))
     lid = (col * m[:, None]).sum(0) / max(m.sum(), 1e-6)
-    return {'lidCol': int(round(lid[0] * 255)) << 16 | int(round(lid[1] * 255)) << 8 | int(round(lid[2] * 255))}
+    # the hatchling's closed lids take its own dark head round the eye (the adult's yellow showed on it)
+    colb, _ = paint(P, N, c, baby=True)
+    lidb = (colb * m[:, None]).sum(0) / max(m.sum(), 1e-6)
+    return {'lidCol': rgb(np.clip(lid, 0, 1)), 'babyLidCol': rgb(np.clip(lidb, 0, 1))}
 
 
 def meta(st):
@@ -507,7 +511,7 @@ def meta(st):
     up, dn = (LID_OFF + LID_H) / r, (LID_OFF - LID_H) / r
     return {
         'eye': {'p': [round(float(v), 5) for v in EYE_C], 'r': round(r, 5), 'dir': [round(float(v), 4) for v in EYE_DIR], 'lid': [round(up, 3), round(dn, 3), 0.2],
-                'iris': 0x9A9488, 'irisR': 0.97, 'pupil': 'v', 'pupilR': 0.34, 'rim': 0x3A3630, 'lidCol': st['lidCol']},
+                'iris': 0x9A9488, 'irisR': 0.97, 'pupil': 'v', 'pupilR': 0.34, 'rim': 0x3A3630, 'lidCol': st['lidCol'], 'babyLidCol': st['babyLidCol']},
         'mouth': [round(float(v), 4) for v in MOUTH],
         'sides': True,
         'tint': [1.0, 1.0, 1.0], 'babyTint': [1.0, 1.0, 1.0], 'rim': [0.05, 0.05, 0.05], 'flat': 0xE6B83A,
