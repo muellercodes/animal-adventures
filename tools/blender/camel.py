@@ -17,7 +17,7 @@ import bird as BD
 from ungulate import local as _local, local_n as _local_n, mirror as _mirror
 
 ID = 'camel'
-BOUNDS = (V(-0.52, -0.001, -1.24), V(0.52, 2.28, 2.04))
+BOUNDS = (V(-0.52, -0.001, -1.27), V(0.52, 2.28, 2.04))
 TAIL_RINGS = 0
 DISSOLVE_DEGENERATE = True
 BAKE_DIST = (0.015, 0.045, 0.15)
@@ -25,7 +25,7 @@ BAKE_DIST = (0.015, 0.045, 0.15)
 # ---------- landmarks (left side, +x) ----------
 XF, XH = 0.22, 0.22
 FOOT_F = V(XF, 0.0, 0.5)
-FOOT_H = V(XH, 0.0, -0.82)
+FOOT_H = V(XH, 0.0, -0.95)
 # head frame: from the poll forward (a little down) along the face to the lips
 HO = V(0.0, 2.07, 1.41)
 HA = nrm([0.0, -0.22, 0.975])
@@ -56,9 +56,9 @@ HUMP = (V(0.0, 1.9, -0.2), V(0.25, 0.32, 0.56))
 
 # trunk: z, top, yw, bottom, half width, exponents (the hump is its own part on top)
 TRUNK = [
-    (-1.07, 1.66, 1.55, 1.38, 0.1, 2.2, 2.0),
-    (-0.96, 1.76, 1.53, 1.27, 0.21, 2.2, 2.0),
-    (-0.72, 1.85, 1.57, 1.32, 0.27, 2.2, 2.0),
+    (-1.08, 1.75, 1.6, 1.42, 0.1, 2.2, 2.0),
+    (-0.97, 1.84, 1.59, 1.3, 0.21, 2.2, 2.0),
+    (-0.72, 1.89, 1.6, 1.32, 0.27, 2.2, 2.0),
     (-0.42, 1.9, 1.58, 1.28, 0.3, 2.2, 2.0),
     (-0.08, 1.92, 1.57, 1.19, 0.32, 2.2, 2.0),
     (0.25, 1.9, 1.54, 1.1, 0.3, 2.2, 2.0),
@@ -98,21 +98,21 @@ FORE = [
     (0.08, 0.47, 0.045, 0.045, 0.05, 2.2, 2.2, 0.22),
 ]
 HIND = [
-    (1.62, -0.76, 0.18, 0.18, 0.15, 2.0, 2.0, 0.18),
-    (1.14, -0.55, 0.13, 0.16, 0.115, 2.0, 2.0, 0.235),
-    (0.9, -0.76, 0.075, 0.1, 0.068, 2.0, 2.0, 0.23),
-    (0.68, -0.94, 0.045, 0.06, 0.05, 2.1, 2.1, 0.22),
-    (0.4, -0.9, 0.034, 0.04, 0.034, 2.2, 2.2, 0.22),
-    (0.17, -0.86, 0.045, 0.045, 0.045, 2.2, 2.2, 0.22),
-    (0.08, -0.85, 0.045, 0.045, 0.05, 2.2, 2.2, 0.22),
+    (1.66, -0.79, 0.21, 0.2, 0.155, 2.0, 2.0, 0.18),
+    (1.24, -0.6, 0.14, 0.17, 0.115, 2.0, 2.0, 0.235),
+    (0.98, -0.82, 0.075, 0.1, 0.068, 2.0, 2.0, 0.23),
+    (0.7, -1.02, 0.045, 0.06, 0.05, 2.1, 2.1, 0.22),
+    (0.42, -1.0, 0.034, 0.04, 0.034, 2.2, 2.2, 0.22),
+    (0.17, -0.99, 0.045, 0.045, 0.045, 2.2, 2.2, 0.22),
+    (0.08, -0.98, 0.045, 0.045, 0.05, 2.2, 2.2, 0.22),
 ]
 TAIL = [
-    (1.7, -1.02, 0.045, 0.045, 0.045, 2.0, 2.0),
-    (1.6, -1.1, 0.032, 0.032, 0.03, 2.0, 2.0),
-    (1.4, -1.135, 0.022, 0.022, 0.02, 2.0, 2.0),
-    (1.26, -1.145, 0.018, 0.018, 0.017, 2.0, 2.0),
+    (1.78, -1.03, 0.045, 0.045, 0.045, 2.0, 2.0),
+    (1.68, -1.11, 0.032, 0.032, 0.03, 2.0, 2.0),
+    (1.48, -1.15, 0.022, 0.022, 0.02, 2.0, 2.0),
+    (1.34, -1.16, 0.018, 0.018, 0.017, 2.0, 2.0),
 ]
-TUFT = (V(0.0, 1.22, -1.15), V(0.038, 0.13, 0.034))
+TUFT = (V(0.0, 1.3, -1.165), V(0.038, 0.13, 0.034))
 
 
 def trunk_base(P):
@@ -121,7 +121,9 @@ def trunk_base(P):
     # the shoulder, the withers rising into the hump, the chest pad, the haunch
     d = smin(d, ellipsoid(Q, V(0.2, 1.62, 0.45), V(0.12, 0.28, 0.2)), 0.12)
     d = smin(d, ellipsoid(Q, V(0.0, 1.1, 0.34), V(0.11, 0.05, 0.15)), 0.08)
-    d = smin(d, ellipsoid(Q, V(0.19, 1.62, -0.82), V(0.09, 0.15, 0.15)), 0.1)
+    d = smin(d, ellipsoid(Q, V(0.19, 1.66, -0.84), V(0.09, 0.16, 0.15)), 0.1)
+    # a flank fold from the belly to the stifle (the thigh is wrapped in skin down to it)
+    d = smin(d, U.eround(Q, V(0.2, 1.33, -0.36), V(0.24, 1.28, -0.58), 0.1, 0.085, 0.6, 0.22), 0.1)
     return d
 
 
@@ -227,9 +229,9 @@ def fleg(P):
 def hleg(P):
     Q = _mirror(P)
     d = sweep(Q, HIND, mirror_x=False)
-    d = smin(d, ellipsoid(Q, V(XH, 0.69, -0.95), V(0.048, 0.065, 0.065)), 0.03)       # hock
-    d = smin(d, ellipsoid(Q, V(XH, 0.73, -1.0), V(0.026, 0.045, 0.03)), 0.025)        # point of the hock
-    d = smin(d, ellipsoid(Q, V(XH, 0.18, -0.86), V(0.045, 0.045, 0.048)), 0.025)     # fetlock
+    d = smin(d, ellipsoid(Q, V(XH, 0.71, -1.03), V(0.048, 0.065, 0.065)), 0.03)       # hock
+    d = smin(d, ellipsoid(Q, V(XH, 0.75, -1.08), V(0.026, 0.045, 0.03)), 0.025)       # point of the hock
+    d = smin(d, ellipsoid(Q, V(XH, 0.18, -0.99), V(0.045, 0.045, 0.048)), 0.025)     # fetlock
     return d
 
 
@@ -250,9 +252,9 @@ HEAD_BOX = (V(-0.25, 1.72, 1.25), V(0.25, 2.25, 2.04))
 EAR_BOX = (V(-0.2, 1.95, 1.28), V(0.2, 2.25, 1.5))
 NECK_BOX = (V(-0.36, 1.05, 0.0), V(0.36, 2.15, 1.6))
 FL_BOX = (V(-0.45, -0.05, 0.15), V(0.45, 1.8, 0.75))
-HL_BOX = (V(-0.46, -0.05, -1.15), V(0.46, 1.9, -0.35))
-FOOT_BOX = (V(-0.36, -0.05, -1.0), V(0.36, 0.14, 0.7))
-TAIL_BOX = (V(-0.1, 1.0, -1.24), V(0.1, 1.8, -0.95))
+HL_BOX = (V(-0.46, -0.05, -1.24), V(0.46, 1.95, -0.35))
+FOOT_BOX = (V(-0.36, -0.05, -1.13), V(0.36, 0.14, 0.7))
+TAIL_BOX = (V(-0.1, 1.08, -1.26), V(0.1, 1.88, -0.95))
 
 
 def parts(P):
@@ -275,7 +277,7 @@ def shape(P):
     d = smin(d, ft, 0.03)
     d = smin(d, nl, 0.006)
     tl, tf = _local_n(P, *TAIL_BOX, tail, 2)
-    k = 0.05 * sstep(1.55, 1.65, P[:, 1]) + 1e-4
+    k = 0.05 * sstep(1.63, 1.73, P[:, 1]) + 1e-4
     h = np.maximum(k - np.abs(d - tl), 0) / k
     return np.minimum(d, tl) - h * h * k * 0.25
 
@@ -285,7 +287,7 @@ def grid(h):
     lo, hi = BOUNDS
     xs = axis_steps(0.0, hi[0], [(0.0, 0.12, h * 0.55), (0.14, 0.32, h * 0.5)], h)
     ys = axis_steps(lo[1], hi[1], [(lo[1], 0.2, h * 0.35), (0.2, 0.75, h * 0.55), (1.75, hi[1], h * 0.6)], h)
-    zs = axis_steps(lo[2], hi[2], [(-1.05, -0.65, h * 0.55), (0.3, 0.65, h * 0.55), (1.3, hi[2], h * 0.45)], h)
+    zs = axis_steps(lo[2], hi[2], [(-1.15, -0.75, h * 0.55), (0.3, 0.65, h * 0.55), (1.3, hi[2], h * 0.45)], h)
     return xs, ys, zs
 
 
@@ -293,7 +295,7 @@ PATCHES = [
     (EYE_C * V(0, 1, 1) + V(0.04, -0.05, -0.05), EYE_C * V(0, 1, 1) + V(0.14, 0.05, 0.05), 0.0018),   # eye and lids
     (V(0.0, 1.75, 1.82), V(0.1, 2.0, 2.04), 0.0025),                                                  # muzzle, nostrils, lips
     (V(0.1, -0.001, 0.36), V(0.34, 0.12, 0.66), 0.003),                                                # front foot
-    (V(0.1, -0.001, -0.96), V(0.34, 0.12, -0.66), 0.003),                                              # hind foot
+    (V(0.1, -0.001, -1.1), V(0.34, 0.12, -0.8), 0.003),                                                # hind foot
 ]
 
 PREVIEW = {
@@ -319,7 +321,7 @@ def keep(P):
     er = sstep(-0.01, 0.02, a) * sstep(0.05, 0.03, np.abs(c)) * sstep(0.04, 0.015, np.abs(n)) * 0.7
     lg = sstep(0.75, 0.55, Pm[:, 1]) * sstep(0.12, 0.16, Pm[:, 0]) * 0.5
     ft = sstep(0.12, 0.07, Pm[:, 1]) * 0.62
-    tl = U.box(Pm, TAIL_BOX[0] * V(0, 1, 1), TAIL_BOX[1]).astype(F) * sstep(-1.06, -1.09, Pm[:, 2]) * 0.6
+    tl = U.box(Pm, TAIL_BOX[0] * V(0, 1, 1), TAIL_BOX[1]).astype(F) * sstep(-1.075, -1.1, Pm[:, 2]) * 0.6
     base = np.full(len(P), 0.38, F)
     return np.maximum.reduce([base, e, hd, mz, er, lg, ft, tl]).astype(F)
 
@@ -330,10 +332,10 @@ BEND = [
     (V(XF, 1.5, 0.52), V(XF, 1.14, 0.36), 0.08, 0.2),         # upper arm
     (V(XF, 1.14, 0.36), V(XF, 0.62, 0.43), 0.08, 0.1),        # forearm
     (V(XF, 0.62, 0.43), V(XF, 0.16, 0.46), 0.08, 0.075),      # cannon
-    (V(XH, 1.55, -0.74), V(XH, 1.12, -0.5), 0.08, 0.22),      # thigh
-    (V(XH, 1.12, -0.5), V(XH, 0.68, -0.93), 0.08, 0.12),      # gaskin
-    (V(XH, 0.68, -0.93), V(XH, 0.16, -0.86), 0.08, 0.075),    # hind cannon
-    (V(0.0, 1.66, -1.06), V(0.0, 1.15, -1.15), 0.08, 0.05),   # tail
+    (V(XH, 1.6, -0.77), V(XH, 1.24, -0.58), 0.08, 0.22),      # thigh
+    (V(XH, 1.24, -0.58), V(XH, 0.7, -1.02), 0.08, 0.12),      # gaskin
+    (V(XH, 0.7, -1.02), V(XH, 0.17, -0.99), 0.08, 0.075),     # hind cannon
+    (V(0.0, 1.74, -1.07), V(0.0, 1.22, -1.17), 0.08, 0.05),   # tail
 ]
 
 
@@ -342,7 +344,7 @@ def lowpoly_fix(bm, hi):
     tr = MF.tree(hi)
     for a, b, pitch, reach in BEND:
         if a[0] == 0 and b[2] < -1.0:
-            ok = lambda c, p0, r, reach=reach: r < reach and abs(c.x) < 0.06 and c.z < -1.06
+            ok = lambda c, p0, r, reach=reach: r < reach and abs(c.x) < 0.06 and c.z < -1.075
         elif a[0] == 0 and b[0] == 0:
             ok = lambda c, p0, r, reach=reach: r < reach and abs(c.x) < 0.3 and c.z > 0.52
         else:
@@ -375,13 +377,13 @@ def uv_regions(P):
     lab[nk & (z > 1.12)] = 1
     lab[(L[:, 2] > -0.05) & (z > 1.33) & (y > 1.75)] = 0
     fl = (x > 0.11) & (y < 1.3) & (z > 0.0)
-    hl = (x > 0.11) & (y < 1.35) & (z <= 0.0) & (z > -1.07)
+    hl = (x > 0.11) & (y < 1.4) & (z <= 0.0) & (z > -1.25)
     lab[fl] = 4
     lab[fl & (y < 0.64)] = 5
     lab[hl] = 6
     lab[hl & (y < 0.7)] = 7
     lab[y < 0.1] = 8
-    lab[(z < -1.06) & (y < 1.68) & (x < 0.07)] = 9
+    lab[(z < -1.075) & (y < 1.76) & (x < 0.07)] = 9
     return lab
 
 
@@ -440,7 +442,7 @@ WEIGHT_SMOOTH = (4, 0.5)
 
 def bone_tips(P):
     t = {'hips': P['chest'], 'chest': P['neck'], 'neck': P['neck2'], 'neck2': P['neck3'], 'neck3': P['head'],
-         'head': hp(HL, -0.06), 'tail1': P['tail2'], 'tail2': V(0, 1.08, -1.15)}
+         'head': hp(HL, -0.06), 'tail1': P['tail2'], 'tail2': V(0, 1.16, -1.17)}
     for s, sg in (('L', 1), ('R', -1)):
         m = V(sg, 1, 1)
         t['thigh' + s] = P['shin' + s]; t['shin' + s] = P['hmeta' + s]; t['hmeta' + s] = P['hpaw' + s]; t['hpaw' + s] = (FOOT_H + V(0, 0.03, 0.1)) * m
@@ -493,7 +495,7 @@ def fix_weights(W, wpos, names, G, weld):
         Wn[m] *= (1 - k)[:, None]
         Wn[m, bi['ear' + s]] += k
         for fr, bones, ys, gird in ((True, ['arm', 'fore', 'fmeta', 'fpaw'], [0.0, 0.16, 0.62, 1.14, 1.52], 'chest'),
-                                    (False, ['thigh', 'shin', 'hmeta', 'hpaw'], [0.0, 0.16, 0.68, 1.12, 1.58], 'hips')):
+                                    (False, ['thigh', 'shin', 'hmeta', 'hpaw'], [0.0, 0.17, 0.7, 1.24, 1.66], 'hips')):
             m = leg & (side == s) & ((z > -0.15) == fr)
             if not m.any():
                 continue
@@ -507,7 +509,7 @@ def fix_weights(W, wpos, names, G, weld):
         Wn[mf & (z > -0.15), bi['fpaw' + s]] = 1
         Wn[mf & (z <= -0.15), bi['hpaw' + s]] = 1
     m = own['tail']
-    ut = np.interp(y[m], [1.05, 1.38, 1.68], [2.0, 1.0, 0.0]).astype(F)
+    ut = np.interp(y[m], [1.13, 1.46, 1.76], [2.0, 1.0, 0.0]).astype(F)
     g = sstep(0.25, -0.1, ut)
     for nm, w in BD.blend_chain(ut, ['tail1', 'tail2'], 0.2):
         Wn[m, bi[nm]] += w * (1 - g)
@@ -565,7 +567,7 @@ def _regions(P, N, c):
     a, cc, n = U.ear_coords(Pm, EAR_B, EAR_A, EAR_N)
     r['ear'] = sstep(0.006, 0.001, c['ear']) * sstep(-0.01, 0.02, a)
     r['earIn'] = sstep(-0.1, 0.45, Nm @ EAR_N) * r['ear']
-    r['tuft'] = sstep(0.012, 0.0, c['tuft']) * sstep(1.38, 1.3, y)
+    r['tuft'] = sstep(0.012, 0.0, c['tuft']) * sstep(1.46, 1.38, y)
     # the long hair: the top of the hump, the shoulders, the throat fringe
     r['humpHair'] = sstep(0.03, -0.01, c['hump'] - c['trunk']) * sstep(2.0, 2.12, y)
     r['throat'] = sstep(0.0, 0.02, c['neck'] - 0.0) * 0 + sstep(0.03, -0.01, c['neck']) * sstep(0.7, 0.85, z) * sstep(1.05, 0.95, z) * sstep(1.5, 1.38, y) * sstep(-0.1, -0.5, N[:, 1] + 0.3 * N[:, 2])
@@ -677,7 +679,9 @@ BABY_MAP = (256, 60)
 
 def stats(P, N, c, col):
     R = _regions(P, N, c)
-    return {'lidCol': U.lid_color(col, R['eyeD'], EYE_R)}
+    # the calf's closed lids take the calf's own coat round the eye (with the adult's they showed as brown balls)
+    colb, _ = paint(P, N, c, baby=True)
+    return {'lidCol': U.lid_color(col, R['eyeD'], EYE_R), 'babyLidCol': U.lid_color(colb, R['eyeD'], EYE_R)}
 
 
 def meta(st):
@@ -685,7 +689,7 @@ def meta(st):
     up, dn = (LID_OFF + LID_H) / r, (LID_OFF - LID_H) / r
     return {
         'eye': {'p': [round(float(v), 5) for v in EYE_C], 'r': round(r, 5), 'dir': [round(float(v), 4) for v in EYE_DIR], 'lid': [round(up, 3), round(dn, 3), 0.3],
-                'iris': 0x2A1A10, 'irisR': 0.97, 'pupil': 'h', 'pupilR': 0.45, 'rim': 0x0C0705, 'lidCol': st['lidCol'],
+                'iris': 0x2A1A10, 'irisR': 0.97, 'pupil': 'h', 'pupilR': 0.45, 'rim': 0x0C0705, 'lidCol': st['lidCol'], 'babyLidCol': st['babyLidCol'],
                 'lash': {'n': 18, 'len': 0.024, 'col': 0x1E1612}},
         'collar': {'at': ['neck2', 'neck3', 0.6], 'r': 0.8},
         'mouth': [round(float(v), 4) for v in MOUTH],

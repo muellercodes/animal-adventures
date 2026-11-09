@@ -70,7 +70,8 @@
   "pupil": "v",
   "pupilR": 0.34,
   "rim": 3814960,
-  "lidCol": 9270845
+  "lidCol": 9270845,
+  "babyLidCol": 5194284
  },
  "mouth": [
   0.0,

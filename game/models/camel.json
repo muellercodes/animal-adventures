@@ -3,24 +3,24 @@
  "id": "camel",
  "data": "camel.bin",
  "enc": "deflate",
- "raw": 79518,
+ "raw": 81285,
  "maps": {
   "color": "camel-color.webp",
   "normal": "camel-normal.webp",
   "babyColor": "camel-color-baby.webp",
   "fur": "camel-fur.webp"
  },
- "nv": 2156,
- "ntri": 3551,
- "nbv": 2156,
- "nbt": 3551,
+ "nv": 2197,
+ "ntri": 3661,
+ "nbv": 2197,
+ "nbt": 3661,
  "bbox": [
-  -0.358295,
-  0.000488,
-  -1.184835,
-  0.358295,
-  2.220232,
-  1.960658
+  -0.362195,
+  0.000438,
+  -1.19987,
+  0.362195,
+  2.220261,
+  1.960726
  ],
  "bones": [
   "hips",
@@ -74,6 +74,7 @@
   "pupilR": 0.45,
   "rim": 788229,
   "lidCol": 8610105,
+  "babyLidCol": 9600092,
   "lash": {
    "n": 18,
    "len": 0.024,
@@ -123,7 +124,7 @@
   "babyLean": 0.45,
   "shade": 0.8,
   "babyOnly": true,
-  "uvm": 2.7034
+  "uvm": 2.6289
  },
- "bdelta": 0.249619
+ "bdelta": 0.250893
 }
