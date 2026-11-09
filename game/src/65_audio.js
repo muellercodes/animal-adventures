@@ -230,6 +230,10 @@ const Sound = (() => {
       case 'camel': if (k > 1) { T({ t, f: 330, f2: 270, dur: 0.5, type: 'sawtooth', bp: 900, q: 2, vib: 7, vibAmt: 20, vol: vol * 0.7 }); } else { T({ t, f: 92, f2: 120, dur: 0.5, a: 0.1, type: 'sawtooth', lp: 480, vib: 24, vibAmt: 10, vol: vol * 1.2 }); T({ t: t + 0.45, f: 120, f2: 78, dur: 0.9, type: 'sawtooth', lp: 420, vib: 18, vibAmt: 12, vol: vol * 1.2 }); noise({ t: t + 0.1, f: 500, q: 0.8, dur: 1.1, vol: vol * 0.35, pan }); } break;
       // round 11: leopard gecko (soft chirps; the baby squeaks higher)
       case 'gecko': for (let i = 0; i < 3; i++) T({ t: t + i * 0.09, f: 2400 * (k > 1 ? 1.25 : 1), f2: 1900 * (k > 1 ? 1.25 : 1), dur: 0.045, type: 'triangle', vol: vol * 0.45 }); break;
+      // round 11: winged cat: a soft chirping trill and a short sweet meow (a kitten's is higher)
+      case 'wingcat': for (let i = 0; i < 3; i++) T({ t: t + i * 0.045, f: 900 * k, f2: 1150 * k, dur: 0.04, type: 'triangle', vol: vol * 0.45 }); T({ t: t + 0.2, f: 600 * k, f2: 820 * k, dur: 0.16, type: 'sawtooth', bp: 1600 * k, q: 1.8, vib: 6, vibAmt: 12, vol: vol * 0.7 }); T({ t: t + 0.34, f: 820 * k, f2: 560 * k, dur: 0.34, a: 0.03, type: 'sawtooth', bp: 1200 * k, q: 1.8, vib: 6, vibAmt: 14, vol: vol * 0.7 }); break;
+      // round 11: unicorn: a horse's whinny, higher, softer and more musical, with a shimmer on top (a foal's is higher)
+      case 'unicorn': T({ t, f: 760 * k, f2: 420 * k, dur: 1.0, type: 'sawtooth', bp: 1300 * k, q: 1.6, vib: 11, vibAmt: 45, vol: vol * 0.8 }); for (let i = 0; i < 4; i++) T({ t: t + 0.1 + i * 0.12, f: (1900 + i * 260) * k, f2: (2050 + i * 260) * k, dur: 0.3, type: 'sine', vol: vol * 0.12 }); break;
     }
   }
 
