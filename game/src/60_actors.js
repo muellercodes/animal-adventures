@@ -12,7 +12,10 @@ const FEAR = { chicken: 3, duck: 4.5, swan: 3, frog: 2.5, lizard: 3, snake: 2, b
   // round 7
   lab: 1.5, dalmatian: 1.5, husky: 2, beagle: 2, chihuahua: 3, blackcat: 4, orangecat: 4, calico: 4, siamese: 4, whitecat: 4, hamster: 3, eagle: 6, chickadee: 3, rhino: 0, cockatiel: 3, crocodile: 2, brachiosaurus: 0,
   // round 10
-  trex: 0, giraffe: 5, polarbear: 2, snowleopard: 4, smilodon: 1, bat: 4, butterfly: 3 };
+  trex: 0, giraffe: 5, polarbear: 2, snowleopard: 4, smilodon: 1, bat: 4, butterfly: 3,
+  // round 11
+  lion: 0, tiger: 0, leopard: 2, cheetah: 4, ocelot: 4, panda: 2, cow: 3, camel: 3, gecko: 3, wingcat: 4, unicorn: 6,
+  beardeddragon: 3, iguana: 3, chameleon: 2, komodo: 0 };
 // extra bump circles along a long body: [how far ahead of the body's middle, as a part of its length; radius, as a part
 // of its radius]. A brachiosaurus's middle is at its shoulders: the trunk runs back from there to its hips and tail
 // (its neck is high up, so fences pass under it)
@@ -20,7 +23,7 @@ const FEAR = { chicken: 3, duck: 4.5, swan: 3, frog: 2.5, lizard: 3, snake: 2, b
 // tail and the head are high, above fences). A giraffe's middle is its shoulders.
 const BODY_COL = { long: [[0.32, 0.8], [-0.32, 0.8]], brachiosaurus: [[0.14, 0.92], [-0.23, 0.92], [-0.42, 0.3]],
   trex: [[0.15, 0.9], [-0.105, 0.9], [-0.21, 0.9]], giraffe: [[0.26, 1.0], [-0.36, 1.0]] };
-const NOCTURNAL = { owl: 1, frog: 1, fox: 1, raccoon: 1, hedgehog: 1, hamster: 1, bat: 1 };
+const NOCTURNAL = { owl: 1, frog: 1, fox: 1, raccoon: 1, hedgehog: 1, hamster: 1, bat: 1, gecko: 1, ocelot: 1, leopard: 1 };
 // round 10: a butterfly starts out as a caterpillar. Below PUPA_AGE its body is the caterpillar (b.form, a hidden
 // species), and when it grows past it, it makes a chrysalis and comes out a grown monarch (70_game: Pupa). A butterfly
 // is full size when it comes out, so its body does not grow after that.
@@ -1000,6 +1003,7 @@ const Folk = {
 const CAGED = { lizard: 'terrarium', snake: 'terrarium', frog: 'terrarium', turtle: 'terrarium', parrot: 'birdCage', bunny: 'hutch', hedgehog: 'hutch',
   chickadee: 'birdCage', cockatiel: 'birdCage' };   // round 7
 CAGED.butterfly = 'terrarium';   // round 10: a caterpillar (and then its butterfly) lives in a glass tank
+for (const sp of ['gecko', 'beardeddragon', 'iguana', 'chameleon']) CAGED[sp] = 'terrarium';   // round 11: the small lizards
 const CAGE_WORDS = { terrarium: 'a glass tank', birdCage: 'a big bird cage', hutch: 'a cozy pen' };
 const Homes = {
   penT: 0, kennel: null,

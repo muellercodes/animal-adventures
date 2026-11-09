@@ -5077,7 +5077,8 @@ void main() {
     blue(-0.002, 0.03, 0.0072, 1.9, 1.1, false);
     blue(0.04, -0.014, 0.0078, 0.9, 2.2, true);
     blue(0.016, 0.044, 0.007, 1.2, 2.9, false);
-    return [{ geo: merge(gloss), mat: mat('fBerryGloss', { std: true, roughness: 0.26 }) }, { geo: merge(dusty), mat: mat('fBerryDusty', { std: true, roughness: 0.62, side: FDS }) }];
+    // (a little over life size, so the berries still show from the game camera)
+    return [{ geo: merge(gloss).scale(1.35, 1.35, 1.35), mat: mat('fBerryGloss', { std: true, roughness: 0.26 }) }, { geo: merge(dusty).scale(1.35, 1.35, 1.35), mat: mat('fBerryDusty', { std: true, roughness: 0.62, side: FDS }) }];
   }
 
   /* ---------- carrots: two pulled carrots lying on the ground with their feathery tops. Fine rings of little scars
