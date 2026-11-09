@@ -6677,6 +6677,171 @@ const Animals = (() => {
     baby: { head: 0.7, eye: 1.18, muzzle: 0.8, neck: [0.5, 0.55], body: [0.48, 0.5, 0.48], leg: [0.5, 0.56], tail: 0.48, rebind: true, tagK: 0.6 },
   });
 
+  // ===== round 11: chameleon =====
+  ids.push('chameleon');
+  // The chameleon's own steps (spec.extend, run after the legged animator): each eye turret turns by itself and darts
+  // about (both swing forward and down onto the food while it eats), the tongue shoots out and back as it starts to
+  // eat, and the color change: rig.setTint(color, amount, now) blends the skin toward a color (an sRGB hex number, or a
+  // THREE.Color taken as linear like material colors; amount 0..1, 0 = its own colors) over about three seconds, or at
+  // once with now. Its own green, blue and red banded pattern keeps showing through by brightness. Every chameleon gets
+  // its own copies of the skin materials (the species' are shared), so each one has its own color.
+  function chameleonCompile(sh) {
+    aaModelCompile.call(this, sh);
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform vec4 aaChroma;\nuniform float aaChromaL;')
+      .replace('#include <map_fragment>', `#include <map_fragment>
+{
+  float aaL = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+  vec3 aaT = aaChroma.rgb * clamp(aaL / aaChromaL, 0.25, 2.2);
+  diffuseColor.rgb = mix(diffuseColor.rgb, aaT, aaChroma.a * 0.8);
+}`);
+  }
+  const chameleonExtend = (R, A, rig) => {
+    const B = R.bones, eyes = [B.eyeL, B.eyeR], tongue = R.extras.tongue, tip = R.extras.tongueTip;
+    let seed = (R.rnd * 1e6) | 0;
+    const rand = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296;
+    const E = [{ y: 0, p: 0, ty: 0, tp: 0, t: 0.4 }, { y: 0, p: 0, ty: 0, tp: 0, t: 1.3 }];
+    const md = A.M ? A.M.md : null;
+    const uni = { value: new THREE.Vector4(1, 1, 1, 0) }, uL = { value: md && md.chroma ? md.chroma.lum : 0.1 };
+    const cur = new THREE.Color(1, 1, 1), tgt = new THREE.Color(1, 1, 1);
+    let amt = 0, tAmt = 0;
+    const own = new Map(), mine = new Set();
+    // this rig's copy of a model skin material (the procedural body without a model cannot change color)
+    const skin = (m) => {
+      if (!m || mine.has(m) || m.onBeforeCompile !== aaModelCompile) return m;
+      let c = own.get(m);
+      if (!c) {
+        c = new THREE.MeshStandardMaterial({ roughness: m.roughness, metalness: m.metalness });
+        c.userData.aa = Object.assign({}, m.userData.aa, { aaChroma: uni, aaChromaL: uL });
+        c.userData.src = m;
+        c.onBeforeCompile = chameleonCompile;
+        own.set(m, c); mine.add(c);
+      }
+      return c;
+    };
+    rig.setTint = (col, a, now) => {
+      if (col != null) tgt.copy(col.isColor ? col : linColor(col));
+      tAmt = clamp(a == null ? 1 : +a || 0, 0, 1);
+      if (now) { cur.copy(tgt); amt = tAmt; }
+    };
+    if (tongue) tongue.visible = tip.visible = false;
+    return (dt, st) => {
+      const eat = st.eat || 0, sleeping = st.mode === 'sleep';
+      // eyes: each picks a new place to look every half second to three seconds
+      for (let i = 0; i < 2; i++) {
+        const e = E[i], sg = i ? -1 : 1;
+        e.t -= dt;
+        if (e.t <= 0) { e.t = 0.5 + rand() * 2.4; e.ty = (rand() * 2 - 1) * 0.6; e.tp = (rand() * 2 - 1) * 0.35; }
+        let ty = e.ty, tp = e.tp;
+        if (eat > 0) { ty = -0.5; tp = 0.35; }
+        if (sleeping) { ty = 0; tp = 0; }
+        const k = 1 - Math.exp(-dt * 14);
+        e.y += (ty - e.y) * k; e.p += (tp - e.p) * k;
+        if (eyes[i]) eyes[i].rotation.set(e.p, sg * e.y, 0);
+      }
+      // the tongue strike: out to the food in a tenth of a second, a moment there, back in
+      if (tongue) {
+        let f = 0;
+        if (eat > 0.03 && eat < 0.34) f = eat < 0.1 ? sstep(0.03, 0.1, eat) : eat < 0.17 ? 1 : 1 - sstep(0.17, 0.33, eat);
+        const s0 = tongue.userData.s || 1, L = Math.max(0.0005, f * 0.11) * s0;
+        tongue.visible = tip.visible = f > 0.01;
+        tongue.rotation.set(0.5, 0, 0);
+        tongue.scale.set(s0, s0, L);
+        tip.position.copy(tongue.position).add(_v1.set(0, -Math.sin(0.5), Math.cos(0.5)).multiplyScalar(L));
+        tip.scale.setScalar(s0);
+      }
+      // the color: ease toward the target (about three seconds)
+      const kc = 1 - Math.exp(-dt / 1.0);
+      cur.lerp(tgt, kc); amt += (tAmt - amt) * kc;
+      uni.value.set(cur.r, cur.g, cur.b, amt);
+      for (const mesh of R.meshes) {
+        const c = skin(mesh.material);
+        if (c !== mesh.material) mesh.material = c;
+        if (mine.has(c)) { const m = c.userData.src; if (c.map !== m.map || c.normalMap !== m.normalMap) { c.map = m.map; c.normalMap = m.normalMap; c.color.copy(m.color); c.needsUpdate = true; } }
+      }
+    };
+  };
+  // CHAMELEON (a male panther chameleon, 45 cm with its tail): a deep body flattened from side to side on long legs
+  // (elbows back, knees forward), zygodactyl feet, a low casque, turret eyes on their own bones, the tail curled down
+  // into a spiral. A slow walk that sways back and forth (anim.rock). Climbs.
+  SPEC.chameleon = () => lizardKin({
+    k: 1,
+    size: { length: 0.34, height: 0.115, radius: 0.06, eyeHeight: 0.091 },
+    bones: [
+      ['hips', null, 0, 0.07, -0.045],
+      ['chest', 'hips', 0, 0.076, 0.04],
+      ['neck', 'chest', 0, 0.082, 0.058],
+      ['head', 'neck', 0, 0.086, 0.07],
+      // the tail's bones along its curl (tools/blender/chameleon.py tail_pivots())
+      ['tail1', 'hips', 0, 0.075, -0.0524],
+      ['tail2', 'tail1', 0, 0.0734, -0.0811],
+      ['tail3', 'tail2', 0, 0.0704, -0.1098],
+      ['tail4', 'tail3', 0, 0.0666, -0.1353],
+      ['tail5', 'tail4', 0, 0.0532, -0.1579],
+      ['tail6', 'tail5', 0, 0.0267, -0.1556],
+      ['tail7', 'tail6', 0, 0.0233, -0.1306],
+      ['tail8', 'tail7', 0, 0.0472, -0.128],
+      ['eyeL', 'head', 0.0112, 0.0912, 0.093, 1],
+      ['thighL', 'hips', 0.0075, 0.066, -0.048, 1],
+      ['shinL', 'thighL', 0.022, 0.044, -0.024, 1],
+      ['hmetaL', 'shinL', 0.0255, 0.007, -0.054, 1],
+      ['hpawL', 'hmetaL', 0.0262, 0.004, -0.0485, 1],
+      ['armL', 'chest', 0.0075, 0.07, 0.044, 1],
+      ['foreL', 'armL', 0.021, 0.044, 0.022, 1],
+      ['fmetaL', 'foreL', 0.0255, 0.007, 0.05, 1],
+      ['fpawL', 'fmetaL', 0.0262, 0.004, 0.0545, 1],
+    ],
+    // the loft rows of tools/blender/chameleon.py; the tail's own keys along its curl
+    body: [
+      [-0.078, 0.082, 0.073, 0.064, 0.0058, 1.8], [-0.065, 0.0905, 0.074, 0.0585, 0.0094, 1.8], [-0.045, 0.1005, 0.0765, 0.0525, 0.0117, 1.8],
+      [-0.02, 0.1095, 0.0785, 0.0465, 0.0128, 1.8], [0.005, 0.1145, 0.08, 0.0442, 0.0132, 1.8], [0.028, 0.113, 0.081, 0.0458, 0.013, 1.8],
+      [0.045, 0.1065, 0.0818, 0.0515, 0.0122, 1.8], [0.058, 0.0975, 0.0828, 0.061, 0.0106, 1.8], [0.066, 0.104, 0.0838, 0.065, 0.011, 1.5],
+      [0.074, 0.1075, 0.0848, 0.067, 0.012, 1.5], [0.084, 0.104, 0.0862, 0.0688, 0.0128, 1.7], [0.094, 0.0995, 0.0874, 0.0702, 0.0126, 2],
+      [0.103, 0.0975, 0.0882, 0.073, 0.011, 2.1], [0.112, 0.0945, 0.0886, 0.0765, 0.009, 2.1], [0.119, 0.0918, 0.088, 0.08, 0.007, 2.1],
+      [0.1245, 0.09, 0.0872, 0.0832, 0.0046, 2],
+    ],
+    tailKeys: [
+      [0, 0.0752, -0.046, 0.0093, 0.0113, 0.0113], [0, 0.0734, -0.0811, 0.0081, 0.0099, 0.0099], [0, 0.0695, -0.1162, 0.007, 0.0086, 0.0086],
+      [0, 0.0642, -0.1454, 0.0061, 0.0075, 0.0075], [0, 0.0518, -0.1587, 0.0056, 0.0068, 0.0068], [0, 0.0354, -0.1603, 0.0051, 0.0062, 0.0062],
+      [0, 0.0232, -0.1515, 0.0046, 0.0057, 0.0057], [0, 0.0203, -0.1381, 0.0042, 0.0052, 0.0052], [0, 0.0263, -0.1273, 0.0039, 0.0047, 0.0047],
+      [0, 0.037, -0.1235, 0.0036, 0.0043, 0.0043], [0, 0.0465, -0.1273, 0.0033, 0.004, 0.004], [0, 0.0507, -0.1357, 0.003, 0.0037, 0.0037],
+      [0, 0.0485, -0.144, 0.0028, 0.0034, 0.0034], [0, 0.042, -0.1482, 0.0026, 0.0031, 0.0031], [0, 0.035, -0.1473, 0.0024, 0.0029, 0.0029],
+      [0, 0.0308, -0.1424, 0.0022, 0.0027, 0.0027], [0, 0.0309, -0.1365, 0.0021, 0.0025, 0.0025], [0, 0.035, -0.1324, 0.0019, 0.0023, 0.0023],
+    ],
+    zTail: -0.07, legR: [0.0036, 0.004],
+    col: { base: hex(0x3E8C3A), dark: hex(0x2C7C8E), belly: hex(0xB8CC94) },
+    toes: [
+      [{ a: -48, len: 0.0092, r: 0.0018, claw: 0.0014 }, { a: 52, len: 0.0082, r: 0.0016, claw: 0.0014 }],
+      [{ a: -46, len: 0.0086, r: 0.0016, claw: 0.0014 }, { a: 50, len: 0.0094, r: 0.0018, claw: 0.0014 }],
+    ],
+    toeCol: 0x4A8A3E,
+    eye: { bone: 'eyeL', p: [0.0112, 0.0912, 0.093], r: 0.0054, dir: [0.78, 0.22, 0.58], iris: 0xC89A3A, irisR: 0.26, pupilR: 0.5, rim: 0x2A1A0E, lid: [1, -1, 0] },
+    mouth: [0, 0.0838, 0.1225],
+    anim: {
+      walk: 0.22, trot: 0.42, run: 0.8, stride: 0.075, strideMax: 1.8, maxRate: 4,
+      duty: [0.75, 0.62, 0.5], lift: [0.014, 0.014], flexF: 0.6, flexH: 0.6, splay: 0.25,
+      legs: [
+        { n: ['armL', 'foreL', 'fmetaL', 'fpawL'], front: true, pole: [0.45, 0.2, -1] },
+        { n: ['thighL', 'shinL', 'hmetaL', 'hpawL'], front: false, pole: [0.45, 0.2, 1] },
+      ],
+      wave: 0.0, roll: 0.0, bob: [0.0, 0.0, 0.002], rock: 0.006, rockRate: 2.0,
+      neckDist: [0.5, 0.5], chew: 0.04, chewRate: 6, eatY: 0.01, eatMax: 0.7, eatPitch: 0.12,
+      tailSway: 0.02, lookAmp: 0.25, pushups: 0,
+      climb: { splay: 0.15, drop: 0.5, reach: 0.25, neck: -0.2, tail: [0, 0, 0, 0, 0, 0, 0, 0], flex: 0.3, toe: 0.8 },
+      sleep: { style: 'flat', neck: [0.0, 0.12], tail: [0, 0] }, wag: 0,
+    },
+    // hatchling: a big head and eyes, a short snout (the eye balls ride on the eye bones, which do not take the
+    // head's scale, so eye is the head's 1.35 for the balls to fill their turrets)
+    baby: { head: 1.35, eye: 1.35, muzzle: 0.85, body: [1.0, 1.0, 0.92], leg: [0.86, 1.04], tail: 0.95 },
+    extras: () => {
+      const mat = new THREE.MeshStandardMaterial({ color: linColor(0xD8707E), roughness: 0.35, metalness: 0 });
+      const shaft = new THREE.CylinderGeometry(0.0016, 0.0021, 1, 6, 1, true);
+      shaft.rotateX(PI / 2); shaft.translate(0, 0, 0.5);
+      return [{ bone: 'head', name: 'tongue', geo: shaft, mat, at: [0, 0.0836, 0.118] }, { bone: 'head', name: 'tongueTip', geo: new THREE.SphereGeometry(0.0038, 8, 6), mat, at: [0, 0.0836, 0.118] }];
+    },
+    extend: (R, A, rig) => chameleonExtend(R, A, rig),
+  });
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -7035,7 +7200,10 @@ const Animals = (() => {
       if (SI) drop += sit * SI.drop * legH;
       drop = lerp(drop, lieDrop, sl * (1 - swim));
       if (SL.style === 'ball') drop = lerp(drop, (SL.ballDrop || 0) * legH, sl);
-      hips.position.set(hip0.x, hip0.y + bob + breathe * 0.5 - drop, hip0.z);
+      // (round 11, P.rock: the body sways slowly back and forth over its planted feet, like a leaf in the wind: a
+      // chameleon; off for every other species)
+      const rock = P.rock ? P.rock * Math.sin(it * (P.rockRate || 2.2) + R.rnd * 7) * (0.4 + 0.6 * S.move) * (1 - sl) * ground : 0;
+      hips.position.set(hip0.x, hip0.y + bob + breathe * 0.5 - drop, hip0.z + rock);
       // ball curl rolls the whole body forward
       const sp1 = SL.spine || null;
       const sleepRoll = (SL.roll || 0) * sleepSide * sl * (1 - swim);
@@ -8655,6 +8823,8 @@ const Animals = (() => {
   COLLAR.beardeddragon = { at: ['neck', 'head', 0.25], tag: PI * 0.6, r: 1.1 };
   // ===== round 11: green iguana
   COLLAR.iguana = { at: ['neck', 'head', 0.3], tag: PI * 0.6 };
+  // ===== round 11: chameleon
+  COLLAR.chameleon = { at: ['chest', 'neck', 0.7], tag: PI * 0.6, r: 0.9 };
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)
@@ -9365,6 +9535,9 @@ const Animals = (() => {
     const R = instantiate(A);
     const sz = A.spec.size, an = A.spec.anim;
     const upd = ANIM[an.type](R, A);
+    // round 11: spec.extend(R, A, rig) adds a species' own per-frame steps (run after the animator) and rig methods
+    // (the chameleon's eyes, tongue and color change; the Komodo dragon's tongue); no other species has one
+    let ext = null;
     const rig = {
       id,
       root: R.root,
@@ -9379,6 +9552,7 @@ const Animals = (() => {
       leashWorld(out) { const b = R.bones.ctag; if (!b || !A.cplan) return null; b.updateWorldMatrix(true, false); return out.setFromMatrixPosition(b.matrixWorld); },
       update(dt, st) {
         R.autoSneeze = rig.autoSneeze; R.onSneeze = rig.onSneeze; upd(dt, st || {});
+        if (ext) ext(clamp(dt || 0, 0, 0.1), st || {});
         if (R.collarC != null && R.detail > 0) collarUpdate(R, A, clamp(dt || 0, 0, 0.1), st);
       },
       setVisible(v) { R.root.visible = !!v; },
@@ -9409,6 +9583,7 @@ const Animals = (() => {
       setCollar(c) { setCollar(R, A, c); },
     };
     R.rig = rig;
+    if (A.spec.extend) ext = A.spec.extend(R, A, rig);
     setDetail(R, A, 1);
     upd(0, { t: 0, speed: 0, mode: 'ground', vy: 0, eat: 0, turn: 0, idle: 0 });
     return rig;

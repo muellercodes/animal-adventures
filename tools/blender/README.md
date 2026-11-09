@@ -883,4 +883,38 @@ The hatchling (`size.baby` in the game, about 32 cm there) has its own color map
 own shape (`baby_offset()`: the dewlap pulled up to the throat and the crest low, as on a real hatchling).
 - Budget (`VOXEL=0.0018 TRIS=2800 TEX=768`): 7.3k triangles; 768 color (WebP 50) and normal (WebP 32) maps, 320
   hatchling color map: 59 KB mesh (with the hatchling offsets) + 31 + 51 + 10 KB, 153 KB of files, about 204 KB in the
-  page plus the icons.
+  page plus about 16 KB of icons.
+
+The chameleon (`chameleon.py`, a male panther chameleon, Furcifer pardalis, 45 cm with its tail, KS 1):
+- A deep body flattened from side to side (the loft's upper exponent below 2 makes the arched back a ridge), a low
+  crest of cones along it, a short neck, a low casque rising behind the eyes (the loft's top raised there plus a thin
+  ridge; separate ridge chains read as antlers), ridges from the eyes to a small nose, the downturned mouth line.
+- The turret eyes: `eye_parts()` is replaced by a ball of skin round each eyeball, drawn out a little along the gaze,
+  with a small round hole for the pupil (`LID_W`). Each turret is weighted to its own bone (`eyeL`, `eyeR`, children
+  of the head, pivots at the eye centers; `fix_extra()`), and the model's eye names that bone (`'bone': 'eyeL'` in the
+  eye meta), so the game turns the turret and the eyeball together. The game's iris is small (`irisR` 0.26) so the
+  hole shows the pupil with a ring of gold; the lids stay open at the ball's edges and close the hole when it blinks.
+- The tail is not part of the loft: `tail()` sweeps a tapering tube along `tail_path()`, back from the hips and curled
+  down and forward into a spiral (an exponential spiral in the middle plane), with eight bones placed along the curve
+  (`tail_pivots()`, copied into the game's bone table). Its weights go by arc length along the dense curve
+  (`spine_weights()`), its rings follow the curve with a reach of about the tail's radius (a larger reach also cut the
+  next coil), and the paint and texture regions use the position along the curve (`tailS`).
+- Legs held under the body, elbows back and knees forward; zygodactyl feet (`bundle()`: each foot two mittens of
+  fused toes, three inside and two outside on the front feet, two and three on the hind, small claws at their tips).
+- Paint: green with blue bars round the body and red cores in them, a white stripe along the lower flank from the
+  corner of the mouth, red stripes radiating from the eye, green and red rays on the turrets, a banded tail, red spots
+  on the legs. `stats()` also measures the mean brightness of the skin (`chroma.lum` in the json) for the game's color
+  change. The hatchling has its own dull gray-brown color map.
+- In the game (`40_animals.js`, both off for every other species): `spec.extend(R, A, rig)` adds a species' own
+  per-frame steps after the animator and its own rig methods (the chameleon's eyes darting about each by itself and
+  both turning onto the food, the tongue strike, `rig.setTint(color, amount, now)`; the Komodo dragon's tongue
+  flicks), and `anim.rock` sways the body back and forth over the planted feet. The color change gives each chameleon
+  its own copies of the skin materials with a tint uniform: the skin blends toward the color by brightness, so the
+  banded pattern shows through it.
+- Budget (`VOXEL=0.0011 TRIS=2600 TEX=768`): 6.8k triangles; 768 color (WebP 52) and normal (WebP 25) maps, 320
+  hatchling color map: 52 KB mesh + 44 + 53 + 7 KB, 158 KB of files, about 211 KB in the page plus about 34 KB of
+  icons (the banded pattern makes them the biggest of the four).
+
+Synthetic rigs: the lizkit species make every skin weight themselves, so their rig export only has to give the bone
+pivots; a rig json written from the species' bone table (bones times k, mirrored ones doubled, the collar tag, one
+dummy triangle as the procedural mesh) gives the same model as the browser export.
