@@ -224,6 +224,8 @@ const Sound = (() => {
       case 'snowleopard': for (let i = 0; i < 2; i++) noise({ t: t + i * 0.22, f: 700 * k, q: 1.2, dur: 0.12, vol: vol * 0.7, pan }); T({ t: t + 0.5, f: 300 * k, f2: 420 * k, dur: 0.25, type: 'sawtooth', bp: 900 * k, q: 1.6, vib: 6, vibAmt: 10, vol: vol * 0.8 }); T({ t: t + 0.72, f: 420 * k, f2: 230 * k, dur: 0.6, a: 0.04, type: 'sawtooth', bp: 700 * k, q: 1.6, vib: 5, vibAmt: 14, vol: vol * 0.8 }); break;
       // round 10: saber-toothed cat: a deep rasping growl rising to a roar (a kitten's is a rasping mew)
       case 'smilodon': if (k > 1) { T({ t, f: 380, f2: 250, dur: 0.4, type: 'sawtooth', bp: 800, q: 1.4, vib: 14, vibAmt: 25, vol: vol * 0.8 }); } else { T({ t, f: 70, f2: 95, dur: 0.6, a: 0.1, type: 'sawtooth', lp: 360, vib: 30, vibAmt: 6, vol: vol * 1.1 }); T({ t: t + 0.55, f: 120, f2: 70, dur: 1.2, a: 0.08, type: 'sawtooth', lp: 480, vib: 26, vibAmt: 8, vol: vol * 1.4 }); noise({ t: t + 0.5, f: 320, q: 0.7, dur: 1.0, vol: vol * 0.45, pan }); } break;
+      // round 11: cow (a long low moo; the calf's is higher and shorter)
+      case 'cow': if (k > 1) { T({ t, f: 260, f2: 210, dur: 0.6, a: 0.06, type: 'sawtooth', bp: 800, q: 1.8, vib: 5, vibAmt: 8, vol: vol * 0.8 }); } else { T({ t, f: 118, f2: 96, dur: 1.3, a: 0.18, type: 'sawtooth', lp: 520, vib: 4, vibAmt: 3, vol: vol * 1.3 }); T({ t: t + 0.1, f: 236, f2: 190, dur: 1.1, a: 0.2, type: 'triangle', lp: 700, vol: vol * 0.35 }); } break;
     }
   }
 

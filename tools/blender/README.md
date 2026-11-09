@@ -565,6 +565,35 @@ flight pose with the wings spread flat in the plane of the arm (y = `YM`). Thing
 The butterfly and the caterpillar (round 10) are procedural (no Blender files): see `SPEC.butterfly`,
 `SPEC.caterpillar` and their animators in `40_animals.js`.
 
+## Round 11: the cow (`cow.py`)
+
+A Holstein dairy cow at full size: 2.45 m from the nose to the rump, 1.45 m at the withers, built like the giraffe (a
+trunk loft, a neck sweep, the head as a loft in its own frame `hframe()`, leg sweeps, `U.cloven` hooves and
+`U.dewclaws`). Things that are new:
+- Dairy shape: a flat-topped, angular back (loft exponents 2.4 to 2.6 above the widest line) over a round deep belly,
+  the hooks, thurls, pins and tail head as small ellipsoids, a soft hollow in front of the hooks, a thin neck with a
+  small dewlap (a thin plate under the throat), a modest udder in two halves with four teats (its own part, weighted
+  to the hips). Rib grooves in the sculpt read as stripes: left out.
+- The head: a long face with a flat forehead, a bony poll as a ridge between the ears, deep cheeks, a big flat nose pad
+  (a superellipsoid plate in the head frame) with comma nostrils at its sides, thick lips, eyes at the edges of the
+  forehead under a bony brow, ears held out sideways (`U.ear`, on their own bones).
+- Both sides painted (`SIDES = True`): a Holstein's patches are never mirror images, and the game camera looks at the
+  back and the rump all the time, where mirrored patches show. The color map holds the +x side in its left half and
+  the -x side in its right half (`"sides": true` in `meta()`; the game already reads it, see `coat.py`). The species
+  does it itself in `extra_maps()`: texture.py writes the +x side, the hook paints the mirrored points and writes both
+  halves into the same png, so the shared steps stay unchanged. The patch field is evaluated at the real (unmirrored)
+  point: a low-frequency fbm with a little domain warp, cut with a narrow step so the edges are crisp but wavy, a little
+  more black over the back, white on the legs below the knees and hocks, the belly, the udder and the switch. The head
+  is black with an irregular white blaze (a star on the forehead, narrower down the face, wider over the muzzle, a little
+  off the middle) down to the pink-gray nose pad.
+- Texture layout (`unwrap()`, also the camel's): each `uv_regions()` region is unwrapped conformally on its own after
+  cutting seams at the region borders and down the inner side of every leg (`_leg_angle()`: the angle round the leg's
+  middle line jumps across +-pi there). Smart project per region had split the decimated mesh into dozens of single
+  triangle islands; this took the texture used from 46% to 55%.
+- The calf: the game's baby maps (long legs, big head, ears and eyes, a shorter muzzle) and `baby_offset()`, which
+  walks each udder point up onto the belly (`U.surface` against the trunk and thighs), so a calf has no udder.
+
+
 ## Budget
 
 Pig: about 6.3k triangles, 4.8k vertices, 1024 x 1024 color and normal maps: 38 KB mesh (format 2; 136 KB before) +
@@ -835,3 +864,8 @@ Fruit bat (`VOXEL=0.002 TRIS=6500 TEX=768`, normal map WebP 64): 6.5k triangles 
 at detail 2 with 4 fur shell layers); 768 color and normal maps (the membranes get a smaller share of them,
 `uv_weight`), 256 pup color map, fur map: 45 KB mesh + 12 + 20 + 1 + 8 KB, about 120 KB in the page, 190 KB with its
 two icons. The procedural butterfly (2.9k triangles, 3.7k at detail 2) and caterpillar (2.2k) add only code and icons.
+
+Cow (`VOXEL=0.0065 TRIS=4000 TEX=768 WEIGHTS=transfer`, then rings across the neck, the legs and the tail): 6.4k
+triangles (7.4k in the game with the eyes); 768 color map with both sides (1536 x 768, WebP 74) and 768 normal map
+(WebP 58), no calf map (the calf has the same patches): 38 KB mesh (with the calf's udder offsets) + 32 + 15 KB, about
+116 KB in the page plus about 61 KB of icons. About 9 minutes for the whole run on the shared machine.
