@@ -585,6 +585,8 @@ const World = (() => {
             { sp: 'chickadee', n: 4, home: [GIANT[0], GIANT[1]], range: 24 }, { sp: 'cockatiel', n: 5, home: [70, 10], range: 35 }]),
           // round 10: giraffes near the rhinos, butterflies over the flowers
           ...SP7([{ sp: 'giraffe', n: 3, kids: 1, home: [-10, 95], range: 40 }, { sp: 'butterfly', n: 8, home: [10, 30], range: 45 }]),
+          // round 11: a pair of unicorns and their foal graze out in the flowers (and fly off if you come at them fast)
+          ...SP7([{ sp: 'unicorn', n: 2, kids: 1, home: [70, 55], range: 30 }]),
         ],
         ambient: [{ sp: 'bunny', w: 3, kids: 2 }, { sp: 'deer', w: 2, kids: 1 }, { sp: 'fox', w: 1 }, { sp: 'goat', w: 1 }, { sp: 'hedgehog', w: 1 }, { sp: 'squirrel', w: 1 }, { sp: 'swan', w: 1, water: true }, { sp: 'duck', w: 1, water: true, kids: 3 }],
         foods: { grass: 4, berries: 3, apple: 2, acorn: 2, worm: 2, smallfish: 2, pumpkin: AUTUMN ? 1 : 0, seeds: 3, bugs: 3, corn: 2, watermelon: 2, lettuce: 1, hay: 2, twigs: 1, nectar: 3 },

@@ -25,7 +25,9 @@ const BODY_COL = { long: [[0.32, 0.8], [-0.32, 0.8]], brachiosaurus: [[0.14, 0.9
   trex: [[0.15, 0.9], [-0.105, 0.9], [-0.21, 0.9]], giraffe: [[0.26, 1.0], [-0.36, 1.0]],
   // round 11 (from each sculptor's notes; the cow's and camel's middle is the middle of the trunk)
   cow: [[0.26, 1.0], [-0.3, 1.0]], camel: [[0.2, 0.9], [-0.25, 0.9]], lion: [[0.3, 0.9], [-0.26, 0.9]], tiger: [[0.3, 0.7], [-0.25, 0.7]],
-  leopard: [[0.28, 0.65], [-0.24, 0.65]], unicorn: [[0.26, 0.85], [-0.28, 0.85]] };
+  leopard: [[0.28, 0.65], [-0.24, 0.65]], unicorn: [[0.26, 0.85], [-0.28, 0.85]],
+  // a Komodo dragon's middle is over its hips' front: its long thick tail runs well back
+  komodo: [[0.34, 1.0], [-0.12, 1.0], [-0.46, 0.8]] };
 const NOCTURNAL = { owl: 1, frog: 1, fox: 1, raccoon: 1, hedgehog: 1, hamster: 1, bat: 1, gecko: 1, ocelot: 1, leopard: 1 };
 // round 10: a butterfly starts out as a caterpillar. Below PUPA_AGE its body is the caterpillar (b.form, a hidden
 // species), and when it grows past it, it makes a chrysalis and comes out a grown monarch (70_game: Pupa). A butterfly
