@@ -280,7 +280,7 @@ function findAction() {
     return { id: 'in', label: 'Go in', house: h };
   }
   if (home && sp.outdoor && home.pen && Math.hypot(b.pos.x - home.pen.x, b.pos.z - home.pen.z) < 3.2) return { id: 'sleep', label: 'Sleep' };
-  if (sp.climb && b.mode === 'ground') {
+  if (canClimb(b) && b.mode === 'ground') {
     const t = w.treeNear(b.pos.x, b.pos.z, 0.4 + b.m.radius);
     if (t && t.top - t.base > 0.8) return { id: 'climb', label: 'Climb', tree: t };
   }
@@ -727,6 +727,8 @@ function tags(id) {
   if (A.swim) out.push('<span class="tg">Swims</span>');
   if (A.hop) out.push('<span class="tg">Hops</span>');
   if (A.climb) out.push('<span class="tg">Climbs trees</span>');
+  if (A.climbBaby) out.push('<span class="tg">Climbs trees when little</span>');
+  if (id === 'chameleon') out.push('<span class="tg">Changes color</span>');
   if (A.nightEyes) out.push('<span class="tg">Sees at night</span>');
   if (A.egg) out.push('<span class="tg">Hatches from an egg</span>');
   return out.join('');

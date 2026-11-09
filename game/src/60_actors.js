@@ -67,6 +67,8 @@ function setBodyAge(b, age) {
     walk: r.walkSpeed * (0.6 + 0.4 * k), run: r.runSpeed * (0.55 + 0.45 * k) };
 }
 const canFlyNow = (b) => !!SPECIES[b.sp].fly && b.age >= FLY_AGE;
+// round 11: a Komodo dragon climbs trees only while it is young (real hatchlings live up in the trees)
+const canClimb = (b) => !!SPECIES[b.sp].climb || (!!SPECIES[b.sp].climbBaby && b.age < 0.4);
 function jumpV(b) { const h = b.sp === 'frog' ? 0.45 * b.k : clamp(b.m.height * 0.9, 0.25, 1.3); return Math.sqrt(2 * GRAV * h); }
 
 // Shared movement for the player and wildlife.
@@ -225,8 +227,20 @@ function poseBody(b, dt, animate) {
   if (!animate) return;
   const st = b.st; st.t = G.t; st.speed = b.speed / b.k; st.mode = b.mode === 'perch' ? 'ground' : b.mode; st.vy = b.vy; st.eat = b.eat; st.turn = b.turn; st.idle = b.idle;
   st.sick = b.sick; st.happy = b.happy; st.swimSleep = b.mode === 'sleep' && b.sp === 'otter';
+  // round 11: a chameleon slowly takes on the color of what it is on: the ground under it, or bark when it is up a
+  // tree. Indoors it keeps its own colors.
+  if (rig.setTint) {
+    b.tintT = (b.tintT || 0) - dt;
+    if (b.tintT <= 0) {
+      b.tintT = 0.6;
+      if (b.room) rig.setTint(null, 0);
+      else if (b.mode === 'climb' || b.mode === 'perch') rig.setTint(0x6b5238, 0.75);
+      else if (G.world.def.paint) { G.world.def.paint(tintCol, b.pos.x, b.pos.z, H(b.pos.x, b.pos.z)); rig.setTint(tintCol, 0.7); }
+    }
+  }
   rig.update(dt, st);
 }
+const tintCol = new THREE.Color();
 
 /* ---------- the player's animal ---------- */
 const Player = {
@@ -560,7 +574,7 @@ const Wild = {
         if (P.sp !== b.sp && !pAir && !P.room) fr = predator ? 7 : bigger ? (fast ? FEAR[b.sp] : FEAR[b.sp] * 0.45) : 0;
         if (b.mode === 'sleep' && d < fr * 0.6) b.mode = 'ground';
         if (d < fr && b.state !== 'flee' && b.state !== 'flyaway' && b.state !== 'tree' && b.mode !== 'sleep') {
-          const t = sp.climb && !b.pen ? G.world.treeNear(b.pos.x, b.pos.z, 7) : null;
+          const t = canClimb(b) && !b.pen ? G.world.treeNear(b.pos.x, b.pos.z, 7) : null;
           if (t) { b.state = 'tree'; b.target = t; b.timer = 10; b.perchT = 6 + Math.random() * 8; }
           else if (canFlyNow(b) && b.sp !== 'chicken' && !b.pen && !b.hasKids && Math.random() < 0.65) {
             b.state = 'flyaway'; b.flyH = 4 + Math.random() * 5;

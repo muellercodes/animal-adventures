@@ -131,11 +131,11 @@ const SPECIES = {
   // round 11: leopard
   leopard: { name: 'Leopard', many: 'Leopards', eats: ['meat', 'fish', 'smallfish', 'hotdog'], fav: 'meat', climb: true, outdoor: true, hunter: true, price: 1300, baby: 'Leopard cub' },
   // round 11: bearded dragon
-  beardeddragon: { name: 'Bearded dragon', many: 'Bearded dragons', eats: ['bugs', 'worm', 'lettuce', 'carrot', 'berries'], fav: 'bugs', price: 400, egg: 0xEDE6D2, baby: 'Baby bearded dragon' },
+  beardeddragon: { name: 'Bearded dragon', many: 'Bearded dragons', eats: ['bugs', 'worm', 'lettuce', 'carrot', 'berries'], fav: 'bugs', price: 400, egg: 0xEDE6D2, camNear: 0.8, baby: 'Baby bearded dragon' },
   // round 11: green iguana
-  iguana: { name: 'Green iguana', many: 'Green iguanas', eats: ['lettuce', 'berries', 'banana', 'apple', 'twigs'], fav: 'lettuce', climb: true, swim: true, swimSpeed: 2.0, price: 500, egg: 0xF0EBD8, baby: 'Baby iguana' },
+  iguana: { name: 'Green iguana', many: 'Green iguanas', eats: ['lettuce', 'berries', 'banana', 'apple', 'twigs'], fav: 'lettuce', climb: true, swim: true, swimSpeed: 2.0, price: 500, egg: 0xF0EBD8, camNear: 0.6, baby: 'Baby iguana' },
   // round 11: chameleon
-  chameleon: { name: 'Chameleon', many: 'Chameleons', eats: ['bugs', 'worm'], fav: 'bugs', climb: true, price: 450, egg: 0xEFEADA, baby: 'Baby chameleon' },
+  chameleon: { name: 'Chameleon', many: 'Chameleons', eats: ['bugs', 'worm'], fav: 'bugs', climb: true, price: 450, egg: 0xEFEADA, camNear: 0.85, baby: 'Baby chameleon' },
   // round 11: komodo dragon (climbBaby: hatchlings live in trees; the game's climbing only reads climb, per species)
   komodo: { name: 'Komodo dragon', many: 'Komodo dragons', eats: ['meat', 'fish', 'hotdog'], fav: 'meat', swim: true, swimSpeed: 1.8, outdoor: true, hunter: true, climbBaby: true, price: 1500, egg: 0xEDE6D4, baby: 'Baby Komodo dragon' },
 };
@@ -153,7 +153,7 @@ SMALL_PREY.push('cockatiel');
 // round 7: eagle, chickadee, rhino: each goes into the shop list by its price (the list runs from cheap to dear)
 for (const id of ['chickadee', 'eagle', 'rhino']) { let i = SHOP.length; while (i > 0 && SPECIES[SHOP[i - 1]].price > SPECIES[id].price) i--; SHOP.splice(i, 0, id); }
 SMALL_PREY.push('chickadee', 'hamster');
-SMALL_PREY.push('gecko');   // round 11
+SMALL_PREY.push('gecko', 'beardeddragon', 'chameleon');   // round 11
 SPECIES.chickadee.eggSpeck = [0.72, 0.4, 0.28];   // reddish brown speckles
 // round 10: polar bear
 SHOP.push('polarbear');
