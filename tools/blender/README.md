@@ -1,7 +1,7 @@
 # Sculpted animal models (Blender pipeline)
 
 Makes a realistic body for one species with Blender, fitted to the skeleton the game already uses, and writes it to
-`game/models/<id>.*`. `build.mjs` embeds those files in the page and `game/src/40_animals.js` uses the model instead of
+`game/models/<id>.*`. `build.mjs` packs those files into `docs/models-*.json` beside the page (the sizes below that say "in the page" count what an animal adds to those files) and `game/src/40_animals.js` uses the model instead of
 the procedural loft body. Everything else (bones, walk/run/eat/sleep animation, baby proportions, eyes and blinking,
 collar, moods, swimming) keeps working through the same rig API. Models so far: the pig, frog, lizard, turtle,
 snake, horse, duck, hen, macaw, owl, fox, raccoon, otter, weasel, deer, goat, moose, bunny, squirrel, hedgehog, dog and
@@ -565,6 +565,88 @@ flight pose with the wings spread flat in the plane of the arm (y = `YM`). Thing
 The butterfly and the caterpillar (round 10) are procedural (no Blender files): see `SPEC.butterfly`,
 `SPEC.caterpillar` and their animators in `40_animals.js`.
 
+## Round 11: the cow (`cow.py`)
+
+A Holstein dairy cow at full size: 2.45 m from the nose to the rump, 1.45 m at the withers, built like the giraffe (a
+trunk loft, a neck sweep, the head as a loft in its own frame `hframe()`, leg sweeps, `U.cloven` hooves and
+`U.dewclaws`). Things that are new:
+- Dairy shape: a flat-topped, angular back (loft exponents 2.4 to 2.6 above the widest line) over a round deep belly,
+  the hooks, thurls, pins and tail head as small ellipsoids, a soft hollow in front of the hooks, a thin neck with a
+  small dewlap (a thin plate under the throat), a modest udder in two halves with four teats (its own part, weighted
+  to the hips). Rib grooves in the sculpt read as stripes: left out.
+- The head: a long face with a flat forehead, a bony poll as a ridge between the ears, deep cheeks, a big flat nose pad
+  (a superellipsoid plate in the head frame) with comma nostrils at its sides, thick lips, eyes at the edges of the
+  forehead under a bony brow, ears held out sideways (`U.ear`, on their own bones).
+- Both sides painted (`SIDES = True`): a Holstein's patches are never mirror images, and the game camera looks at the
+  back and the rump all the time, where mirrored patches show. The color map holds the +x side in its left half and
+  the -x side in its right half (`"sides": true` in `meta()`; the game already reads it, see `coat.py`). The species
+  does it itself in `extra_maps()`: texture.py writes the +x side, the hook paints the mirrored points and writes both
+  halves into the same png, so the shared steps stay unchanged. The patch field is evaluated at the real (unmirrored)
+  point: a low-frequency fbm with a little domain warp, cut with a narrow step so the edges are crisp but wavy, a little
+  more black over the back, white on the legs below the knees and hocks, the belly, the udder and the switch. The head
+  is black with an irregular white blaze (a star on the forehead, narrower down the face, wider over the muzzle, a little
+  off the middle) down to the pink-gray nose pad.
+- Texture layout (`unwrap()`, also the camel's): each `uv_regions()` region is unwrapped conformally on its own after
+  cutting seams at the region borders and down the inner side of every leg (`_leg_angle()`: the angle round the leg's
+  middle line jumps across +-pi there). Smart project per region had split the decimated mesh into dozens of single
+  triangle islands; this took the texture used from 46% to 55%.
+- The calf: the game's baby maps (long legs, big head, ears and eyes, a shorter muzzle) and `baby_offset()`, which
+  walks each udder point up onto the belly (`U.surface` against the trunk and thighs), so a calf has no udder.
+
+
+## Round 11: the camel (`camel.py`)
+
+A dromedary at full size: 3.0 m from the lips to the rump, 1.9 m at the shoulder, the hump 2.2 m up; the cow's layout
+(trunk loft, neck sweep, head frame, leg sweeps, per region conformal `unwrap()`). Things that are new:
+- The hump is its own part (`hump()`: an ellipsoid rounder in front with a long slope down to the croup, a shaggy
+  top) on the trunk (`trunk_base()`), so the calf's baby offsets can walk it down onto the back (`U.surface` against
+  the trunk without it), leaving a tiny hump.
+- The neck dips down from the shoulders and curves up to the head. A sweep's first section must start inside the
+  trunk: its start cap is a flat disc, and with the first key at the front of the shoulders it showed as a cut-off
+  face above the withers. The neck's skin weights follow the arc along the polyline of its pivots (`_neck_u()`), not a
+  straight line, since the curve doubles back.
+- The feet (`foot()`): two broad toe lobes on a flat heel pad, a cleft between the toes open in front, a small nail on
+  each toe; knee calluses and the chest pad are sculpted and painted dark.
+- The head: a rounded skull, heavy brows over hooded eyes (`LID_OFF` below the middle, long lashes), small round ears
+  standing up at the back, slit nostrils on top of the muzzle, a split upper lip over a droopy lower lip.
+- Standing tall behind (second pass): the croup runs nearly level from the hump to the tail, the stifle sits high under
+  the belly (1.24 m) inside a flank fold, the hock well behind (z -1.02) and about level with the knees in front, the
+  hind cannon upright. The first rig had the stifle low and forward and the hock under the rump, so the camel looked
+  like it was squatting; the rig's hind leg pivots and the sculpt's `HIND` sweep moved together.
+- Kneeling to sleep is the game's `fold` style with the legs tucked straight under (`front: [0.1, 1.6, 1.4]`,
+  `hind: [0.19, 0, 0.12]`, the hind feet a little forward so they stay under the rump with the longer hind leg, no
+  roll) and the neck held up (`neck: [0.2, -0.2]`; the chest pad is the belly point).
+  Eating it splays its front legs a little without dropping (a camel's neck reaches the ground).
+- The calf: its own pale color map (`paint_baby`, darker than it looks in a photo: the game's sunlight washes it
+  out) and woolly fur shells on babies only (`FUR` with `babyOnly`, 5 cm in rig units), the game's baby maps (very
+  long legs, a short body, a shorter neck) with `modelSpec.baby.eye` 1.0 (the sculpted sockets grow with the head).
+  Its closed lids get their own color (`babyLidCol` from `paint_baby` round the eye in `stats()`): with the adult's
+  they showed as brown balls on the pale calf. The gecko hatchling does the same.
+
+
+## Round 11: the leopard gecko (`gecko.py`)
+
+A leopard gecko, 21 cm from the snout to the tail tip, built from the lizard: the same layout (one loft from the tail
+tip to the snout, head features in a head box, legs as chains, toes with claws, conformal body strips between seams
+plus smart project for the legs, rings where it bends) with its own numbers, and the lizard's generic helpers
+imported from `lizard.py` (`_cells`, `_rows`, `_local_n`, ...), so the lizard itself is untouched. Things that are new:
+- Leopard gecko shape: a wide, tall, rounded head with big bulging eyes (`EYE_R` 4.1 mm) in thick lid rings (they have
+  real eyelids; the game's lids blink over them), a short rounded snout, a wide mouth curving up behind the eye; a
+  plump body held up on slender legs; slender toes with small claws and no pads; a fat carrot tail in rings (a
+  shallow groove every 3.2 mm). Leopard geckos do not climb (no `climb` in the spec).
+- Skin: fine domed granules (0.5 to 0.7 mm) with raised round tubercles scattered over the back, the flanks and the
+  legs (a sparse cell pattern) and lined up on the tail's rings; small flat belly scales in rows. Granule-level color
+  noise made the color map four times bigger for nothing visible at game distance; the granules live in the normal
+  map only.
+- Paint: yellow with black leopard spots (two cell sizes, smaller on the head and the legs) evaluated at the real
+  point, so the two sides differ (`SIDES`, as the cow, for both the adult's and the hatchling's maps), white flanks
+  and belly, the tail lilac-white with yellow spotted bands. The hatchling's own map: broad black-brown bands across a
+  yellow body, a dark cap behind a pale snout, a black and white banded tail. `BABY_MAP` is `(0, q)` so export.py does
+  not squash the two-sided map into a square; `extra_maps()` sizes it.
+- Iris: plain gray with a vertical slit (`pupil: 'v'`); the frogs' `irisNet` looked blotchy on the hatchling's
+  bigger eye. `modelSpec.baby.eye` 1.0 (the sculpted socket grows with the head).
+
+
 ## Budget
 
 Pig: about 6.3k triangles, 4.8k vertices, 1024 x 1024 color and normal maps: 38 KB mesh (format 2; 136 KB before) +
@@ -835,3 +917,312 @@ Fruit bat (`VOXEL=0.002 TRIS=6500 TEX=768`, normal map WebP 64): 6.5k triangles 
 at detail 2 with 4 fur shell layers); 768 color and normal maps (the membranes get a smaller share of them,
 `uv_weight`), 256 pup color map, fur map: 45 KB mesh + 12 + 20 + 1 + 8 KB, about 120 KB in the page, 190 KB with its
 two icons. The procedural butterfly (2.9k triangles, 3.7k at detail 2) and caterpillar (2.2k) add only code and icons.
+
+Cow (`VOXEL=0.0065 TRIS=4000 TEX=768 WEIGHTS=transfer`, then rings across the neck, the legs and the tail): 6.4k
+triangles (7.4k in the game with the eyes); 768 color map with both sides (1536 x 768, WebP 74) and 768 normal map
+(WebP 58), no calf map (the calf has the same patches): 38 KB mesh (with the calf's udder offsets) + 32 + 15 KB, about
+116 KB in the page plus about 61 KB of icons. About 9 minutes for the whole run on the shared machine.
+
+Camel (`VOXEL=0.008 TRIS=3700 TEX=768 WEIGHTS=transfer`, then rings across the neck, the legs and the tail): 7.3k
+triangles (8.0k in the game with the eyes; the calf's fur shells at detail 2 on top); 768 color (WebP 72) and normal
+(WebP 58) maps, 256 calf color map, 384 fur map (calf only): 49 KB mesh (with the calf's hump offsets) + 12 + 14 + 1 +
+5 KB, about 112 KB in the page plus about 55 KB of icons. About 9 minutes for the whole run.
+
+Leopard gecko (`VOXEL=0.0004 TRIS=4400 TEX=512`, then the body seams and rings): 7.2k triangles (7.9k in the game with
+the eyes); 512 color map with both sides (1024 x 512, WebP 50), 512 normal map (WebP 42), 256 hatchling color map with
+both sides (512 x 256): 47 KB mesh + 48 + 42 + 11 KB, about 199 KB in the page plus about 28 KB of icons. The granules
+make the normal map the biggest part; at 640 it was 78 KB.
+
+## Round 11: the winged cat and the unicorn (`wingcat.py`, `unicorn.py`)
+
+Two legged animals with feathered bird wings: the birds' wing (bones and atlas blades, `stdWing`) grafted on a cat
+and a horse.
+- In the game each spec adds the bird wing bones (`wingL`, `wforeL`, `whandL` and the feather bones) with `parent:
+  'chest'`, and `spec.feathers` returns the atlas blades for the model (procedural blades for the fallback body).
+  `anim.wings` (round 11, `animLegged`; null for every other species) poses them with the bird animator's linkage:
+  folded along the back on the ground, half open and shaken when happy, beating with glides between a few beats in
+  flight (`every`, `beats`, `climb` as the eagle's soar), the body bobbing a little with each downstroke (`bob`), the
+  legs tucked in their own flight pose (`legs.f`, `legs.h`: up and forward in leg heights, flex, toe curl). The folded
+  wings take the chest's own pitch and yaw back out, so they stay along the back while the chest bends to eat, sit or
+  curl up asleep. `spec.lowerBlink = false` keeps the mammal's upper lid blink (a spec with `feathers` blinks like a
+  bird otherwise).
+- The folded pose: the shoulder pivots sit on top of the back, so a bird's folded wing (trailing edge up over the
+  back) stood up like a fin, and lower rolls sank it into the coat. What works is a moderate roll (-30 for the cat,
+  -40 for the unicorn) with `foldedPos` lifting the shoulder out of the coat and a little out to the side; the wings
+  then lie on the back like a cape and cover it from above. `wtune.py`-style tuning (set the shoulder bones by hand
+  after the animator has folded everything else) saves a rebuild per try.
+- The sculpt has the feathered wing arm (`bird.wing_arm`) in the rest pose, spread straight out from the shoulder
+  pivot, so the bounds reach out along x: `grid()` takes coarse steps out along the wing (it changes slowly along its
+  span), fine ones across its thickness, and the unicorn evaluates the horse only within its own box. The arm's skin
+  weights are set in `fix_weights` (place along the span, blended at the joints, the root into the chest over a few
+  centimeters); nothing else may keep weights on the wing, horn or feather bones (the procedural rig's blades and horn
+  tube are in the weight transfer source). Rings across the arm only around the shoulder, elbow and wrist (rings all
+  along it took 1,500 triangles). The arm is painted with `bird.plumage` coverts and has no fur shells.
+- Each writes its own feather atlas (`extra_maps` / `export_extra`: only the atlases, not the birds' baby maps) with
+  five cells (primaries, secondaries, greater and lesser coverts, tertials) and a down atlas for the babies' wings.
+- Winged cat: the tabby template with a silver mackerel tabby palette (the cat's `K`, about 20% darker than it looks:
+  the first try rendered white with black stripes), green eyes, barn-owl gray wings (coverts finely peppered, flight
+  feathers paling to white with faint bars). Kittens: the tabby kitten's body and stripes, small down wings
+  (`baby.wing` 0.5). It still climbs like the other cats.
+- Unicorn: the horse template run in the module with its parts replaced: a white coat with faint dapples (a strong
+  Worley net read as a giraffe's patches), a gray-pink muzzle, dark skin round the eyes, pale hooves; the spiral horn
+  (two grooves wound 4.5 times, ivory with gold in the grooves and a faint pearly tint), its base weighted from the
+  head onto the horn bone over the first 9 cm, so the foal's horn (the game scales the bone away) draws in to a round
+  bud; feathering (a sculpted bell of hair over each hoof under long fur shells, and cards hanging from the fetlocks);
+  a longer mane (two layers walking over the neck), a forelock parted round the horn, a longer, fuller tail, and a
+  strand texture with pastel tips (pink, lavender, blue, mint, peach) in its columns. The wings are a swan's (s 6, 5 m
+  across), white, beating slowly (1.5 a second).
+
+Winged cat (`VOXEL=0.0025 TRIS=3300 TEX=768`): 7.3k triangles plus 192 in the whiskers (10.0k in the game with the
+wing blades and eyes, 29k at detail 2 with 4 fur shell layers); 768 color (WebP 56) and normal (44) maps, 256 kitten
+color map, fur map, feather atlas 512 x 256 and its down atlas: 69 KB mesh and cards + 33 + 16 + 7 + 8 + 6 + 13 + 1 +
+4 KB, about 220 KB in the page plus its two icons (29 KB).
+
+Unicorn (`VOXEL=0.0045 TRIS=4400 TEX=768`): 6.7k triangles plus 1.7k in the hair cards (11.5k in the game with the
+wing blades and eyes, 19.8k at detail 2 with the fur shells); 768 color (WebP 68) and normal (46) maps, 256 foal color
+map, fur map, 192 x 256 strand texture, feather atlases: 78 KB mesh and cards + 16 + 23 + 2 + 5 + 18 + 12 + 1 + 4 KB,
+about 222 KB in the page plus its two icons (43 KB). About 15 minutes for the whole run on the shared machine.
+
+## Round 11: the lion, the tiger and the leopard (`panthera.py`: `lion.py`, `tiger.py`, `leopard.py`)
+
+Three big cats of the genus Panthera on the cat template, built the way the snow leopard is (`bigcat.py` underneath),
+with what they share in `panthera.py`: `load(ID, T)` runs `cat.py` with the species' tables and landmarks from the dict
+`T` (cat units), `setup(C)` installs the shared parts, and the species file replaces what it needs before
+`PT.install(globals(), C, KS)`. In the game, `bigPanthera(k, o)` (40_animals.js, in the lion's block) does the same for
+the three specs: the scaled cat with the species' own tail bones and fallback tail, round pupils, a big cat's walk and
+short charge, asleep flat out.
+- The head. With the house cat's head scaled up (wide set eyes, a short muzzle level with them, round full cheeks) all
+  three read as hamsters close up. A big cat's face is long: the muzzle is longer (`MS`, every muzzle part moved
+  forward, as the saber-toothed cat does), the head is pitched down a little more (`HF`), and the muzzle drops away in
+  front of the eyes (`DROP`: `DropFrame` is a head frame whose up coordinate is sheared in front of `s0`, so the muzzle
+  parts, the paint masks and the whiskers placed in the frame all come down with it). The eyes sit closer together
+  (about 0.016 from the middle instead of 0.019), the cheeks are smaller, the whisker pads bigger (`PAD_X`, `PADS`) and
+  the nose leather bigger. The loft's last row must stay narrow: a wide square end swallowed the pads and the nose and
+  made a capybara.
+- `coat()` is the one painter: the ground colors (darker along the back, warmer low down, pale underneath), the face
+  (white muzzle and chin, pale marks under and over the eyes, `EYE_PALE`), black lips and whisker spots, the nose with
+  its dark rim (`NOSE_MOTTLE`), dark ear backs with an optional pale spot (`EAR_SPOT`: 1 for the tiger, 0.55 for the
+  leopard), the coat strokes, and hooks for the species: `pattern` (stripes, rosettes), `extra` (the mane), `tail_tip`,
+  and `cub` for `baby_coat()`.
+- Shared tools options (off for every other species): `finish_baby` (texture.py, passed on by bigcat.py) folds less of
+  the sculpt's occlusion into a baby's color map.
+
+The lion (`lion.py`, KS 4.2: about 2.05 m from the nose to the rump, 1.05 m at the shoulder, a 1 m tail with its tuft):
+- The mane is part of the sculpt, so it keeps its outline far away: a ruff framing the face, sideburns over the
+  cheeks, a heavy sheath down the neck (a sweep along the neck), a cape over the shoulders and a fringe down the chest,
+  cut clear of the face (`_face_cut`: the front edge runs behind the eyes, further back on top and further forward
+  under the chin), with a hollow round each ear so the ears stand free, and hanging locks (noise stretched across the
+  hair). Long fur shells over it (up to 5.5 cm), tawny gold round the face darkening to brown and nearly black at the
+  back and on the chest, in streaks, with longer coat strokes (`lenk`). The ruff rides on the head bone
+  (`fix_weights`), so the face does not pull out of it when the lion eats; the game's fallback has a mane loft too,
+  which also gives the sculpted mane its skin weights.
+- Cubs have no mane: their baby offsets pull every mane vertex in onto the body under it (`body0()`, the lion without
+  the mane), their color map paints the coat that would be there (`coat()` without the mane hook), and they take less
+  of the sculpt's occlusion (`finish_baby`), or the mane's locks and the crease under it showed as a gray cape.
+  The mane's fur shells stay a little longer on a cub's neck (the fur length per vertex is shared). Faint spots on the
+  legs and belly, a small dark tail tip, a bigger head in the game (`baby.head` 1.75 for the three).
+- Budget (`VOXEL=0.0092 TRIS=5000 TEX=768`): 6.9k triangles plus 224 in whisker cards; 768 maps (color WebP 70, normal
+  56), 256 cub map, fur and whisker textures: 72 KB mesh and cards + 28 + 18 + 5 + 7 + 5 KB, 138 KB of files, about 185
+  KB in the page plus about 33 KB of icons. About 12 minutes for the whole run on the shared machine.
+
+The Bengal tiger (`tiger.py`, KS 4.0: about 1.95 m from the nose to the rump, 1 m at the shoulder, the house cat's tail
+made thicker, about 1.05 m):
+- A long low body with a loose belly fold, heavy shoulders and forelegs, a round head with a ruff of fur flaring over
+  the cheeks (`RUFF`, part of the head's field), a broad muzzle, small round ears set wide with a white spot on each
+  black back (`EAR_SPOT`).
+- The stripes come from `_bands()`: one group of stripes per whole number of a coordinate, each group a single stripe
+  or a pair that forks (the gap between the two opens toward one end), each with its own length and tapering to points
+  at both ends. Down the flanks the coordinate runs along the body and leans back lower down, and the stripes stop a
+  little short of the spine (the half body is mirrored, so stripes reaching the spine would join their twins into bands
+  across it); gentle arcs round the haunch on the thighs (from a far center: a near one drew targets); few on the
+  shoulders and forelegs; broken bars across the forehead (wavy lines there read as a zebra's), lines back over the
+  crown and the white cheeks, a line back from each eye; rings on the tail and a black tip. White on the belly, the
+  insides of the legs, the chest, the cheeks and the ruff, the muzzle and chin, and a spot over each eye; no pale ring
+  round the eyes (`NO_EYERING`: the house cat's ring made goggles).
+- Cubs wear the grown-up's coat (no cub color map: the stripes would cost the page as much again); their fluff is the
+  longer fur shells, and the game gives them the big head and paws.
+- It swims: low in the water (`floatDepth` 0.23 times k), the head and the top of the back out, paddling.
+- Budget (`VOXEL=0.0088 TRIS=4300 TEX=768`): 6.6k triangles plus 224 in whisker cards; 768 maps (color WebP 52: the
+  stripes are most of the bytes, normal 50), fur and whisker textures: 64 KB mesh and cards + 52 + 13 + 5 + 5 KB, 143 KB
+  of files, about 191 KB in the page plus about 31 KB of icons.
+
+The African leopard (`leopard.py`, KS 2.7: about 1.3 m from the nose to the rump, 0.65 m at the shoulder, a 0.95 m tail
+on four bones):
+- A long slender body with a deep chest, short strong legs on big paws, a broad round head with a strong jaw, small
+  round ears, the snow leopard's four-bone tail made thinner, hanging low with the tip curled up. It climbs (the cat's
+  climbing, the tail held out).
+- Rosettes (`spots()`): a coarse cell grid gives each rosette's ring (a band round the cell's point), a fine grid breaks
+  the ring into blobs (three to six round each center), and the center is a little darker than the ground. Thin rings
+  of small dots read as a cheetah's: the blobs are wide enough to join into broken rings. Solid spots on the head
+  (small), the neck and the legs, blotches on the white belly, spots then rings on the tail and white under its tip,
+  black ear backs with a soft pale spot (`EAR_SPOT` 0.55).
+- Cubs: grayer and woolly, the same pattern softened into smudges (`soft`).
+- Budget (`VOXEL=0.0062 TRIS=4200 TEX=768`): 6.7k triangles plus 224 in whisker cards; 768 maps (color WebP 40: the
+  spots are most of the bytes, normal 46), 192 cub map, fur and whisker textures: 65 KB mesh and cards + 47 + 13 + 5 +
+  5 + 5 KB, 144 KB of files, about 192 KB in the page plus about 28 KB of icons.
+
+## Round 11: more lizards on one template (`lizkit.py`: `beardeddragon.py`, ...)
+
+The lace monitor (`lizard.py`) stays as it is; the round 11 lizards share `lizkit.py`, a template made from it. A species
+file loads the template into its own module (`M = lizkit.load(id)`), sets its tables and landmarks in base units (an
+animal about half a meter long, so the template's blend radii, bake distances and scale sizes fit), replaces the
+functions it needs (`M.paint = paint`, they look names up in M when called) and calls `lizkit.install(globals(), M, KS)`,
+which scales every pipeline hook by KS on the way out, as `bigcat.py` does for the big cats. The template has:
+- the body as one loft from the tail tip to the snout (`BODY`: z, top, height of the widest line, bottom, half width,
+  exponents), ellipsoids added to it (`BLOBS`: girdles, throat) and to the head (`HEAD_BLOBS`, `SNOUT`, `MANDIBLE`),
+  the nostril, ear opening, mouth groove along `MOUTH_LINE` and the eye (lid mound, opening, ball; `seat_eye()` puts
+  the ball into the side of the head instead of standing out of it like goggles), legs as capsule chains with joint
+  balls and a sole (`FLEG`, `HLEG`), toes with hooked claws (`F_TOES`, `H_TOES`), and `EXTRAS` (named fields unioned
+  into the body: spikes, crests, dewlaps; `cones()` and `crest()` help build them);
+- skin weights made entirely from the sculpt and the game skeleton's pivots (read from the rig export): the trunk, neck,
+  head and tail as one chain along the middle line (each bone owns the stretch from its pivot to the next, blended over
+  a few mm), each leg along its own bones and into its girdle, a vertex counted as leg where the leg's field is nearer
+  than the body's;
+- rings across the body, tail and legs (`BEND_PITCH`; fewer through a wide trunk, they cost triangles), texture regions
+  (head, trunk, tail in parts, legs, feet) with the head getting more of the map (`UV_HEAD`);
+- scales as a height field per texel: granular beads, keeled rings round the tail, rows of belly plates, lip plates;
+  `regions()` gives the paint its masks (head, tail, legs, belly, lips, eye, claws, the extras').
+
+The game side is the same idea: `lizardKin(o)` in `40_animals.js` makes a species' spec from its bones and loft rows in
+base units and `o.k` (the procedural body is the Blender file's loft, so the rig the sculpt is fitted to matches it).
+
+The bearded dragon (`beardeddragon.py`, Pogona vitticeps, 50 cm, KS 1): a wide flat body, a broad triangular head with a
+short blunt snout (the first one read as a monitor until the snout was shortened and deepened), the beard as a full
+throat pouch with rows of soft spines along the jaw and across the throat, tufts of spines round the ear and behind the
+jaw angle, a fringe of spikes along each flank and spiky scales over the back (about 90 cones per side, `spike()`),
+stout legs and a thick thigh. Sandy tan with an orange wash over the head, two rows of darker blotches down the back,
+a banded tail, a pale belly; the flanks below the fringe keep most of the body color (a pale band there looked wrong).
+The hatchling has its own color map (the markings bolder). In the game it does push-ups and bobs its head.
+- Budget (`VOXEL=0.0012 TRIS=2900 TEX=768`, `BEND_PITCH` 13.5 and 5 mm): 7.0k triangles; 768 color (WebP 50) and normal
+  (WebP 32) maps, 320 hatchling color map: 52 KB mesh + 47 + 48 + 13 KB, 163 KB of files, about 217 KB in the page plus
+  about 23 KB of icons. The per-scale color jitter and the dark grooves cost most of the color map: keep them soft.
+
+The green iguana (`iguana.py`, Iguana iguana, 1.5 m, KS 3): a body a little flattened from side to side on long legs with
+long toes (the fourth hind toe longest), a deep head with full jowls, the subtympanic shield (`shield()`: a big round
+domed plate below the ear drum, painted pale gray-green with a dark rim; pure white read as a button), the dewlap
+(`dewlap()`: a thin plate in the middle plane from the chin to the chest, cut to an outline `DEW`, with small spines
+along its front edge), the crest (`lizkit.crest()`: blade spines every 1 cm, tallest over the neck, fading out a third
+of the way down the tail) and the long whip tail. Green, the head grayer, faint broken bars down the flanks, broad
+dark bands round the tail. The eyes are set into the head with `seat_eye()` (the first ones stood out like goggles).
+The hatchling (`size.baby` in the game, about 32 cm there) has its own color map (a brighter, more even green) and its
+own shape (`baby_offset()`: the dewlap pulled up to the throat and the crest low, as on a real hatchling).
+- Budget (`VOXEL=0.0018 TRIS=2800 TEX=768`): 7.3k triangles; 768 color (WebP 50) and normal (WebP 32) maps, 320
+  hatchling color map: 59 KB mesh (with the hatchling offsets) + 31 + 51 + 10 KB, 153 KB of files, about 204 KB in the
+  page plus about 16 KB of icons.
+
+The chameleon (`chameleon.py`, a male panther chameleon, Furcifer pardalis, 45 cm with its tail, KS 1):
+- A deep body flattened from side to side (the loft's upper exponent below 2 makes the arched back a ridge), a low
+  crest of cones along it, a short neck, a low casque rising behind the eyes (the loft's top raised there plus a thin
+  ridge; separate ridge chains read as antlers), ridges from the eyes to a small nose, the downturned mouth line.
+- The turret eyes: `eye_parts()` is replaced by a ball of skin round each eyeball, drawn out a little along the gaze,
+  with a small round hole for the pupil (`LID_W`). Each turret is weighted to its own bone (`eyeL`, `eyeR`, children
+  of the head, pivots at the eye centers; `fix_extra()`), and the model's eye names that bone (`'bone': 'eyeL'` in the
+  eye meta), so the game turns the turret and the eyeball together. The game's iris is small (`irisR` 0.26) so the
+  hole shows the pupil with a ring of gold; the lids stay open at the ball's edges and close the hole when it blinks.
+- The tail is not part of the loft: `tail()` sweeps a tapering tube along `tail_path()`, back from the hips and curled
+  down and forward into a spiral (an exponential spiral in the middle plane), with eight bones placed along the curve
+  (`tail_pivots()`, copied into the game's bone table). Its weights go by arc length along the dense curve
+  (`spine_weights()`), its rings follow the curve with a reach of about the tail's radius (a larger reach also cut the
+  next coil), and the paint and texture regions use the position along the curve (`tailS`).
+- Legs held under the body, elbows back and knees forward; zygodactyl feet (`bundle()`: each foot two mittens of
+  fused toes, three inside and two outside on the front feet, two and three on the hind, small claws at their tips).
+- Paint: green with blue bars round the body and red cores in them, a white stripe along the lower flank from the
+  corner of the mouth, red stripes radiating from the eye, green and red rays on the turrets, a banded tail, red spots
+  on the legs. `stats()` also measures the mean brightness of the skin (`chroma.lum` in the json) for the game's color
+  change. The hatchling has its own dull gray-brown color map.
+- In the game (`40_animals.js`, both off for every other species): `spec.extend(R, A, rig)` adds a species' own
+  per-frame steps after the animator and its own rig methods (the chameleon's eyes darting about each by itself and
+  both turning onto the food, the tongue strike, `rig.setTint(color, amount, now)`; the Komodo dragon's tongue
+  flicks), and `anim.rock` sways the body back and forth over the planted feet. The color change gives each chameleon
+  its own copies of the skin materials with a tint uniform: the skin blends toward the color by brightness, so the
+  banded pattern shows through it.
+- Budget (`VOXEL=0.0011 TRIS=2600 TEX=768`): 6.8k triangles; 768 color (WebP 52) and normal (WebP 25) maps, 320
+  hatchling color map: 52 KB mesh + 44 + 53 + 7 KB, 158 KB of files, about 211 KB in the page plus about 34 KB of
+  icons (the banded pattern makes them the biggest of the four).
+
+Synthetic rigs: the lizkit species make every skin weight themselves, so their rig export only has to give the bone
+pivots; a rig json written from the species' bone table (bones times k, mirrored ones doubled, the collar tag, one
+dummy triangle as the procedural mesh) gives the same model as the browser export.
+
+The Komodo dragon (`komodo.py`, Varanus komodoensis, 2.8 m, KS 5.6) is the template's own monitor made heavy: a deep
+broad body on thick upright legs with big curved claws, a long thick neck with loose folds across its sides (`folds()`)
+and a full throat, a long flat head with a rounded snout, small eyes under a brow, slit nostrils near the tip, a long
+muscular tail. Dull gray-brown with paler and darker mottling, faint reddish blotches and pale speckles, the head
+grayer. The hatchling has its own color map (bright yellow bands across a black body, an orange-pink head and neck);
+the game makes it slim and small (`size.baby`, about half a meter in the game).
+- Budget (`VOXEL=0.0065 TRIS=2800 TEX=768`): 7.9k triangles; 768 color (WebP 50) and normal (WebP 30) maps, 256
+  hatchling color map: 54 KB mesh + 29 + 50 + 16 KB, 152 KB of files, about 203 KB in the page plus about 29 KB of
+  icons.
+
+## Round 11: the cheetah on the cat template with longer legs (`cheetah.py`)
+
+A cheetah (KS 2.6: about 1.25 m from the nose to the rump, 0.78 m at the shoulder, a 0.8 m tail). New on the way:
+- `bigcat.LegWarp` (`bigcat.install(..., warp=W)`): a map from the cat's units to the species' own that lifts the body by
+  `dy` and stretches the legs between heights `ya` and `yb` to make up for it (smooth over `w`, so there is no crease);
+  behind the rump (z below `z1`, fading out by `z0`) points are only lifted, so a tail that hangs low keeps its round
+  section. Every hook goes through it (points in through the inverse, positions out through the map, baby offsets as the
+  difference of two mapped points), so all of cat.py's shapes, masks and weights still work. The game moves the bones,
+  lofts, eyes and accents with the same numbers (`legWarp` in 40_animals.js). Without a warp `install` does exactly what
+  it did before (the snow leopard's and Smilodon's hooks give the same numbers bit for bit).
+- A smaller head without new tables: `HeadFrame` (in cheetah.py) is the cat's head frame with every local length scaled
+  by `HS` (0.8), so the head's parts, eyes, mouth, masks and whiskers all shrink together; `head()` hands back its
+  distances times HS. The game scales the fallback's head, ears, eyes and nose about the same origin.
+- The cheetah's own head (rounder skull, high forehead, flatter cheeks, smaller whisker pads, a broad nose), a deep chest
+  and a tucked-up waist (no belly flap), long lean thighs cut off under the back line, slender legs, small narrow paws.
+- Paint: solid round spots from a Worley grid laid out in the cheetah's own height (`WARP.fwd`, so the stretched legs do
+  not stretch them), smaller on the legs and the head, faint on the white belly; the tail's spots turn into rings, then
+  a white tip. The tear lines are a line in the head frame's (up, along) plane on the +x side of the face (a line in two
+  of the three coordinates lands once on the convex face; the first try in all three ran inside the head). A white
+  crescent under the eyes only (a full pale ring made cartoon eyes), cream whisker pads, black lips.
+- Cubs: smoky dark with the silvery mantle: a pale band over the crown, the nape and the back in the cub's color map, a
+  ridge of hair along it in the baby offsets (6.5 mm), and the adult's nape crest fur (longer fur along the mantle) times
+  `babyLen` 2.
+- In the game: the fastest runner (run 15 m/s, a stride of up to 4.6 m at 3.4 strides a second, a short stance, the back
+  flexing hard: `flexRun` 0.42); asleep lying with the legs folded under (`fold`: the cat's curl stuck its long legs out).
+- Budget (`VOXEL=0.0065 TRIS=4600 TEX=768`): 7.6k triangles plus 192 in whisker cards; 768 maps (color WebP 60, normal
+  54), 256 cub map, fur and whisker textures: 74 KB mesh + 43 + 13 + 2 + 6 + 5 KB, 148 KB of files, about 197 KB in the
+  page plus about 31 KB of icons.
+
+## Round 11: the ocelot on the cat template (`ocelot.py`)
+
+An ocelot (KS 1.6: about 0.8 m from the nose to the rump, 0.4 m at the shoulder, a 0.35 m tail), the house cat's
+skeleton and animation at about twice its size: a sturdier body (deeper and wider, the belly lower), a thick neck,
+stout legs on big front paws (the "fat hands", a heavier forearm), rounded ears, big golden eyes, a longer muzzle than
+the house cat's with a low ridge down the bridge of the nose and narrower cheeks (its own `head()`), a shorter tail on
+the cat's three tail bones.
+- Paint: chains of open blotches along the flanks from a Worley grid stretched along the body and sloping down toward
+  the rear (`_marks()`: black rims, broken here and there, cinnamon centers), four bold nape stripes from the crown to
+  the shoulders, solid spots on the legs, the white belly and the head, a banded tail with a dark tip, two black stripes
+  on each cheek and a line from the inner corner of each eye down beside the nose (`_face()`), white rings round the
+  eyes (narrow: a wide ring made cartoon eyes), black ear backs with a white spot in the middle of each.
+- Kittens: grayer and softer, the marks bold, fuzzy and filled in, blue eyes.
+- In the game: walk 0.9, run 6 m/s; climbs and swims with the house cat's poses (the head held a little higher swimming).
+- Budget (`VOXEL=0.004 TRIS=4200 TEX=768`): 6.8k triangles plus 192 in whisker cards; 768 maps (color WebP 60, normal
+  56), 256 kitten map, fur and whisker textures: 64 KB mesh + 49 + 14 + 10 + 6 + 6 KB, 153 KB of files, about 204 KB in
+  the page plus about 33 KB of icons.
+
+## Round 11: the giant panda on the polar bear's file (`panda.py`)
+
+A giant panda, about 1.45 m from the nose to the tail and 0.78 m at the shoulder. `panda.py` runs `polarbear.py` in its
+own module (as `bigcat.load` runs cat.py), replaces its tables and the parts that differ, all in the polar bear's
+units, and `bigcat.install(globals(), B, KP)` scales the hooks by KP = 0.6 into game meters (install works for any
+species file with the usual hooks; the panda adds a plain `grid()`). The game's skeleton is the polar bear's with the
+neck, head and ear bones moved, scaled by the same factor (`SPEC.panda`).
+- Shape: a level back (the polar bear's rump stands higher), a slimmer trunk, a short thick neck with the head close to
+  the shoulders, a big round head (the head frame scaled by HK 1.15, as the cheetah's is scaled down) with full cheeks
+  (the jaw muscles), a crown, a short broad muzzle and a small black nose pad, round thick ears standing on top, small
+  eyes, the polar bear's thick legs, big paws (pigeon-toed in front) and woolly coat in the sculpt.
+- A short mouth line (a long deep cut along the lips read as a grin with white teeth under it).
+- The pattern from 3D masks (`_black()`): eye patches as ovals in the head frame's (side, up) plane, their long axis
+  running down and out from the brow over the cheek; the ears and a ring round their base; the legs (where the leg
+  parts are nearer than the trunk), up over the thighs to the hips; the band over the shoulders, its middle moving
+  forward as it runs down each side to the front legs, and under the chest between them; the neck and the throat stay
+  white. Cubs: the same pattern, the white a little whiter.
+- In the game: it sits back on its haunches to eat with its front paws at its mouth (`eatSit`, a round 11 option of the
+  legged animator, off for every other species: with `eatUp` the food is picked up head down, then the sit pose takes
+  over instead of the hamster's sit-up, the front paws go to `paws` [up, forward, flex] from the shoulder and the neck
+  bends by `neck`, chewing); it climbs (the cat's climb settings), sleeps flat on its front with its head on its paws,
+  sits now and then when it stands still.
+- Budget (`VOXEL=0.006 TRIS=5200 TEX=768`, then rings across the body and the neck): 7.4k triangles, no cards; 768 color
+  and normal maps (WebP 70 and 56: the coat is mostly flat white and black), 256 cub map, 384 fur map: 67 KB mesh + 22 +
+  17 + 4 + 7 KB, 120 KB of files, about 160 KB in the page plus about 49 KB of icons.

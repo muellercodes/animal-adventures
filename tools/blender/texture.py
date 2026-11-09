@@ -172,7 +172,9 @@ if __name__ == '__main__':
     out(Ro[..., 0]).save(os.path.join(WORK, f'{SP}-rough.png'))
     out(ao).save(os.path.join(WORK, f'{SP}-ao.png'))
     if bcol is not None:
-        Cb = S.finish(down2(pad(img(bcol, 3), valid, 24)), ao, v2)
+        # (optional finish_baby: a baby whose shape differs a lot from the sculpt, such as a lion cub without the mane,
+        # can take less of the sculpt's occlusion)
+        Cb = getattr(S, 'finish_baby', S.finish)(down2(pad(img(bcol, 3), valid, 24)), ao, v2)
         if PS:
             Cb = smooth_pad(Cb, PS)
         im = out(Cb)

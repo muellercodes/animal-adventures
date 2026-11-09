@@ -1,0 +1,101 @@
+{
+ "v": 2,
+ "id": "beardeddragon",
+ "data": "beardeddragon.bin",
+ "enc": "deflate",
+ "raw": 84645,
+ "maps": {
+  "color": "beardeddragon-color.webp",
+  "normal": "beardeddragon-normal.webp",
+  "babyColor": "beardeddragon-color-baby.webp"
+ },
+ "nv": 3035,
+ "ntri": 3485,
+ "nbv": 3035,
+ "nbt": 3485,
+ "bbox": [
+  -0.096014,
+  0.000762,
+  -0.33169,
+  0.096014,
+  0.054441,
+  0.161857
+ ],
+ "bones": [
+  "hips",
+  "chest",
+  "neck",
+  "head",
+  "tail1",
+  "tail2",
+  "tail3",
+  "tail4",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.015,
+   0.0416,
+   0.1415
+  ],
+  "r": 0.0037,
+  "dir": [
+   0.9326,
+   0.2838,
+   0.223
+  ],
+  "lid": [
+   0.595,
+   -0.703,
+   0.25
+  ],
+  "lidCol": 5453599,
+  "iris": 11039790,
+  "irisR": 0.92,
+  "pupilR": 0.46,
+  "rim": 2759182,
+  "babyIris": 11040814
+ },
+ "mouth": [
+  0.0,
+  0.0312,
+  0.159
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.06,
+  0.04,
+  0.02
+ ],
+ "flat": 12884578,
+ "belly": [
+  0.0,
+  0.013,
+  -0.05
+ ]
+}

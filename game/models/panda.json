@@ -1,0 +1,126 @@
+{
+ "v": 2,
+ "id": "panda",
+ "data": "panda.bin",
+ "enc": "deflate",
+ "raw": 96045,
+ "maps": {
+  "color": "panda-color.webp",
+  "normal": "panda-normal.webp",
+  "babyColor": "panda-baby.webp",
+  "fur": "panda-fur.webp"
+ },
+ "nv": 2737,
+ "ntri": 3691,
+ "nbv": 2737,
+ "nbt": 3691,
+ "bbox": [
+  -0.26734,
+  -0.001068,
+  -0.769432,
+  0.26734,
+  0.850759,
+  0.653749
+ ],
+ "bones": [
+  "hips",
+  "rump",
+  "chest",
+  "neck",
+  "neck2",
+  "head",
+  "tail1",
+  "tail2",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "earL",
+  "earR",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.05548,
+   0.64296,
+   0.53304
+  ],
+  "r": 0.0087,
+  "dir": [
+   0.4208,
+   0.1002,
+   0.9016
+  ],
+  "lid": [
+   0.75,
+   -0.75,
+   0.15
+  ],
+  "iris": 2759698,
+  "irisR": 0.92,
+  "pupilR": 0.4,
+  "rim": 657158,
+  "lidCol": 1710102,
+  "babyLidCol": 1710102,
+  "pupil": "v"
+ },
+ "collar": {
+  "at": [
+   "neck2",
+   "head",
+   0.3
+  ],
+  "lift": 0.5,
+  "r": 0.8,
+  "maxR": 0.18
+ },
+ "belly": [
+  0.0,
+  0.336,
+  -0.12
+ ],
+ "mouth": [
+  0.0,
+  0.5421,
+  0.5996
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.16,
+  0.15,
+  0.13
+ ],
+ "flat": 13157044,
+ "fur": {
+  "len": 0.051000000000000004,
+  "n": 5,
+  "lean": 1.0,
+  "tile": 0.0026999999999999997,
+  "babyLen": 1.25,
+  "babyLean": 0.5,
+  "shade": 0.66,
+  "uvm": 1.8068
+ },
+ "bdelta": 0.053999
+}

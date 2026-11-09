@@ -47,6 +47,8 @@ const FOODS = {
   hotdog: { name: 'Hot dogs' }, petfood: { name: 'Pet food' }, hay: { name: 'Hay' },
   // round 10: nectar, a wildflower bloom (for butterflies; 38_food draws it)
   nectar: { name: 'Nectar' },
+  // round 11: meat for the big cats, bamboo for pandas, dates for camels (38_food draws them)
+  meat: { name: 'Meat' }, bamboo: { name: 'Bamboo' }, dates: { name: 'Dates' },
 };
 // swim/fly/hop/climb are what the animal can do; swimSpeed and flySpeed are m/s
 // egg: hatches from an egg (shell color); outdoor: when adopted it lives in a pen in the yard instead of inside the house
@@ -112,6 +114,36 @@ const SPECIES = {
   // round 10: monarch butterfly; its baby is the caterpillar, a hidden species of its own (not in the shop)
   butterfly: { name: 'Monarch butterfly', many: 'Monarch butterflies', eats: ['nectar', 'watermelon', 'banana', 'berries'], fav: 'nectar', fly: true, flySpeed: 4, price: 150, egg: 0xf2ecd2, baby: 'Caterpillar' },
   caterpillar: { name: 'Monarch caterpillar', many: 'Monarch caterpillars', eats: ['lettuce', 'grass', 'twigs'], fav: 'lettuce', noJump: true, hidden: true, price: 150, baby: 'Caterpillar' },
+  // round 11: cow
+  cow: { name: 'Cow', many: 'Cows', eats: ['grass', 'hay', 'corn', 'apple', 'lettuce', 'carrot'], fav: 'grass', outdoor: true, price: 700, baby: 'Calf' },
+  // round 11: camel
+  camel: { name: 'Camel', many: 'Camels', eats: ['dates', 'hay', 'grass', 'twigs', 'apple'], fav: 'dates', outdoor: true, price: 1300, baby: 'Camel calf' },
+  // round 11: leopard gecko
+  gecko: { name: 'Leopard gecko', many: 'Leopard geckos', eats: ['bugs', 'worm'], fav: 'bugs', price: 300, egg: 0xF4F1EA, camNear: 0.8, baby: 'Baby gecko' },
+  // round 11: winged cat
+  wingcat: { name: 'Winged cat', many: 'Winged cats', eats: ['smallfish', 'fish', 'worm', 'bugs', 'petfood'], fav: 'smallfish', fly: true, flySpeed: 10, climb: true, price: 900, baby: 'Winged kitten' },
+  // round 11: unicorn
+  unicorn: { name: 'Unicorn', many: 'Unicorns', eats: ['apple', 'carrot', 'grass', 'hay', 'berries'], fav: 'apple', fly: true, flySpeed: 11, outdoor: true, price: 2000, baby: 'Baby unicorn' },
+  // round 11: lion
+  lion: { name: 'Lion', many: 'Lions', eats: ['meat', 'fish', 'hotdog'], fav: 'meat', outdoor: true, hunter: true, price: 1600, baby: 'Lion cub' },
+  // round 11: tiger
+  tiger: { name: 'Tiger', many: 'Tigers', eats: ['meat', 'fish', 'hotdog'], fav: 'meat', swim: true, swimSpeed: 2.2, outdoor: true, hunter: true, price: 1700, baby: 'Tiger cub' },
+  // round 11: leopard
+  leopard: { name: 'Leopard', many: 'Leopards', eats: ['meat', 'fish', 'smallfish', 'hotdog'], fav: 'meat', climb: true, outdoor: true, hunter: true, price: 1300, baby: 'Leopard cub' },
+  // round 11: bearded dragon
+  beardeddragon: { name: 'Bearded dragon', many: 'Bearded dragons', eats: ['bugs', 'worm', 'lettuce', 'carrot', 'berries'], fav: 'bugs', price: 400, egg: 0xEDE6D2, camNear: 0.8, baby: 'Baby bearded dragon' },
+  // round 11: green iguana
+  iguana: { name: 'Green iguana', many: 'Green iguanas', eats: ['lettuce', 'berries', 'banana', 'apple', 'twigs'], fav: 'lettuce', climb: true, swim: true, swimSpeed: 2.0, price: 500, egg: 0xF0EBD8, camNear: 0.6, baby: 'Baby iguana' },
+  // round 11: chameleon
+  chameleon: { name: 'Chameleon', many: 'Chameleons', eats: ['bugs', 'worm'], fav: 'bugs', climb: true, price: 450, egg: 0xEFEADA, camNear: 0.85, baby: 'Baby chameleon' },
+  // round 11: komodo dragon (climbBaby: hatchlings live in trees; the game's climbing only reads climb, per species)
+  komodo: { name: 'Komodo dragon', many: 'Komodo dragons', eats: ['meat', 'fish', 'hotdog'], fav: 'meat', swim: true, swimSpeed: 1.8, outdoor: true, hunter: true, climbBaby: true, price: 1500, egg: 0xEDE6D4, baby: 'Baby Komodo dragon' },
+  // round 11: cheetah
+  cheetah: { name: 'Cheetah', many: 'Cheetahs', eats: ['meat', 'fish', 'hotdog'], fav: 'meat', outdoor: true, hunter: true, price: 1400, baby: 'Cheetah cub' },
+  // round 11: ocelot
+  ocelot: { name: 'Ocelot', many: 'Ocelots', eats: ['meat', 'smallfish', 'fish', 'bugs', 'petfood'], fav: 'smallfish', climb: true, swim: true, swimSpeed: 1.8, price: 600, baby: 'Ocelot kitten' },
+  // round 11: giant panda
+  panda: { name: 'Giant panda', many: 'Giant pandas', eats: ['bamboo', 'apple', 'carrot', 'lettuce'], fav: 'bamboo', climb: true, outdoor: true, price: 1500, baby: 'Panda cub' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
@@ -127,6 +159,7 @@ SMALL_PREY.push('cockatiel');
 // round 7: eagle, chickadee, rhino: each goes into the shop list by its price (the list runs from cheap to dear)
 for (const id of ['chickadee', 'eagle', 'rhino']) { let i = SHOP.length; while (i > 0 && SPECIES[SHOP[i - 1]].price > SPECIES[id].price) i--; SHOP.splice(i, 0, id); }
 SMALL_PREY.push('chickadee', 'hamster');
+SMALL_PREY.push('gecko', 'beardeddragon', 'chameleon');   // round 11
 SPECIES.chickadee.eggSpeck = [0.72, 0.4, 0.28];   // reddish brown speckles
 // round 10: polar bear
 SHOP.push('polarbear');
@@ -134,6 +167,30 @@ SHOP.push('polarbear');
 SHOP.push('snowleopard');
 // round 10: saber-toothed cat
 SHOP.push('smilodon');
+// round 11: winged cat
+SHOP.push('wingcat');
+// round 11: unicorn
+SHOP.push('unicorn');
+// round 11: lion
+SHOP.push('lion');
+// round 11: tiger
+SHOP.push('tiger');
+// round 11: leopard
+SHOP.push('leopard');
+// round 11: bearded dragon
+SHOP.push('beardeddragon');
+// round 11: green iguana
+SHOP.push('iguana');
+// round 11: chameleon
+SHOP.push('chameleon');
+// round 11: komodo dragon
+SHOP.push('komodo');
+// round 11: cheetah
+SHOP.push('cheetah');
+// round 11: ocelot
+SHOP.push('ocelot');
+// round 11: giant panda
+SHOP.push('panda');
 // round 7: the shop runs from cheap to dear
 SHOP.sort((a, b) => SPECIES[a].price - SPECIES[b].price);
 // round 8: brachiosaurus (the dearest animal, so it goes last)
@@ -144,7 +201,13 @@ for (const id of ['bat', 'butterfly']) { let i = SHOP.length; while (i > 0 && SP
 SHOP.push('trex');
 // round 10: giraffe (after the price sort, so it sits at the end with the other round 10 animals)
 SHOP.push('giraffe');
-const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow', 'snow'];
+// round 11: cow
+SHOP.push('cow');
+// round 11: camel
+SHOP.push('camel');
+// round 11: leopard gecko
+SHOP.push('gecko');
+const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow', 'snow', 'savanna'];
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];
 const SKIN = ['#F3D3B8', '#E6B691', '#C98E66', '#9A6544', '#6B4430'];
 const HAIR = ['#2B1E16', '#5A3A22', '#A8692E', '#D9B66A', '#8B2E1F', '#1E1E1E', '#B8B2A8'];
@@ -155,8 +218,14 @@ const SHOES = ['#2A2A2A', '#5A3A22', '#E8E8E8', '#7A2E2E'];
 /* ---------- save state ---------- */
 // ages: species -> 0 (newborn) .. 1 (grown up). names: nicknames. homes: species -> the person who adopted it.
 const fresh = () => ({ v: 1, d3: true, saved: 0, leaves: 0, owned: [], animal: 'duck', world: 'land', visited: [], time: 120, hunger: 100, x: null, z: null, started: false,
-  ages: {}, names: {}, homes: {}, sick: 0, ills: {}, hatched: [], treats: {}, sound: true, music: true });
+  ages: {}, names: {}, homes: {}, sick: 0, ills: {}, hatched: [], treats: {}, found: [], sound: true, music: true });
 const ADULT_AT = 1, FLY_AGE = 0.6;
+// round 11: animals cost leaves again (Drew, Nov 2026: earned by playing only, no store, no math), at a fifth of the
+// old list prices (SPECIES price) so a new animal takes a play session or two
+const priceOf = (id) => Math.max(20, Math.round((SPECIES[id].price || 100) / 50) * 10);
+// leaves you earn: per food (more for your favorite and for candy), for finding a world or a place, for growing up and
+// for being adopted
+const LEAVES = { food: 2, fav: 4, candy: 5, world: 25, place: 15, grown: 50, adopted: 20, treat: 5 };
 const ageOf = (sp) => (S.ages[sp] === undefined ? 1 : S.ages[sp]);
 const nameOf = (sp) => S.names[sp] || SPECIES[sp].name;
 const stageName = (sp) => {

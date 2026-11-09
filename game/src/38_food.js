@@ -1353,3 +1353,213 @@
   }
   Env.addFood('nectar', foodNectar);
 })();
+
+/* ---------- round 11: meat, bamboo and dates ----------
+     meat    a raw bone-in rib steak: deep red marbled meat with a seam of fat round the cap muscle, a cream fat cap along
+             the round side, muscle grain on the cut sides, the rib bone along the flat side with its frenched end
+             standing out (for the big cats; painted on its own skin canvas, see K.skinTex)
+     bamboo  three cut bamboo canes lying together, green with pale ringed nodes and a white bloom below each node,
+             one with its leafy top still on (for pandas)
+     dates   a strand of ripe dates, glossy amber to dark brown, on their orange fruit stalks (for camels)
+   All about life size, lying on the ground at the origin, painted with vertex colors (the meat also has a skin canvas). */
+(() => {
+  const K = Env._k;
+  const { TAU, V3, rng, L, mixc, mulc, prep, paint, merge, soup, path, tube, mat, fbm, smooth, clamp, lerp, mixRGB, mulRGB } = K;
+  const DS = THREE.DoubleSide;
+  const toGround = (g) => { g.computeBoundingBox(); g.translate(0, -g.boundingBox.min.y, 0); return g; };
+
+  // a quad turned to face along dir
+  function quadDir(S, a, b, c, d, dir, ca, cb, cc, cd, ua, ub, uc, ud) {
+    const n = new V3().subVectors(b, a).cross(new V3().subVectors(c, a));
+    if (n.dot(dir) >= 0) S.quad(a, b, c, d, ca, cb, cc, cd, ua, ub, uc, ud); else S.quad(a, d, c, b, ca, cd, cc, cb, ua, ud, uc, ub);
+  }
+  /* the steak's skin canvas: the top (cut) face mapped flat from above (v 0.30 .. 0.84), the side walls below it (u round
+     the outline, v 0.02 .. 0.26 from the bottom up) */
+  const MRX = 0.1, MRZ = 0.068, MZC = 0.043, MTH = 0.026;
+  // the outline in polar form: an oval flattened along the bone side (-z), the corners soft, a little irregular
+  const meatR = (ph) => {
+    const c = Math.cos(ph), s = Math.sin(ph), R0 = MRX * MRZ / Math.hypot(MRZ * c, MRX * s);
+    const R1 = s < -0.02 ? MZC / -s : 1, k = 0.005, R = -k * Math.log(Math.exp(-R0 / k) + Math.exp(-R1 / k));
+    return R * (1 + 0.035 * Math.sin(ph * 3 + 1) + 0.02 * Math.sin(ph * 7 + 2));
+  };
+  const angOf = (x, z) => (Math.atan2(z, x) + TAU) % TAU;
+  // how much of the outline at angle ph carries the fat cap (the round side, away from the bone)
+  const meatFat = (ph) => smooth(0.45, 0.95, ph) * smooth(3.1, 2.6, ph);
+  const CREAM = [236, 220, 186];
+  const meatTex = () => K.skinTex('f11meat', 256, 256, (u, v) => {
+    if (v >= 0.285) {
+      const x = (u - 0.5) * 0.24, z = (v - 0.3) / 0.54 * 0.15 - 0.075, ph = angOf(x, z), rho = Math.hypot(x, z) / meatR(ph);
+      const n1 = fbm(x * 40, z * 40, 1.1, 3), n2 = fbm(x * 160 + 5, z * 160, 2.2, 2), fw = meatFat(ph);
+      let c = mixRGB([90, 10, 18], [142, 22, 32], smooth(-0.35, 0.35, n1));      // lean: deep cherry red, blotchy
+      c = mulRGB(c, 0.9 + 0.14 * n2);
+      // marbling: a fine net of white fat and flecks, finer toward the edge of the eye
+      const net = 1 - Math.abs(fbm(x * 70 + 1.7, z * 70, 3.3, 3)) * 2, net2 = 1 - Math.abs(fbm(x * 150, z * 150, 4.4, 2)) * 2;
+      const fl = smooth(0.93, 0.985, net) * 0.6 + smooth(0.5, 0.66, n2) * 0.35 + smooth(0.955, 0.995, net2) * 0.35;
+      c = mixRGB(c, [236, 216, 206], clamp(fl, 0, 0.9));
+      // the seam of fat round the cap muscle, and a pocket of fat in the eye
+      const sw = smooth(0.35, 0.8, ph) * smooth(3.0, 2.5, ph);
+      c = mixRGB(c, CREAM, smooth(0.022, 0.008, Math.abs(rho - (0.62 + 0.05 * Math.sin(ph * 2 + 1) + 0.03 * n1))) * sw);
+      c = mixRGB(c, CREAM, smooth(0.008, 0.003, Math.hypot(x + 0.016, (z - 0.004) * 1.6) + 0.003 * n1));
+      // the fat cap, with a thin pink line of membrane where it meets the meat
+      const capR = 0.9 + 0.02 * Math.sin(ph * 5) + 0.015 * n1, inCap = smooth(capR - 0.01, capR + 0.01, rho) * fw;
+      c = mixRGB(c, mixRGB(CREAM, [222, 200, 156], smooth(-0.2, 0.4, n2)), inCap);
+      c = mixRGB(c, [200, 128, 116], smooth(0.02, 0.0, Math.abs(rho - capR - 0.012)) * fw * 0.45);
+      return mulRGB(c, 1 - 0.18 * smooth(0.95, 1.02, rho));
+    }
+    if (v > 0.265) return [130, 20, 30];
+    // the walls: grain of the muscle fibers running up and down, darker and duller than the cut; cream where the fat cap is
+    const ph = u * TAU, h = clamp((v - 0.02) / 0.24, 0, 1), n = fbm(Math.cos(ph) * 3, h * 2, Math.sin(ph) * 3, 2);
+    const fib = Math.abs(Math.sin(ph * 300 + n * 8));
+    let c = mixRGB([118, 16, 26], [86, 10, 22], smooth(-0.2, 0.3, n));
+    c = mulRGB(c, 0.85 + 0.18 * fib);
+    c = mixRGB(c, [226, 200, 190], smooth(0.5, 0.7, fbm(ph * 20, h * 3, 9.1, 2)) * 0.35);
+    c = mixRGB(c, mixRGB(CREAM, [214, 190, 146], smooth(-0.2, 0.4, n)), meatFat(ph) * smooth(0.15, 0.45, h));
+    return mulRGB(c, 0.8 + 0.2 * h);
+  });
+  function foodMeat() {
+    const M = 40, S = soup(), up = new V3(0, 1, 0), W = [1, 1, 1];
+    const rk = [0, 0.25, 0.5, 0.7, 0.86, 0.94, 0.98, 1.0];
+    const topY = (rho, ph, x, z) => MTH + 0.003 * (1 - rho * rho) + 0.0012 * fbm(x * 90, 1.3, z * 90, 2) + 0.0015 * meatFat(ph) * smooth(0.8, 0.9, rho) - 0.005 * smooth(0.9, 1.0, rho);
+    const uvTop = (x, z) => [0.5 + x / 0.24, 0.3 + (z + 0.075) / 0.15 * 0.54];
+    const grid = [];
+    for (let k = 0; k < rk.length; k++) {
+      const row = [];
+      for (let j = 0; j <= M; j++) {
+        const ph = (j / M) * TAU, R = meatR(ph) * rk[k], x = Math.cos(ph) * R, z = Math.sin(ph) * R;
+        row.push(new V3(x, topY(rk[k], ph, x, z), z));
+      }
+      grid.push(row);
+    }
+    for (let k = 0; k < rk.length - 1; k++) for (let j = 0; j < M; j++) {
+      const a = grid[k][j], b = grid[k + 1][j], c = grid[k + 1][j + 1], d = grid[k][j + 1];
+      quadDir(S, a, b, c, d, up, W, W, W, W, uvTop(a.x, a.z), uvTop(b.x, b.z), uvTop(c.x, c.z), uvTop(d.x, d.z));
+    }
+    // the walls, bulging a little, down to the bottom edge
+    const hs = [1, 0.55, 0.12, 0], wall = [];
+    for (const h of hs) {
+      const row = [];
+      for (let j = 0; j <= M; j++) {
+        const ph = (j / M) * TAU, top = grid[rk.length - 1][j], R = meatR(ph) * (1 + 0.035 * Math.sin(h * Math.PI) - 0.04 * (1 - h));
+        row.push(h === 1 ? top.clone() : new V3(Math.cos(ph) * R, top.y * h + 0.0005, Math.sin(ph) * R));
+      }
+      wall.push(row);
+    }
+    for (let i = 0; i < hs.length - 1; i++) for (let j = 0; j < M; j++) {
+      const ph = ((j + 0.5) / M) * TAU, out = new V3(Math.cos(ph), 0, Math.sin(ph));
+      const a = wall[i][j], b = wall[i + 1][j], c = wall[i + 1][j + 1], d = wall[i][j + 1];
+      const ao = (h) => { const k = 0.7 + 0.3 * h; return [k, k, k]; };
+      quadDir(S, a, b, c, d, out, ao(hs[i]), ao(hs[i + 1]), ao(hs[i + 1]), ao(hs[i]), [j / M, 0.02 + hs[i] * 0.24], [j / M, 0.02 + hs[i + 1] * 0.24], [(j + 1) / M, 0.02 + hs[i + 1] * 0.24], [(j + 1) / M, 0.02 + hs[i] * 0.24]);
+    }
+    const bot = wall[hs.length - 1], dn = new V3(0, -1, 0), m = new V3(0, 0.0005, 0);
+    for (let j = 0; j < M; j++) {
+      const n = new V3().subVectors(bot[j], m).cross(new V3().subVectors(bot[j + 1], m));
+      if (n.y <= 0) S.tri(m, bot[j], bot[j + 1], W, W, W, K.PLAIN, K.PLAIN, K.PLAIN); else S.tri(m, bot[j + 1], bot[j], W, W, W, K.PLAIN, K.PLAIN, K.PLAIN);
+    }
+    // the rib bone along the flat side, its frenched end standing out past the meat: ivory, blood pink near the meat
+    const B = soup(), NB = 10, RB = 12, rows = [];
+    for (let i = 0; i <= NB; i++) {
+      const t = i / NB, x = lerp(-0.086, 0.158, t), cz = -0.047 - 0.004 * Math.pow((x - 0.035) / 0.12, 2), k = 1 + 0.08 * smooth(0.9, 1, t), row = [];
+      for (let j = 0; j <= RB; j++) {
+        const a = (j / RB) * TAU, p = new V3(x, 0.0125 + Math.sin(a) * 0.0108 * k, cz + Math.cos(a) * 0.0066 * k);
+        const meaty = smooth(0.105, 0.09, x) * (0.4 + 0.6 * smooth(-0.2, 0.3, fbm(x * 80, a, 3.3, 2)));
+        row.push({ p, c: mixc(mixc(L(0xdccdb0), L(0xc89a8a), smooth(0.135, 0.1, x)), L(0x7a1a22), meaty * 0.8) });
+      }
+      rows.push(row);
+    }
+    for (let i = 0; i < NB; i++) for (let j = 0; j < RB; j++) {
+      const a = rows[i][j], b = rows[i + 1][j], c = rows[i + 1][j + 1], d = rows[i][j + 1], mid = new V3().addVectors(a.p, c.p).multiplyScalar(0.5);
+      const out = new V3(0, mid.y - 0.0125, mid.z - (-0.047 - 0.004 * Math.pow((mid.x - 0.035) / 0.12, 2)));
+      quadDir(B, a.p, b.p, c.p, d.p, out, a.c, b.c, c.c, d.c, K.PLAIN, K.PLAIN, K.PLAIN, K.PLAIN);
+    }
+    for (const [ri, dx] of [[0, -1], [NB, 1]]) {   // the sawn ends: spongy bone inside an ivory rim
+      const row = rows[ri], cm = new V3();
+      for (let j = 0; j < RB; j++) cm.add(row[j].p);
+      cm.multiplyScalar(1 / RB);
+      for (let j = 0; j < RB; j++) {
+        const n = new V3().subVectors(row[j].p, cm).cross(new V3().subVectors(row[j + 1].p, cm)), sp = L(0xc8968a), rim = L(0xe2d4bc);
+        if (n.x * dx >= 0) B.tri(cm, row[j].p, row[j + 1].p, sp, rim, rim, K.PLAIN, K.PLAIN, K.PLAIN); else B.tri(cm, row[j + 1].p, row[j].p, sp, rim, rim, K.PLAIN, K.PLAIN, K.PLAIN);
+      }
+    }
+    const g = merge([S.geo(true), B.geo(true)]);
+    g.translate(-0.03, 0, 0);
+    return [{ geo: toGround(g), mat: mat('f11meatR', { std: true, roughness: 0.42, map: meatTex() }) }];
+  }
+
+  function foodBamboo() {
+    const r = rng(1102), parts = [];
+    const green = L(0x3e6a1c), greenLt = L(0x5e8a2a), node = L(0xa8a660), bloom = L(0x98a888);
+    const cane = (x0, z0, len, rad, yaw, leafy) => {
+      const nodes = Math.round(len / 0.13), seg = len / nodes;
+      for (let i = 0; i < nodes; i++) {
+        const g = prep(new THREE.CylinderGeometry(rad, rad * 1.02, seg * 0.98, 8, 6, i === 0 || i === nodes - 1));
+        g.rotateZ(Math.PI / 2); g.translate(-len / 2 + seg * (i + 0.5), 0, 0);
+        paint(g, (x) => {
+          const u = (x + len / 2) / seg - i;   // 0..1 along this internode
+          let c = mixc(green, greenLt, 0.4 + 0.3 * fbm(x * 30, i, 1, 2));
+          c = mixc(c, bloom, smooth(0.13, 0.0, u) * 0.5);           // waxy white bloom just below the node
+          return mixc(c, node, smooth(0.92, 1.0, u) * 0.7);
+        });
+        g.rotateY(yaw); g.translate(x0, rad, z0); parts.push(g);
+        // the ring at each node
+        if (i < nodes - 1) {
+          const ring = prep(new THREE.TorusGeometry(rad * 1.04, rad * 0.12, 3, 10));
+          ring.rotateY(Math.PI / 2); ring.translate(-len / 2 + seg * (i + 1), 0, 0); paint(ring, node);
+          ring.rotateY(yaw); ring.translate(x0, rad, z0); parts.push(ring);
+        }
+      }
+      // cut ends: a pale ring of wood round the hollow
+      for (const s of [-1, 1]) {
+        if (leafy && s > 0) continue;
+        const e = prep(new THREE.RingGeometry(rad * 0.7, rad, 12)); e.rotateY(s * Math.PI / 2); e.translate(s * len / 2, 0, 0); paint(e, L(0xe0d6a0));
+        e.rotateY(yaw); e.translate(x0, rad, z0); parts.push(e);
+      }
+      if (!leafy) return;
+      // leafy top: thin twigs with long narrow leaves fanning out
+      const S = soup(), tip = new V3(len / 2, 0, 0).applyAxisAngle(new V3(0, 1, 0), yaw).add(new V3(x0, rad, z0));
+      for (let k = 0; k < 9; k++) {
+        const a = yaw + (r() - 0.5) * 1.6, d = new V3(Math.cos(a), 0, -Math.sin(a)), side = new V3(-d.z, 0, d.x);
+        const L0 = 0.12 + r() * 0.08, w0 = 0.014 + r() * 0.006, base = tip.clone().addScaledVector(d, r() * 0.06);
+        const P = (t) => new V3(base.x + d.x * L0 * t, 0.004 + rad * 0.6 * (1 - t) + 0.01 * Math.sin(t * 3), base.z + d.z * L0 * t);
+        for (let q = 0; q < 4; q++) {
+          const t0 = q / 4, t1 = (q + 1) / 4, wa = w0 * Math.sin(Math.PI * Math.max(0.1, Math.min(t0, 0.95))), wb = w0 * Math.sin(Math.PI * Math.max(0.1, Math.min(t1, 0.95)));
+          const ca = mixc(L(0x46782a), L(0x78a83c), t0), cb = mixc(L(0x46782a), L(0x78a83c), t1);
+          S.quad(P(t0).addScaledVector(side, -wa), P(t1).addScaledVector(side, -wb), P(t1).addScaledVector(side, wb), P(t0).addScaledVector(side, wa), ca, cb, cb, ca);
+        }
+      }
+      parts.push(S.geo(true));
+    };
+    cane(0, 0, 0.52, 0.018, 0.05, true);
+    cane(0.01, 0.04, 0.46, 0.016, -0.08, false);
+    cane(-0.02, -0.035, 0.4, 0.015, 0.12, false);
+    return [{ geo: toGround(merge(parts.map((g) => prep(g)))), mat: mat('f11bamboo', { std: true, roughness: 0.78, side: DS }) }];
+  }
+
+  function foodDates() {
+    const r = rng(1103), parts = [];
+    const stalk = L(0xd08a2a), stalkDk = L(0x9a5a1a);
+    // the main stalk lies along x, with thin strands branching off it; dates hang on the strands
+    const main = [new V3(-0.09, 0.008, 0), new V3(-0.03, 0.01, 0.005), new V3(0.04, 0.009, -0.003), new V3(0.1, 0.007, 0.002)];
+    parts.push(tube(path(main, 10), 0.0045, { radial: 6, cap: 'both', color: (t) => mixc(stalkDk, stalk, t) }));
+    for (let i = 0; i < 6; i++) {
+      const t = 0.12 + i * 0.15, s = i % 2 ? 1 : -1, b0 = new V3(-0.09 + 0.19 * t, 0.009, 0);
+      const b1 = b0.clone().add(new V3(0.02 + r() * 0.02, 0.002, s * (0.04 + r() * 0.025)));
+      parts.push(tube(path([b0, b0.clone().lerp(b1, 0.5).add(new V3(0, 0.004, 0)), b1], 5), 0.0018, { radial: 4, color: () => stalk }));
+      // two or three dates per strand, each an oblong fruit with a little cap
+      for (let k = 0; k < 2 + (i % 2); k++) {
+        const p = b0.clone().lerp(b1, 0.45 + k * 0.28).add(new V3((r() - 0.5) * 0.01, 0, (r() - 0.5) * 0.01));
+        const g = prep(new THREE.SphereGeometry(0.011, 9, 6)); g.scale(1, 0.95, 1.75);
+        const ripe = r();
+        paint(g, (x, y, z) => {
+          const w = 0.5 + 0.5 * fbm(x * 300, y * 300, z * 300, 2), wr = 0.85 + 0.15 * Math.sin(x * 1400 + y * 700 + w * 5);   // fine wrinkles
+          return mulc(mixc(mixc(L(0x7a3210), L(0x3a1408), ripe * 0.7 + w * 0.3), L(0xa05a1c), smooth(-0.012, -0.019, z) * 0.6), wr);
+        });
+        g.rotateY(Math.atan2(b1.x - b0.x, b1.z - b0.z) + (r() - 0.5) * 0.8); g.translate(p.x, 0.011, p.z); parts.push(g);
+        const cap = prep(new THREE.CylinderGeometry(0.004, 0.005, 0.003, 6)); cap.rotateX(Math.PI / 2); cap.translate(p.x, 0.016, p.z); paint(cap, L(0xc89038)); parts.push(cap);
+      }
+    }
+    return [{ geo: toGround(merge(parts.map((g) => prep(g)))), mat: mat('f11dates', { std: true, roughness: 0.32, side: DS }) }];
+  }
+  Env.addFood('meat', foodMeat);
+  Env.addFood('bamboo', foodBamboo);
+  Env.addFood('dates', foodDates);
+})();

@@ -12,15 +12,23 @@ const FEAR = { chicken: 3, duck: 4.5, swan: 3, frog: 2.5, lizard: 3, snake: 2, b
   // round 7
   lab: 1.5, dalmatian: 1.5, husky: 2, beagle: 2, chihuahua: 3, blackcat: 4, orangecat: 4, calico: 4, siamese: 4, whitecat: 4, hamster: 3, eagle: 6, chickadee: 3, rhino: 0, cockatiel: 3, crocodile: 2, brachiosaurus: 0,
   // round 10
-  trex: 0, giraffe: 5, polarbear: 2, snowleopard: 4, smilodon: 1, bat: 4, butterfly: 3 };
+  trex: 0, giraffe: 5, polarbear: 2, snowleopard: 4, smilodon: 1, bat: 4, butterfly: 3,
+  // round 11
+  lion: 0, tiger: 0, leopard: 2, cheetah: 4, ocelot: 4, panda: 2, cow: 3, camel: 3, gecko: 3, wingcat: 4, unicorn: 6,
+  beardeddragon: 3, iguana: 3, chameleon: 2, komodo: 0 };
 // extra bump circles along a long body: [how far ahead of the body's middle, as a part of its length; radius, as a part
 // of its radius]. A brachiosaurus's middle is at its shoulders: the trunk runs back from there to its hips and tail
 // (its neck is high up, so fences pass under it)
 // A T. rex's middle is over its hips: its chest is ahead and its belly and the base of its tail behind (the rest of the
 // tail and the head are high, above fences). A giraffe's middle is its shoulders.
 const BODY_COL = { long: [[0.32, 0.8], [-0.32, 0.8]], brachiosaurus: [[0.14, 0.92], [-0.23, 0.92], [-0.42, 0.3]],
-  trex: [[0.15, 0.9], [-0.105, 0.9], [-0.21, 0.9]], giraffe: [[0.26, 1.0], [-0.36, 1.0]] };
-const NOCTURNAL = { owl: 1, frog: 1, fox: 1, raccoon: 1, hedgehog: 1, hamster: 1, bat: 1 };
+  trex: [[0.15, 0.9], [-0.105, 0.9], [-0.21, 0.9]], giraffe: [[0.26, 1.0], [-0.36, 1.0]],
+  // round 11 (from each sculptor's notes; the cow's and camel's middle is the middle of the trunk)
+  cow: [[0.26, 1.0], [-0.3, 1.0]], camel: [[0.2, 0.9], [-0.25, 0.9]], lion: [[0.3, 0.9], [-0.26, 0.9]], tiger: [[0.3, 0.7], [-0.25, 0.7]],
+  leopard: [[0.28, 0.65], [-0.24, 0.65]], unicorn: [[0.26, 0.85], [-0.28, 0.85]],
+  // a Komodo dragon's middle is over its hips' front: its long thick tail runs well back
+  komodo: [[0.34, 1.0], [-0.12, 1.0], [-0.46, 0.8]] };
+const NOCTURNAL = { owl: 1, frog: 1, fox: 1, raccoon: 1, hedgehog: 1, hamster: 1, bat: 1, gecko: 1, ocelot: 1, leopard: 1 };
 // round 10: a butterfly starts out as a caterpillar. Below PUPA_AGE its body is the caterpillar (b.form, a hidden
 // species), and when it grows past it, it makes a chrysalis and comes out a grown monarch (70_game: Pupa). A butterfly
 // is full size when it comes out, so its body does not grow after that.
@@ -61,6 +69,8 @@ function setBodyAge(b, age) {
     walk: r.walkSpeed * (0.6 + 0.4 * k), run: r.runSpeed * (0.55 + 0.45 * k) };
 }
 const canFlyNow = (b) => !!SPECIES[b.sp].fly && b.age >= FLY_AGE;
+// round 11: a Komodo dragon climbs trees only while it is young (real hatchlings live up in the trees)
+const canClimb = (b) => !!SPECIES[b.sp].climb || (!!SPECIES[b.sp].climbBaby && b.age < 0.4);
 function jumpV(b) { const h = b.sp === 'frog' ? 0.45 * b.k : clamp(b.m.height * 0.9, 0.25, 1.3); return Math.sqrt(2 * GRAV * h); }
 
 // Shared movement for the player and wildlife.
@@ -219,8 +229,21 @@ function poseBody(b, dt, animate) {
   if (!animate) return;
   const st = b.st; st.t = G.t; st.speed = b.speed / b.k; st.mode = b.mode === 'perch' ? 'ground' : b.mode; st.vy = b.vy; st.eat = b.eat; st.turn = b.turn; st.idle = b.idle;
   st.sick = b.sick; st.happy = b.happy; st.swimSleep = b.mode === 'sleep' && b.sp === 'otter';
+  // round 11: a chameleon slowly takes on the color of what it is on: the ground under it, or bark when it is up a
+  // tree. Indoors it keeps its own colors.
+  if (rig.setTint) {
+    b.tintT = (b.tintT || 0) - dt;
+    if (b.tintT <= 0) {
+      b.tintT = 0.6;
+      if (b.room) rig.setTint(null, 0);
+      else if (b.mode === 'climb' || b.mode === 'perch') rig.setTint(0x7a5e40, 1);
+      // (the ground's own color under its texture is darker than the ground looks, so brighten it)
+      else if (G.world.def.paint) { G.world.def.paint(tintCol, b.pos.x, b.pos.z, H(b.pos.x, b.pos.z)); rig.setTint(tintCol.multiplyScalar(1.5), 1); }
+    }
+  }
   rig.update(dt, st);
 }
+const tintCol = new THREE.Color();
 
 /* ---------- the player's animal ---------- */
 const Player = {
@@ -554,7 +577,7 @@ const Wild = {
         if (P.sp !== b.sp && !pAir && !P.room) fr = predator ? 7 : bigger ? (fast ? FEAR[b.sp] : FEAR[b.sp] * 0.45) : 0;
         if (b.mode === 'sleep' && d < fr * 0.6) b.mode = 'ground';
         if (d < fr && b.state !== 'flee' && b.state !== 'flyaway' && b.state !== 'tree' && b.mode !== 'sleep') {
-          const t = sp.climb && !b.pen ? G.world.treeNear(b.pos.x, b.pos.z, 7) : null;
+          const t = canClimb(b) && !b.pen ? G.world.treeNear(b.pos.x, b.pos.z, 7) : null;
           if (t) { b.state = 'tree'; b.target = t; b.timer = 10; b.perchT = 6 + Math.random() * 8; }
           else if (canFlyNow(b) && b.sp !== 'chicken' && !b.pen && !b.hasKids && Math.random() < 0.65) {
             b.state = 'flyaway'; b.flyH = 4 + Math.random() * 5;
@@ -1000,6 +1023,7 @@ const Folk = {
 const CAGED = { lizard: 'terrarium', snake: 'terrarium', frog: 'terrarium', turtle: 'terrarium', parrot: 'birdCage', bunny: 'hutch', hedgehog: 'hutch',
   chickadee: 'birdCage', cockatiel: 'birdCage' };   // round 7
 CAGED.butterfly = 'terrarium';   // round 10: a caterpillar (and then its butterfly) lives in a glass tank
+for (const sp of ['gecko', 'beardeddragon', 'iguana', 'chameleon']) CAGED[sp] = 'terrarium';   // round 11: the small lizards
 const CAGE_WORDS = { terrarium: 'a glass tank', birdCage: 'a big bird cage', hutch: 'a cozy pen' };
 const Homes = {
   penT: 0, kennel: null,
@@ -1026,11 +1050,11 @@ const Homes = {
       if (best >= 0) houseIdx = best;
     }
     S.homes[sp] = { name: p.name, look: p.look, house: Math.max(0, houseIdx) };
-    S.leaves += 5;
+    S.leaves += LEAVES.adopted;
     const hh = homes[Math.max(0, houseIdx)], street = (hh && hh.street) || 'Maple Street';
     const outdoor = SPECIES[sp].outdoor, color = Homes.color(hh, houseIdx), cage = CAGED[sp];
     G.ui.bubble(p, `Welcome to the family, ${nameOf(sp)}! Here's your collar.`, 3);
-    G.ui.hearts(P.pos, 6); G.ui.leafPop(P.pos, 5);
+    G.ui.hearts(P.pos, 6); G.ui.leafPop(P.pos, LEAVES.adopted);
     // a tamed animal always wears a collar with its person's number on it
     const got = `${p.name} took you home and put a collar on you!`;
     G.ui.toast(outdoor ? `${got} Your home is the pen behind the ${color} house on ${street}.`
@@ -1189,7 +1213,7 @@ const Homes = {
     if (G.sound) G.sound.knock();
     setTimeout(() => { if (Folk.list.includes(p)) Folk.remove(p); }, 3200);
     for (let i = 0; i < 2; i++) { const x = d.x + Math.sin(d.yaw) * 0.6 + (i - 0.5) * 0.3, z = d.z + Math.cos(d.yaw) * 0.6; Foods.add('candy', x, z, w.H(x, z), true); }
-    S.leaves += 3; G.ui.leafPop(Player.pos, 3);
+    S.leaves += LEAVES.treat; G.ui.leafPop(Player.pos, LEAVES.treat);
     G.save();
   },
 };
@@ -1266,7 +1290,7 @@ const Foods = {
     if (f.gone) return;
     this.removeObj(f);
     this.list.splice(this.list.indexOf(f), 1);
-    const sp = SPECIES[Player.form], fav = f.type === sp.fav, n = f.type === 'candy' ? 3 : fav ? 2 : 1;
+    const sp = SPECIES[Player.form], fav = f.type === sp.fav, n = f.type === 'candy' ? LEAVES.candy : fav ? LEAVES.fav : LEAVES.food;
     S.leaves += n; S.hunger = Math.min(100, S.hunger + (fav ? 22 : 13));
     // too much junk food in a short time gives you a tummy ache
     const junk = JUNK[f.type] || 0;
@@ -1279,7 +1303,7 @@ const Foods = {
       Player.grow();
       if (before < 0.4 && after >= 0.4) G.ui.toast(`You're getting bigger! You're a young ${sp.name.toLowerCase()} now.`);
       if (sp.fly && before < FLY_AGE && after >= FLY_AGE) G.ui.toast('Your wings are strong now. You can fly! Jump, then jump again in the air.', 5000);
-      if (after >= 1 && before < 1) { G.ui.toast(`You're all grown up!`); G.ui.hearts(Player.pos, 5); }
+      if (after >= 1 && before < 1) { S.leaves += LEAVES.grown; G.ui.toast(`You're all grown up! +${LEAVES.grown} leaves`); G.ui.hearts(Player.pos, 5); G.ui.leafPop(Player.pos, LEAVES.grown); }
       Foods.refresh();
     }
     G.ui.leafPop(tmpV.set(f.x, f.y, f.z), n);
@@ -1316,7 +1340,7 @@ const Foods = {
     if (this.dirty) this.draw();
     // keep a ring of food around the player (not indoors)
     this.tick -= dt;
-    if (this.tick <= 0 && !P.room) { this.tick = 0.4; this.fill(4); }
+    if (this.tick <= 0 && !P.room) { this.tick = 0.3; this.fill(5); }
   },
   fill(maxAdd) {
     const P = Player.b, w = G.world; if (!P || P.room) return;
@@ -1332,11 +1356,12 @@ const Foods = {
     const sp = SPECIES[P.form || P.sp];
     let added = 0;
     for (let k = 0; k < 12 && added < maxAdd; k++) {
-      const wantFish = !!w.def.water && fish + added < 8 && Math.random() < 0.35;
-      if (!wantFish && land + added >= 56) break;
+      // round 11: more food on the map (up to 80 on land and 12 fish around you)
+      const wantFish = !!w.def.water && fish + added < 12 && Math.random() < 0.35;
+      if (!wantFish && land + added >= 80) break;
       let pool = weights.filter(([t]) => !!FOODS[t].water === wantFish);
       if (!pool.length) continue;
-      if (Math.random() < 0.6) { const ed = pool.filter(([t]) => sp.eats.includes(t)); if (ed.length) pool = ed; }
+      if (Math.random() < 0.7) { const ed = pool.filter(([t]) => sp.eats.includes(t)); if (ed.length) pool = ed; }
       let sum = 0; for (const [, n] of pool) sum += n;
       let pick = Math.random() * sum, type = pool[0][0];
       for (const [t, n] of pool) { pick -= n; if (pick <= 0) { type = t; break; } }

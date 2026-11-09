@@ -336,6 +336,24 @@ const Plan = (() => {
       ],
       route: [[1, 84], [1, 58], [1, 40], [20, 40, 'saber'], [1, 40], [1, 14, 'trex'], [1, 2, 'brachio'], [1, -30, 'trex'], [1, -46, 'brachio'], [1, -58], [1, 40], [1, 84]],
       props: 'dino' },
+    // round 11: Safari Park, south of Maple Town: lions, tigers, cheetahs and camels in big pens, and a row of smaller
+    // ones for the leopards, ocelots, Komodo dragons, pandas and lizards
+    { id: 'safari', name: 'Safari Park', d: 'Lions, tigers, cheetahs, camels, pandas and lizards', x: 175, z: 262, hw: 110, hd: 80, gate: 's', wall: 'wire',
+      paths: [[0, -86, 0, 80, 6], [-106, -26, 106, -26, 4], [-106, 26, 106, 26, 4]],
+      pens: [
+        { id: 'lions', x: -56, z: -53, hw: 46, hd: 21, gate: 'n', style: 'wire', sp: [['lion', 3, 2]], rocks: 7, acacia: 2 },
+        { id: 'tigers', x: 56, z: -53, hw: 46, hd: 21, gate: 'n', style: 'wire', sp: [['tiger', 2, 1]], pool: { x: 72, z: -58, r: 7, depth: -1.6 }, trees: 3, treeType: 'oak' },
+        { id: 'cheetahs', x: -56, z: 0, hw: 46, hd: 20, gate: 's', style: 'wire', sp: [['cheetah', 2, 1]], acacia: 1 },
+        { id: 'camels', x: 56, z: 0, hw: 46, hd: 20, gate: 's', style: 'rail', sp: [['camel', 3, 1]], palms: 2 },
+        { id: 'leopards', x: -88, z: 54, hw: 15, hd: 22, gate: 's', style: 'wire', sp: [['leopard', 1, 1]], acacia: 1, rocks: 2 },
+        { id: 'ocelots', x: -56, z: 54, hw: 13, hd: 22, gate: 's', style: 'wire', sp: [['ocelot', 2, 0]], trees: 2 },
+        { id: 'komodo', x: -22, z: 54, hw: 15, hd: 22, gate: 's', style: 'rail', sp: [['komodo', 1, 1]], pool: { x: -22, z: 66, r: 5, depth: -1.4 }, rocks: 3 },
+        { id: 'pandas', x: 26, z: 54, hw: 18, hd: 22, gate: 's', style: 'wire', sp: [['panda', 2, 1]], bamboo: 3 },
+        { id: 'reptiles', x: 66, z: 54, hw: 16, hd: 22, gate: 's', style: 'wire', sp: [['gecko', 2, 0], ['beardeddragon', 2, 0], ['iguana', 2, 0], ['chameleon', 2, 0]], rocks: 4, trees: 1 },
+      ],
+      route: [[0, -88], [0, -26], [-40, -26, 'lions'], [-80, -26, 'cheetahs'], [-40, -26], [40, -26, 'tigers'], [80, -26, 'camels'], [40, -26], [0, -26], [0, 26],
+        [-22, 26, 'komodo'], [-56, 26, 'ocelots'], [-88, 26, 'leopards'], [-56, 26], [26, 26, 'pandas'], [66, 26, 'reptiles'], [30, 26], [0, 26], [0, -88]],
+      props: 'city' },
   ];
   for (const Z of ZOOS) {
     Z.rect = { x: Z.x, z: Z.z, hw: Z.hw, hd: Z.hd, rot: 0 };
@@ -476,6 +494,15 @@ const Plan = (() => {
   }
 
   // the name of the place you are in, for the top bar
+  // the place without the street (for the leaves you get for finding it)
+  function placeKey(x, z) {
+    if (inPark(x, z, 2)) return 'the City park';
+    if (inCity(x, z, 6)) return 'the city';
+    if (inR(TOWN.area, x, z, 4)) return 'Maple Town';
+    for (const t of TOWNS) if (inR(t.rect, x, z, 6)) return t.name;
+    const Z = zooAt(x, z, 2); if (Z) return Z.id === 'dino' ? Z.name : Z.id === 'petting' ? 'the petting zoo' : 'the ' + Z.name;
+    return null;
+  }
   function placeName(x, z) {
     if (inPark(x, z, 2)) return 'City park';
     if (inCity(x, z, 6)) return CITY.streetAt(x - CX, z - CZ) || 'The city';
@@ -485,5 +512,5 @@ const Plan = (() => {
     return null;
   }
 
-  return { placeName, PI, TOWN, CITY, TOWNS, ROADS, PLACES, BUS, SPOTS, ZOOS, zooAt, zooGate, zooPathD, RW, ST_W, TY, CY, init, H, busy, reserved, paint, grass, streetD, inCity, inPark, roadAt, roadY, roadNear, rectD, inR };
+  return { placeName, placeKey, PI, TOWN, CITY, TOWNS, ROADS, PLACES, BUS, SPOTS, ZOOS, zooAt, zooGate, zooPathD, RW, ST_W, TY, CY, init, H, busy, reserved, paint, grass, streetD, inCity, inPark, roadAt, roadY, roadNear, rectD, inR };
 })();

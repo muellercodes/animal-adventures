@@ -91,7 +91,8 @@ function followCamera(dt) {
   // and the tiniest (a caterpillar, a butterfly: under 10 cm) closer still
   const tiny = Math.max(m.length, m.height) < 0.1;
   const base = clamp(m.length * 1.35 + m.height * 1.5 + (tiny ? 0.5 : 0.75) * clamp(m.length / 0.15, tiny ? 0.3 : 0.55, 1), tiny ? 0.2 : 0.6, Math.max(8.5, m.height * 2.4));
-  let dist = base * Cam.zoom;
+  // (round 11: a species can ask for a closer camera, camNear, like the leopard gecko, which is long but very flat)
+  let dist = base * (SPECIES[b.form || b.sp]?.camNear || 1) * Cam.zoom;
   const ty = b.pos.y + (b.mode === 'climb' ? m.length * 0.4 : m.eye * 0.8) + (tiny ? 0.015 : 0.05);
   if (Cam.snap) { Cam.target.set(b.pos.x, ty, b.pos.z); Cam.yaw = b.yaw; Cam.snap = false; }
   // when a person is talking to us, pull back so both fit on screen
@@ -279,7 +280,7 @@ function findAction() {
     return { id: 'in', label: 'Go in', house: h };
   }
   if (home && sp.outdoor && home.pen && Math.hypot(b.pos.x - home.pen.x, b.pos.z - home.pen.z) < 3.2) return { id: 'sleep', label: 'Sleep' };
-  if (sp.climb && b.mode === 'ground') {
+  if (canClimb(b) && b.mode === 'ground') {
     const t = w.treeNear(b.pos.x, b.pos.z, 0.4 + b.m.radius);
     if (t && t.top - t.base > 0.8) return { id: 'climb', label: 'Climb', tree: t };
   }
@@ -637,7 +638,12 @@ function updateHud() {
   if (h.status !== status) { h.status = status; $('meStatus').textContent = status; $('meStatus').hidden = !status; }
   const shopName = (rm) => { const n = (rm.house && rm.house.name || 'the shop').replace(/^the /, ''); return n[0].toUpperCase() + n.slice(1); };
   const where = b.room ? (b.room.pound ? 'Animal pound' : b.room.barn ? 'Barn' : b.room.school ? 'School' : b.room.store ? shopName(b.room) : (Homes.homeOf(b.sp) && Homes.homeOf(b.sp).room === b.room ? 'Home' : 'A house')) : (S.world === 'land' && Plan.placeName(b.pos.x, b.pos.z)) || World.META[S.world].name;
-  if (h.where !== where) { h.where = where; $('wherePill').textContent = where; }
+  if (h.where !== where) {
+    h.where = where; $('wherePill').textContent = where;
+    // round 11: leaves for finding a town, the city, the park or a zoo for the first time
+    const k = !b.room && S.world === 'land' && Plan.placeKey(b.pos.x, b.pos.z);
+    if (k && !S.found.includes(k)) { S.found.push(k); S.leaves += LEAVES.place; UI.toast(`You found ${k}! +${LEAVES.place} leaves`); UI.leafPop(b.pos, LEAVES.place); save(); }
+  }
   const ct = fmt(di.left);
   if (h.clock !== ct || h.night !== di.night) {
     h.clock = ct; h.night = di.night; $('clockText').textContent = ct; $('clockWord').textContent = di.night ? 'Night' : 'Day';
@@ -710,6 +716,7 @@ const WORLD_BG = {
   jungle: 'linear-gradient(160deg,#a8d8c8 0 25%,#2f7a3c 25% 70%,#3fa3b8 70%)',
   meadow: 'linear-gradient(160deg,#c6e6f7 0 35%,#8fbd52 35%)',
   snow: 'linear-gradient(160deg,#d6e6f2 0 30%,#8c96a4 30% 45%,#f2f5f9 45% 75%,#3f7088 75%)',
+  savanna: 'linear-gradient(160deg,#cfe0ee 0 35%,#4e5a2a 35% 42%,#c8a868 42% 80%,#8e5434 80%)',
 };
 const worldBg = (id) => ASSETS.worlds[id] ? `url(${ASSETS.worlds[id]})` : WORLD_BG[id];
 
@@ -720,6 +727,8 @@ function tags(id) {
   if (A.swim) out.push('<span class="tg">Swims</span>');
   if (A.hop) out.push('<span class="tg">Hops</span>');
   if (A.climb) out.push('<span class="tg">Climbs trees</span>');
+  if (A.climbBaby) out.push('<span class="tg">Climbs trees when little</span>');
+  if (id === 'chameleon') out.push('<span class="tg">Changes color</span>');
   if (A.nightEyes) out.push('<span class="tg">Sees at night</span>');
   if (A.egg) out.push('<span class="tg">Hatches from an egg</span>');
   return out.join('');
@@ -766,13 +775,13 @@ function sheetAnimals() {
       <div class="acts">${on ? '<span class="playing">Playing</span>' : `<button class="btn small" type="button" data-action="switch" data-v="${id}">Play</button>`}<button class="btn small ghost" type="button" data-action="name" data-v="${id}">Name</button></div></div>`;
   }).join('')}</div>`;
 }
-// every animal is free (Drew, Nov 2026): no prices, no leaf store, no grown-up check
+// round 11: animals cost leaves again, earned only by playing (no leaf store, no grown-up check); cheapest first
 function sheetShop() {
-  const items = SHOP.filter((id) => !S.owned.includes(id));
-  if (!items.length) return '<p class="note">You have every animal!</p>';
-  return `<p class="note">Every animal is free. Tap Get to add one. New animals start as babies.</p><div class="list">${items.map((id) => {
-    const A = SPECIES[id];
-    return `<div class="arow"><img src="${animalIcon(id)}" alt=""><div><div class="aname">${A.name} ${tags(id)}</div>${foodChips(id)}</div><button class="btn small" type="button" data-action="buy" data-v="${id}">Get</button></div>`;
+  const items = SHOP.filter((id) => !S.owned.includes(id)).sort((a, b) => priceOf(a) - priceOf(b));
+  if (!items.length) return '<p class="note">You have every animal in the shop!</p>';
+  return `<p class="note">You have <b>${S.leaves}</b> leaves. Eat food, find new places and grow up to earn more. New animals start as babies.</p><div class="list">${items.map((id) => {
+    const A = SPECIES[id], need = priceOf(id) - S.leaves;
+    return `<div class="arow"><img src="${animalIcon(id)}" alt=""><div><div class="aname">${A.name} ${tags(id)}</div>${foodChips(id)}${need > 0 ? `<span class="need">${need} more leaves to go</span>` : ''}</div><button class="btn small" type="button" data-action="buy" data-v="${id}"${need > 0 ? ' disabled' : ''}><span class="price">${LEAF_SVG}${priceOf(id)}</span></button></div>`;
   }).join('')}</div>`;
 }
 function sheetSettings() {
@@ -800,7 +809,7 @@ function travel(id, after) {
     Player.set(S.animal);
     Player.b.room = null; Player.b.yaw = 0; Player.place(G.world.def.spawn[0], G.world.def.spawn[1]);
     Cam.snap = true; Foods.fill(60);
-    if (!S.visited.includes(id)) { S.visited.push(id); S.leaves += 10; UI.toast(`You found the ${World.META[id].name}! +10 leaves`); }
+    if (!S.visited.includes(id)) { S.visited.push(id); S.leaves += LEAVES.world; UI.toast(`You found the ${World.META[id].name}! +${LEAVES.world} leaves`); }
     else UI.toast(`Welcome to the ${World.META[id].name}`);
     R.paused = false; UI.saved(); save();
     if (after) after();
@@ -857,8 +866,8 @@ function switchAnimal(id) {
   if (born) beginLife(id);
 }
 function buyAnimal(id) {
-  const A = SPECIES[id]; if (!A || S.owned.includes(id)) return;
-  S.owned.push(id); S.ages[id] = 0;
+  const A = SPECIES[id]; if (!A || S.owned.includes(id) || S.leaves < priceOf(id)) return;
+  S.leaves -= priceOf(id); S.owned.push(id); S.ages[id] = 0;
   Sound.chime();
   switchAnimal(id);
   UI.saved();
@@ -906,6 +915,7 @@ function applySave(d) {
   S.junk = 0;
   S.hatched = Array.isArray(d.hatched) ? d.hatched.filter((id) => SPECIES[id]) : [];
   S.treats = obj(d.treats);
+  S.found = Array.isArray(d.found) ? d.found.filter((k) => typeof k === 'string').slice(0, 60) : [];
   S.sound = d.sound !== false; S.music = d.music !== false;
   if (World.META[S.world].needsFly && !(SPECIES[S.animal].fly && ageOf(S.animal) >= FLY_AGE)) S.world = 'land';
 }
@@ -990,9 +1000,9 @@ function renderTitle(mode) {
   } else if (mode === 'cloud') {
     b.innerHTML = `<h2>Save online</h2><p>Make an account to keep your animals and leaves on any phone, tablet or computer. A grown-up can help.</p>${cloudFormHtml()}<button class="linkish" type="button" data-action="reset-no">Back</button>`;
   } else if (S.started) {
-    b.innerHTML = `<p>Eat food, grow up, earn leaves, and explore six worlds that never end.${HOLIDAY === 'halloween' ? ' Happy Halloween!' : ''}</p><div class="row"><button class="btn green" type="button" data-action="play">Keep playing</button></div>${cloudBlock()}<button class="linkish" type="button" data-action="reset">Start over</button>`;
+    b.innerHTML = `<p>Eat food, grow up, earn leaves, and explore eight worlds that never end.${HOLIDAY === 'halloween' ? ' Happy Halloween!' : ''}</p><div class="row"><button class="btn green" type="button" data-action="play">Keep playing</button></div>${cloudBlock()}<button class="linkish" type="button" data-action="reset">Start over</button>`;
   } else {
-    b.innerHTML = `<p>Eat food, grow up, earn leaves, and explore six worlds that never end.${HOLIDAY === 'halloween' ? ' Happy Halloween!' : ''}</p><div class="row"><button class="btn green" type="button" data-action="new">Play</button></div>${cloudBlock()}`;
+    b.innerHTML = `<p>Eat food, grow up, earn leaves, and explore eight worlds that never end.${HOLIDAY === 'halloween' ? ' Happy Halloween!' : ''}</p><div class="row"><button class="btn green" type="button" data-action="new">Play</button></div>${cloudBlock()}`;
   }
 }
 function play(after) {
@@ -1171,4 +1181,7 @@ function start(data) {
   if (/test|assets/.test(location.hash)) window.__aa = { SPECIES, manual(on) { manual = on; if (!on) requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); }); }, step(n, dt = 1 / 30, draw = true) { for (let i = 0; i < n; i++) tick(dt, 1, draw && i === n - 1); }, S, G, R, Player, Wild, Folk, Foods, Homes, World, Cam, inp, keys, press, travel, switchAnimal, loadWorld, play, pickStarter, animalIcon, renderer, camera, scene, dayInfo, timeOfDay, findAction, doAction, Sound, setBodyAge, goHome, buyAnimal, Env, Animals, People, THREE, Net, Town, Nav, Traffic, Plan, CityLife, Sick, applySave, Zoos };
   requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); });
 }
-window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+// round 11: the animal models load from files beside the page first (build.mjs); the game starts when they are in
+const modelsIn = (window.AA_MODELS_READY || Promise.resolve(window.AA_MODELS || {})).then((M) => Animals.useModels(M));
+const boot = (data) => modelsIn.then(() => start(data));
+window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});

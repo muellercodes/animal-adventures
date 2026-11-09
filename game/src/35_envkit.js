@@ -366,7 +366,7 @@ const Env = (() => {
     const corners = [[-1, -1], [1, -1], [1, 1], [-1, -1], [1, 1], [-1, 1]];
     for (let s = 0; s < cnt; s++) {
       const q = sites[s], size = o.size * (0.75 + r() * 0.5), ang = r() * TAU, ca = Math.cos(ang), sa = Math.sin(ang);
-      const push = (o.push == null ? 0.18 : o.push) * size;
+      const push = (o.push == null ? 0.18 : o.push) * size * (0.3 + r() * 1.6);   // round 11: ragged crowns
       const br = (0.9 + r() * 0.3 + Math.max(0, q[4]) * 0.15) / 0.62;
       for (let k = 0; k < 6; k++) {
         const v = s * 6 + k, cx = corners[k][0], cy = corners[k][1];
@@ -437,29 +437,36 @@ const Env = (() => {
   // grayscale detail maps (linear, multiply vertex colors; values stay near 1)
   const TX = {
     // leaf cluster with alpha for billboard cards (center always opaque for the core blobs)
-    cluster: () => canvasTex('cluster', 128, 128, (c, w, h, r) => {
+    // round 11: a more realistic leaf cluster: 256 px, many smaller leaves of a few sizes, each lit from above with a
+    // darker half across its midrib and a lighter edge, overlapping in depth (back ones darker), with gaps toward the
+    // rim so the crown's outline breaks up (center always opaque for the core blobs)
+    cluster: () => canvasTex('cluster2', 256, 256, (c, w, h, r) => {
       c.clearRect(0, 0, w, h);
       const leaf = (x, y, len, wid, a, v) => {
         c.save(); c.translate(x, y); c.rotate(a);
         c.beginPath(); c.moveTo(0, 0);
-        c.quadraticCurveTo(len * 0.45, -wid, len, 0);
-        c.quadraticCurveTo(len * 0.45, wid, 0, 0);
+        c.bezierCurveTo(len * 0.2, -wid * 1.05, len * 0.7, -wid * 0.95, len, 0);
+        c.bezierCurveTo(len * 0.7, wid * 0.95, len * 0.2, wid * 1.05, 0, 0);
         const g = c.createLinearGradient(0, -wid, 0, wid);
-        g.addColorStop(0, gray(v * 0.82)); g.addColorStop(0.5, gray(v)); g.addColorStop(1, gray(v * 0.7));
+        g.addColorStop(0, gray(v * 1.02)); g.addColorStop(0.48, gray(v * 0.9)); g.addColorStop(0.52, gray(v * 0.74)); g.addColorStop(1, gray(v * 0.62));
         c.fillStyle = g; c.fill();
-        c.strokeStyle = gray(v * 0.6, 0.6); c.lineWidth = 1;
-        c.beginPath(); c.moveTo(len * 0.05, 0); c.lineTo(len * 0.9, 0); c.stroke();
+        c.strokeStyle = gray(v * 0.55, 0.5); c.lineWidth = 0.8;
+        c.beginPath(); c.moveTo(len * 0.04, 0); c.lineTo(len * 0.92, 0); c.stroke();
+        for (let k = 1; k < 4; k++) { const t = k / 4; c.beginPath(); c.moveTo(len * t, 0); c.lineTo(len * (t + 0.12), -wid * 0.7); c.moveTo(len * t, 0); c.lineTo(len * (t + 0.12), wid * 0.7); c.stroke(); }
         c.restore();
       };
-      // scattered small pointed leaves, denser in the middle, random directions
-      for (let i = 0; i < 70; i++) {
-        const a = r() * TAU, d = Math.sqrt(r()) * 44;
+      // back to front: deeper leaves first and darker
+      for (let i = 0; i < 230; i++) {
+        const depth = i / 230, a = r() * TAU, d = Math.pow(r(), 0.6) * 104;
+        if (d > 80 && r() < 0.45) continue;   // ragged rim
         const x = w / 2 + Math.cos(a) * d, y = h / 2 + Math.sin(a) * d;
-        const ang = r() * TAU, len = 16 + r() * 9;
-        const depth = 1 - d / 50;
-        leaf(x - Math.cos(ang) * len * 0.5, y - Math.sin(ang) * len * 0.5, len, 5 + r() * 2.5, ang, 0.6 + depth * 0.25 + r() * 0.15);
+        const ang = r() * TAU, len = 16 + r() * 16, v = 0.42 + depth * 0.4 + r() * 0.16;
+        leaf(x - Math.cos(ang) * len * 0.5, y - Math.sin(ang) * len * 0.5, len, len * (0.22 + r() * 0.1), ang, Math.min(1, v));
       }
-      c.beginPath(); c.arc(w / 2, h / 2, 10, 0, TAU); c.fillStyle = gray(0.62); c.fill();
+      // a few twig bits showing between the leaves
+      c.strokeStyle = gray(0.35); c.lineWidth = 1.6;
+      for (let i = 0; i < 6; i++) { const a = r() * TAU; c.beginPath(); c.moveTo(w / 2, h / 2); c.lineTo(w / 2 + Math.cos(a) * 60, h / 2 + Math.sin(a) * 60); c.stroke(); }
+      c.beginPath(); c.arc(w / 2, h / 2, 18, 0, TAU); c.fillStyle = gray(0.55); c.fill();
     }, { clamp: true }),
     // conifer spray card: twigs radiating from the center with short needles, alpha cut
     spray: () => canvasTex('spray', 128, 128, (c, w, h, r) => {
@@ -926,7 +933,7 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     oakDark: L(0x1f3d17), oakMid: L(0x3e6b26), oakLight: L(0x7da53e),
     appleDark: L(0x24461a), appleMid: L(0x467a2c), appleLight: L(0x8ab54a),
     pineDark: L(0x0f2a20), pineMid: L(0x22483a), pineLight: L(0x3f6a50),
-    palmDark: L(0x24481a), palmMid: L(0x3a6e24), palmLight: L(0x6e9a3a),
+    palmDark: L(0x22401a), palmMid: L(0x2e5a22), palmLight: L(0x587c34),   // round 11: less lime
     snag: L(0x8d8a82), snagDark: L(0x55524c),
   };
   function barkColor(base, dark, light, seed) {
@@ -969,12 +976,13 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
 
   /* autumn palettes (gold / orange / red mixes), strength and brightness per species */
   const FALL = {
-    oak: { a: 0x9a4214, b: 0xc0701c, c: 0xc8a032, k: 0.95, br: 1.15 },
-    apple: { a: 0xa86a1e, b: 0xc49a30, c: 0x8a7a2a, k: 0.8, br: 1.0 },
-    maple: { a: 0xb81a12, b: 0xe2581a, c: 0xeeaa22, k: 1.0, br: 1.2 },
-    birch: { a: 0xd8a818, b: 0xecc63a, c: 0xc89028, k: 1.0, br: 1.15 },
-    willow: { a: 0xb8b040, b: 0xd2b83a, c: 0x9aa838, k: 0.6, br: 1.0 },
-    bush: { a: 0x8a1a1c, b: 0xb04a1a, c: 0x9a6a22, k: 0.5, br: 1.0 },
+    // round 11: muted to the browns, rusts and golds real fall leaves have
+    oak: { a: 0x6e3a18, b: 0x9a5a24, c: 0x8a7a34, k: 0.9, br: 0.95 },
+    apple: { a: 0x8a5a22, b: 0xa48434, c: 0x6e6a2a, k: 0.75, br: 0.95 },
+    maple: { a: 0x9a2414, b: 0xc4521c, c: 0xd0962a, k: 0.95, br: 1.0 },
+    birch: { a: 0xb88c1c, b: 0xd0aa36, c: 0xa07c28, k: 0.95, br: 1.0 },
+    willow: { a: 0x9a9438, b: 0xb4a036, c: 0x8a9634, k: 0.6, br: 0.95 },
+    bush: { a: 0x7a2a1e, b: 0x96481e, c: 0x86622a, k: 0.5, br: 0.95 },
   };
   /* foliage part with leaf cards: o { map, sway, flutter, fall, hang } */
   function leafPart(geo, key = 'leafCards', map = TX.cluster(), sway = 0.012, flutter = 0.02, extra = {}) {
@@ -1150,32 +1158,39 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
   }
 
   /* palm frond: strip of leaflets along a drooping curve (double sided) */
+  // round 11: a real pinnate palm frond: a curving midrib with two rows of narrow leaflets that droop from it and
+  // sweep a little toward the tip (it was a few broad paper triangles)
   function frond(S, base, dir, len, r, colA, colB) {
     const pts = [], seg = 12;
     const d = dir.clone().normalize();
     const side = new V3(-d.z, 0, d.x).normalize();
     let p = base.clone();
-    let up = 0.55 + r() * 0.3;
+    const up = 0.55 + r() * 0.3;
     for (let i = 0; i <= seg; i++) {
       const t = i / seg;
       pts.push(p.clone());
       const step = len / seg;
       p = p.clone().add(new V3(d.x * step, (up - t * 1.9) * step, d.z * step));
     }
+    const at = (t) => { const f = t * seg, i = Math.min(seg - 1, Math.floor(f)); return pts[i].clone().lerp(pts[i + 1], f - i); };
+    // the midrib: a thin strip seen from above
     for (let i = 0; i < seg; i++) {
-      const t = i / seg, t1 = (i + 1) / seg;
-      const a = pts[i], b = pts[i + 1];
-      const w = Math.sin(Math.min(1, t * 1.15) * Math.PI) * len * 0.21 + 0.03;
-      const w1 = Math.sin(Math.min(1, t1 * 1.15) * Math.PI) * len * 0.21 + 0.03;
-      const col = mixc(colA, colB, t);
+      const a = pts[i], b = pts[i + 1], wa = 0.035 * (1 - i / seg) + 0.006, wb = 0.035 * (1 - (i + 1) / seg) + 0.006, rib = mulc(colA, 0.85);
+      S.quad(a.clone().addScaledVector(side, -wa), b.clone().addScaledVector(side, -wb), b.clone().addScaledVector(side, wb), a.clone().addScaledVector(side, wa), rib, rib, rib, rib);
+    }
+    const n = 22;
+    for (let k = 1; k <= n; k++) {
+      const t = 0.08 + 0.9 * (k / n), q = at(t);
+      const lf = len * 0.3 * Math.sin(Math.PI * Math.pow(t, 0.8)) + 0.08, w = len * 0.028 * (1 - t * 0.5) + 0.012;
+      const col = mixc(colA, colB, t * 0.8 + r() * 0.2), yel = r() < 0.08 ? mixc(col, L(0x9a8a3a), 0.5) : col, tipC = mulc(yel, 0.78);
       for (const sd of [-1, 1]) {
-        // leaflet: base on the rib, tip swept back and drooping
-        const tipP = b.clone().addScaledVector(side, sd * w1).add(new V3(0, -w1 * 0.55, 0)).addScaledVector(d, len / seg * 0.6);
-        const mid = a.clone().lerp(b, 0.5).addScaledVector(side, sd * w * 0.45).add(new V3(0, -w * 0.12, 0));
-        const tip2 = a.clone().addScaledVector(side, sd * w * 0.98).add(new V3(0, -w * 0.5, 0)).addScaledVector(d, len / seg * 0.3);
-        const cDark = mulc(col, 0.72);
-        if (sd > 0) { S.tri(a, b, tipP, col, col, cDark); S.tri(a, mid, tip2, col, col, cDark); }
-        else { S.tri(b, a, tipP, col, col, cDark); S.tri(mid, a, tip2, col, col, cDark); }
+        const out = side.clone().multiplyScalar(sd), lift = (sd > 0 ? 1 : -1) * (k % 2 ? 0.02 : -0.02);
+        const m1 = q.clone().addScaledVector(out, lf * 0.5).addScaledVector(d, lf * 0.08).add(new V3(0, -lf * 0.12 + lift, 0));
+        const tip = q.clone().addScaledVector(out, lf * 0.95).addScaledVector(d, lf * 0.3).add(new V3(0, -lf * 0.48 + lift, 0));
+        const a0 = q.clone().addScaledVector(d, -w), a1 = q.clone().addScaledVector(d, w);
+        const b0 = m1.clone().addScaledVector(d, -w * 0.8), b1 = m1.clone().addScaledVector(d, w * 0.8);
+        if (sd > 0) { S.quad(a0, b0, b1, a1, yel, yel, yel, yel); S.tri(b0, tip, b1, yel, tipC, yel); }
+        else { S.quad(a1, b1, b0, a0, yel, yel, yel, yel); S.tri(b1, tip, b0, yel, tipC, yel); }
       }
     }
     return pts;
@@ -3418,12 +3433,14 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
      Sways in the shared wind; instanceColor tints the clump.
      ============================================================ */
   let grassObj = null;
+  const dryGrassObj = {};
   function grass(opts = {}) {
-    if (grassObj) return grassObj;
+    if (opts.dry ? dryGrassObj.v : grassObj) return opts.dry ? dryGrassObj.v : grassObj;
     const S = soup();
     const blades = opts.blades || 3;
     const r = rng(99);
-    const baseC = L(0x1f4414), tipC = L(0x9cc45a);
+    // round 11: less yellow tips; the dry (savanna) kind is pale straw with a brown base and its own material
+    const baseC = opts.dry ? L(0x6a5a3a) : L(0x1c3c12), tipC = opts.dry ? L(0xf0e2b8) : L(0x7aa646);
     for (let b = 0; b < blades; b++) {
       const a = (b / blades) * TAU + r() * 0.8;
       const off = b === 0 ? 0 : 0.06;
@@ -3487,8 +3504,9 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
     const prevGrass = material.onBeforeCompile;
     material.onBeforeCompile = (sh) => { prevGrass(sh); noFlip(sh); };
     material.customProgramCacheKey = () => 'env-grass';
-    grassObj = { geometry, material, uniforms };
-    return grassObj;
+    const out = { geometry, material, uniforms };
+    if (opts.dry) dryGrassObj.v = out; else grassObj = out;
+    return out;
   }
 
   /* ============================================================
@@ -3497,9 +3515,10 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
   const waterUniforms = { time: { value: 0 } };
   function water(size = 40, opts = {}) {
     const swampy = !!opts.swampy;
-    const shallow = lcol(opts.color != null ? opts.color : swampy ? 0x6a6e3e : 0x4aa6cf);
-    const deep = lcol(opts.deep != null ? opts.deep : swampy ? 0x3a3a20 : 0x154d75);
-    const opacity = opts.opacity != null ? opts.opacity : swampy ? 0.93 : 0.8;
+    // round 11: the deeper, greener blues of real lakes and ponds (it was a bright swimming-pool blue)
+    const shallow = lcol(opts.color != null ? opts.color : swampy ? 0x6a6e3e : 0x3c7484);
+    const deep = lcol(opts.deep != null ? opts.deep : swampy ? 0x3a3a20 : 0x0f3446);
+    const opacity = opts.opacity != null ? opts.opacity : swampy ? 0.93 : 0.88;
     const seg = Math.max(8, Math.min(64, Math.round(size / 2)));
     const geo = new THREE.PlaneGeometry(size, size, seg, seg);
     geo.rotateX(-Math.PI / 2);
@@ -3917,13 +3936,19 @@ void main() {
      Clouds: billboarded soft sprites, several puffs per cloud
      ============================================================ */
   function puffTexture() {
-    return canvasTex('puff', 256, 256, (c, w, h, r) => {
+    return canvasTex('puff2', 256, 256, (c, w, h, r) => {
       // cumulus heap: round lobes piled on a flat base; drawn as soft discs, then shaded top-lit
       const lobes = [];
       const base = h * 0.7;
       for (let i = 0; i < 7; i++) { const x = w * (0.2 + 0.6 * (i / 6)), rr = w * (0.09 + r() * 0.05); lobes.push([x, base - rr * 0.55, rr]); }
       for (let i = 0; i < 5; i++) { const x = w * (0.3 + 0.4 * (i / 4)) + (r() - 0.5) * w * 0.05, rr = w * (0.11 + r() * 0.05); lobes.push([x, base - rr * 1.25 - (0.5 - Math.abs(i / 4 - 0.5)) * w * 0.12, rr]); }
       lobes.push([w * (0.45 + r() * 0.1), base - w * 0.33, w * (0.13 + r() * 0.03)]);
+      // round 11: cauliflower detail: many small billows along the top of each big lobe, so the outline is lumpy
+      // like a real cumulus instead of a few smooth bumps
+      for (const [x, y, rr] of lobes.slice()) for (let k = 0; k < 5; k++) {
+        const a = -Math.PI * (0.15 + 0.7 * r()), d = rr * (0.7 + r() * 0.25), q = rr * (0.22 + r() * 0.18);
+        if (y + Math.sin(a) * d < base - 2) lobes.push([x + Math.cos(a) * d, y + Math.sin(a) * d, q]);
+      }
       for (const [x, y, rr] of lobes) {
         const g = c.createRadialGradient(x, y, 0, x, y, rr);
         g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.62, 'rgba(255,255,255,0.9)'); g.addColorStop(0.85, 'rgba(255,255,255,0.35)'); g.addColorStop(1, 'rgba(255,255,255,0)');
@@ -4559,11 +4584,78 @@ void main() {
 
   /* ============================================================
      Food items
+     Round 11: food that looks real. Each food is procedural geometry, about life size, sitting on the ground at its
+     origin. The fine detail (apple skin, fish spots and scales, worm rings and soil, pumpkin, carrot and acorn skins)
+     comes from one small canvas skin per food, painted pixel by pixel at load (skinTex). The top band of each skin
+     stays white, for parts colored by their vertex colors alone (uv PLAIN). One material per food; the worm (wet worm,
+     dry soil) and the berries (glossy blackberry, dusty blueberries) have two.
      ============================================================ */
   const foodCache = {};
-  const foodMat = () => mat('food', { std: true, roughness: 0.55 });
-  const foodMatDS = () => mat('foodDS', { std: true, roughness: 0.6, side: THREE.DoubleSide });
-  const fishMat = () => mat('fish', { std: true, roughness: 0.32, metalness: 0.15 });
+  const foodMat = () => mat('food', { std: true, roughness: 0.55 });   // plain vertex colored food (shops and kitchens use it)
+  const FDS = THREE.DoubleSide;
+  const SKV = 0.86, PLAIN = [0.5, 0.94];
+  const mixRGB = (a, b, t) => { t = clamp(t, 0, 1); return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; };
+  const mulRGB = (a, k) => [a[0] * k, a[1] * k, a[2] * k];
+  const fract = (x) => x - Math.floor(x);
+  const hash2 = (x, y) => fract(Math.sin(x * 127.1 + y * 311.7) * 43758.5453);
+  const WHITE3 = [255, 255, 255];
+  // a skin canvas: fn(u, v) -> [r, g, b] (0..255, sRGB) with u, v in 0..1 (v up, as the uvs); post(c, W, H, r) draws on top
+  function skinTex(key, W, H, fn, post) {
+    return canvasTex(key, W, H, (c, w, h, r) => {
+      const img = c.createImageData(W, H), d = img.data;
+      for (let y = 0; y < H; y++) {
+        const v = 1 - (y + 0.5) / H;
+        for (let x = 0; x < W; x++) {
+          const k = (y * W + x) * 4, col = v > 0.885 ? WHITE3 : fn((x + 0.5) / W, v);
+          d[k] = col[0]; d[k + 1] = col[1]; d[k + 2] = col[2]; d[k + 3] = 255;
+        }
+      }
+      c.putImageData(img, 0, 0);
+      if (post) { c.save(); c.beginPath(); c.rect(0, H * 0.12, W, H); c.clip(); post(c, W, H, r); c.restore(); }
+    }, { srgb: true });
+  }
+  // an ellipse at (u, v) on a skin canvas, repeated across the u seam
+  function dotAt(c, W, H, u, v, rx, ry, fill, rot = 0) {
+    c.fillStyle = fill;
+    for (const o of [-1, 0, 1]) {
+      const x = (u + o) * W;
+      if (x < -rx * 3 || x > W + rx * 3) continue;
+      c.beginPath(); c.ellipse(x, (1 - v) * H, rx, ry, rot, 0, TAU); c.fill();
+    }
+  }
+  // set the uvs of g: fn(u, v, x, y, z) -> [u, v]
+  function mapUV(g, fn) {
+    g = prep(g);
+    const p = g.attributes.position.array, a = g.attributes.uv.array, n = g.attributes.position.count;
+    for (let i = 0; i < n; i++) { const o = fn(a[i * 2], a[i * 2 + 1], p[i * 3], p[i * 3 + 1], p[i * 3 + 2]); a[i * 2] = o[0]; a[i * 2 + 1] = o[1]; }
+    g.attributes.uv.needsUpdate = true;
+    return g;
+  }
+  const plainUV = (g) => mapUV(g, () => PLAIN);
+  /* lathe around y through the profile prof [[r, y], ...]: bottom to top makes the faces point out. uv: u around (0..1),
+     v = v0 + s * (v1 - v0) with s the fraction of the profile's length. o.shape(p, a, s) moves a vertex (keep it periodic
+     in a), o.col(a, s, p) colors it (linear, default white) */
+  function latheF(prof, seg, o = {}) {
+    const n = prof.length, len = [0];
+    for (let i = 1; i < n; i++) len.push(len[i - 1] + Math.hypot(prof[i][0] - prof[i - 1][0], prof[i][1] - prof[i - 1][1]));
+    const tot = len[n - 1] || 1, v0 = o.v0 == null ? 0.01 : o.v0, v1 = o.v1 == null ? SKV : o.v1, S = soup(), rows = [];
+    for (let i = 0; i < n; i++) {
+      const s = len[i] / tot, row = [];
+      for (let j = 0; j <= seg; j++) {
+        const a = (j / seg) * TAU, p = new V3(Math.cos(a) * prof[i][0], prof[i][1], Math.sin(a) * prof[i][0]);
+        if (o.shape) o.shape(p, a, s);
+        row.push({ p, c: o.col ? o.col(a, s, p) : [1, 1, 1], uv: [j / seg, v0 + s * (v1 - v0)] });
+      }
+      rows.push(row);
+    }
+    for (let i = 0; i < n - 1; i++) for (let j = 0; j < seg; j++) {
+      const A = rows[i][j], B = rows[i + 1][j], C = rows[i + 1][j + 1], D = rows[i][j + 1];
+      S.quad(A.p, B.p, C.p, D.p, A.c, B.c, C.c, D.c, A.uv, B.uv, C.uv, D.uv);
+    }
+    return S.geo(!o.flat);
+  }
+  const profPts = (P, n) => path(P.map(([x, y]) => new V3(x, y, 0)), n).map((p) => [Math.max(0, p.x), p.y]);
+  const toGround = (g) => { g.computeBoundingBox(); g.translate(0, -g.boundingBox.min.y, 0); return g; };
 
   function ico(r, d, x, y, z, sx, sy, sz, col) {
     const g = prep(new THREE.IcosahedronGeometry(r, d));
@@ -4571,134 +4663,308 @@ void main() {
     g.translate(x, y, z);
     return paint(smoothNormals(g), col);
   }
-  function smallLeaf(len, wid, col) {
-    const S = soup();
-    leafStrip(S, new V3(0, 0, 0), new V3(1, 0, 0), len, (t) => Math.sin(t * Math.PI) * wid, null, { seg: 4, lift: 0.4, droop: 0.9, fold: 0.3, color: (t, e) => mixc(col, mulc(col, 0.7), e) });
-    return upNormals(S.geo(false), 0.4);
-  }
 
+  /* ---------- apple: a big red apple streaked over a yellow green ground color, with pale lenticel dots, a deep stem
+     cavity with russet, the calyx basin underneath and a thin woody stem (10.5 cm across) ---------- */
+  const appleTex = () => skinTex('fApple', 256, 256, (u, v) => {
+    const s = v / SKV, ca = Math.cos(u * TAU), sa = Math.sin(u * TAU);
+    const broad = fbm(ca * 1.1 + 4.2, s * 1.6, sa * 1.1 - 2.6, 3);
+    const streak = fbm(ca * 8 + 1.3, s * 0.8, sa * 8 - 4.1, 3);   // long streaks along the meridians
+    const fine = fbm(ca * 30, s * 4, sa * 30, 2);
+    let blush = smooth(-0.6, 0.3, Math.cos(u * TAU - 0.7) * 0.5 + broad * 1.5 + 0.2);
+    blush = clamp(blush * (0.7 + 0.7 * smooth(-0.2, 0.3, streak)) + 0.12 * smooth(0.05, 0.35, streak), 0, 1);
+    let c = mixRGB([196, 194, 86], [218, 182, 72], smooth(-0.2, 0.3, broad));
+    c = mixRGB(c, [184, 34, 34], smooth(0.08, 0.55, blush));
+    c = mixRGB(c, [122, 16, 26], smooth(0.5, 1.0, blush) * (0.5 + 0.5 * smooth(-0.15, 0.25, fine + streak * 0.6)));
+    c = mulRGB(c, 0.93 + 0.14 * fine);
+    // the stem cavity: greener deep in, russet streaks radiating out over the shoulder; the calyx basin underneath
+    const top = smooth(0.8, 0.98, s), bot = smooth(0.14, 0.0, s), rus = smooth(0.0, 0.3, fbm(ca * 40, s * 3, sa * 40, 2));
+    c = mixRGB(c, mixRGB([150, 152, 72], [136, 100, 56], rus), top * 0.8);
+    c = mixRGB(c, mixRGB([150, 140, 76], [110, 90, 52], rus), bot * 0.6);
+    return c;
+  }, (c, W, H, r) => {
+    // lenticels: pale dots, a bit bigger and closer toward the stem
+    for (let i = 0; i < 600; i++) {
+      const u = r(), s = 0.06 + r() * 0.88, rad = (0.35 + r() * 0.5) * (0.8 + 0.6 * s);
+      dotAt(c, W, H, u, s * SKV, rad * 0.6, rad, `rgba(226,206,150,${0.12 + r() * 0.25})`);
+    }
+  });
   function foodApple() {
-    const R = 0.09;
-    const g = prep(new THREE.SphereGeometry(R, 16, 12));
-    eachVertex(g, (p) => {
-      const y = p.y / R, rr = Math.hypot(p.x, p.z) / R;
-      // apple shape: dimple at top and bottom, slightly wider shoulders
-      const k = 1 + 0.08 * y - 0.05 * y * y;
-      p.x *= k; p.z *= k;
-      p.y = p.y * 0.92 - 0.035 * R * Math.exp(-rr * rr * 18) * Math.sign(p.y) * 5;
-    });
-    g.translate(0, R * 0.92, 0);
-    smoothNormals(g);
-    paint(g, (x, y, z) => {
-      const a = Math.atan2(z, x);
-      const blush = smooth(-0.6, 0.8, Math.cos(a - 0.8) + fbm(x * 30, y * 30, z * 30, 2) * 0.8);
-      let c = mixc(L(0xe8c040), L(0xc0201c), blush);
-      c = mixc(c, L(0x8a1410), smooth(0.4, 1.0, blush) * 0.3);
-      const streak = 0.9 + 0.1 * Math.sin(a * 24 + y * 40);
-      return mulc(c, streak);
-    });
-    const stem = tube([new V3(0, R * 1.7, 0), new V3(0.006, R * 2.05, 0.003), new V3(0.016, R * 2.25, 0.004)], 0.0045, { radial: 5, cap: 'end', color: () => L(0x4a3420) });
-    const leaf = smallLeaf(0.07, 0.22, L(0x4a8a2a));
-    leaf.rotateZ(0.3); leaf.translate(0.008, R * 2.05, 0.004);
-    return [{ geo: merge([g, stem, leaf]), mat: foodMat() }];
-  }
-
-  function foodWorm() {
-    // dirt mound (static) + worm body (animated by Env.foodUpdate)
-    const mound = prep(new THREE.SphereGeometry(0.07, 12, 6, 0, TAU, 0, Math.PI / 2));
-    eachVertex(mound, (p) => { p.x *= 1 + fbm(p.x * 40, p.y * 40, p.z * 40, 1) * 0.3; p.z *= 1.2; p.y *= 0.45; });
-    smoothNormals(mound);
-    paint(mound, (x, y, z) => mixc(L(0x3a2818), L(0x6a4a30), fbm(x * 60, y * 60, z * 60, 2) + 0.5));
-    // crumbs
-    const crumbs = [];
-    const r = rng(31);
-    for (let i = 0; i < 6; i++) { const a = r() * TAU, d = 0.07 + r() * 0.03; crumbs.push(ico(0.009 + r() * 0.006, 0, Math.cos(a) * d, 0.004, Math.sin(a) * d * 1.2, 1, 0.7, 1, L(0x4a3424))); }
-    // worm: segmented tube built along +Y, bent in the shader-free way: we rebuild nothing, sway via object rotation
-    const pts = [];
-    // emerges from the mound, arches over and curls toward the ground
-    for (let i = 0; i <= 14; i++) { const t = i / 14, a = t * 2.4; pts.push(new V3(Math.sin(a) * 0.075, -0.01 + Math.sin(Math.min(a, 2.0)) * 0.085 - Math.max(0, a - 2.0) * 0.02, Math.sin(t * 5) * 0.008)); }
-    const body = tube(pts, (i, t) => 0.0115 * (1 - Math.pow(t, 5) * 0.45) * (1 + 0.1 * Math.cos(t * 90)), {
-      radial: 8, cap: 'end',
-      color: (t) => {
-        const band = t > 0.28 && t < 0.4 ? 1 : 0;
-        return mixc(mixc(L(0xa0605a), L(0xd08c84), 0.5 + 0.5 * Math.cos(t * 90)), L(0xc87a70), band * 0.8);
+    const P = [[0, 0.013], [0.005, 0.0115], [0.01, 0.0065], [0.016, 0.0025], [0.024, 0.0006], [0.033, 0.003], [0.041, 0.0095],
+      [0.048, 0.021], [0.0525, 0.036], [0.0538, 0.051], [0.052, 0.065], [0.0465, 0.077], [0.0385, 0.0855], [0.029, 0.0905],
+      [0.0195, 0.0915], [0.0125, 0.0885], [0.0075, 0.081], [0.0035, 0.0735], [0, 0.0705]];
+    const g = latheF(profPts(P, 22), 24, {
+      shape: (p, a, s) => {
+        // five soft lobes round the calyx and the shoulders, a little lopsided, one side a bit taller
+        const lobe = 1 + Math.cos(5 * a + 0.4) * (0.04 * smooth(0.0, 0.08, s) * smooth(0.45, 0.15, s) + 0.015 * smooth(0.6, 0.85, s));
+        const k = lobe * (1 + 0.025 * Math.cos(a - 0.5)) * (1 + 0.012 * fbm(p.x * 60, p.y * 60, p.z * 60, 2));
+        p.x *= k; p.z *= k;
+        p.y *= 1 + 0.035 * Math.cos(a + 1.1) * smooth(0.4, 0.9, s) * smooth(1.0, 0.9, s);
       },
+      col: (a, s) => { const ao = 1 - 0.32 * smooth(0.86, 1, s) - 0.25 * smooth(0.1, 0, s); return [ao, ao, ao]; },
     });
-    return [{ geo: merge([mound, ...crumbs]), mat: foodMat() }, { geo: body, mat: foodMat(), name: 'worm' }];
+    const stem = plainUV(tube(path([new V3(0, 0.068, 0), new V3(0.001, 0.084, 0.0005), new V3(0.0045, 0.097, 0.001), new V3(0.0095, 0.1045, 0.002)], 6),
+      (i, t) => 0.0019 * (1 - 0.2 * t) * (t > 0.9 ? 1.15 : 1), { radial: 5, cap: 'end', capColor: L(0x9a8462), color: (t) => mixc(L(0x6a6030), L(0x4a3018), smooth(0.15, 0.7, t)) }));
+    return [{ geo: merge([g, stem]), mat: mat('fApple', { std: true, roughness: 0.44, map: appleTex() }) }];
   }
 
+  /* ---------- worm: an earthworm half out of its burrow in a little heap of loose crumbly soil. Ringed segments, the
+     swollen saddle (clitellum) a third of the way back from the head, darker on the back, a wet sheen ---------- */
+  const wormTex = () => skinTex('fWorm', 256, 128, (u, v) => {
+    if (v < 0.42) {   // soil: dark brown crumbs, a few light grains of sand and dark bits
+      const n = fbm(u * 22, v * 22, 3.1, 3), g = hash2(Math.floor(u * 256), Math.floor(v * 128));
+      let c = mixRGB([34, 24, 18], [78, 58, 42], smooth(-0.35, 0.45, n));
+      if (g > 0.95) c = mixRGB(c, [150, 132, 106], 0.6); else if (g < 0.12) c = mulRGB(c, 0.55);
+      return c;
+    }
+    // the worm: u along the body (tail 0 .. head 1), w around it
+    const w = (v - 0.45) / (SKV - 0.45), segs = u * 90, ring = Math.pow(Math.abs(Math.cos(segs * Math.PI)), 8);
+    const cl = smooth(0.66, 0.69, u) * smooth(0.79, 0.76, u);
+    let c = mixRGB([170, 92, 86], [132, 52, 60], smooth(0.75, 0.95, u));    // the head end darker and redder
+    c = mixRGB(c, [190, 128, 114], smooth(0.25, 0.05, u) * 0.6);                // the tail end paler
+    c = mixRGB(c, [196, 112, 84], cl * 0.85);                                    // the saddle, orange pink
+    return mulRGB(c, (1 - ring * (0.45 - cl * 0.25)) * (1 + 0.1 * Math.sin(segs * TAU + 1.2)) * (0.95 + 0.08 * fbm(u * 60, w * 6, 1, 2)));
+  });
+  function foodWorm() {
+    const rr = rng(4606), soil = [];
+    const heapY = (d) => 0.014 * Math.pow(Math.max(0, 1 - d / 0.058), 1.5);
+    // the patch of loose soil: low and uneven, ragged at the edge, the burrow dark in the middle (edge to center = up)
+    const disc = latheF(profPts([[0.066, -0.002], [0.05, 0.0012], [0.036, 0.0055], [0.022, 0.0095], [0.012, 0.0115], [0.007, 0.008], [0.0035, 0.001], [0, -0.004]], 9), 22, {
+      flat: true,
+      shape: (p, a, s) => {
+        const e = 1 + 0.35 * fbm(Math.cos(a) * 3 + 7, Math.sin(a) * 3, 1.3, 2) * smooth(0.5, 0.0, s);
+        p.x *= e; p.z *= e * 1.1;
+        p.y += 0.0025 * fbm(p.x * 140, 2.2, p.z * 140, 2) * smooth(0.05, 0.3, s) * smooth(1, 0.8, s);
+      },
+      col: (a, s) => { const k = (1 - 0.65 * smooth(0.8, 1, s)) * (1 + 0.15 * smooth(0.25, 0, s)); return [k, k, k]; },
+    });
+    soil.push(mapUV(disc, (u, v, x, y, z) => [x * 0.9 + 0.5, 0.21 + z * 1.8]));
+    // crumbs piled round the burrow, angular, some big, most small
+    for (let i = 0; i < 64; i++) {
+      const a = rr() * TAU, d = 0.009 + Math.pow(rr(), 1.4) * 0.062, cr = 0.0018 + rr() * rr() * 0.0055;
+      const x = Math.cos(a) * d, z = Math.sin(a) * d * 1.1, y = heapY(d) + cr * 0.15, o = rr() * 50;
+      const g = prep(new THREE.IcosahedronGeometry(cr, 0));
+      eachVertex(g, (p) => { p.multiplyScalar(1 + 0.3 * fbm(p.x / cr * 2.2 + o, p.y / cr * 2.2, p.z / cr * 2.2, 1)); p.y *= 0.65; });
+      g.rotateY(rr() * TAU); g.translate(x, y, z); g.computeVertexNormals();
+      const tone = 0.7 + rr() * 0.5;
+      paint(g, [tone, tone * 0.96, tone * 0.93]);
+      soil.push(mapUV(g, (u, v, px, py, pz) => [px * 6 + o * 0.37, 0.21 + (pz - z) * 12 + (py - y) * 8]));
+    }
+    // the worm, from inside the burrow (tail end) out over the soil to its lifted head; its own pivot is the burrow
+    const W = [[0, -0.03, 0], [0, -0.008, 0], [0.003, 0.009, 0.001], [0.012, 0.019, 0.004], [0.025, 0.02, 0.009], [0.039, 0.0145, 0.012],
+      [0.054, 0.0092, 0.004], [0.072, 0.0068, -0.012], [0.092, 0.0064, -0.02], [0.112, 0.0064, -0.01], [0.13, 0.0072, 0.008], [0.145, 0.0125, 0.024]];
+    const pts = path(W.map((a) => new V3(a[0], a[1], a[2])), 44);
+    let tot = 0;
+    for (let i = 1; i < pts.length; i++) tot += pts[i].distanceTo(pts[i - 1]);
+    const body = tube(pts, (i, t) => {
+      let k = 1 + 0.15 * smooth(0.66, 0.7, t) * smooth(0.79, 0.75, t);     // the saddle
+      if (t < 0.25) k *= 0.8 + 0.2 * t / 0.25;                              // thinner toward the tail
+      if (t > 0.9) k *= Math.sqrt(Math.max(0.02, 1 - Math.pow((t - 0.9) / 0.1, 2)));   // rounded head
+      return 0.006 * k;
+    }, { radial: 8, vLen: tot });
+    paint(body, (x, y, z, nx, ny) => mixc([1.06, 1.02, 1.0], [0.72, 0.6, 0.64], smooth(-0.25, 0.75, ny)));   // paler belly, darker back
+    mapUV(body, (u, v) => [v, 0.45 + u * (SKV - 0.45)]);
+    const tx = wormTex();
+    return [{ geo: merge(soil), mat: mat('fWormSoil', { std: true, roughness: 0.95, map: tx }) }, { geo: body, mat: mat('fWorm', { std: true, roughness: 0.22, map: tx }), name: 'worm' }];
+  }
+
+  /* ---------- fish: a body of revolution along +z (nose at +z, centered on y = 0), flattened sideways, with fins made
+     as fans of rays. The skin canvas: the body (u along it, nose 0 .. tail 1; v from the belly up the side to the back,
+     both sides alike) over three fin panels (u across the fin from its leading edge, v from its base out to its edge):
+     the lower fins, the dorsal fin and the tail ---------- */
+  const BODY_V0 = 0.31, FIN_PANEL = [[0, 0.33], [0.335, 0.665], [0.67, 1]];
+  const finUV = (k, x, y) => { const p = FIN_PANEL[k]; return [p[0] + 0.01 + clamp(x, 0, 1) * (p[1] - p[0] - 0.02), 0.012 + clamp(y, 0, 1) * 0.27]; };
+  const tabF = (xs, ys) => (t) => {
+    if (t <= xs[0]) return ys[0];
+    for (let i = 1; i < xs.length; i++) if (t <= xs[i]) return lerp(ys[i - 1], ys[i], (t - xs[i - 1]) / (xs[i] - xs[i - 1]));
+    return ys[ys.length - 1];
+  };
+  // fish skin: o.body(t, b) with t along the body and b around (0 belly .. 1 back), o.fin(k, x, y), o.post(c, W, H, r, at)
+  function fishSkin(key, W, H, o) {
+    return skinTex(key, W, H, (u, v) => {
+      if (v >= BODY_V0 - 0.004) return o.body(u, clamp((v - BODY_V0) / (SKV - BODY_V0), 0, 1));
+      const k = u < 0.333 ? 0 : u < 0.667 ? 1 : 2, p = FIN_PANEL[k];
+      return o.fin(k, clamp((u - p[0] - 0.01) / (p[1] - p[0] - 0.02), 0, 1), clamp((v - 0.012) / 0.27, 0, 1));
+    }, o.post ? (c, W, H, r) => o.post(c, W, H, r, (t, b) => [t, BODY_V0 + b * (SKV - BODY_V0)]) : null);
+  }
+  // rays: a membrane with fine ray lines, n rays across
+  const finRays = (x, n) => Math.pow(Math.abs(Math.cos(x * n * Math.PI)), 6);
   function fishGeo(len, o) {
-    // body of revolution along +Z, flattened sideways, with tail, dorsal and side fins
-    const S = soup();
-    const n = 14, R = 10;
-    const prof = (t) => Math.pow(Math.sin(Math.PI * Math.pow(t, 0.75)), 0.85) * 0.11 * (1 - t * 0.15);
-    const rings = [];
-    for (let i = 0; i <= n; i++) {
-      const t = i / n, z = (0.5 - t) * len; // t=0 nose (+Z), t=1 tail
-      const rad = Math.max(0.003, prof(t) * len);
-      const row = [];
-      for (let j = 0; j <= R; j++) {
-        const a = (j / R) * TAU;
-        const x = Math.cos(a) * rad * o.flat, y = Math.sin(a) * rad;
-        const top = Math.sin(a);
-        row.push({ p: new V3(x, y, z), c: o.color(t, top, x, y, z) });
+    const N = 24, R = 16, bodyLen = len * 0.82, z0 = len * 0.5, tCut = 0.9;
+    const T = (i) => 0.5 - 0.5 * Math.cos(Math.PI * i / N);
+    const zAt = (t) => z0 - t * bodyLen;
+    const surf = (t, a) => {
+      const s = Math.sin(a), w = o.w(t) * len * (1 - 0.16 * s), h = (s > 0 ? o.hu(t) : o.hl(t)) * len;
+      return new V3(Math.cos(a) * w, s * h, zAt(t));
+    };
+    const uvAt = (t, a) => [t, BODY_V0 + (Math.atan2(Math.sin(a), Math.abs(Math.cos(a))) / Math.PI + 0.5) * (SKV - BODY_V0)];
+    const tube2 = (S, t0, t1, n, dz, cap) => {
+      const rows = [];
+      for (let i = 0; i <= n; i++) {
+        const t = t0 === 0 ? T(i) * t1 : t0 + (t1 - t0) * i / n, row = [];
+        for (let j = 0; j <= R; j++) { const a = (j / R) * TAU - Math.PI / 2, p = surf(t, a); p.z -= dz; row.push({ p, uv: uvAt(t, a) }); }
+        rows.push(row);
       }
-      rings.push(row);
-    }
-    for (let i = 0; i < n; i++) for (let j = 0; j < R; j++) {
-      const a = rings[i][j], b = rings[i + 1][j], c = rings[i + 1][j + 1], d = rings[i][j + 1];
-      S.quad(a.p, b.p, c.p, d.p, a.c, b.c, c.c, d.c);
-    }
-    const body = S.geo(true);
-    // put the nose at +Z
-    let minZ = Infinity, maxZ = -Infinity;
-    eachVertex(body, (p) => { minZ = Math.min(minZ, p.z); maxZ = Math.max(maxZ, p.z); });
-    const fins = soup(), tailS = soup();
-    const tailZ = minZ + len * 0.06, finC = o.fin;
-    // tail fin (forked), built around its own pivot at the tail base (z = 0) so it can wag
-    const th = len * 0.2, tz = minZ - tailZ;
-    tailS.tri(new V3(0, 0, len * 0.02), new V3(0, th, tz - len * 0.16), new V3(0, len * 0.02, tz - len * 0.1), finC, mulc(finC, 0.8), finC);
-    tailS.tri(new V3(0, 0, len * 0.02), new V3(0, -len * 0.02, tz - len * 0.1), new V3(0, -th, tz - len * 0.16), finC, finC, mulc(finC, 0.8));
-    tailS.tri(new V3(0, 0, len * 0.02), new V3(0, len * 0.02, tz - len * 0.1), new V3(0, -len * 0.02, tz - len * 0.1), finC, finC, finC);
-    // narrow peduncle so the wagging tail stays attached to the body
-    tailS.tri(new V3(0, len * 0.025, len * 0.04), new V3(0, len * 0.02, tz - len * 0.1), new V3(0, -len * 0.02, tz - len * 0.1), finC, finC, finC);
-    tailS.tri(new V3(0, len * 0.025, len * 0.04), new V3(0, -len * 0.02, tz - len * 0.1), new V3(0, -len * 0.025, len * 0.04), finC, finC, finC);
-    // dorsal fin
-    const topY = prof(0.4) * len;
-    fins.tri(new V3(0, topY * 0.9, len * 0.08), new V3(0, topY * 0.9, -len * 0.1), new V3(0, topY + len * 0.08, -len * 0.06), finC, finC, mulc(finC, 0.85));
-    // pectoral fins
+      const c = [1, 1, 1];
+      for (let i = 0; i < n; i++) for (let j = 0; j < R; j++) {
+        const A = rows[i][j], B = rows[i + 1][j], C = rows[i + 1][j + 1], D = rows[i][j + 1];
+        S.quad(A.p, B.p, C.p, D.p, c, c, c, c, A.uv, B.uv, C.uv, D.uv);
+      }
+      if (cap) {   // close the cut end
+        const last = rows[n], m = new V3();
+        for (const q of last) m.add(q.p);
+        m.multiplyScalar(1 / last.length);
+        for (let j = 0; j < R; j++) S.tri(m, last[j + 1].p, last[j].p, c, c, c, last[j].uv, last[j + 1].uv, last[j].uv);
+      }
+    };
+    // a fin: rays from base points along b0 -> b1 out to the edge points E (leading edge first)
+    const fin = (S, b0, b1, E, k) => {
+      const m = E.length - 1, c = [1, 1, 1];
+      for (let i = 0; i < m; i++) {
+        const x0 = i / m, x1 = (i + 1) / m, B0 = new V3().lerpVectors(b0, b1, x0), B1 = new V3().lerpVectors(b0, b1, x1);
+        S.quad(B0, E[i], E[i + 1], B1, c, c, c, c, finUV(k, x0, 0), finUV(k, x0, 1), finUV(k, x1, 1), finUV(k, x1, 0));
+      }
+    };
+    // a fin standing out from the body: base from t0 to t1 at angle a (sunk a little into the body); each ray goes out
+    // along dir by h(x) and sweeps back by back(x) (fractions of the length)
+    const finOut = (S, t0, t1, a, dir, h, back, k, m = 7) => {
+      const b0 = surf(t0, a).multiplyScalar(0.92), b1 = surf(t1, a).multiplyScalar(0.92);
+      b0.z = zAt(t0); b1.z = zAt(t1);
+      const E = [];
+      for (let i = 0; i <= m; i++) { const x = i / m, B = new V3().lerpVectors(b0, b1, x); E.push(B.addScaledVector(dir, h(x) * len).add(new V3(0, 0, -back(x) * len))); }
+      fin(S, b0, b1, E, k);
+    };
+    const B = soup(), F = soup(), TL = soup();
+    tube2(B, 0, tCut + 0.02, N, 0);
+    // fins: dorsal, adipose (trout), anal, the pelvic pair and the pectoral pair
+    const up = new V3(0, 1, 0), dn = new V3(0, -1, 0);
+    finOut(F, o.dorsal[0], o.dorsal[1], Math.PI / 2, up, (x) => o.dorsal[2] * (1 - 0.62 * x) * (1 - 0.15 * Math.pow(Math.sin(x * Math.PI), 2)), (x) => o.dorsal[2] * 0.45 * (1 - 0.4 * x), 1, 8);
+    if (o.adipose) finOut(F, o.adipose[0], o.adipose[1], Math.PI / 2, up, (x) => o.adipose[2] * Math.sin(Math.PI * (0.15 + 0.7 * x)), () => o.adipose[2] * 0.6, 1, 4);
+    finOut(F, o.anal[0], o.anal[1], -Math.PI / 2, dn, (x) => o.anal[2] * (1 - 0.6 * x), () => o.anal[2] * 0.4, 0, 7);
     for (const s of [-1, 1]) {
-      const bx = s * prof(0.3) * len * o.flat * 0.9;
-      fins.tri(new V3(bx, -len * 0.02, len * 0.18), new V3(bx, -len * 0.03, len * 0.1), new V3(bx + s * len * 0.06, -len * 0.06, len * 0.08), finC, finC, finC);
+      const pa = -Math.PI / 2 + s * 0.45, pd = new V3(s * 0.45, -0.85, 0).normalize();
+      finOut(F, o.pelvic[0], o.pelvic[1], pa, pd, (x) => o.pelvic[2] * (1 - 0.55 * x), () => o.pelvic[2] * 0.55, 0, 5);
+      const qa = -Math.PI / 2 + s * 1.05, qd = new V3(s * 0.75, -0.55, 0).normalize();
+      finOut(F, o.pect[0], o.pect[1], qa, qd, (x) => o.pect[2] * (1 - 0.5 * x), () => o.pect[2] * 0.75, 0, 6);
     }
-    const finG = fins.geo(false);
-    // eyes
+    // the tail: the narrow end of the body (its own pivot at tCut) and the caudal fin
+    const zc = zAt(tCut);
+    tube2(TL, tCut, 1, 2, zc, true);
+    const ze = zAt(1) - zc, hu = o.hu(1) * len * 0.9, hl = o.hl(1) * len * 0.9, Ht = o.tail[0] * len, Lt = o.tail[1] * len, fork = o.tail[2];
+    const E = [], m = 10;
+    for (let i = 0; i <= m; i++) {
+      const x = i / m, yy = lerp(Ht, -Ht, x), mid = 1 - Math.abs(x * 2 - 1);
+      E.push(new V3(0, yy, ze - Lt * (1 - fork * Math.pow(mid, 1.4)) * (1 - 0.12 * Math.pow(1 - mid, 6))));
+    }
+    fin(TL, new V3(0, hu, ze + len * 0.01), new V3(0, -hl, ze + len * 0.01), E, 2);
+    // eyes: a bronze or silver iris and a black pupil, a little proud of the head
     const eyes = [];
     for (const s of [-1, 1]) {
-      eyes.push(ico(len * 0.03, 1, s * prof(0.12) * len * o.flat * 0.85, len * 0.015, maxZ - len * 0.13, 0.6, 1, 1, L(0x111111)));
-      eyes.push(ico(len * 0.012, 0, s * (prof(0.12) * len * o.flat * 0.85 + len * 0.014), len * 0.024, maxZ - len * 0.125, 0.5, 1, 1, [0.9, 0.9, 0.9]));
+      const p = surf(o.eye[0], 0.32), er = o.eye[1] * len;
+      p.x *= s;
+      eyes.push(plainUV(ico(er, 1, p.x - s * er * 0.12, p.y, p.z, 0.5, 1, 1, o.eye[2])));
+      eyes.push(plainUV(ico(er * 0.55, 1, p.x + s * er * 0.16, p.y, p.z, 0.45, 1, 1, [0.008, 0.008, 0.01])));
     }
-    return { body: merge([body, ...eyes]), fins: finG, tail: tailS.geo(false), tailZ };
+    return { body: merge([B.geo(true), F.geo(false), ...eyes]), tail: merge([TL.geo(true)]), tailZ: zc };
   }
+  /* brook trout: dark olive back with pale wormlike markings, yellow spots and red spots in blue halos on the sides,
+     cream belly with an orange flush, lower fins orange red with a white leading edge and a black stripe */
+  const troutTex = () => fishSkin('fTrout', 512, 256, {
+    body: (t, b) => {
+      let c = mixRGB([238, 230, 210], [226, 146, 96], smooth(0.08, 0.2, b) * smooth(0.36, 0.24, b) * 0.85);
+      c = mixRGB(c, [140, 134, 84], smooth(0.26, 0.42, b));
+      c = mixRGB(c, [66, 74, 44], smooth(0.55, 0.8, b));
+      c = mixRGB(c, [40, 48, 30], smooth(0.86, 1.0, b));
+      const ver = Math.abs(fbm(t * 30 + 3.1, b * 10, 1.7, 2));
+      c = mixRGB(c, [200, 192, 124], smooth(0.07, 0.025, ver) * smooth(0.6, 0.8, b) * 0.85);
+      const ll = 0.52 + 0.03 * Math.sin(t * 3);
+      c = mixRGB(c, [206, 200, 150], smooth(0.012, 0.0, Math.abs(b - ll)) * smooth(0.18, 0.26, t) * 0.5);
+      // the head: plainer, olive brass cheeks, the gill cover edge and the mouth
+      const head = smooth(0.25, 0.16, t);
+      c = mixRGB(c, mixRGB([176, 168, 118], [76, 82, 48], smooth(0.5, 0.85, b)), head * 0.65);
+      const tg = 0.205 - 0.06 * Math.pow(b * 2 - 1, 2);
+      if (b > 0.14 && b < 0.82) { c = mixRGB(c, [36, 34, 26], smooth(0.005, 0.0, Math.abs(t - tg)) * 0.85); c = mixRGB(c, [210, 200, 160], smooth(0.012, 0.0, Math.abs(t - tg - 0.008)) * 0.35); }
+      if (t < 0.095) c = mixRGB(c, [40, 30, 26], smooth(0.016, 0.004, Math.abs(b - (0.4 + t * 0.6))) * smooth(0.095, 0.07, t));
+      // fine scales
+      const su = t * 150, sv = b * 34 + (Math.floor(su) % 2) * 0.5;
+      const se = Math.max(Math.abs(fract(su) - 0.5), Math.abs(fract(sv) - 0.5));
+      return mulRGB(c, (1 - 0.07 * smooth(0.36, 0.5, se) * smooth(0.18, 0.3, t)) * (0.95 + 0.08 * fbm(t * 40, b * 12, 5, 2)));
+    },
+    fin: (k, x, y) => {
+      const ray = finRays(x, 15);
+      if (k === 0) {
+        let c = mixRGB([214, 92, 46], [236, 150, 100], y * 0.5);
+        c = mixRGB(c, [26, 22, 22], smooth(0.1, 0.13, x) * smooth(0.25, 0.22, x));
+        c = mixRGB(c, [246, 244, 236], smooth(0.12, 0.09, x));
+        return mulRGB(mixRGB(c, [150, 120, 70], smooth(0.18, 0.0, y) * 0.6), 1 - ray * 0.18);
+      }
+      if (k === 1) {
+        const band = Math.abs(fbm(x * 5 + 2, y * 7, 3.3, 2));
+        return mulRGB(mixRGB(mixRGB([172, 162, 104], [52, 48, 32], smooth(0.05, 0.02, band) * 0.85), [80, 80, 50], smooth(0.2, 0.0, y) * 0.5), 1 - ray * 0.2);
+      }
+      const sp = fbm(x * 9, y * 9, 7.7, 2);
+      let c = mixRGB([118, 116, 70], [52, 52, 34], smooth(0.15, 0.3, sp) * 0.8);
+      c = mixRGB(c, [210, 110, 60], smooth(0.85, 1, x) * 0.6);
+      return mulRGB(c, 1 - ray * 0.22);
+    },
+    post: (c, W, H, r, at) => {
+      for (let i = 0; i < 95; i++) {   // pale yellow spots over the back and sides
+        const t = 0.2 + r() * 0.76, b = 0.4 + r() * 0.48, [u, v] = at(t, b), rad = 2.2 + r() * 1.6;
+        dotAt(c, W, H, u, v, rad, rad * 0.75, `rgba(222,206,128,${0.65 + r() * 0.3})`);
+      }
+      for (let i = 0; i < 20; i++) {   // red spots with blue halos low on the sides
+        const t = 0.24 + r() * 0.66, b = 0.4 + r() * 0.2, [u, v] = at(t, b), rad = 2.0 + r() * 1.0;
+        dotAt(c, W, H, u, v, rad * 1.55, rad * 1.2, 'rgba(150,176,226,0.8)');
+        dotAt(c, W, H, u, v, rad * 1.05, rad * 0.8, 'rgba(214,30,26,1)');
+      }
+    },
+  });
+  /* common shiner: silver sides, olive back darkest down the middle, big dark edged scales, a dipping lateral line,
+     pale fins with a pink flush */
+  const shinerTex = () => fishSkin('fShiner', 256, 128, {
+    body: (t, b) => {
+      let c = mixRGB([236, 238, 240], [196, 202, 208], smooth(0.12, 0.32, b));
+      c = mixRGB(c, [214, 192, 204], smooth(0.36, 0.46, b) * smooth(0.6, 0.5, b) * 0.6);
+      c = mixRGB(c, [138, 146, 116], smooth(0.58, 0.75, b));
+      c = mixRGB(c, [72, 82, 58], smooth(0.84, 0.97, b));
+      const su = t * 38, row = Math.floor(b * 13), sv = b * 13, cu = su + (row % 2) * 0.5;
+      const se = Math.abs(fract(cu) - 0.5) + Math.abs(fract(sv) - 0.5);
+      c = mulRGB(c, 1 - smooth(0.38, 0.5, se) * (0.06 + 0.2 * smooth(0.5, 0.8, b)) * smooth(0.18, 0.26, t));
+      const ll = 0.5 - 0.09 * Math.sin(Math.PI * clamp((t - 0.2) / 0.75, 0, 1));
+      c = mixRGB(c, [70, 74, 70], smooth(0.016, 0.0, Math.abs(b - ll)) * smooth(0.2, 0.26, t) * (0.4 + 0.4 * Math.pow(Math.abs(Math.cos(cu * Math.PI)), 4)));
+      const head = smooth(0.25, 0.17, t);
+      c = mixRGB(c, mixRGB([216, 220, 224], [96, 104, 80], smooth(0.55, 0.9, b)), head * 0.7);
+      const tg = 0.215 - 0.055 * Math.pow(b * 2 - 1, 2);
+      if (b > 0.14 && b < 0.84) c = mixRGB(c, [70, 70, 66], smooth(0.008, 0.0, Math.abs(t - tg)) * 0.8);
+      if (t < 0.07) c = mixRGB(c, [60, 56, 54], smooth(0.02, 0.006, Math.abs(b - (0.52 + t))) * smooth(0.07, 0.05, t));
+      return mulRGB(c, 0.96 + 0.06 * fbm(t * 30, b * 8, 2, 2));
+    },
+    fin: (k, x, y) => {
+      const ray = finRays(x, 11);
+      let c = mixRGB([214, 206, 196], [226, 178, 170], smooth(0.5, 0.0, y) * (k === 0 ? 0.6 : 0.25));
+      if (k === 2) c = mixRGB(c, [120, 120, 110], smooth(0.7, 1, y) * 0.5);
+      if (k === 1) c = mixRGB(c, [120, 124, 100], smooth(0.4, 0.0, y) * 0.5);
+      return mulRGB(c, 1 - ray * 0.25);
+    },
+  });
   function foodFish(small) {
-    const len = small ? 0.14 : 0.3;
+    const len = small ? 0.14 : 0.3, T12 = [0, 0.02, 0.06, 0.12, 0.2, 0.3, 0.42, 0.55, 0.68, 0.8, 0.9, 1];
     const g = fishGeo(len, small ? {
-      flat: 0.68, fin: L(0x9aa6a8),
-      color: (t, top, x, y) => mixc(mixc(L(0xdfe6ea), L(0x5a6e78), smooth(-0.2, 0.7, top)), L(0x8aa0a8), Math.abs(top) < 0.2 ? 0.4 : 0),
+      hu: tabF(T12, [0, 0.034, 0.062, 0.084, 0.1, 0.108, 0.11, 0.098, 0.078, 0.057, 0.044, 0.04]),
+      hl: tabF(T12, [0, 0.026, 0.052, 0.074, 0.09, 0.098, 0.1, 0.09, 0.07, 0.05, 0.04, 0.036]),
+      w: tabF(T12, [0, 0.016, 0.028, 0.036, 0.04, 0.042, 0.042, 0.038, 0.03, 0.02, 0.013, 0.01]),
+      dorsal: [0.42, 0.56, 0.12], anal: [0.66, 0.8, 0.08], pelvic: [0.44, 0.5, 0.07], pect: [0.21, 0.25, 0.09],
+      tail: [0.11, 0.18, 0.5], eye: [0.1, 0.032, L(0xd8d0b0)],
     } : {
-      flat: 0.5, fin: L(0x8a8a5a),
-      color: (t, top, x, y, z) => {
-        let c = mixc(L(0xece2c8), L(0x5a6a3a), smooth(-0.3, 0.6, top));
-        // pink lateral band and dark speckles like a trout
-        c = mixc(c, L(0xd88a7a), Math.exp(-Math.pow((top + 0.05) / 0.2, 2)) * 0.6 * smooth(0.1, 0.3, t));
-        const sp = fbm(x * 200 + 3, y * 200, z * 200, 1);
-        if (sp > 0.35 && top > -0.3) c = mulc(c, 0.35);
-        return c;
-      },
+      hu: tabF(T12, [0, 0.032, 0.056, 0.072, 0.085, 0.094, 0.097, 0.088, 0.071, 0.054, 0.045, 0.042]),
+      hl: tabF(T12, [0, 0.024, 0.05, 0.066, 0.077, 0.086, 0.088, 0.081, 0.064, 0.048, 0.04, 0.038]),
+      w: tabF(T12, [0, 0.024, 0.04, 0.048, 0.054, 0.057, 0.057, 0.051, 0.039, 0.026, 0.017, 0.013]),
+      dorsal: [0.38, 0.53, 0.1], adipose: [0.8, 0.86, 0.025], anal: [0.68, 0.78, 0.075], pelvic: [0.5, 0.56, 0.065], pect: [0.2, 0.25, 0.085],
+      tail: [0.1, 0.17, 0.16], eye: [0.075, 0.021, L(0x9a7428)],
     });
     // body and tail are separate meshes so Env.foodUpdate can wag the tail around its base
-    const fm = mat('fishDS', { std: true, roughness: 0.32, metalness: 0.15, side: THREE.DoubleSide });
-    return [{ geo: merge([g.body, g.fins]), mat: fm, name: 'fish' }, { geo: g.tail, mat: fm, name: 'tail', z: g.tailZ }];
+    const fm = small ? mat('fShiner', { std: true, roughness: 0.28, metalness: 0.12, side: FDS, map: shinerTex() }) : mat('fTrout', { std: true, roughness: 0.32, metalness: 0.05, side: FDS, map: troutTex() });
+    return [{ geo: g.body, mat: fm, name: 'fish' }, { geo: g.tail, mat: fm, name: 'tail', z: g.tailZ }];
   }
 
   function foodGrass() {
@@ -4726,118 +4992,266 @@ void main() {
     return [{ geo: merge([upNormals(S.geo(false), 0.55), ...clover]), mat: mat('juicy', { std: true, roughness: 0.55, side: THREE.DoubleSide, sway: 2.0, flutter: 0.003 }) }];
   }
 
-  function foodBerries() {
-    const gs = [], r = rng(71);
-    // blueberries with a crown dimple, raspberries as clustered drupelets
-    for (let i = 0; i < 6; i++) {
-      const a = r() * TAU, d = 0.02 + r() * 0.025;
-      const x = Math.cos(a) * d, z = Math.sin(a) * d, y = 0.018 + r() * 0.02;
-      gs.push(ico(0.017, 1, x, y, z, 1, 0.9, 1, (px, py) => mixc(L(0x2a3a7a), L(0x5a6aa8), smooth(-0.2, 1.2, (py - y) / 0.017) * 0.6)));
-      gs.push(ico(0.005, 0, x, y + 0.015, z, 1, 0.5, 1, L(0x1a1a3a)));
-    }
-    for (let k = 0; k < 2; k++) {
-      const cx = (k ? -0.03 : 0.035), cz = (k ? 0.03 : -0.02), cy = 0.024;
-      const rb = prep(new THREE.IcosahedronGeometry(0.02, 2));
-      eachVertex(rb, (p) => { const n = p.clone().normalize(); const bump = Math.abs(Math.sin(n.x * 14) * Math.sin(n.y * 14) * Math.sin(n.z * 14)); p.multiplyScalar(1 + bump * 0.12); p.y *= 1.15; });
-      smoothNormals(rb);
-      rb.translate(cx, cy, cz);
-      gs.push(paint(rb, (px, py, pz) => { const n = Math.abs(Math.sin((px - cx) * 700) * Math.sin((py - cy) * 600) * Math.sin((pz - cz) * 700)); return mixc(L(0x8a1028), L(0xe0405a), n); }));
-    }
-    const leaves = [];
-    for (let i = 0; i < 2; i++) {
-      const lf = smallLeaf(0.07, 0.2, L(0x3a7a2a));
-      lf.rotateY(i * 2.6 + 0.4);
-      lf.translate(0, 0.01, 0);
-      leaves.push(lf);
-    }
-    return [{ geo: merge([...gs, ...leaves]), mat: foodMatDS() }];
+  // a triangle turned to face along dir
+  function triFace(S, a, b, c, dir, ca, cb, cc) {
+    const n = new V3().subVectors(b, a).cross(new V3().subVectors(c, a));
+    if (n.dot(dir) >= 0) S.tri(a, b, c, ca, cb, cc, PLAIN, PLAIN, PLAIN); else S.tri(a, c, b, ca, cc, cb, PLAIN, PLAIN, PLAIN);
   }
 
-  function foodCarrot() {
-    const gs = [];
-    // orange shoulder showing above the soil, with a little soil ring
-    const sh = prep(new THREE.CylinderGeometry(0.028, 0.034, 0.05, 10, 2, false));
-    eachVertex(sh, (p) => { if (p.y > 0.02) { p.x *= 0.85; p.z *= 0.85; } });
-    sh.translate(0, 0.015, 0);
-    gs.push(paint(smoothNormals(sh), (x, y) => mulc(L(0xe8761c), 0.85 + 0.15 * Math.sin(y * 300))));
-    const ring = prep(new THREE.TorusGeometry(0.04, 0.012, 5, 12));
-    ring.rotateX(Math.PI / 2); ring.scale(1, 0.6, 1); ring.translate(0, 0.004, 0);
-    gs.push(paint(ring, L(0x4a3424)));
-    // feathery green top: several compound stalks
-    const S = soup(), r = rng(91);
-    const tops = [];
-    for (let i = 0; i < 8; i++) {
-      const a = (i / 8) * TAU + r() * 0.4;
-      const d = new V3(Math.cos(a) * 0.4, 1, Math.sin(a) * 0.4).normalize();
-      const len = 0.24 + r() * 0.08;
-      const base = new V3(0, 0.04, 0), end = base.clone().addScaledVector(d, len);
-      end.y -= len * 0.1;
-      tops.push(tube([base, base.clone().lerp(end, 0.5).add(new V3(0, 0.02, 0)), end], 0.0028, { radial: 3, color: () => L(0x4a8a2a) }));
-      // ferny leaflets along the stalk
-      for (let k = 2; k < 6; k++) {
-        const t = k / 6;
-        const p = base.clone().lerp(end, t);
-        for (const s of [-1, 1]) {
-          const sd = new V3(-d.z, 0, d.x).multiplyScalar(s);
-          leafStrip(S, p, sd.clone().add(new V3(0, 0.5, 0)).addScaledVector(d, 0.5), 0.085 * (1.1 - t * 0.4), (u) => (Math.floor(u * 6) % 2 ? 0.12 : 0.28) * Math.sin(u * Math.PI), r, { seg: 6, lift: 0.4, droop: 1.0, color: (u, e) => mixc(L(0x3f8a28), L(0x7ac04a), u * 0.6 + e * 0.1) });
+  /* ---------- berries: blueberries with their dusty bloom and a five pointed crown in a little dimple, a glossy
+     blackberry and a raspberry built of single drupelets, on a bramble leaflet ---------- */
+  function foodBerries() {
+    const r = rng(4729), gloss = [], dusty = [], GA = Math.PI * (3 - Math.sqrt(5));
+    // the leaflet underneath, lying flat: serrated edge, pale midrib
+    const S = soup();
+    leafStrip(S, new V3(-0.05, 0.0012, -0.022), new V3(1, 0, 0.42), 0.09, (t) => (0.27 * Math.pow(Math.sin(Math.PI * Math.min(1, t * 1.04)), 0.75) + 0.01) * (1 - 0.1 * (Math.floor(t * 18) % 2)), r,
+      { seg: 9, lift: 0.04, droop: 0.07, fold: 0.1, vein: 0.1, color: (t, e) => mixc(mixc(L(0x7a9a52), L(0x2c561c), smooth(0, 0.2, e)), L(0x3c6a26), smooth(0.6, 1, e) * 0.4) });
+    dusty.push(plainUV(upNormals(S.geo(false), 0.3)));
+    // blueberries
+    const blue = (x, z, rad, tilt, yaw, onLeaf) => {
+      const g = prep(new THREE.SphereGeometry(rad, 10, 9));
+      eachVertex(g, (p) => { const k = p.y / rad; if (k > 0.85) p.y -= ((k - 0.85) / 0.15) * rad * 0.3; p.y *= 0.9; });
+      smoothNormals(g);
+      const o = r() * 9;
+      paint(g, (px, py, pz) => {
+        const n = fbm(px / rad * 1.4 + o, py / rad * 1.4, pz / rad * 1.4, 2);
+        let c = mixc(L(0x46557e), L(0x6c7ca6), smooth(-0.25, 0.4, n));        // the waxy bloom
+        c = mixc(c, L(0x161c3c), smooth(0.15, 0.4, -n) * 0.9);                     // rubbed patches, deep blue
+        return mixc(c, L(0x2a2036), smooth(0.55, 0.75, py / rad) * 0.75);          // dark round the crown
+      });
+      const cs = soup();
+      for (let k = 0; k < 5; k++) {
+        const a = (k / 5) * TAU + 0.3, b0 = a - 0.5, b1 = a + 0.5, y0 = rad * 0.66, rr0 = rad * 0.27;
+        const P0 = new V3(Math.cos(b0) * rr0, y0, Math.sin(b0) * rr0), P1 = new V3(Math.cos(b1) * rr0, y0, Math.sin(b1) * rr0);
+        const tip = new V3(Math.cos(a) * rad * 0.47, rad * 0.8, Math.sin(a) * rad * 0.47);
+        triFace(cs, P0, tip, P1, new V3(0, 1, 0), L(0x3a2c42), L(0x6a6a82), L(0x3a2c42));
+      }
+      const all = merge([plainUV(g), upNormals(cs.geo(false), 0.5)]);
+      all.rotateX(tilt); all.rotateY(yaw); toGround(all); all.translate(x, onLeaf ? 0.0015 : 0, z);
+      dusty.push(all);
+    };
+    // drupelet berries: drupelets set round an ellipsoid core (axis y), the stalk end at -y
+    const drupes = (Lh, Rr, n, dr, colTop, colBase, hollow) => {
+      const parts = [];
+      const core = prep(new THREE.IcosahedronGeometry(1, 1));
+      core.scale(Rr * 0.82, Lh * 0.82, Rr * 0.82);
+      parts.push(paint(smoothNormals(core), colBase));
+      for (let i = 0; i < n; i++) {
+        const f = (i + 0.5) / n, yy = 1 - 2 * f * (hollow ? 0.84 : 0.92), q = Math.sqrt(Math.max(0, 1 - yy * yy)), ph = i * GA;
+        const dir = new V3(Math.cos(ph) * q, yy, Math.sin(ph) * q), nrm = new V3(dir.x / Rr, dir.y / Lh, dir.z / Rr).normalize();
+        const rad = dr * (0.88 + 0.24 * r()), c0 = new V3(dir.x * Rr, dir.y * Lh, dir.z * Rr).addScaledVector(nrm, rad * 0.05);
+        const g = prep(new THREE.SphereGeometry(rad, 6, 4));
+        g.rotateX(r() * 3); g.rotateY(r() * 3);
+        smoothNormals(g);
+        const tone = 0.8 + 0.4 * r();
+        paint(g, (x, y, z) => mulc(mixc(colBase, colTop, smooth(-0.6, 0.7, (x * nrm.x + y * nrm.y + z * nrm.z) / rad)), tone));
+        g.translate(c0.x, c0.y, c0.z);
+        parts.push(g);
+      }
+      const cs = soup();
+      if (hollow) {   // the open end where it came off its core
+        const m = new V3(0, -Lh * 0.9, 0);
+        for (let k = 0; k < 8; k++) {
+          const a0 = (k / 8) * TAU, a1 = ((k + 1) / 8) * TAU, rr0 = Rr * 0.5;
+          triFace(cs, m, new V3(Math.cos(a0) * rr0, -Lh * 0.8, Math.sin(a0) * rr0), new V3(Math.cos(a1) * rr0, -Lh * 0.8, Math.sin(a1) * rr0), new V3(0, -1, 0), L(0x3a0610), L(0x8a2a34), L(0x8a2a34));
+        }
+      } else {        // the calyx: five sepals folded back, and the stalk
+        for (let k = 0; k < 5; k++) {
+          const a = (k / 5) * TAU, rr0 = Rr * 0.32, y0 = -Lh * 0.95;
+          const P0 = new V3(Math.cos(a - 0.5) * rr0, y0, Math.sin(a - 0.5) * rr0), P1 = new V3(Math.cos(a + 0.5) * rr0, y0, Math.sin(a + 0.5) * rr0);
+          const tip = new V3(Math.cos(a) * Rr * 0.75, -Lh * 0.72, Math.sin(a) * Rr * 0.75);
+          triFace(cs, P0, P1, tip, new V3(Math.cos(a), -0.6, Math.sin(a)), L(0x4a5a26), L(0x4a5a26), L(0x7a7040));
+        }
+        parts.push(plainUV(tube([new V3(0, -Lh * 0.9, 0), new V3(0.0008, -Lh * 1.3, 0.0004)], 0.0012, { radial: 4, cap: 'end', color: () => L(0x5a6a2e) })));
+      }
+      parts.push(cs.geo(false));
+      return plainUV(merge(parts));
+    };
+    const bb = drupes(0.0125, 0.0088, 30, 0.0047, L(0x2c1230), L(0x0a0308), false);
+    bb.rotateZ(Math.PI / 2 - 0.15); bb.rotateY(0.5); toGround(bb); bb.translate(0.012, 0.0012, -0.008);
+    gloss.push(bb);
+    const rb = drupes(0.0106, 0.0094, 27, 0.0047, L(0xc8203a), L(0x6a0618), true);
+    rb.rotateZ(-Math.PI / 2 + 0.3); rb.rotateY(-0.6); toGround(rb); rb.translate(-0.024, 0, 0.018);
+    gloss.push(rb);
+    blue(0.034, 0.02, 0.0075, 0.4, 0.3, false);
+    blue(-0.002, 0.03, 0.0072, 1.9, 1.1, false);
+    blue(0.04, -0.014, 0.0078, 0.9, 2.2, true);
+    blue(0.016, 0.044, 0.007, 1.2, 2.9, false);
+    // (a little over life size, so the berries still show from the game camera)
+    return [{ geo: merge(gloss).scale(1.35, 1.35, 1.35), mat: mat('fBerryGloss', { std: true, roughness: 0.26 }) }, { geo: merge(dusty).scale(1.35, 1.35, 1.35), mat: mat('fBerryDusty', { std: true, roughness: 0.62, side: FDS }) }];
+  }
+
+  /* ---------- carrots: two pulled carrots lying on the ground with their feathery tops. Fine rings of little scars
+     across the root, a green shoulder, a few root hairs ---------- */
+  const carrotTex = () => skinTex('fCarrot', 128, 128, (u, v) => {
+    const s = v / SKV, ca = Math.cos(u * TAU), sa = Math.sin(u * TAU);
+    let c = mixRGB([226, 104, 22], [246, 146, 52], smooth(-0.3, 0.4, fbm(ca * 2, s * 14, sa * 2, 3)));
+    c = mulRGB(c, 0.94 + 0.1 * fbm(ca * 6, s * 60, sa * 6, 2));
+    c = mixRGB(c, [150, 136, 48], smooth(0.9, 0.97, s) * 0.8);
+    return mixRGB(c, [176, 176, 96], smooth(0.97, 1.0, s));
+  }, (c, W, H, r) => {
+    for (let i = 0; i < 170; i++) {
+      const s = 0.04 + r() * 0.86, u = r(), l = 0.05 + r() * 0.22, y = (1 - s * SKV) * H, a = 0.35 + r() * 0.35;
+      for (const o of [-1, 0]) {
+        c.lineWidth = 0.8 + r() * 0.6;
+        c.strokeStyle = `rgba(140,58,14,${a})`; c.beginPath(); c.moveTo((u + o) * W, y); c.lineTo((u + o + l) * W, y + (r() - 0.5)); c.stroke();
+        c.strokeStyle = `rgba(255,196,130,${a * 0.5})`; c.beginPath(); c.moveTo((u + o) * W, y - 1.2); c.lineTo((u + o + l) * W, y - 1.2); c.stroke();
+      }
+    }
+  });
+  function foodCarrotGeo(r, k) {
+    const P = [[0, 0], [0.0014, 0.005], [0.0036, 0.025], [0.0066, 0.055], [0.0096, 0.085], [0.0126, 0.115], [0.015, 0.14], [0.0163, 0.156], [0.0153, 0.165], [0.011, 0.1705], [0.005, 0.1725], [0, 0.173]];
+    const bend = (s) => 0.006 * Math.sin(s * Math.PI * 0.9);
+    const root = latheF(profPts(P, 16), 12, {
+      shape: (p, a, s) => { const q = 1 + 0.07 * fbm(Math.cos(a) * 1.5 + k, s * 9, Math.sin(a) * 1.5, 2); p.x *= q; p.z = p.z * q + bend(s); },
+    });
+    const parts = [root];
+    // root hairs
+    for (let i = 0; i < 6; i++) {
+      const s = 0.15 + r() * 0.6, y = 0.173 * s * 1.02, a = r() * TAU, rr0 = 0.015 * Math.pow(s * 1.05, 0.9);
+      const p0 = new V3(Math.cos(a) * rr0 * 0.95, y, Math.sin(a) * rr0 * 0.95 + bend(s)), d = new V3(Math.cos(a), -0.6, Math.sin(a));
+      parts.push(plainUV(tube([p0, p0.clone().addScaledVector(d, 0.006), p0.clone().addScaledVector(d, 0.012).add(new V3(0, -0.004, 0))], 0.00035, { radial: 3, color: () => L(0xe8c090) })));
+    }
+    const g = merge(parts);
+    g.rotateZ(-Math.PI / 2);   // lying along +x, the tip at x = 0
+    // the tops: three or four stalks flopping onto the ground, each with pairs of finely cut leaflets
+    const S = soup(), base = new V3(0.172, 0, 0), stems = [];
+    const nS = 4;
+    for (let i = 0; i < nS; i++) {
+      const ang = (i - (nS - 1) / 2) * 0.34 + (r() - 0.5) * 0.15, d = new V3(Math.cos(ang), 0, Math.sin(ang)), L0 = 0.15 + r() * 0.05;
+      const pts = path([base.clone(), base.clone().addScaledVector(d, 0.035).add(new V3(0, 0.008, 0)), base.clone().addScaledVector(d, L0 * 0.6).add(new V3(0, -0.004, 0)), base.clone().addScaledVector(d, L0).add(new V3(0, -0.0115, 0))], 7);
+      stems.push(plainUV(tube(pts, (j, t) => 0.0016 * (1 - 0.45 * t), { radial: 3, color: (t) => mixc(L(0x8aa458), L(0x4a7a2c), t) })));
+      for (let q = 0; q < 6; q++) {
+        const t = 0.3 + q * 0.13, f = t * (pts.length - 1), j = Math.min(pts.length - 2, Math.floor(f)), p = new V3().lerpVectors(pts[j], pts[j + 1], f - j);
+        for (const sd of q === 5 ? [0] : [-1, 1]) {
+          const la = ang + sd * (0.7 + r() * 0.3), ld = new V3(Math.cos(la), 0, Math.sin(la)), len = 0.038 * (1.25 - t * 0.5);
+          leafStrip(S, p, ld, len, (u) => 0.24 * Math.sin(Math.PI * u) * (0.3 + 0.7 * Math.abs(Math.sin(u * Math.PI * 2))), r,
+            { seg: 4, lift: 0.18, droop: 0.55, fold: 0.15, color: (u, e) => mixc(L(0x28521a), L(0x4a7c2e), u * 0.4 + e * 0.25) });
         }
       }
     }
-    return [{ geo: merge([...gs, ...tops, upNormals(S.geo(false), 0.5)]), mat: mat('carrot', { std: true, roughness: 0.6, side: THREE.DoubleSide, sway: 1.5 }) }];
+    return merge([g, ...stems, plainUV(upNormals(S.geo(false), 0.45))]);
+  }
+  function foodCarrot() {
+    const r = rng(4756);
+    const a = foodCarrotGeo(r, 0), b = foodCarrotGeo(r, 1);
+    b.scale(0.86, 0.86, 0.86); b.rotateY(-0.42); b.translate(0.012, 0, 0.042);
+    a.rotateY(0.12);
+    const g = toGround(merge([a, b])), bx = g.boundingBox;
+    g.translate(-(bx.min.x + bx.max.x) / 2, 0, -(bx.min.z + bx.max.z) / 2);
+    return [{ geo: g, mat: mat('fCarrot', { std: true, roughness: 0.55, side: FDS, map: carrotTex() }) }];
   }
 
+  /* ---------- pine cone: an open cone lying on its side. Woody scales on a spiral, spread wide at the base and closing
+     toward the tip, each thickening to a grey brown end face (the apophysis) with a dark point (the umbo) ---------- */
   function foodPinecone() {
-    // egg-shaped cone with spiral diamond scales: each scale tip pushed out, grooves dark
-    const H = 0.1, R = 0.034, rings = 18, rad = 20, S = soup();
-    const P = (i, j) => {
-      const t = i / rings, a = (j / rad) * TAU;
-      const prof = Math.pow(Math.sin(Math.PI * Math.min(1, 0.06 + t * 0.94)), 0.8) * (1 - t * 0.35);
-      const u = (a / TAU) * 8 + t * 5, v = (a / TAU) * 8 - t * 7;
-      const du = Math.abs(u - Math.floor(u) - 0.5), dv = Math.abs(v - Math.floor(v) - 0.5);
-      const d = Math.max(du, dv); // 0 at scale center, 0.5 at the groove
-      const lift = (0.5 - d) * 2;
-      const rr = R * prof * (0.78 + 0.32 * lift);
-      return { p: new V3(Math.cos(a) * rr, t * H - lift * 0.004, Math.sin(a) * rr), c: mixc(L(0x3a2212), mixc(L(0x8a5a2e), L(0xb07a44), t), Math.pow(lift, 0.7)) };
-    };
-    const grid = [];
-    for (let i = 0; i <= rings; i++) { const row = []; for (let j = 0; j <= rad; j++) row.push(P(i, j % rad)); grid.push(row); }
-    for (let i = 0; i < rings; i++) for (let j = 0; j < rad; j++) {
-      const A = grid[i][j], B = grid[i + 1][j], Cq = grid[i + 1][j + 1], D = grid[i][j + 1];
-      S.quad(A.p, B.p, Cq.p, D.p, A.c, B.c, Cq.c, D.c);
+    const S = soup(), r = rng(4789), H = 0.095, N = 84, GA = Math.PI * (3 - Math.sqrt(5));
+    const deep = L(0x2e1a0e), brown = L(0x6a3c1c), tan = L(0xae7a44), under = L(0x4a2a16), grey = L(0x9a8466), umbo = L(0x34261a);
+    for (let i = 0; i < N; i++) {
+      const f = (i + 0.5) / N, y = H * (0.03 + 0.9 * f), ph = i * GA;
+      const env = Math.pow(Math.sin(Math.PI * clamp(0.12 + f * 0.92, 0, 1)), 0.6);
+      const Ls = 0.011 + 0.022 * env * (1 - 0.2 * f), w = Ls * 0.66, th = lerp(-0.25, 1.1, Math.pow(f, 1.35)) + (r() - 0.5) * 0.12;
+      const rad = new V3(Math.cos(ph), 0, Math.sin(ph)), side = new V3(-Math.sin(ph), 0, Math.cos(ph));
+      const d = rad.clone().multiplyScalar(Math.cos(th)).add(new V3(0, Math.sin(th), 0)), n = new V3().crossVectors(side, d).normalize(), dn = n.clone().negate();
+      const B = rad.clone().multiplyScalar(0.0055 * (1 - 0.5 * f)).add(new V3(0, y, 0)), tone = 0.82 + 0.36 * r();
+      // a woody scale: thin at its base, thickening to a broad end whose face (the apophysis) looks out, with the umbo
+      // in its middle. Rows along it (l) across it (e); the upper face cups a little
+      const ls = [0, 0.45, 0.88], hw = [0.34, 0.86, 1.0], thick = [0, 0.0015, 0.26 * w];
+      const U = (k, e) => B.clone().addScaledVector(d, ls[k] * Ls).addScaledVector(side, e * hw[k] * w * 0.5).addScaledVector(n, 0.1 * w * e * e - 0.06 * Ls * ls[k] * ls[k]);
+      const D = (k, e) => U(k, e * 0.92).addScaledVector(n, -thick[k] - 0.0004);
+      const cu = (k) => mulc(k === 0 ? deep : k === 1 ? brown : tan, tone), cd = (k) => mulc(k === 2 ? mixc(under, grey, 0.4) : under, tone);
+      for (let k = 0; k < 2; k++) for (const [e0, e1] of [[-1, 0], [0, 1]]) {
+        triFace(S, U(k, e0), U(k + 1, e0), U(k + 1, e1), n, cu(k), cu(k + 1), cu(k + 1));
+        triFace(S, U(k, e0), U(k + 1, e1), U(k, e1), n, cu(k), cu(k + 1), cu(k));
+      }
+      for (const [e0, e1] of [[-1, 0], [0, 1]]) {
+        triFace(S, D(1, e0), D(2, e0), D(2, e1), dn, cd(1), cd(2), cd(2));
+        triFace(S, D(1, e0), D(2, e1), D(1, e1), dn, cd(1), cd(2), cd(1));
+      }
+      for (const e of [-1, 1]) {   // the sides of the thick end
+        const sd = side.clone().multiplyScalar(e);
+        triFace(S, U(1, e), U(2, e), D(2, e), sd, cu(1), cu(2), cd(2));
+        triFace(S, U(1, e), D(2, e), D(1, e), sd, cu(1), cd(2), cd(1));
+      }
+      // the end face: grey brown, weathered, the umbo standing a little proud in its middle
+      const rim = [U(2, -1), U(2, 0), U(2, 1), D(2, 1), D(2, 0), D(2, -1)], um = U(2, 0).lerp(D(2, 0), 0.5).addScaledVector(d, 0.07 * Ls);
+      const gc = mulc(grey, tone);
+      for (let k = 0; k < 6; k++) triFace(S, um, rim[k], rim[(k + 1) % 6], d, umbo, gc, gc);
     }
-    const cone = S.geo(true);
-    const stem = paint(place(new THREE.CylinderGeometry(0.004, 0.005, 0.014, 5), 0, -0.006, 0), L(0x4a3018));
-    const g = merge([cone, stem]);
-    g.rotateZ(Math.PI / 2 - 0.12);
-    g.translate(H / 2, 0.03, 0);
-    return [{ geo: g, mat: foodMat() }];
+    const core = plainUV(tube([new V3(0, -0.012, 0), new V3(0, 0, 0), new V3(0, H * 0.5, 0), new V3(0, H * 0.95, 0)], (i, t) => [0.0028, 0.0058, 0.004, 0.0015][i], { radial: 6, color: (t) => mixc(L(0x4a3420), deep, smooth(0.1, 0.2, t)) }));
+    const g = merge([S.geo(false), core]);
+    g.rotateZ(Math.PI / 2 - 0.08); g.rotateY(0.4);
+    return [{ geo: toGround(g), mat: mat('fPinecone', { std: true, roughness: 0.85, side: FDS }) }];
   }
 
+  /* ---------- acorns: two acorns lying in the leaf litter, one still in its scaly cap, and a loose cap upside down
+     showing its pale inside (a little bigger than life, so they read in the game) ---------- */
+  const acornTex = () => skinTex('fAcorn', 128, 128, (u, v) => {
+    const ca = Math.cos(u * TAU), sa = Math.sin(u * TAU);
+    if (v < 0.42) {   // the nut: u around, s from the point (0) to the base under the cap (1)
+      const s = v / 0.41;
+      let c = mixRGB([160, 104, 46], [110, 64, 28], smooth(-0.15, 0.3, fbm(ca * 4 + 2, s * 0.7, sa * 4, 2)));
+      c = mulRGB(c, 0.9 + 0.14 * fbm(ca * 16, s * 5, sa * 16, 2));
+      c = mixRGB(c, [206, 180, 122], smooth(0.8, 0.95, s));
+      return mixRGB(c, [70, 52, 34], smooth(0.07, 0.0, s));
+    }
+    // the cap: rows of small overlapping scales, s from the rim (0) to the stalk (1); each scale's free tip points to the rim
+    const s = clamp((v - 0.45) / (SKV - 0.45), 0, 1), rf = s * 7, row = Math.floor(rf), cy = rf - row, fu = u * 26 + (row % 2) * 0.5, cx = fract(fu);
+    const inside = 1 - (1 - cy) * 0.9 - Math.abs(cx - 0.5) * 1.6;
+    let c = mixRGB([78, 64, 46], [132, 114, 86], smooth(-0.1, 0.25, inside + 0.15 * fbm(u * 60, s * 14, 2.2, 2)));
+    c = mixRGB(c, [178, 160, 126], smooth(0.55, 0.1, cy) * smooth(0.0, 0.15, inside) * 0.55);
+    return mulRGB(c, (0.88 + 0.2 * hash2(Math.floor(fu), row)) * (1 - 0.35 * smooth(0.08, 0.0, s)));
+  });
   function foodAcorn() {
-    const gs = [];
-    const nut = prep(new THREE.SphereGeometry(0.018, 10, 8));
-    eachVertex(nut, (p) => { p.y *= p.y < 0 ? 1.45 : 1.0; if (p.y < -0.022) { p.x *= 0.8; p.z *= 0.8; } });
-    nut.translate(0, 0.028, 0);
-    gs.push(paint(smoothNormals(nut), (x, y) => mixc(L(0x8a5a22), L(0xc08a3a), smooth(0, 0.04, y))));
-    gs.push(ico(0.003, 0, 0, 0.0, 0, 1, 1.5, 1, L(0x5a3a1a)));
-    const cap = prep(new THREE.SphereGeometry(0.021, 10, 5, 0, TAU, 0, Math.PI * 0.5));
-    eachVertex(cap, (p) => { p.y *= 0.65; });
-    cap.translate(0, 0.031, 0);
-    gs.push(paint(smoothNormals(cap), (x, y, z) => mulc(L(0x6a4a2a), 0.75 + 0.25 * (fbm(x * 600, y * 600, z * 600, 1) > 0 ? 1 : 0.6))));
-    gs.push(tube([new V3(0, 0.044, 0), new V3(0.002, 0.052, 0.001)], 0.002, { radial: 4, cap: 'end', color: () => L(0x5a3a1a) }));
-    // enlarge a bit so it reads from the game camera (5 cm requested)
-    const g = merge(gs);
-    g.scale(1.1, 1.1, 1.1);
-    return [{ geo: g, mat: foodMat() }];
+    const nutP = [[0, -0.0012], [0.0009, 0.0004], [0.0035, 0.003], [0.0072, 0.0075], [0.0096, 0.013], [0.0105, 0.018], [0.0103, 0.0225], [0.0093, 0.0265], [0.0068, 0.0292], [0.0032, 0.0303], [0, 0.0305]];
+    const capO = [[0.0104, 0.0205], [0.0114, 0.0203], [0.012, 0.0222], [0.0123, 0.025], [0.0118, 0.0282], [0.0099, 0.0313], [0.0062, 0.0338], [0.0025, 0.0347], [0, 0.0349]];
+    const capI = [[0, 0.0318], [0.0045, 0.0312], [0.0078, 0.029], [0.0098, 0.0255], [0.0104, 0.0205]];
+    const nut = (k) => latheF(profPts(nutP, 12), 14, { v0: 0.01, v1: 0.41, shape: (p, a, s) => { const q = k * (1 + 0.03 * Math.cos(a + 1) * Math.sin(s * Math.PI)); p.x *= q; p.z *= q; p.y *= k; } });
+    const cap = (stalk) => {
+      const o = latheF(profPts(capO, 10), 16, { v0: 0.45, v1: SKV, shape: (p, a) => { const q = 1 + 0.035 * fbm(Math.cos(a) * 4, p.y * 400, Math.sin(a) * 4, 1); p.x *= q; p.z *= q; } });
+      const i = latheF(profPts(capI, 6), 16, { v0: PLAIN[1], v1: PLAIN[1], col: (a, s) => mixc(L(0x4a3a28), L(0xb89a6a), smooth(0, 0.4, s)) });
+      const parts = [o, i];
+      if (stalk) parts.push(plainUV(tube([new V3(0, 0.0345, 0), new V3(0.0004, 0.037, 0), new V3(0.0012, 0.0395, 0.0004)], 0.0013, { radial: 5, cap: 'end', color: () => L(0x5a4630) })));
+      return merge(parts);
+    };
+    const A = merge([nut(1), cap(true)]);
+    A.scale(1.25, 1.25, 1.25); A.rotateZ(Math.PI / 2 + 0.1); A.rotateY(0.5); toGround(A); A.translate(-0.014, 0, -0.008);
+    const Bn = nut(0.94);
+    Bn.scale(1.25, 1.25, 1.25); Bn.rotateZ(-Math.PI / 2 + 0.06); Bn.rotateY(2.3); toGround(Bn); Bn.translate(0.018, 0, 0.018);
+    const C = cap(false);
+    C.scale(1.25, 1.25, 1.25); C.rotateX(Math.PI - 0.25); C.rotateY(1.2); toGround(C); C.translate(0.034, 0, -0.02);
+    return [{ geo: merge([A, Bn, C]), mat: mat('fAcorn', { std: true, roughness: 0.42, map: acornTex() }) }];
   }
 
+  /* ---------- pumpkin: a small pie pumpkin, ten ribs with sharp grooves, streaked and speckled skin, greenish round the
+     thick ridged woody stem ---------- */
+  const pumpkinTex = () => skinTex('fPumpkin', 256, 128, (u, v) => {
+    const s = v / SKV, a = u * TAU, ca = Math.cos(a), sa = Math.sin(a), rib = Math.sqrt(Math.abs(Math.cos(a * 5)));
+    const streak = fbm(ca * 12, s * 1.4, sa * 12, 3), fine = fbm(ca * 40, s * 10, sa * 40, 2);
+    let c = mixRGB([202, 88, 20], [238, 134, 38], clamp(rib * 0.7 + streak * 0.6, 0, 1));
+    c = mixRGB(c, [150, 58, 14], smooth(0.35, 0.0, rib) * 0.6);
+    c = mulRGB(c, 0.92 + 0.12 * fine);
+    c = mixRGB(c, [168, 140, 60], smooth(0.84, 0.97, s) * 0.55);
+    return mixRGB(c, [110, 84, 46], smooth(0.1, 0.0, s) * 0.7);
+  }, (c, W, H, r) => {
+    for (let i = 0; i < 260; i++) dotAt(c, W, H, r(), (0.08 + r() * 0.8) * SKV, 0.6 + r() * 0.6, 0.6 + r() * 0.6, `rgba(250,200,120,${0.25 + r() * 0.35})`);
+    for (let i = 0; i < 5; i++) dotAt(c, W, H, r(), (0.2 + r() * 0.6) * SKV, 2 + r() * 3, 1 + r() * 2, 'rgba(176,150,104,0.55)', r() * 3);
+  });
   function foodPumpkin() {
-    const r = rng(9900);
-    const { g, top } = pumpkinBody(0.25, 8, { color: 0xe8781e, rows: 9, squash: 0.8 });
-    const stem = pumpkinStem(0.25, top, r, true);
-    const leaf = smallLeaf(0.09, 0.3, L(0x4a7a2a));
-    leaf.rotateZ(0.2); leaf.rotateY(2.2); leaf.translate(0.01, top - 0.005, 0.0);
-    return [{ geo: merge([g, stem, leaf]), mat: mat('pumpkinFood', { std: true, roughness: 0.55, side: THREE.DoubleSide }) }];
+    const P = [[0, 0.011], [0.012, 0.008], [0.03, 0.003], [0.05, 0.002], [0.072, 0.009], [0.092, 0.026], [0.105, 0.05], [0.11, 0.075], [0.106, 0.1], [0.093, 0.121], [0.07, 0.137], [0.045, 0.1445], [0.024, 0.1435], [0.011, 0.137], [0, 0.133]];
+    const g = latheF(profPts(P, 16), 40, {
+      shape: (p, a, s) => {
+        const rib = Math.sqrt(Math.abs(Math.cos(a * 5))), depth = 0.11 * smooth(0.02, 0.2, s) * smooth(0.98, 0.8, s);
+        const k = (1 - depth * (1 - rib)) * (1 + 0.03 * Math.sin(a * 2 + 1)) * (1 + 0.02 * fbm(p.x * 30, p.y * 30, p.z * 30, 2));
+        p.x *= k; p.z *= k;
+        p.y -= 0.006 * (1 - rib) * smooth(0.6, 0.9, s) * smooth(1, 0.9, s);
+      },
+      col: (a, s) => { const k = (0.8 + 0.2 * Math.sqrt(Math.abs(Math.cos(a * 5)))) * (1 - 0.3 * smooth(0.88, 1, s)); return [k, k, k]; },
+    });
+    const sp = path([new V3(0, 0.128, 0), new V3(0.002, 0.145, 0.001), new V3(0.007, 0.16, 0.003), new V3(0.016, 0.168, 0.006)], 7);
+    const stem = plainUV(tube(sp, (i, t, a) => 0.0105 * (1 - 0.3 * t) * (1 + 0.13 * Math.cos(a * 6)) * (1 + 0.7 * smooth(0.25, 0.0, t)),
+      { radial: 12, cap: 'end', capColor: L(0xc0b080), color: (t, a) => mixc(mixc(L(0x56602e), L(0x9a8e5c), smooth(0.1, 0.8, t)), L(0x2e3418), (0.5 - 0.5 * Math.cos(a * 6)) * 0.4) }));
+    return [{ geo: merge([g, stem]), mat: mat('fPumpkin', { std: true, roughness: 0.62, map: pumpkinTex() }) }];
   }
   function foodCandy() {
     // a round wrapped candy with twisted wrapper ends, lying on the ground (about 8 cm long)
@@ -7237,6 +7651,10 @@ void main() {`);
     propCache, boxG, meshOf, wallQuadZ, wallQuadX, polyFan, polyX, polyZ, beam, roofX, roofHip, windowParts, addWindow, doorGeo,
     chimneyGeo, roundBox, doorRec, resolveDoors, setDoors, cachedDoors, cachedGroup, pivot, glassMat, glassMesh, quadTo, pipeGeo,
     vPanel, rrect, hexOf, sign, nightU, autumnU, windU,
+    // round 11: the tree parts, for 39_savanna's trees
+    crown, leafPart, trunkPts, branch, barkColor, flareRad, climbInfo, frond, FALL, C,
+    // round 11: the food skin helpers, for the foods in 38_food
+    skinTex, mapUV, PLAIN, SKV, mixRGB, mulRGB, latheF,
   };
   return {
     _k: KIT,
