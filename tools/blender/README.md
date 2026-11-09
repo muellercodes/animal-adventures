@@ -835,3 +835,39 @@ Fruit bat (`VOXEL=0.002 TRIS=6500 TEX=768`, normal map WebP 64): 6.5k triangles 
 at detail 2 with 4 fur shell layers); 768 color and normal maps (the membranes get a smaller share of them,
 `uv_weight`), 256 pup color map, fur map: 45 KB mesh + 12 + 20 + 1 + 8 KB, about 120 KB in the page, 190 KB with its
 two icons. The procedural butterfly (2.9k triangles, 3.7k at detail 2) and caterpillar (2.2k) add only code and icons.
+
+## Round 11: more lizards on one template (`lizkit.py`: `beardeddragon.py`, ...)
+
+The lace monitor (`lizard.py`) stays as it is; the round 11 lizards share `lizkit.py`, a template made from it. A species
+file loads the template into its own module (`M = lizkit.load(id)`), sets its tables and landmarks in base units (an
+animal about half a meter long, so the template's blend radii, bake distances and scale sizes fit), replaces the
+functions it needs (`M.paint = paint`, they look names up in M when called) and calls `lizkit.install(globals(), M, KS)`,
+which scales every pipeline hook by KS on the way out, as `bigcat.py` does for the big cats. The template has:
+- the body as one loft from the tail tip to the snout (`BODY`: z, top, height of the widest line, bottom, half width,
+  exponents), ellipsoids added to it (`BLOBS`: girdles, throat) and to the head (`HEAD_BLOBS`, `SNOUT`, `MANDIBLE`),
+  the nostril, ear opening, mouth groove along `MOUTH_LINE` and the eye (lid mound, opening, ball; `seat_eye()` puts
+  the ball into the side of the head instead of standing out of it like goggles), legs as capsule chains with joint
+  balls and a sole (`FLEG`, `HLEG`), toes with hooked claws (`F_TOES`, `H_TOES`), and `EXTRAS` (named fields unioned
+  into the body: spikes, crests, dewlaps; `cones()` and `crest()` help build them);
+- skin weights made entirely from the sculpt and the game skeleton's pivots (read from the rig export): the trunk, neck,
+  head and tail as one chain along the middle line (each bone owns the stretch from its pivot to the next, blended over
+  a few mm), each leg along its own bones and into its girdle, a vertex counted as leg where the leg's field is nearer
+  than the body's;
+- rings across the body, tail and legs (`BEND_PITCH`; fewer through a wide trunk, they cost triangles), texture regions
+  (head, trunk, tail in parts, legs, feet) with the head getting more of the map (`UV_HEAD`);
+- scales as a height field per texel: granular beads, keeled rings round the tail, rows of belly plates, lip plates;
+  `regions()` gives the paint its masks (head, tail, legs, belly, lips, eye, claws, the extras').
+
+The game side is the same idea: `lizardKin(o)` in `40_animals.js` makes a species' spec from its bones and loft rows in
+base units and `o.k` (the procedural body is the Blender file's loft, so the rig the sculpt is fitted to matches it).
+
+The bearded dragon (`beardeddragon.py`, Pogona vitticeps, 50 cm, KS 1): a wide flat body, a broad triangular head with a
+short blunt snout (the first one read as a monitor until the snout was shortened and deepened), the beard as a full
+throat pouch with rows of soft spines along the jaw and across the throat, tufts of spines round the ear and behind the
+jaw angle, a fringe of spikes along each flank and spiky scales over the back (about 90 cones per side, `spike()`),
+stout legs and a thick thigh. Sandy tan with an orange wash over the head, two rows of darker blotches down the back,
+a banded tail, a pale belly; the flanks below the fringe keep most of the body color (a pale band there looked wrong).
+The hatchling has its own color map (the markings bolder). In the game it does push-ups and bobs its head.
+- Budget (`VOXEL=0.0012 TRIS=2900 TEX=768`, `BEND_PITCH` 13.5 and 5 mm): 7.0k triangles; 768 color (WebP 50) and normal
+  (WebP 32) maps, 320 hatchling color map: 52 KB mesh + 47 + 48 + 13 KB, 163 KB of files, about 217 KB in the page plus
+  about 23 KB of icons. The per-scale color jitter and the dark grooves cost most of the color map: keep them soft.

@@ -6500,6 +6500,123 @@ const Animals = (() => {
     };
   };
 
+  // ===== round 11: bearded dragon =====
+  // The round 11 lizards (bearded dragon, green iguana, chameleon, Komodo dragon) share lizardKin(o): a lizard laid out
+  // in base units (an animal about half a meter long, as tools/blender/lizkit.py lays out its sculpt) and scaled by
+  // o.k. o.bones: the lizard's bones in base units (any number of tail bones, extra bones of the species' own);
+  // o.body: the loft rows of the species' Blender file (z, top, height of the widest line, bottom, half width,
+  // exponents), which make the procedural body (the body without the model, and the rig the sculpt is fitted to);
+  // o.tailKeys: the tail's own loft keys (x, y, z, half width, up, down: a curled tail); o.legR: radii of the
+  // procedural legs [front, hind]; o.col: { base, dark, belly } paint colors; o.eye, o.mouth (base
+  // units); o.size, o.anim (game meters, over the lizard's walk); o.baby. Every other field is copied over the result.
+  const lizardKin = (o) => {
+    const k = o.k, s3 = (p) => p.map((v) => v * k);
+    const P = {};
+    for (const b of o.bones) P[b[0]] = b.slice(2, 5);
+    const tails = o.bones.map((b) => b[0]).filter((n) => /^tail\d+$/.test(n));
+    const row = (r) => [0, r[2] * k, r[0] * k, r[4] * k, (r[1] - r[2]) * k, (r[2] - r[3]) * k, Math.max(2, Math.min(r[5], 2.4))];
+    const legKeys = (names, r, front) => {
+      const p = names.map((n) => s3(P[n])), mid = [0, 1, 2].map((i) => lerp(p[1][i], p[2][i], 0.5));
+      const root = [p[0][0] * 0.6, p[0][1], p[0][2]];
+      return [[...root, r * 1.25, r * 1.25, r * 1.25], [...p[0], r * 1.1, r * 1.1, r * 1.1], [...p[1], r, r, r], [...mid, r * 0.8, r * 0.8, r * 0.8], [...p[2], r * 0.7, r * 0.6, r * 0.6], [...p[3], r * 0.62, r * 0.45, r * 0.5]];
+    };
+    const C = o.col;
+    const spec = {
+      size: o.size,
+      tex: [256, 512], rough: 0.75,
+      detail: { kind: 'scale', tile: 0.01 * k, amt: 0.25, bump: 0.6, sheen: 0.03 },
+      bones: o.bones.map((b) => [b[0], b[1], b[2] * k, b[3] * k, b[4] * k, b[5]]),
+      fur: [
+        { name: 'body', bones: ['hips', 'chest', 'neck', 'head'], blend: 0.02 * k, segs: 14, cap1: 3, capLen1: 0.55, keys: o.body.filter((r) => r[0] >= o.zTail - 0.015).map(row) },
+        { name: 'tail', bones: ['hips', ...tails], blend: 0.02 * k, segs: 10, cap1: 2, keys: o.tailKeys ? o.tailKeys.map((r) => [r[0] * k, r[1] * k, r[2] * k, r[3] * k, r[4] * k, r[5] * k, 2]) : o.body.filter((r) => r[0] <= o.zTail + 0.015).map(row).reverse() },
+        { name: 'fleg', mirror: true, bones: ['chest', 'armL', 'foreL', 'fmetaL', 'fpawL'], blend: 0.005 * k, segs: 8, cap1: 2, keys: legKeys(['armL', 'foreL', 'fmetaL', 'fpawL'], o.legR[0] * k, true) },
+        { name: 'hleg', mirror: true, bones: ['hips', 'thighL', 'shinL', 'hmetaL', 'hpawL'], blend: 0.005 * k, segs: 8, cap1: 2, keys: legKeys(['thighL', 'shinL', 'hmetaL', 'hpawL'], o.legR[1] * k, false) },
+      ],
+      paint(Pp, Cc) {
+        cset(Cc, C.base);
+        cmix(Cc, C.belly, sstep(-0.3, -0.8, Pp.ny) * 0.85);
+        const d = cells(Pp.x * 60 / k + 3.3, Pp.y * 60 / k, Pp.z * 40 / k);
+        cmix(Cc, C.dark, sstep(0.3, 0.12, d) * sstep(-0.2, 0.4, Pp.ny) * 0.7);
+        const fine = noise(Pp.x * 900 / k, Pp.y * 900 / k, Pp.z * 900 / k);
+        cmul(Cc, 0.9 + 0.2 * fine);
+        Cc.ro = 0.75 + 0.1 * fine;
+      },
+      accent: [
+        ...birdToes(s3(P.fpawL), o.toes[0].map((t) => Object.assign({}, t, { len: t.len * k, r: t.r * k, claw: t.claw * k })), o.toeCol, 'fpawL'),
+        ...birdToes(s3(P.hpawL), o.toes[1].map((t) => Object.assign({}, t, { len: t.len * k, r: t.r * k, claw: t.claw * k })), o.toeCol, 'hpawL'),
+      ],
+      accentRough: 0.7,
+      eyes: [Object.assign({ bone: 'head' }, o.eye, { p: s3(o.eye.p), r: o.eye.r * k })],
+      mouth: s3(o.mouth),
+      anim: Object.assign({
+        type: 'legged', walk: 0.9, trot: 1.8, run: 3.2, stride: 0.15 * k, strideMax: 2.2,
+        duty: [0.62, 0.5, 0.42], lift: [0.012 * k, 0.012 * k], flexF: 0.5, flexH: 0.5, splay: 1,
+        gaits: { w: [0.0, 0.5, 0.5, 0.0], t: [0.0, 0.5, 0.5, 0.0], g: [0.0, 0.5, 0.5, 0.0] },
+        bob: [0.0, 0.0, 0.002 * k], pitchRun: 0.0, flexRun: 0.0, roll: 0.03,
+        legs: [
+          { n: ['armL', 'foreL', 'fmetaL', 'fpawL'], front: true, pole: [1, 0.9, -0.3] },
+          { n: ['thighL', 'shinL', 'hmetaL', 'hpawL'], front: false, pole: [1, 0.9, 0.3] },
+        ],
+        spine: ['hips', 'chest', 'neck'], wave: 0.24, wavePh: 1.4,
+        neck: ['neck', 'head'], neckDist: [0.55, 0.45], nod: 0.0, chew: 0.06, chewRate: 10, eatY: 0.004 * k, eatMax: 1.2,
+        tail: tails, tailSway: 0.08, tailWalk: 0.0,
+        floatDepth: 0.02 * k, swimHead: -0.25, swimPitch: -0.05, paddleR: 0.6, lookAmp: 0.5, pushups: 0.012 * k,
+        sleep: { style: 'flat', neck: [0.4, 0.15], tail: [1.2, -0.02] }, wag: 0.25,
+      }, o.anim),
+      baby: o.baby,
+    };
+    for (const key in o) if (!['k', 'bones', 'body', 'tailKeys', 'zTail', 'legR', 'col', 'eye', 'mouth', 'size', 'anim', 'baby', 'toes', 'toeCol'].includes(key)) spec[key] = o[key];
+    return spec;
+  };
+  ids.push('beardeddragon');
+  // BEARDED DRAGON (a central bearded dragon, 50 cm): a wide flat body, a broad triangular head with spiky jaw angles,
+  // the spiny beard under the throat, a fringe of soft spikes along each flank, stout legs. Sandy tan to orange with two
+  // rows of darker blotches down the back and a banded tail. It bobs its head and does push-ups while it stands.
+  SPEC.beardeddragon = () => lizardKin({
+    k: 1,
+    size: { length: 0.5, height: 0.054, radius: 0.07, eyeHeight: 0.046 },
+    bones: [
+      ['hips', null, 0, 0.034, -0.05],
+      ['chest', 'hips', 0, 0.036, 0.062],
+      ['neck', 'chest', 0, 0.038, 0.088],
+      ['head', 'neck', 0, 0.04, 0.108],
+      ['tail1', 'hips', 0, 0.031, -0.095],
+      ['tail2', 'tail1', 0, 0.025, -0.155],
+      ['tail3', 'tail2', 0, 0.019, -0.215],
+      ['tail4', 'tail3', 0, 0.0135, -0.27],
+      ['thighL', 'hips', 0.022, 0.03, -0.058, 1],
+      ['shinL', 'thighL', 0.06, 0.037, -0.054, 1],
+      ['hmetaL', 'shinL', 0.073, 0.0085, -0.07, 1],
+      ['hpawL', 'hmetaL', 0.077, 0.005, -0.058, 1],
+      ['armL', 'chest', 0.024, 0.031, 0.064, 1],
+      ['foreL', 'armL', 0.05, 0.037, 0.064, 1],
+      ['fmetaL', 'foreL', 0.059, 0.0085, 0.074, 1],
+      ['fpawL', 'fmetaL', 0.062, 0.005, 0.082, 1],
+    ],
+    // the loft rows of tools/blender/beardeddragon.py
+    body: [
+      [-0.331, 0.0094, 0.0082, 0.007, 0.0009, 2.2], [-0.29, 0.014, 0.0106, 0.0068, 0.0034, 2.3], [-0.25, 0.0184, 0.0136, 0.008, 0.0052, 2.3],
+      [-0.2, 0.024, 0.0176, 0.0102, 0.0078, 2.3], [-0.15, 0.0298, 0.0218, 0.0128, 0.011, 2.3], [-0.112, 0.035, 0.025, 0.0144, 0.0152, 2.3],
+      [-0.087, 0.0398, 0.0272, 0.015, 0.0215, 2.3], [-0.066, 0.0446, 0.0286, 0.0148, 0.0305, 2.4], [-0.042, 0.049, 0.0296, 0.014, 0.0385, 2.5],
+      [-0.012, 0.0526, 0.0302, 0.013, 0.0445, 2.6], [0.018, 0.0534, 0.0306, 0.0132, 0.044, 2.6], [0.043, 0.0526, 0.0312, 0.0144, 0.0385, 2.5],
+      [0.063, 0.0512, 0.0318, 0.016, 0.0318, 2.4], [0.08, 0.049, 0.0324, 0.0178, 0.0228, 2.3], [0.096, 0.05, 0.0332, 0.019, 0.0262, 2.4],
+      [0.11, 0.0512, 0.034, 0.0204, 0.029, 2.5], [0.124, 0.0506, 0.035, 0.0222, 0.0262, 2.5], [0.139, 0.0478, 0.0356, 0.0244, 0.022, 2.4],
+      [0.146, 0.0462, 0.0354, 0.0254, 0.0198, 2.4], [0.152, 0.0442, 0.0348, 0.0266, 0.0168, 2.4], [0.157, 0.042, 0.034, 0.0278, 0.0132, 2.3], [0.1605, 0.0398, 0.0334, 0.029, 0.0084, 2.1],
+    ],
+    zTail: -0.082, legR: [0.0068, 0.0085],
+    col: { base: hex(0xC49A62), dark: hex(0x7A5838), belly: hex(0xE4D3A8) },
+    toes: [
+      [{ a: -38, len: 0.0105, r: 0.0019, claw: 0.0022 }, { a: -12, len: 0.014, r: 0.0019, claw: 0.0022 }, { a: 12, len: 0.0155, r: 0.0019, claw: 0.0022 }, { a: 36, len: 0.0145, r: 0.0019, claw: 0.0022 }, { a: 70, len: 0.0095, r: 0.0018, claw: 0.002 }],
+      [{ a: -22, len: 0.011, r: 0.002, claw: 0.0022 }, { a: 2, len: 0.0165, r: 0.002, claw: 0.0022 }, { a: 22, len: 0.021, r: 0.002, claw: 0.0022 }, { a: 42, len: 0.023, r: 0.002, claw: 0.0022 }, { a: 98, len: 0.0145, r: 0.0019, claw: 0.002 }],
+    ],
+    toeCol: 0x9A7A52,
+    eye: { p: [0.015, 0.0416, 0.1415], r: 0.0037, dir: [0.92, 0.28, 0.22], iris: 0xA8742E, irisR: 0.92, pupilR: 0.46, rim: 0x2A1A0E },
+    mouth: [0, 0.0312, 0.159],
+    anim: { walk: 0.8, trot: 1.6, run: 3.0, stride: 0.17, lift: [0.01, 0.009], flexH: 0.32, wave: 0.16, tailSway: 0.06, pushups: 0.01, eatY: 0.004 },
+    // hatchling: a big head and eyes, a short snout, a slimmer body
+    baby: { head: 1.35, eye: 1.12, muzzle: 0.8, body: [0.96, 1.04, 0.9], leg: [0.88, 1.06], tail: 0.92 },
+  });
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -8474,6 +8591,8 @@ const Animals = (() => {
   COLLAR.snowleopard = COLLAR.cat;
   // round 10: saber-toothed cat
   COLLAR.smilodon = COLLAR.cat;
+  // ===== round 11: bearded dragon
+  COLLAR.beardeddragon = { at: ['neck', 'head', 0.25], tag: PI * 0.6, r: 1.1 };
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)
