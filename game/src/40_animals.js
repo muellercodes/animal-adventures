@@ -7454,6 +7454,176 @@ const Animals = (() => {
     extend: (R) => komodoExtend(R),
   });
 
+  // ===== round 11: cheetah =====
+  // A cheetah on the big-cat scaler (tools/blender/cheetah.py, KS 2.6) with longer legs and a smaller head. legWarp(...)
+  // is the same map as bigcat.LegWarp in the Blender scripts (cat units in, the species' height out): the body lifted
+  // by dy, the legs between ya and yb stretched to make up for it, only lifted behind the rump (z below z1, fading out
+  // by z0). Keep its numbers the same in both places.
+  const legWarp = (ya, yb, dy, w, z0, z1) => {
+    const s = 1 + dy / (yb - ya);
+    const ss = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+    const J = (y, a, b) => { const u = clamp((y - a) / (b - a), 0, 1); return (b - a) * (u * u * u - 0.5 * u * u * u * u) + Math.max(y - b, 0); };
+    const D = (y) => (s - 1) * (J(y, ya - w, ya + w) - J(y, yb - w, yb + w));
+    return (y, z) => { const Z = ss(z0, z1, z); return y + Z * D(y) + dy * (1 - Z); };
+  };
+  ids.push('cheetah');
+  SPEC.cheetah = () => {
+    const k = 2.6, s = bigCat(k), wy = legWarp(0.035, 0.12, 0.055, 0.016, -0.228, -0.198);
+    // the tail hanging low with the tip turned up, on four bones, and the ears on the small head (cat units, as in cheetah.py)
+    const TB = [['tail1', 'rump', 0.205, -0.19], ['tail2', 'tail1', 0.148, -0.252], ['tail3', 'tail2', 0.067, -0.288], ['tail4', 'tail3', 0.019, -0.345]];
+    s.bones = s.bones.filter((b) => b[0].indexOf('tail') !== 0).concat(TB.map((t) => [t[0], t[1], 0, t[2] * k, t[3] * k]));
+    const ear = s.bones.find((b) => b[0] === 'earL');
+    ear[2] = 0.02 * k; ear[3] = 0.3063 * k; ear[4] = 0.1903 * k;
+    const tl = s.fur.find((fp) => fp.name === 'tail');
+    tl.bones = ['rump', 'tail1', 'tail2', 'tail3', 'tail4'];
+    tl.keys = [[0.207, -0.18, 0.013], [0.183, -0.24, 0.0128], [0.107, -0.27, 0.012], [0.033, -0.31, 0.0114], [0.021, -0.36, 0.0118], [0.046, -0.386, 0.009]]
+      .map((q) => [0, q[0] * k, q[1] * k, q[2] * k, q[2] * k, q[2] * k]);
+    // the small head: the fallback's head, ears, eyes, nose and whiskers scaled by HS about the head frame's origin
+    const HS = 0.8, HO = [0, 0.292 * k, 0.178 * k];
+    const hs = (p) => p.map((v, i) => HO[i] + (v - HO[i]) * HS);
+    for (const fp of s.fur) if (fp.name === 'head' || fp.name === 'ear') fp.keys = fp.keys.map((q) => hs(q.slice(0, 3)).concat(q.slice(3, 6).map((v) => v * HS), q.slice(6)));
+    for (const e of s.eyes) { e.p = hs(e.p); e.r *= HS; }
+    for (const a of s.accent) { if (a.c) a.c = hs(a.c); if (a.r) a.r *= HS; if (a.pts) a.pts = a.pts.map(hs); if (a.radii) a.radii = a.radii.map((v) => v * HS); }
+    s.mouth = hs(s.mouth);
+    // then the long legs: every point lifted and stretched by the warp (in cat units)
+    const wp = (p) => [p[0], wy(p[1] / k, p[2] / k) * k, p[2]];
+    for (const b of s.bones) b[3] = wy(b[3] / k, b[4] / k) * k;
+    for (const fp of s.fur) fp.keys = fp.keys.map((q) => wp(q).concat(q.slice(3)));
+    for (const e of s.eyes) e.p = wp(e.p);
+    for (const a of s.accent) { if (a.c) a.c = wp(a.c); if (a.pts) a.pts = a.pts.map(wp); }
+    s.mouth = wp(s.mouth);
+    Object.assign(s.size, { length: 0.66 * k, height: (0.35 + 0.055) * k, radius: 0.085 * k, eyeHeight: s.eyes[0].p[1] });
+    // the fallback's coat: golden with round black spots, a white belly
+    const K = { gold: hex(0xB48A4E), back: hex(0xA67A3C), white: hex(0xDCD4C0), spot: hex(0x1A1410) };
+    s.paint = (P, C) => {
+      cset(C, K.gold); cmix(C, K.back, sstep(0.3, 0.9, P.ny) * 0.5); cmix(C, K.white, sstep(-0.2, -0.7, P.ny) * 0.85);
+      cmix(C, K.spot, sstep(0.66, 0.72, noise(P.x * 55, P.y * 55, P.z * 55)) * 0.85);
+      C.ro = 0.86; C.fl = 0.6;
+    };
+    s.babyPaint = (P, C) => { cmix(C, hex(0x3A3530), 0.75); cmix(C, hex(0xA8A49C), sstep(0.5, 0.9, P.ny) * 0.6); C.fl = 1; };
+    Object.assign(s.eyes[0], { iris: 0xB27A2E, pupil: 'round', pupilR: 0.34 });
+    s.accent[0].col = 0x2C2422;
+    s.shell.len = 0.0088 * k;
+    // a cub: a big head, big paws, still long legs
+    s.baby = Object.assign({}, s.baby, { head: 1.6, ear: 1.2, leg: [0.74, 1.25], tail: 0.55 });
+    s.modelSpec = { baby: { eye: 1.04, fluff: 0, leg: [0.72, 1.04], body: [1.12, 1.12, 0.74] } };
+    const A = s.anim;
+    Object.assign(A, {
+      // the fastest runner in the game: a long, stretched-out double suspension gallop, the back flexing hard with
+      // every stride (stride: m per cycle at the walk; it grows with the speed up to strideMax times that)
+      walk: 1.25, trot: 3.2, run: 15.0, stride: 1.3, strideMax: 4.6, maxRate: 3.4,
+      duty: [0.62, 0.42, 0.26], lift: [0.1, 0.12], flexF: 1.6, flexH: 1.1,
+      gaits: { g: [0.42, 0.56, 0.0, 0.12] },
+      bob: [0.006, 0.018, 0.07], pitchRun: 0.12, flexRun: 0.42, rumpFlex: 0.8, roll: 0.012,
+      nod: 0.03, trotNeck: 0.08, runNeck: 0.24,
+      // the tail hangs low; at a run it streams out behind as a rudder
+      tail: ['tail1', 'tail2', 'tail3', 'tail4'], tailIdle: [0.0, 0.0, 0.05, 0.1], tailRun: [0.55, 0.05, -0.1, -0.15],
+      tailWalk: 0.05, tailSway: 0.06, tailFlick: 0.15, wag: 0.08,
+      climb: Object.assign({}, A.climb, { tail: [-0.3, -0.05, 0, 0] }),
+      // asleep lying with the long legs folded under, the head turned round onto the flank
+      sleep: { style: 'fold', neck: [1.4, 0.35], tail: [1.2, 0.1], bend: 0.4, roll: 0.15 },
+      sit: Object.assign({}, A.sit, { tail: [0.4, 0.3, 0.2, 0.1], tailYaw: [0.4, 0.6, 0.7, 0.7], wrap: [1.0, 1.9, 2.6, 3.1], wrapY: [0.1, 0.0, -0.02, -0.02] }),
+    });
+    delete A.tailWalkLift;
+    return s;
+  };
+
+  // ===== round 11: ocelot =====
+  // An ocelot on the big-cat scaler (tools/blender/ocelot.py, KS 1.6): the house cat's skeleton and animation at about
+  // twice its size, sturdier, with a shorter tail; it climbs and swims
+  ids.push('ocelot');
+  SPEC.ocelot = () => {
+    const k = 1.6, s = bigCat(k);
+    s.size.length = 0.69 * k;   // nose to tail tip
+    const tl = s.fur.find((fp) => fp.name === 'tail');
+    tl.keys = [[0.207, -0.18, 0.016], [0.193, -0.245, 0.015], [0.163, -0.322, 0.014], [0.133, -0.38, 0.012], [0.122, -0.4, 0.008]]
+      .map((q) => [0, q[0] * k, q[1] * k, q[2] * k, q[2] * k, q[2] * k]);
+    for (const fp of s.fur) if (fp.name === 'body' || fp.name === 'fleg') fp.keys = fp.keys.map((q) => [q[0], q[1], q[2], q[3] * 1.1, q[4] * 1.1, q[5] * 1.1]);
+    // the fallback's coat: tawny gold with dark blotches, a white belly
+    const K = { gold: hex(0xAE8654), back: hex(0x9C7444), white: hex(0xDCD6C8), spot: hex(0x17120E) };
+    s.paint = (P, C) => {
+      cset(C, K.gold); cmix(C, K.back, sstep(0.3, 0.9, P.ny) * 0.5); cmix(C, K.white, sstep(-0.2, -0.7, P.ny) * 0.85);
+      cmix(C, K.spot, sstep(0.6, 0.7, noise(P.x * 40, P.y * 60, P.z * 25)) * 0.8);
+      C.ro = 0.84; C.fl = 0.6;
+    };
+    s.babyPaint = (P, C) => { cmix(C, hex(0x8A7A66), 0.35); C.fl = 1; };
+    Object.assign(s.eyes[0], { iris: 0xA8782E });
+    s.accent[0].col = 0xA86A5E;
+    s.shell.len = 0.01 * k;
+    s.baby = Object.assign({}, s.baby, { head: 1.6, ear: 1.15, leg: [0.72, 1.2], tail: 0.55 });
+    s.modelSpec = { baby: { eye: 1.05, fluff: 0, leg: [0.7, 1.03], body: [1.12, 1.12, 0.72] } };
+    const A = s.anim;
+    Object.assign(A, {
+      walk: 0.9, trot: 2.0, run: 6.0, maxRate: 6.5,
+      // a low, careful prowl; the tail carried low with the tip lifted
+      nod: 0.03, trotNeck: 0.06, runNeck: 0.16,
+      tailIdle: [-0.3, 0.15, 0.3], tailRun: [0.2, 0.0, 0.0], tailWalk: 0.05, tailSway: 0.08, tailFlick: 0.2, wag: 0.12,
+      // swims well, the head held up
+      swimHead: -0.3,
+    });
+    delete A.tailWalkLift;
+    return s;
+  };
+
+  // ===== round 11: giant panda =====
+  // The polar bear's skeleton with a short neck and a big round head close to the shoulders, laid out in the polar
+  // bear's units and scaled by KP = 0.6 (tools/blender/panda.py does the same with polarbear.py). It climbs, and it sits
+  // back on its haunches to eat with its front paws at its mouth (eatSit, a round 11 option of the legged animator).
+  ids.push('panda');
+  SPEC.panda = () => {
+    const k = 0.6, s = SPEC.polarbear();
+    const bone = (n) => s.bones.find((b) => b[0] === n);
+    const setB = (n, x, y, z) => { const b = bone(n); b[2] = x; b[3] = y; b[4] = z; };
+    setB('neck', 0, 1.0, 0.5); setB('neck2', 0, 1.02, 0.6); setB('head', 0, 1.04, 0.7); setB('earL', 0.147, 1.212, 0.723);
+    // the fallback's lofts: the neck and head (the polar bear's long neck and narrow head replaced)
+    const body = s.fur.find((fp) => fp.name === 'body');
+    body.keys = body.keys.slice(0, 6).concat([[0, 0.97, 0.46, 0.26, 0.3, 0.28], [0, 1.0, 0.56, 0.22, 0.25, 0.23], [0, 1.03, 0.65, 0.19, 0.21, 0.2]]);
+    s.fur.find((fp) => fp.name === 'head').keys = [
+      [0, 1.08, 0.6, 0.15, 0.14, 0.16], [0, 1.08, 0.7, 0.2, 0.2, 0.23], [0, 1.06, 0.82, 0.19, 0.19, 0.22],
+      [0, 1.0, 0.94, 0.12, 0.11, 0.13], [0, 0.98, 1.02, 0.07, 0.06, 0.08], [0, 0.97, 1.06, 0.05, 0.04, 0.05]];
+    s.fur.find((fp) => fp.name === 'ear').keys = [[0.13, 1.2, 0.72, 0.055, 0.03, 0.03], [0.16, 1.3, 0.71, 0.05, 0.025, 0.025]];
+    s.eyes[0].p = [0.092, 1.072, 0.888]; s.eyes[0].r = 0.0145;
+    s.mouth = [0, 0.904, 0.999];
+    s.accent[0].c = [0, 0.99, 1.06]; s.accent[0].r = 0.022;
+    // everything to the panda's size
+    const sc3 = (a) => a.map((v) => v * k);
+    for (const b of s.bones) for (let i = 2; i < 5; i++) b[i] *= k;
+    for (const fp of s.fur) fp.keys = fp.keys.map((q) => q.map((v, i) => (i < 6 ? v * k : v)));
+    for (const a of s.accent) { if (a.c) a.c = sc3(a.c); if (a.r) a.r *= k; }
+    for (const e of s.eyes) { e.p = sc3(e.p); e.r *= k; }
+    s.mouth = sc3(s.mouth);
+    Object.assign(s.size, { length: 2.4 * k, height: 1.33 * k, radius: 0.34 * k, eyeHeight: 1.07 * k });
+    s.shell.len *= k; s.detail.tile *= k;
+    // the fallback's coat: white with black ears, eye patches, legs and the band over the shoulders
+    const K = { white: hex(0xDCD6C6), black: hex(0x1C1916) };
+    s.paint = (P, C) => {
+      cset(C, K.white);
+      const blackP = P.part === 'hleg' || P.part === 'fleg' || P.part === 'ear' ||
+        (P.part === 'body' && Math.abs(P.z / k - (0.24 + 0.4 * sstep(1.3, 0.62, P.y / k))) < 0.17);
+      if (blackP) cset(C, K.black);
+      cmul(C, 0.95 + 0.08 * grain(P, 60, 20));
+      C.ro = 0.9; C.fl = P.part === 'ear' ? 0.3 : P.part === 'head' ? 0.5 : 1;
+    };
+    s.babyPaint = (P, C) => { C.fl = Math.min(1, C.fl * 1.3 + 0.1); };
+    Object.assign(s.eyes[0], { iris: 0x2A1C12, pupil: 'v', pupilR: 0.4 });
+    s.baby = { head: 1.45, muzzle: 0.6, eye: 1.1, ear: 1.15, neck: [0.6, 1.15], body: [1.15, 1.12, 0.75], leg: [0.65, 1.25], tail: 0.7 };
+    s.modelSpec = { baby: { eye: 1.03 } };
+    const A = s.anim;
+    Object.assign(A, {
+      // an ambling, rolling walk; a clumsy lope and gallop when it hurries
+      walk: 0.85, trot: 1.9, run: 4.2, stride: 1.25 * k, strideMax: 2.2, maxRate: 3.4,
+      lift: sc3(A.lift), bob: sc3(A.bob), roll: 0.07, floatDepth: A.floatDepth * k, eatDrop: A.eatDrop * k,
+      // it picks its food up, sits back on its haunches and eats it from its front paws, chewing
+      eatUp: 1, eatSit: { paws: [-0.1, 0.6, 1.2], neck: [-0.05, -0.05, 0.0] }, chew: 0.07, chewRate: 5,
+      sit: { idle: 8, pitch: 0.85, drop: 0.62, rump: 0.5, chest: 0.15, front: [0.25, 0.0], hind: [0.75, 0.3, 0.2], neck: [-0.3, -0.25, -0.1], tail: [0.2, 0.1], tailYaw: [0.0, 0.0] },
+      climb: { splay: 0.5, drop: 0.5, reach: 0.25, neck: -0.25, tail: [0, 0], flex: 0.2, toe: 0.6 },
+      // asleep lying on its front, the head on its paws
+      sleep: { style: 'flat', neck: [0.3, 0.45], tail: [0.2, 0.0] },
+    });
+    delete A.swimTrail;
+    return s;
+  };
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -7711,6 +7881,10 @@ const Animals = (() => {
     // round 7: eatUp (the hamster grabs its food head down, then sits up and nibbles it from its front paws) and
     // cheek pouches that fill up as it eats and slowly empty again (cheeks: bones scaled up by cheekPuff)
     const EU = P.eatUp || 0, cheeks = (P.cheeks || []).map((n) => B[n]).filter(Boolean);
+    // round 11: eatSit (the panda; off for every other species): it picks the food up head down as eatUp does, then sits
+    // back on its haunches (the sit pose) with its front paws up at its mouth and chews: { paws: [up, forward, flex] (leg
+    // heights from the shoulder, root space), neck: [x per neck bone] }. Needs P.sit and P.eatUp.
+    const ES = P.eatSit && SI && EU ? P.eatSit : null;
     if (EU) { S.eat0 = 0; S.eu = 0; }
     S.ck = 0;
     // round 7: sit.wrap (cats): sitting, the tail lies on the ground and curls around to the front paws (see the tail)
@@ -7822,13 +7996,13 @@ const Animals = (() => {
       // sitSome (s): only stands up now and then while idle, once every s seconds or so
       if (P.sitSome) { const f = fract(it / P.sitSome + R.rnd * 5); sitUp *= sstep(1.0, 2.0, st.idle || 0) * sstep(0.0, 0.07, f) * (1 - sstep(0.38, 0.46, f)); }
       // round 7: eatUp: sits up to eat
-      if (EU) sitUp = Math.max(sitUp, EU * sat(S.eu) * ground * (1 - sl));
+      if (EU && !ES) sitUp = Math.max(sitUp, EU * sat(S.eu) * ground * (1 - sl));
       // sit (P.sit): haunches on the ground, front legs straight, the tail around the paws. It sits by itself after
       // P.sit.idle seconds standing still; st.sit (0..1) asks for it, and st.sit = 0 keeps it standing
       let sit = 0;
       if (SI) {
         const want = st.sit != null ? sat(+st.sit || 0) : sstep(SI.idle, SI.idle + 1, st.idle || 0);
-        sit = spring(S, 'sit', want * still * ground * (1 - S.eat) * (1 - sl), SI.rate || 2.5, dt);
+        sit = spring(S, 'sit', (ES ? Math.max(want, sat(S.eu)) : want) * still * ground * (1 - S.eat) * (1 - sl), SI.rate || 2.5, dt);
         sit = sat(sit);
       }
       const eatP = S.eat * (P.eatPitch || 0) * ground;
@@ -8015,6 +8189,12 @@ const Animals = (() => {
           if (lg.front) { tx = lerp(tx, lg.Pp.x, sit); ty = lerp(ty, lg.Pp.y, sit); tz = lerp(tz, Hp.z + SI.front[0] * legH, sit); flx = lerp(flx, SI.front[1], sit); tq = lerp(tq, 0, sit); }
           else { tx = lerp(tx, lg.Pp.x + side * SI.hind[1] * legH, sit); ty = lerp(ty, lg.Pp.y + 0.002, sit); tz = lerp(tz, Hp.z + SI.hind[0] * legH, sit); flx = lerp(flx, lg.a0 + SI.hind[2], sit); tq = lerp(tq, 0.1, sit); }
         }
+        // round 11: eatSit: the front paws come up to the mouth while it sits and eats
+        if (ES && lg.front && sit > 0.001 && S.eu > 0.001) {
+          rootPos(lg.bs[0], root, Hp);
+          const k = sat(S.eu) * sit;
+          tx = lerp(tx, lg.Pp.x * 0.6, k); ty = lerp(ty, Hp.y + ES.paws[0] * legH, k); tz = lerp(tz, Hp.z + ES.paws[1] * legH, k); flx = lerp(flx, ES.paws[2], k); tq = lerp(tq, 0.8, k);
+        }
         solveLeg(lg, root, tx, ty, tz, flx, tq);
       }
 
@@ -8045,7 +8225,7 @@ const Animals = (() => {
       S.lookP = damp(S.lookP, lookTarget(it + 11, R.rnd, 5.3, 0.16) * lookOn, 2, dt);
       const nod = (P.nod || 0.04) * Math.sin(2 * w2 + 0.5) * gaitOn * (1 - gw) + gw * 0.07 * Math.sin(w2 + 1.2) * gaitOn;
       const E = R.eat, eatA = lerp(E.eatA || 0, E.drinkA || 0, swim);
-      const chew = Math.sin(t * (P.chewRate || 12)) * (P.chew || 0.06) * sstep(0.75, 0.95, S.eat);
+      const chew = Math.sin(t * (P.chewRate || 12)) * (P.chew || 0.06) * (ES ? Math.max(sstep(0.75, 0.95, S.eat), sat(S.eu) * sit) : sstep(0.75, 0.95, S.eat));
       const runLow = gw * (P.runNeck || 0.25) * gaitOn + tw * (P.trotNeck || 0.06) * gaitOn;
       const hopNeck = hop ? (S.up * -0.25 * air) : 0;
       const tilt = Math.sin(it * 2.2) * 0.22 * hap2;
@@ -8060,6 +8240,7 @@ const Animals = (() => {
         px += clb * (CL && CL.neck != null ? CL.neck : -0.3) * d;
         px += back * (BF ? BF.neck : 0.5) * d;
         px -= sw * Math.sin(S.sph * TAU - 2.2) * (i === 0 ? 0.8 : 0);
+        if (ES) px += ES.neck[i] * sat(S.eu) * sit;
         if (last) px += chew;
         let py = (S.look + S.lean * 0.05) * d;
         // round 8: a long neck swaying side to side with each step (brachiosaurus)
@@ -9517,6 +9698,12 @@ const Animals = (() => {
   COLLAR.chameleon = { at: ['chest', 'neck', 0.7], tag: PI * 0.6, r: 0.9 };
   // ===== round 11: komodo dragon
   COLLAR.komodo = { at: ['neck', 'head', 0.3], tag: PI * 0.6, maxR: 0.3 };
+  // ===== round 11: cheetah
+  COLLAR.cheetah = COLLAR.cat;
+  // ===== round 11: ocelot
+  COLLAR.ocelot = COLLAR.cat;
+  // ===== round 11: giant panda
+  COLLAR.panda = { at: ['neck2', 'head', 0.3], r: 0.8, maxR: 0.18 };
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)

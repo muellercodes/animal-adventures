@@ -1153,3 +1153,76 @@ the game makes it slim and small (`size.baby`, about half a meter in the game).
 - Budget (`VOXEL=0.0065 TRIS=2800 TEX=768`): 7.9k triangles; 768 color (WebP 50) and normal (WebP 30) maps, 256
   hatchling color map: 54 KB mesh + 29 + 50 + 16 KB, 152 KB of files, about 203 KB in the page plus about 29 KB of
   icons.
+
+## Round 11: the cheetah on the cat template with longer legs (`cheetah.py`)
+
+A cheetah (KS 2.6: about 1.25 m from the nose to the rump, 0.78 m at the shoulder, a 0.8 m tail). New on the way:
+- `bigcat.LegWarp` (`bigcat.install(..., warp=W)`): a map from the cat's units to the species' own that lifts the body by
+  `dy` and stretches the legs between heights `ya` and `yb` to make up for it (smooth over `w`, so there is no crease);
+  behind the rump (z below `z1`, fading out by `z0`) points are only lifted, so a tail that hangs low keeps its round
+  section. Every hook goes through it (points in through the inverse, positions out through the map, baby offsets as the
+  difference of two mapped points), so all of cat.py's shapes, masks and weights still work. The game moves the bones,
+  lofts, eyes and accents with the same numbers (`legWarp` in 40_animals.js). Without a warp `install` does exactly what
+  it did before (the snow leopard's and Smilodon's hooks give the same numbers bit for bit).
+- A smaller head without new tables: `HeadFrame` (in cheetah.py) is the cat's head frame with every local length scaled
+  by `HS` (0.8), so the head's parts, eyes, mouth, masks and whiskers all shrink together; `head()` hands back its
+  distances times HS. The game scales the fallback's head, ears, eyes and nose about the same origin.
+- The cheetah's own head (rounder skull, high forehead, flatter cheeks, smaller whisker pads, a broad nose), a deep chest
+  and a tucked-up waist (no belly flap), long lean thighs cut off under the back line, slender legs, small narrow paws.
+- Paint: solid round spots from a Worley grid laid out in the cheetah's own height (`WARP.fwd`, so the stretched legs do
+  not stretch them), smaller on the legs and the head, faint on the white belly; the tail's spots turn into rings, then
+  a white tip. The tear lines are a line in the head frame's (up, along) plane on the +x side of the face (a line in two
+  of the three coordinates lands once on the convex face; the first try in all three ran inside the head). A white
+  crescent under the eyes only (a full pale ring made cartoon eyes), cream whisker pads, black lips.
+- Cubs: smoky dark with the silvery mantle: a pale band over the crown, the nape and the back in the cub's color map, a
+  ridge of hair along it in the baby offsets (6.5 mm), and the adult's nape crest fur (longer fur along the mantle) times
+  `babyLen` 2.
+- In the game: the fastest runner (run 15 m/s, a stride of up to 4.6 m at 3.4 strides a second, a short stance, the back
+  flexing hard: `flexRun` 0.42); asleep lying with the legs folded under (`fold`: the cat's curl stuck its long legs out).
+- Budget (`VOXEL=0.0065 TRIS=4600 TEX=768`): 7.6k triangles plus 192 in whisker cards; 768 maps (color WebP 60, normal
+  54), 256 cub map, fur and whisker textures: 74 KB mesh + 43 + 13 + 2 + 6 + 5 KB, 148 KB of files, about 197 KB in the
+  page plus about 31 KB of icons.
+
+## Round 11: the ocelot on the cat template (`ocelot.py`)
+
+An ocelot (KS 1.6: about 0.8 m from the nose to the rump, 0.4 m at the shoulder, a 0.35 m tail), the house cat's
+skeleton and animation at about twice its size: a sturdier body (deeper and wider, the belly lower), a thick neck,
+stout legs on big front paws (the "fat hands", a heavier forearm), rounded ears, big golden eyes, a longer muzzle than
+the house cat's with a low ridge down the bridge of the nose and narrower cheeks (its own `head()`), a shorter tail on
+the cat's three tail bones.
+- Paint: chains of open blotches along the flanks from a Worley grid stretched along the body and sloping down toward
+  the rear (`_marks()`: black rims, broken here and there, cinnamon centers), four bold nape stripes from the crown to
+  the shoulders, solid spots on the legs, the white belly and the head, a banded tail with a dark tip, two black stripes
+  on each cheek and a line from the inner corner of each eye down beside the nose (`_face()`), white rings round the
+  eyes (narrow: a wide ring made cartoon eyes), black ear backs with a white spot in the middle of each.
+- Kittens: grayer and softer, the marks bold, fuzzy and filled in, blue eyes.
+- In the game: walk 0.9, run 6 m/s; climbs and swims with the house cat's poses (the head held a little higher swimming).
+- Budget (`VOXEL=0.004 TRIS=4200 TEX=768`): 6.8k triangles plus 192 in whisker cards; 768 maps (color WebP 60, normal
+  56), 256 kitten map, fur and whisker textures: 64 KB mesh + 49 + 14 + 10 + 6 + 6 KB, 153 KB of files, about 204 KB in
+  the page plus about 33 KB of icons.
+
+## Round 11: the giant panda on the polar bear's file (`panda.py`)
+
+A giant panda, about 1.45 m from the nose to the tail and 0.78 m at the shoulder. `panda.py` runs `polarbear.py` in its
+own module (as `bigcat.load` runs cat.py), replaces its tables and the parts that differ, all in the polar bear's
+units, and `bigcat.install(globals(), B, KP)` scales the hooks by KP = 0.6 into game meters (install works for any
+species file with the usual hooks; the panda adds a plain `grid()`). The game's skeleton is the polar bear's with the
+neck, head and ear bones moved, scaled by the same factor (`SPEC.panda`).
+- Shape: a level back (the polar bear's rump stands higher), a slimmer trunk, a short thick neck with the head close to
+  the shoulders, a big round head (the head frame scaled by HK 1.15, as the cheetah's is scaled down) with full cheeks
+  (the jaw muscles), a crown, a short broad muzzle and a small black nose pad, round thick ears standing on top, small
+  eyes, the polar bear's thick legs, big paws (pigeon-toed in front) and woolly coat in the sculpt.
+- A short mouth line (a long deep cut along the lips read as a grin with white teeth under it).
+- The pattern from 3D masks (`_black()`): eye patches as ovals in the head frame's (side, up) plane, their long axis
+  running down and out from the brow over the cheek; the ears and a ring round their base; the legs (where the leg
+  parts are nearer than the trunk), up over the thighs to the hips; the band over the shoulders, its middle moving
+  forward as it runs down each side to the front legs, and under the chest between them; the neck and the throat stay
+  white. Cubs: the same pattern, the white a little whiter.
+- In the game: it sits back on its haunches to eat with its front paws at its mouth (`eatSit`, a round 11 option of the
+  legged animator, off for every other species: with `eatUp` the food is picked up head down, then the sit pose takes
+  over instead of the hamster's sit-up, the front paws go to `paws` [up, forward, flex] from the shoulder and the neck
+  bends by `neck`, chewing); it climbs (the cat's climb settings), sleeps flat on its front with its head on its paws,
+  sits now and then when it stands still.
+- Budget (`VOXEL=0.006 TRIS=5200 TEX=768`, then rings across the body and the neck): 7.4k triangles, no cards; 768 color
+  and normal maps (WebP 70 and 56: the coat is mostly flat white and black), 256 cub map, 384 fur map: 67 KB mesh + 22 +
+  17 + 4 + 7 KB, 120 KB of files, about 160 KB in the page plus about 49 KB of icons.
