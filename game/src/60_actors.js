@@ -234,8 +234,9 @@ function poseBody(b, dt, animate) {
     if (b.tintT <= 0) {
       b.tintT = 0.6;
       if (b.room) rig.setTint(null, 0);
-      else if (b.mode === 'climb' || b.mode === 'perch') rig.setTint(0x6b5238, 0.75);
-      else if (G.world.def.paint) { G.world.def.paint(tintCol, b.pos.x, b.pos.z, H(b.pos.x, b.pos.z)); rig.setTint(tintCol, 0.7); }
+      else if (b.mode === 'climb' || b.mode === 'perch') rig.setTint(0x7a5e40, 1);
+      // (the ground's own color under its texture is darker than the ground looks, so brighten it)
+      else if (G.world.def.paint) { G.world.def.paint(tintCol, b.pos.x, b.pos.z, H(b.pos.x, b.pos.z)); rig.setTint(tintCol.multiplyScalar(1.5), 1); }
     }
   }
   rig.update(dt, st);
