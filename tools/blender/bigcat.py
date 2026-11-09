@@ -64,6 +64,8 @@ def install(g, C, KS):
     g['baby_paint'] = lambda P, N, c, col: C.baby_paint(P / KS, N, sc(c), col)
     g['detail'] = lambda P, N, c: C.detail(P / KS, N, sc(c)) * KS
     g['finish'] = C.finish
+    if hasattr(C, 'finish_baby'):
+        g['finish_baby'] = C.finish_baby
 
     def fur(P, N, c):
         ln, de = C.fur(P / KS, N, sc(c))

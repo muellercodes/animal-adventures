@@ -6912,6 +6912,119 @@ const Animals = (() => {
     return s;
   };
 
+  // ===== round 11: lion =====
+  // The lion, the tiger and the leopard on the big-cat scaler (bigCat above; tools/blender/panthera.py with lion.py,
+  // tiger.py and leopard.py): the cat's skeleton scaled by k with the species' own tail (bones and the fallback's tail
+  // in cat units, as in its .py file), round pupils, a big cat's unhurried walk and short charge, asleep flat out.
+  // bigPanthera() is shared by the three; o: tb (tail bones: name, parent, y, z), tail (fallback loft: y, z, r),
+  // length (nose to tail tip), iris, nose, shell (fur length), baby, modelBaby, anim(A) (overrides)
+  const bigPanthera = (k, o) => {
+    const s = bigCat(k);
+    s.bones = s.bones.filter((b) => b[0].indexOf('tail') !== 0).concat(o.tb.map((t) => [t[0], t[1], 0, t[2] * k, t[3] * k]));
+    s.size.length = o.length * k;
+    const tl = s.fur.find((fp) => fp.name === 'tail');
+    tl.bones = ['rump'].concat(o.tb.map((t) => t[0]));
+    tl.keys = o.tail.map((q) => [0, q[0] * k, q[1] * k, q[2] * k, q[2] * k, q[2] * k]);
+    // the fallback lofts: a heavier body and forelegs
+    for (const fp of s.fur) if (fp.name === 'body' || fp.name === 'fleg') fp.keys = fp.keys.map((q) => [q[0], q[1], q[2], q[3] * 1.15, q[4] * 1.15, q[5] * 1.15]);
+    Object.assign(s.eyes[0], { iris: o.iris, pupil: 'round', pupilR: 0.36, r: s.eyes[0].r * 0.82 });
+    s.accent[0].col = o.nose;
+    s.shell.len = o.shell * k;
+    s.baby = Object.assign({}, s.baby, { head: 1.75, ear: 1.2, leg: [0.7, 1.28], tail: 0.6 }, o.baby);
+    s.modelSpec = { baby: Object.assign({ eye: 1.04, fluff: 0, leg: [0.7, 1.04], body: [1.12, 1.12, 0.74] }, o.modelBaby) };
+    const A = s.anim;
+    Object.assign(A, {
+      walk: 1.2, trot: 2.8, run: 9.0, maxRate: 3.5, roll: 0.025, nod: 0.03, trotNeck: 0.08, runNeck: 0.18,
+      tail: o.tb.map((t) => t[0]), tailWalk: 0.04, tailSway: 0.06, tailFlick: 0.15, wag: 0.06,
+      sleep: { style: 'flat', neck: [0.3, 0.5], tail: [0.4, 0.0] },
+    }, o.anim ? o.anim(A) : {});
+    delete A.tailWalkLift;
+    return s;
+  };
+  ids.push('lion');
+  SPEC.lion = () => {
+    const k = 4.2;
+    const s = bigPanthera(k, {
+      // the tail hangs back and down, the tuft at its end (tools/blender/lion.py)
+      tb: [['tail1', 'rump', 0.205, -0.19], ['tail2', 'tail1', 0.175, -0.251], ['tail3', 'tail2', 0.118, -0.311]],
+      tail: [[0.207, -0.18, 0.013], [0.188, -0.232, 0.0115], [0.149, -0.282, 0.0102], [0.106, -0.321, 0.0093], [0.074, -0.349, 0.0124], [0.057, -0.37, 0.0114]],
+      length: 0.665, iris: 0xB8822E, nose: 0x9C6252, shell: 0.03,
+      anim: (A) => ({
+        tailIdle: [-0.5, -0.15, 0.3], tailRun: [0.2, 0.1, 0.1], tailFlick: 0.2,
+        sit: Object.assign({}, A.sit, { tail: [0.6, 0.3, 0.2], tailYaw: [0.3, 0.4, 0.4], wrap: [0.6, 1.0, 1.4], wrapY: [0.0, 0.0, 0.0] }),
+      }),
+    });
+    // the mane: the fallback's, and the sculpted mane takes its skin weights from it
+    s.fur.push({ name: 'mane', bones: ['chest', 'neck', 'neck2', 'head'], blend: 0.03 * k, segs: 14, cap0: 2, cap1: 2, keys: [
+      [0, 0.215, 0.06, 0.058, 0.04, 0.06], [0, 0.226, 0.11, 0.07, 0.06, 0.08], [0, 0.245, 0.15, 0.076, 0.07, 0.085], [0, 0.262, 0.172, 0.078, 0.065, 0.075], [0, 0.272, 0.188, 0.062, 0.05, 0.055],
+    ].map((q) => q.map((v) => v * k)) });
+    s.shell.parts = s.shell.parts.concat(['mane']);
+    const K = { ground: hex(0xB4884E), back: hex(0x9A7444), white: hex(0xE2D6BE), mane: hex(0x80592F), dark: hex(0x2A1E16) };
+    s.paint = (P, C) => {
+      cset(C, K.ground); cmix(C, K.back, sstep(0.3, 0.9, P.ny) * 0.5); cmix(C, K.white, sstep(-0.2, -0.7, P.ny) * 0.75);
+      if (P.part === 'mane') { cset(C, K.mane); cmix(C, K.dark, sstep(0.45, 0.65, noise(P.x * 30, P.y * 12, P.z * 30)) * 0.6); }
+      if (P.part === 'tail') cmix(C, K.dark, sstep(P.len - 0.14 * k, P.len - 0.1 * k, P.arc));
+      if (P.part === 'ear') cset(C, K.dark);
+      C.ro = 0.86; C.fl = P.part === 'mane' ? 1 : 0.5;
+    };
+    s.babyPaint = (P, C) => { if (P.part === 'mane') cset(C, hex(0xAC8E66)); cmix(C, hex(0xA08866), 0.3); C.fl = 1; };
+    return s;
+  };
+
+  // ===== round 11: tiger =====
+  ids.push('tiger');
+  SPEC.tiger = () => {
+    const k = 4.0;
+    const s = bigPanthera(k, {
+      // the house cat's tail, thicker (tools/blender/tiger.py)
+      tb: [['tail1', 'rump', 0.205, -0.19], ['tail2', 'tail1', 0.185, -0.28], ['tail3', 'tail2', 0.15, -0.36]],
+      tail: [[0.207, -0.18, 0.0145], [0.193, -0.245, 0.0128], [0.167, -0.32, 0.0116], [0.13, -0.395, 0.0104], [0.106, -0.443, 0.0082]],
+      length: 0.74, iris: 0xD49A30, nose: 0xC08474, shell: 0.012,
+      anim: (A) => ({
+        tailIdle: [-0.45, 0.05, 0.45], tailRun: [0.15, 0.0, 0.1],
+        // swimming low in the water, the head held up, paddling with all four legs
+        floatDepth: 0.23 * k, swimHead: -0.3, swimPitch: -0.04, paddle: 1.0,
+        sit: Object.assign({}, A.sit, { tail: [0.7, 0.3, 0.2], tailYaw: [0.3, 0.5, 0.5], wrap: [0.8, 1.6, 2.2], wrapY: [0.05, 0.0, -0.02] }),
+      }),
+    });
+    const K = { ground: hex(0xB8622A), white: hex(0xECE6DA), stripe: hex(0x141010) };
+    s.paint = (P, C) => {
+      cset(C, K.ground); cmix(C, K.white, sstep(-0.2, -0.6, P.ny) * 0.85);
+      cmix(C, K.stripe, sstep(0.75, 0.9, Math.sin((P.z / k) * 300 + 3 * noise(P.x * 8, P.y * 8, P.z * 8))) * 0.9);
+      if (P.part === 'ear') cset(C, K.stripe);
+      C.ro = 0.86; C.fl = 0.5;
+    };
+    s.babyPaint = (P, C) => { cmix(C, hex(0xC07E48), 0.25); C.fl = 1; };
+    return s;
+  };
+
+  // ===== round 11: leopard =====
+  ids.push('leopard');
+  SPEC.leopard = () => {
+    const k = 2.7;
+    const s = bigPanthera(k, {
+      // the long tail on four bones, hanging low, the tip curled up (tools/blender/leopard.py)
+      tb: [['tail1', 'rump', 0.205, -0.19], ['tail2', 'tail1', 0.168, -0.278], ['tail3', 'tail2', 0.118, -0.36], ['tail4', 'tail3', 0.083, -0.44]],
+      tail: [[0.207, -0.18, 0.0125], [0.18, -0.255, 0.0118], [0.128, -0.343, 0.011], [0.087, -0.42, 0.0102], [0.084, -0.478, 0.0092], [0.105, -0.505, 0.005]],
+      length: 0.8, iris: 0xB8B03C, nose: 0xB0786A, shell: 0.012,
+      anim: (A) => ({
+        walk: 1.0, trot: 2.5, run: 9.0, maxRate: 4.2,
+        tailIdle: [0.0, 0.05, 0.15, 0.3], tailRun: [0.35, 0.05, -0.1, -0.15],
+        climb: Object.assign({}, A.climb, { tail: [-0.3, -0.05, 0, 0] }),
+        sit: Object.assign({}, A.sit, { tail: [0.9, 0.2, 0.1, 0.05], tailYaw: [0.5, 0.8, 0.8, 0.8], wrap: [1.2, 2.3, 3.0, 3.5], wrapY: [0.1, 0.0, -0.02, -0.02] }),
+      }),
+    });
+    const K = { ground: hex(0xB88C48), white: hex(0xE8E0CC), spot: hex(0x1C1612) };
+    s.paint = (P, C) => {
+      cset(C, K.ground); cmix(C, K.white, sstep(-0.2, -0.7, P.ny) * 0.85);
+      cmix(C, K.spot, sstep(0.62, 0.7, noise(P.x * 60, P.y * 60, P.z * 60)) * 0.85);
+      if (P.part === 'ear') cset(C, K.spot);
+      C.ro = 0.86; C.fl = 0.5;
+    };
+    s.babyPaint = (P, C) => { cmix(C, hex(0x9A8C76), 0.4); C.fl = 1; };
+    return s;
+  };
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -8958,6 +9071,12 @@ const Animals = (() => {
   COLLAR.wingcat = COLLAR.cat;
   // ===== round 11: unicorn =====
   COLLAR.unicorn = COLLAR.horse;
+  // ===== round 11: lion =====
+  COLLAR.lion = COLLAR.cat;
+  // ===== round 11: tiger =====
+  COLLAR.tiger = COLLAR.cat;
+  // ===== round 11: leopard =====
+  COLLAR.leopard = COLLAR.cat;
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)

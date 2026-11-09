@@ -124,6 +124,12 @@ const SPECIES = {
   wingcat: { name: 'Winged cat', many: 'Winged cats', eats: ['smallfish', 'fish', 'worm', 'bugs', 'petfood'], fav: 'smallfish', fly: true, flySpeed: 10, climb: true, price: 900, baby: 'Winged kitten' },
   // round 11: unicorn
   unicorn: { name: 'Unicorn', many: 'Unicorns', eats: ['apple', 'carrot', 'grass', 'hay', 'berries'], fav: 'apple', fly: true, flySpeed: 11, outdoor: true, price: 2000, baby: 'Baby unicorn' },
+  // round 11: lion
+  lion: { name: 'Lion', many: 'Lions', eats: ['meat', 'fish', 'hotdog'], fav: 'meat', outdoor: true, hunter: true, price: 1600, baby: 'Lion cub' },
+  // round 11: tiger
+  tiger: { name: 'Tiger', many: 'Tigers', eats: ['meat', 'fish', 'hotdog'], fav: 'meat', swim: true, swimSpeed: 2.2, outdoor: true, hunter: true, price: 1700, baby: 'Tiger cub' },
+  // round 11: leopard
+  leopard: { name: 'Leopard', many: 'Leopards', eats: ['meat', 'fish', 'smallfish', 'hotdog'], fav: 'meat', climb: true, outdoor: true, hunter: true, price: 1300, baby: 'Leopard cub' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
@@ -151,6 +157,12 @@ SHOP.push('smilodon');
 SHOP.push('wingcat');
 // round 11: unicorn
 SHOP.push('unicorn');
+// round 11: lion
+SHOP.push('lion');
+// round 11: tiger
+SHOP.push('tiger');
+// round 11: leopard
+SHOP.push('leopard');
 // round 7: the shop runs from cheap to dear
 SHOP.sort((a, b) => SPECIES[a].price - SPECIES[b].price);
 // round 8: brachiosaurus (the dearest animal, so it goes last)

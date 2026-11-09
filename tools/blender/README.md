@@ -975,3 +975,81 @@ Unicorn (`VOXEL=0.0045 TRIS=4400 TEX=768`): 6.7k triangles plus 1.7k in the hair
 wing blades and eyes, 19.8k at detail 2 with the fur shells); 768 color (WebP 68) and normal (46) maps, 256 foal color
 map, fur map, 192 x 256 strand texture, feather atlases: 78 KB mesh and cards + 16 + 23 + 2 + 5 + 18 + 12 + 1 + 4 KB,
 about 222 KB in the page plus its two icons (43 KB). About 15 minutes for the whole run on the shared machine.
+
+## Round 11: the lion, the tiger and the leopard (`panthera.py`: `lion.py`, `tiger.py`, `leopard.py`)
+
+Three big cats of the genus Panthera on the cat template, built the way the snow leopard is (`bigcat.py` underneath),
+with what they share in `panthera.py`: `load(ID, T)` runs `cat.py` with the species' tables and landmarks from the dict
+`T` (cat units), `setup(C)` installs the shared parts, and the species file replaces what it needs before
+`PT.install(globals(), C, KS)`. In the game, `bigPanthera(k, o)` (40_animals.js, in the lion's block) does the same for
+the three specs: the scaled cat with the species' own tail bones and fallback tail, round pupils, a big cat's walk and
+short charge, asleep flat out.
+- The head. With the house cat's head scaled up (wide set eyes, a short muzzle level with them, round full cheeks) all
+  three read as hamsters close up. A big cat's face is long: the muzzle is longer (`MS`, every muzzle part moved
+  forward, as the saber-toothed cat does), the head is pitched down a little more (`HF`), and the muzzle drops away in
+  front of the eyes (`DROP`: `DropFrame` is a head frame whose up coordinate is sheared in front of `s0`, so the muzzle
+  parts, the paint masks and the whiskers placed in the frame all come down with it). The eyes sit closer together
+  (about 0.016 from the middle instead of 0.019), the cheeks are smaller, the whisker pads bigger (`PAD_X`, `PADS`) and
+  the nose leather bigger. The loft's last row must stay narrow: a wide square end swallowed the pads and the nose and
+  made a capybara.
+- `coat()` is the one painter: the ground colors (darker along the back, warmer low down, pale underneath), the face
+  (white muzzle and chin, pale marks under and over the eyes, `EYE_PALE`), black lips and whisker spots, the nose with
+  its dark rim (`NOSE_MOTTLE`), dark ear backs with an optional pale spot (`EAR_SPOT`: 1 for the tiger, 0.55 for the
+  leopard), the coat strokes, and hooks for the species: `pattern` (stripes, rosettes), `extra` (the mane), `tail_tip`,
+  and `cub` for `baby_coat()`.
+- Shared tools options (off for every other species): `finish_baby` (texture.py, passed on by bigcat.py) folds less of
+  the sculpt's occlusion into a baby's color map.
+
+The lion (`lion.py`, KS 4.2: about 2.05 m from the nose to the rump, 1.05 m at the shoulder, a 1 m tail with its tuft):
+- The mane is part of the sculpt, so it keeps its outline far away: a ruff framing the face, sideburns over the
+  cheeks, a heavy sheath down the neck (a sweep along the neck), a cape over the shoulders and a fringe down the chest,
+  cut clear of the face (`_face_cut`: the front edge runs behind the eyes, further back on top and further forward
+  under the chin), with a hollow round each ear so the ears stand free, and hanging locks (noise stretched across the
+  hair). Long fur shells over it (up to 5.5 cm), tawny gold round the face darkening to brown and nearly black at the
+  back and on the chest, in streaks, with longer coat strokes (`lenk`). The ruff rides on the head bone
+  (`fix_weights`), so the face does not pull out of it when the lion eats; the game's fallback has a mane loft too,
+  which also gives the sculpted mane its skin weights.
+- Cubs have no mane: their baby offsets pull every mane vertex in onto the body under it (`body0()`, the lion without
+  the mane), their color map paints the coat that would be there (`coat()` without the mane hook), and they take less
+  of the sculpt's occlusion (`finish_baby`), or the mane's locks and the crease under it showed as a gray cape.
+  The mane's fur shells stay a little longer on a cub's neck (the fur length per vertex is shared). Faint spots on the
+  legs and belly, a small dark tail tip, a bigger head in the game (`baby.head` 1.75 for the three).
+- Budget (`VOXEL=0.0092 TRIS=5000 TEX=768`): 6.9k triangles plus 224 in whisker cards; 768 maps (color WebP 70, normal
+  56), 256 cub map, fur and whisker textures: 72 KB mesh and cards + 28 + 18 + 5 + 7 + 5 KB, 138 KB of files, about 185
+  KB in the page plus about 33 KB of icons. About 12 minutes for the whole run on the shared machine.
+
+The Bengal tiger (`tiger.py`, KS 4.0: about 1.95 m from the nose to the rump, 1 m at the shoulder, the house cat's tail
+made thicker, about 1.05 m):
+- A long low body with a loose belly fold, heavy shoulders and forelegs, a round head with a ruff of fur flaring over
+  the cheeks (`RUFF`, part of the head's field), a broad muzzle, small round ears set wide with a white spot on each
+  black back (`EAR_SPOT`).
+- The stripes come from `_bands()`: one group of stripes per whole number of a coordinate, each group a single stripe
+  or a pair that forks (the gap between the two opens toward one end), each with its own length and tapering to points
+  at both ends. Down the flanks the coordinate runs along the body and leans back lower down, and the stripes stop a
+  little short of the spine (the half body is mirrored, so stripes reaching the spine would join their twins into bands
+  across it); gentle arcs round the haunch on the thighs (from a far center: a near one drew targets); few on the
+  shoulders and forelegs; broken bars across the forehead (wavy lines there read as a zebra's), lines back over the
+  crown and the white cheeks, a line back from each eye; rings on the tail and a black tip. White on the belly, the
+  insides of the legs, the chest, the cheeks and the ruff, the muzzle and chin, and a spot over each eye; no pale ring
+  round the eyes (`NO_EYERING`: the house cat's ring made goggles).
+- Cubs wear the grown-up's coat (no cub color map: the stripes would cost the page as much again); their fluff is the
+  longer fur shells, and the game gives them the big head and paws.
+- It swims: low in the water (`floatDepth` 0.23 times k), the head and the top of the back out, paddling.
+- Budget (`VOXEL=0.0088 TRIS=4300 TEX=768`): 6.6k triangles plus 224 in whisker cards; 768 maps (color WebP 52: the
+  stripes are most of the bytes, normal 50), fur and whisker textures: 64 KB mesh and cards + 52 + 13 + 5 + 5 KB, 143 KB
+  of files, about 191 KB in the page plus about 31 KB of icons.
+
+The African leopard (`leopard.py`, KS 2.7: about 1.3 m from the nose to the rump, 0.65 m at the shoulder, a 0.95 m tail
+on four bones):
+- A long slender body with a deep chest, short strong legs on big paws, a broad round head with a strong jaw, small
+  round ears, the snow leopard's four-bone tail made thinner, hanging low with the tip curled up. It climbs (the cat's
+  climbing, the tail held out).
+- Rosettes (`spots()`): a coarse cell grid gives each rosette's ring (a band round the cell's point), a fine grid breaks
+  the ring into blobs (three to six round each center), and the center is a little darker than the ground. Thin rings
+  of small dots read as a cheetah's: the blobs are wide enough to join into broken rings. Solid spots on the head
+  (small), the neck and the legs, blotches on the white belly, spots then rings on the tail and white under its tip,
+  black ear backs with a soft pale spot (`EAR_SPOT` 0.55).
+- Cubs: grayer and woolly, the same pattern softened into smudges (`soft`).
+- Budget (`VOXEL=0.0062 TRIS=4200 TEX=768`): 6.7k triangles plus 224 in whisker cards; 768 maps (color WebP 40: the
+  spots are most of the bytes, normal 46), 192 cub map, fur and whisker textures: 65 KB mesh and cards + 47 + 13 + 5 +
+  5 + 5 KB, 144 KB of files, about 192 KB in the page plus about 28 KB of icons.
