@@ -861,7 +861,7 @@ A cheetah (KS 2.6: about 1.25 m from the nose to the rump, 0.78 m at the shoulde
   `babyLen` 2.
 - In the game: the fastest runner (run 15 m/s, a stride of up to 4.6 m at 3.4 strides a second, a short stance, the back
   flexing hard: `flexRun` 0.42); asleep lying with the legs folded under (`fold`: the cat's curl stuck its long legs out).
-- Budget (`VOXEL=0.0065 TRIS=4600 TEX=768`): 7.4k triangles plus 192 in whisker cards; 768 maps (color WebP 60, normal
+- Budget (`VOXEL=0.0065 TRIS=4600 TEX=768`): 7.6k triangles plus 192 in whisker cards; 768 maps (color WebP 60, normal
   54), 256 cub map, fur and whisker textures: 74 KB mesh + 43 + 13 + 2 + 6 + 5 KB, 148 KB of files, about 197 KB in the
   page plus about 31 KB of icons.
 
