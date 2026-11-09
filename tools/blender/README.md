@@ -898,3 +898,18 @@ made thicker, about 1.05 m):
 - Budget (`VOXEL=0.0088 TRIS=4300 TEX=768`): 6.6k triangles plus 224 in whisker cards; 768 maps (color WebP 52: the
   stripes are most of the bytes, normal 50), fur and whisker textures: 64 KB mesh and cards + 52 + 13 + 5 + 5 KB, 143 KB
   of files, about 191 KB in the page plus about 31 KB of icons.
+
+The African leopard (`leopard.py`, KS 2.7: about 1.3 m from the nose to the rump, 0.65 m at the shoulder, a 0.95 m tail
+on four bones):
+- A long slender body with a deep chest, short strong legs on big paws, a broad round head with a strong jaw, small
+  round ears, the snow leopard's four-bone tail made thinner, hanging low with the tip curled up. It climbs (the cat's
+  climbing, the tail held out).
+- Rosettes (`spots()`): a coarse cell grid gives each rosette's ring (a band round the cell's point), a fine grid breaks
+  the ring into blobs (three to six round each center), and the center is a little darker than the ground. Thin rings
+  of small dots read as a cheetah's: the blobs are wide enough to join into broken rings. Solid spots on the head
+  (small), the neck and the legs, blotches on the white belly, spots then rings on the tail and white under its tip,
+  black ear backs with a soft pale spot (`EAR_SPOT` 0.55).
+- Cubs: grayer and woolly, the same pattern softened into smudges (`soft`).
+- Budget (`VOXEL=0.0062 TRIS=4200 TEX=768`): 6.7k triangles plus 224 in whisker cards; 768 maps (color WebP 40: the
+  spots are most of the bytes, normal 46), 192 cub map, fur and whisker textures: 65 KB mesh and cards + 47 + 13 + 5 +
+  5 + 5 KB, 144 KB of files, about 192 KB in the page plus about 28 KB of icons.

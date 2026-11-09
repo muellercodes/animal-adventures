@@ -6586,6 +6586,33 @@ const Animals = (() => {
     return s;
   };
 
+  // ===== round 11: leopard =====
+  ids.push('leopard');
+  SPEC.leopard = () => {
+    const k = 2.7;
+    const s = bigPanthera(k, {
+      // the long tail on four bones, hanging low, the tip curled up (tools/blender/leopard.py)
+      tb: [['tail1', 'rump', 0.205, -0.19], ['tail2', 'tail1', 0.168, -0.278], ['tail3', 'tail2', 0.118, -0.36], ['tail4', 'tail3', 0.083, -0.44]],
+      tail: [[0.207, -0.18, 0.0125], [0.18, -0.255, 0.0118], [0.128, -0.343, 0.011], [0.087, -0.42, 0.0102], [0.084, -0.478, 0.0092], [0.105, -0.505, 0.005]],
+      length: 0.8, iris: 0xB8B03C, nose: 0xB0786A, shell: 0.012,
+      anim: (A) => ({
+        walk: 1.0, trot: 2.5, run: 9.0, maxRate: 4.2,
+        tailIdle: [0.0, 0.05, 0.15, 0.3], tailRun: [0.35, 0.05, -0.1, -0.15],
+        climb: Object.assign({}, A.climb, { tail: [-0.3, -0.05, 0, 0] }),
+        sit: Object.assign({}, A.sit, { tail: [0.9, 0.2, 0.1, 0.05], tailYaw: [0.5, 0.8, 0.8, 0.8], wrap: [1.2, 2.3, 3.0, 3.5], wrapY: [0.1, 0.0, -0.02, -0.02] }),
+      }),
+    });
+    const K = { ground: hex(0xB88C48), white: hex(0xE8E0CC), spot: hex(0x1C1612) };
+    s.paint = (P, C) => {
+      cset(C, K.ground); cmix(C, K.white, sstep(-0.2, -0.7, P.ny) * 0.85);
+      cmix(C, K.spot, sstep(0.62, 0.7, noise(P.x * 60, P.y * 60, P.z * 60)) * 0.85);
+      if (P.part === 'ear') cset(C, K.spot);
+      C.ro = 0.86; C.fl = 0.5;
+    };
+    s.babyPaint = (P, C) => { cmix(C, hex(0x9A8C76), 0.4); C.fl = 1; };
+    return s;
+  };
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -8557,6 +8584,8 @@ const Animals = (() => {
   COLLAR.lion = COLLAR.cat;
   // ===== round 11: tiger =====
   COLLAR.tiger = COLLAR.cat;
+  // ===== round 11: leopard =====
+  COLLAR.leopard = COLLAR.cat;
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)
