@@ -617,6 +617,29 @@ A dromedary at full size: 3.0 m from the lips to the rump, 1.9 m at the shoulder
   long legs, a short body, a shorter neck) with `modelSpec.baby.eye` 1.0 (the sculpted sockets grow with the head).
 
 
+## Round 11: the leopard gecko (`gecko.py`)
+
+A leopard gecko, 21 cm from the snout to the tail tip, built from the lizard: the same layout (one loft from the tail
+tip to the snout, head features in a head box, legs as chains, toes with claws, conformal body strips between seams
+plus smart project for the legs, rings where it bends) with its own numbers, and the lizard's generic helpers
+imported from `lizard.py` (`_cells`, `_rows`, `_local_n`, ...), so the lizard itself is untouched. Things that are new:
+- Leopard gecko shape: a wide, tall, rounded head with big bulging eyes (`EYE_R` 4.1 mm) in thick lid rings (they have
+  real eyelids; the game's lids blink over them), a short rounded snout, a wide mouth curving up behind the eye; a
+  plump body held up on slender legs; slender toes with small claws and no pads; a fat carrot tail in rings (a
+  shallow groove every 3.2 mm). Leopard geckos do not climb (no `climb` in the spec).
+- Skin: fine domed granules (0.5 to 0.7 mm) with raised round tubercles scattered over the back, the flanks and the
+  legs (a sparse cell pattern) and lined up on the tail's rings; small flat belly scales in rows. Granule-level color
+  noise made the color map four times bigger for nothing visible at game distance; the granules live in the normal
+  map only.
+- Paint: yellow with black leopard spots (two cell sizes, smaller on the head and the legs) evaluated at the real
+  point, so the two sides differ (`SIDES`, as the cow, for both the adult's and the hatchling's maps), white flanks
+  and belly, the tail lilac-white with yellow spotted bands. The hatchling's own map: broad black-brown bands across a
+  yellow body, a dark cap behind a pale snout, a black and white banded tail. `BABY_MAP` is `(0, q)` so export.py does
+  not squash the two-sided map into a square; `extra_maps()` sizes it.
+- Iris: plain gray with a vertical slit (`pupil: 'v'`); the frogs' `irisNet` looked blotchy on the hatchling's
+  bigger eye. `modelSpec.baby.eye` 1.0 (the sculpted socket grows with the head).
+
+
 ## Budget
 
 Pig: about 6.3k triangles, 4.8k vertices, 1024 x 1024 color and normal maps: 38 KB mesh (format 2; 136 KB before) +
@@ -897,3 +920,8 @@ Camel (`VOXEL=0.008 TRIS=3700 TEX=768 WEIGHTS=transfer`, then rings across the n
 triangles (7.8k in the game with the eyes; the calf's fur shells at detail 2 on top); 768 color (WebP 72) and normal
 (WebP 58) maps, 256 calf color map, 384 fur map (calf only): 49 KB mesh (with the calf's hump offsets) + 12 + 14 + 1 +
 5 KB, about 112 KB in the page plus about 55 KB of icons. About 9 minutes for the whole run.
+
+Leopard gecko (`VOXEL=0.0004 TRIS=4400 TEX=512`, then the body seams and rings): 7.2k triangles (7.9k in the game with
+the eyes); 512 color map with both sides (1024 x 512, WebP 50), 512 normal map (WebP 42), 256 hatchling color map with
+both sides (512 x 256): 47 KB mesh + 48 + 42 + 11 KB, about 199 KB in the page plus about 28 KB of icons. The granules
+make the normal map the biggest part; at 640 it was 78 KB.

@@ -1,0 +1,102 @@
+{
+ "v": 2,
+ "id": "gecko",
+ "data": "gecko.bin",
+ "enc": "deflate",
+ "raw": 76080,
+ "maps": {
+  "color": "gecko-color.webp",
+  "normal": "gecko-normal.webp",
+  "babyColor": "gecko-color-baby.webp"
+ },
+ "nv": 2594,
+ "ntri": 3601,
+ "nbv": 2594,
+ "nbt": 3601,
+ "bbox": [
+  -0.044108,
+  0.000182,
+  -0.119852,
+  0.044108,
+  0.034485,
+  0.080842
+ ],
+ "bones": [
+  "hips",
+  "chest",
+  "neck",
+  "head",
+  "tail1",
+  "tail2",
+  "tail3",
+  "tail4",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.0102,
+   0.0272,
+   0.0612
+  ],
+  "r": 0.0041,
+  "dir": [
+   0.9031,
+   0.3412,
+   0.2609
+  ],
+  "lid": [
+   0.829,
+   -0.78,
+   0.2
+  ],
+  "iris": 10130568,
+  "irisR": 0.97,
+  "pupil": "v",
+  "pupilR": 0.34,
+  "rim": 3814960,
+  "lidCol": 9270845
+ },
+ "mouth": [
+  0.0,
+  0.0186,
+  0.0785
+ ],
+ "sides": true,
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.05,
+  0.05,
+  0.05
+ ],
+ "flat": 15120442,
+ "belly": [
+  0.0,
+  0.0002,
+  -0.018
+ ]
+}

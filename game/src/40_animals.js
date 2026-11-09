@@ -6700,6 +6700,117 @@ const Animals = (() => {
     };
   };
 
+  // ===== round 11: gecko =====
+  ids.push('gecko');
+  // GECKO (a leopard gecko): a yellow body with black spots, a wide head with big eyes (vertical pupils, real eyelids),
+  // bumpy skin, slender toes without sticky pads, a thick banded tail. It walks with its body held up off the ground,
+  // waves its tail, does not climb, and sleeps flat with its tail curled round. The hatchling (from a white egg) is
+  // banded black and yellow instead of spotted.
+  SPEC.gecko = () => {
+    const K = { yellow: hex(0xE8C24A), black: hex(0x1E1C1A), belly: hex(0xF0E6D6), band: hex(0xD8D0C8) };
+    const fToes = [{ a: -40, len: 0.005, r: 0.0009, claw: 0.0012 }, { a: -12, len: 0.0065, r: 0.0009, claw: 0.0012 }, { a: 12, len: 0.007, r: 0.0009, claw: 0.0012 }, { a: 36, len: 0.0065, r: 0.0009, claw: 0.0012 }, { a: 70, len: 0.0045, r: 0.0008, claw: 0.0012 }];
+    const hToes = [{ a: -25, len: 0.005, r: 0.001, claw: 0.0012 }, { a: 0, len: 0.007, r: 0.001, claw: 0.0012 }, { a: 20, len: 0.0085, r: 0.001, claw: 0.0012 }, { a: 42, len: 0.009, r: 0.001, claw: 0.0012 }, { a: 85, len: 0.006, r: 0.0009, claw: 0.0012 }];
+    return {
+      size: { length: 0.21, height: 0.035, radius: 0.035, eyeHeight: 0.028 },
+      tex: [256, 512], rough: 0.7,
+      detail: { kind: 'scale', tile: 0.006, amt: 0.25, bump: 0.6, sheen: 0.04 },
+      bones: [
+        ['hips', null, 0, 0.018, -0.018],
+        ['chest', 'hips', 0, 0.019, 0.022],
+        ['neck', 'chest', 0, 0.021, 0.042],
+        ['head', 'neck', 0, 0.023, 0.052],
+        ['tail1', 'hips', 0, 0.017, -0.038],
+        ['tail2', 'tail1', 0, 0.015, -0.063],
+        ['tail3', 'tail2', 0, 0.012, -0.088],
+        ['tail4', 'tail3', 0, 0.009, -0.112],
+        ['thighL', 'hips', 0.009, 0.016, -0.022, 1],
+        ['shinL', 'thighL', 0.025, 0.022, -0.019, 1],
+        ['hmetaL', 'shinL', 0.032, 0.004, -0.027, 1],
+        ['hpawL', 'hmetaL', 0.035, 0.002, -0.021, 1],
+        ['armL', 'chest', 0.009, 0.017, 0.03, 1],
+        ['foreL', 'armL', 0.022, 0.022, 0.03, 1],
+        ['fmetaL', 'foreL', 0.027, 0.004, 0.036, 1],
+        ['fpawL', 'fmetaL', 0.029, 0.002, 0.042, 1],
+      ],
+      fur: [
+        { name: 'body', bones: ['hips', 'chest', 'neck', 'head'], blend: 0.01, segs: 14, cap1: 3, capLen1: 0.55, keys: [
+          [0, 0.017, -0.035, 0.011, 0.008, 0.007],
+          [0, 0.019, -0.02, 0.014, 0.009, 0.009],
+          [0, 0.02, 0.0, 0.015, 0.01, 0.009, 2.3],
+          [0, 0.02, 0.022, 0.013, 0.009, 0.009],
+          [0, 0.021, 0.04, 0.0095, 0.0075, 0.007],
+          [0, 0.024, 0.055, 0.012, 0.008, 0.007, 2.3],
+          [0, 0.024, 0.065, 0.011, 0.0075, 0.0065],
+          [0, 0.022, 0.074, 0.008, 0.0055, 0.005],
+          [0, 0.02, 0.08, 0.004, 0.003, 0.003],
+        ] },
+        { name: 'tail', bones: ['hips', 'tail1', 'tail2', 'tail3', 'tail4'], blend: 0.01, segs: 10, cap1: 2, keys: [
+          [0, 0.017, -0.03, 0.01, 0.008, 0.008],
+          [0, 0.016, -0.05, 0.011, 0.008, 0.008],
+          [0, 0.014, -0.075, 0.009, 0.007, 0.007],
+          [0, 0.011, -0.1, 0.006, 0.005, 0.005],
+          [0, 0.008, -0.125, 0.003, 0.003, 0.003],
+          [0, 0.006, -0.14, 0.001, 0.001, 0.001],
+        ] },
+        { name: 'fleg', mirror: true, bones: ['chest', 'armL', 'foreL', 'fmetaL', 'fpawL'], blend: 0.003, segs: 8, cap1: 2, keys: [
+          [0.008, 0.017, 0.03, 0.004, 0.0045, 0.0045],
+          [0.016, 0.02, 0.03, 0.003, 0.003, 0.003],
+          [0.022, 0.022, 0.03, 0.0028, 0.0028, 0.0028],
+          [0.025, 0.012, 0.033, 0.0024, 0.0024, 0.0024],
+          [0.028, 0.003, 0.039, 0.002, 0.0015, 0.0015],
+        ] },
+        { name: 'hleg', mirror: true, bones: ['hips', 'thighL', 'shinL', 'hmetaL', 'hpawL'], blend: 0.003, segs: 8, cap1: 2, keys: [
+          [0.007, 0.016, -0.022, 0.0055, 0.006, 0.006],
+          [0.017, 0.02, -0.02, 0.004, 0.004, 0.004],
+          [0.025, 0.022, -0.019, 0.0035, 0.0035, 0.0035],
+          [0.029, 0.012, -0.024, 0.003, 0.003, 0.003],
+          [0.033, 0.003, -0.025, 0.0025, 0.0015, 0.0015],
+        ] },
+      ],
+      paint(P, C) {
+        cset(C, K.yellow);
+        cmix(C, K.belly, sstep(-0.3, -0.8, P.ny) * 0.9);
+        // black spots on the body and the head; the tail ringed with pale bands
+        const d = cells(P.x * 260 + 3.3, P.y * 240, P.z * 260);
+        cmix(C, K.black, sstep(0.3, 0.24, d) * sstep(-0.6, -0.2, P.ny));
+        if (P.part === 'tail') cmix(C, K.band, sstep(0.55, 0.75, Math.sin((P.z + 0.03) * 260)) * 0.7);
+        cmul(C, 0.92 + 0.14 * noise(P.x * 1500, P.y * 1500, P.z * 1500));
+        C.ro = 0.7;
+      },
+      // the hatchling: black and yellow bands
+      babyPaint(P, C) {
+        cset(C, K.yellow);
+        cmix(C, K.black, sstep(0.0, 0.3, Math.sin((P.z - 0.005) * 190)));
+        cmix(C, K.belly, sstep(-0.3, -0.8, P.ny) * 0.9);
+      },
+      accent: [
+        ...birdToes([0.029, 0.002, 0.042], fToes, 0xD8B860, 'fpawL'),
+        ...birdToes([0.035, 0.002, -0.021], hToes, 0xD8B860, 'hpawL'),
+      ],
+      accentRough: 0.7,
+      eyes: [{ bone: 'head', p: [0.0102, 0.0272, 0.0612], r: 0.0041, dir: [0.9, 0.34, 0.26], iris: 0x9A9488, irisR: 0.95, pupil: 'v', pupilR: 0.32 }],
+      mouth: [0, 0.0186, 0.0785],
+      anim: {
+        type: 'legged', walk: 0.35, trot: 0.8, run: 1.5, stride: 0.07, strideMax: 2.2,
+        duty: [0.65, 0.52, 0.44], lift: [0.007, 0.007], flexF: 0.5, flexH: 0.5, splay: 1,
+        gaits: { w: [0.0, 0.5, 0.5, 0.0], t: [0.0, 0.5, 0.5, 0.0], g: [0.0, 0.5, 0.5, 0.0] },
+        bob: [0.0, 0.0, 0.001], pitchRun: 0.0, flexRun: 0.0, roll: 0.025,
+        legs: [
+          { n: ['armL', 'foreL', 'fmetaL', 'fpawL'], front: true, pole: [1, 0.9, -0.3] },
+          { n: ['thighL', 'shinL', 'hmetaL', 'hpawL'], front: false, pole: [1, 0.9, 0.3] },
+        ],
+        spine: ['hips', 'chest', 'neck'], wave: 0.16, wavePh: 1.4,
+        neck: ['neck', 'head'], neckDist: [0.55, 0.45], nod: 0.0, chew: 0.06, chewRate: 9, eatY: 0.003, eatMax: 1.2,
+        tail: ['tail1', 'tail2', 'tail3', 'tail4'], tailSway: 0.1, tailWalk: 0.05, wag: 0.35,
+        lookAmp: 0.6,
+        sleep: { style: 'flat', neck: [0.35, 0.1], tail: [1.3, -0.02] },
+      },
+      baby: { head: 1.3, eye: 1.18, muzzle: 0.8, body: [1.04, 1.06, 0.9], leg: [0.9, 1.1], tail: 0.85 },
+      // the sculpted hatchling: its eye sockets grow with the head, so the eyes need not
+      modelSpec: { baby: { eye: 1.0 } },
+    };
+  };
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -8671,6 +8782,8 @@ const Animals = (() => {
   COLLAR.cow = { at: ['neck', 'neck2', 0.6], r: 0.8 };
   // ===== round 11: camel
   COLLAR.camel = { at: ['neck2', 'neck3', 0.6], r: 0.8 };
+  // ===== round 11: gecko
+  COLLAR.gecko = { at: ['neck', 'head', 0.3], tag: PI * 0.6 };
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)

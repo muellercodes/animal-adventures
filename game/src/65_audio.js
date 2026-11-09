@@ -228,6 +228,8 @@ const Sound = (() => {
       case 'cow': if (k > 1) { T({ t, f: 260, f2: 210, dur: 0.6, a: 0.06, type: 'sawtooth', bp: 800, q: 1.8, vib: 5, vibAmt: 8, vol: vol * 0.8 }); } else { T({ t, f: 118, f2: 96, dur: 1.3, a: 0.18, type: 'sawtooth', lp: 520, vib: 4, vibAmt: 3, vol: vol * 1.3 }); T({ t: t + 0.1, f: 236, f2: 190, dur: 1.1, a: 0.2, type: 'triangle', lp: 700, vol: vol * 0.35 }); } break;
       // round 11: camel (a low gurgling grumble; the calf bleats)
       case 'camel': if (k > 1) { T({ t, f: 330, f2: 270, dur: 0.5, type: 'sawtooth', bp: 900, q: 2, vib: 7, vibAmt: 20, vol: vol * 0.7 }); } else { T({ t, f: 92, f2: 120, dur: 0.5, a: 0.1, type: 'sawtooth', lp: 480, vib: 24, vibAmt: 10, vol: vol * 1.2 }); T({ t: t + 0.45, f: 120, f2: 78, dur: 0.9, type: 'sawtooth', lp: 420, vib: 18, vibAmt: 12, vol: vol * 1.2 }); noise({ t: t + 0.1, f: 500, q: 0.8, dur: 1.1, vol: vol * 0.35, pan }); } break;
+      // round 11: leopard gecko (soft chirps; the baby squeaks higher)
+      case 'gecko': for (let i = 0; i < 3; i++) T({ t: t + i * 0.09, f: 2400 * (k > 1 ? 1.25 : 1), f2: 1900 * (k > 1 ? 1.25 : 1), dur: 0.045, type: 'triangle', vol: vol * 0.45 }); break;
     }
   }
 
