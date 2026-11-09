@@ -116,6 +116,8 @@ const SPECIES = {
   caterpillar: { name: 'Monarch caterpillar', many: 'Monarch caterpillars', eats: ['lettuce', 'grass', 'twigs'], fav: 'lettuce', noJump: true, hidden: true, price: 150, baby: 'Caterpillar' },
   // round 11: cow
   cow: { name: 'Cow', many: 'Cows', eats: ['grass', 'hay', 'corn', 'apple', 'lettuce', 'carrot'], fav: 'grass', outdoor: true, price: 700, baby: 'Calf' },
+  // round 11: camel
+  camel: { name: 'Camel', many: 'Camels', eats: ['dates', 'hay', 'grass', 'twigs', 'apple'], fav: 'dates', outdoor: true, price: 1300, baby: 'Camel calf' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
@@ -150,6 +152,8 @@ SHOP.push('trex');
 SHOP.push('giraffe');
 // round 11: cow
 SHOP.push('cow');
+// round 11: camel
+SHOP.push('camel');
 const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow', 'snow'];
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];
 const SKIN = ['#F3D3B8', '#E6B691', '#C98E66', '#9A6544', '#6B4430'];

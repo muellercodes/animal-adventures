@@ -594,6 +594,29 @@ trunk loft, a neck sweep, the head as a loft in its own frame `hframe()`, leg sw
   walks each udder point up onto the belly (`U.surface` against the trunk and thighs), so a calf has no udder.
 
 
+## Round 11: the camel (`camel.py`)
+
+A dromedary at full size: 3.0 m from the lips to the rump, 1.9 m at the shoulder, the hump 2.2 m up; the cow's layout
+(trunk loft, neck sweep, head frame, leg sweeps, per region conformal `unwrap()`). Things that are new:
+- The hump is its own part (`hump()`: an ellipsoid rounder in front with a long slope down to the croup, a shaggy
+  top) on the trunk (`trunk_base()`), so the calf's baby offsets can walk it down onto the back (`U.surface` against
+  the trunk without it), leaving a tiny hump.
+- The neck dips down from the shoulders and curves up to the head. A sweep's first section must start inside the
+  trunk: its start cap is a flat disc, and with the first key at the front of the shoulders it showed as a cut-off
+  face above the withers. The neck's skin weights follow the arc along the polyline of its pivots (`_neck_u()`), not a
+  straight line, since the curve doubles back.
+- The feet (`foot()`): two broad toe lobes on a flat heel pad, a cleft between the toes open in front, a small nail on
+  each toe; knee calluses and the chest pad are sculpted and painted dark.
+- The head: a rounded skull, heavy brows over hooded eyes (`LID_OFF` below the middle, long lashes), small round ears
+  standing up at the back, slit nostrils on top of the muzzle, a split upper lip over a droopy lower lip.
+- Kneeling to sleep is the game's `fold` style with the legs tucked straight under (`front: [0.1, 1.6, 1.4]`,
+  `hind: [0.1, 0, 0.12]`, no roll) and the neck held up (`neck: [0.2, -0.2]`; the chest pad is the belly point).
+  Eating it splays its front legs a little without dropping (a camel's neck reaches the ground).
+- The calf: its own pale color map (`paint_baby`, darker than it looks in a photo: the game's sunlight washes it
+  out) and woolly fur shells on babies only (`FUR` with `babyOnly`, 5 cm in rig units), the game's baby maps (very
+  long legs, a short body, a shorter neck) with `modelSpec.baby.eye` 1.0 (the sculpted sockets grow with the head).
+
+
 ## Budget
 
 Pig: about 6.3k triangles, 4.8k vertices, 1024 x 1024 color and normal maps: 38 KB mesh (format 2; 136 KB before) +
@@ -869,3 +892,8 @@ Cow (`VOXEL=0.0065 TRIS=4000 TEX=768 WEIGHTS=transfer`, then rings across the ne
 triangles (7.4k in the game with the eyes); 768 color map with both sides (1536 x 768, WebP 74) and 768 normal map
 (WebP 58), no calf map (the calf has the same patches): 38 KB mesh (with the calf's udder offsets) + 32 + 15 KB, about
 116 KB in the page plus about 61 KB of icons. About 9 minutes for the whole run on the shared machine.
+
+Camel (`VOXEL=0.008 TRIS=3700 TEX=768 WEIGHTS=transfer`, then rings across the neck, the legs and the tail): 7.1k
+triangles (7.8k in the game with the eyes; the calf's fur shells at detail 2 on top); 768 color (WebP 72) and normal
+(WebP 58) maps, 256 calf color map, 384 fur map (calf only): 49 KB mesh (with the calf's hump offsets) + 12 + 14 + 1 +
+5 KB, about 112 KB in the page plus about 55 KB of icons. About 9 minutes for the whole run.
