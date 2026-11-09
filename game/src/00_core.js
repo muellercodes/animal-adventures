@@ -116,6 +116,8 @@ const SPECIES = {
   caterpillar: { name: 'Monarch caterpillar', many: 'Monarch caterpillars', eats: ['lettuce', 'grass', 'twigs'], fav: 'lettuce', noJump: true, hidden: true, price: 150, baby: 'Caterpillar' },
   // round 11: winged cat
   wingcat: { name: 'Winged cat', many: 'Winged cats', eats: ['smallfish', 'fish', 'worm', 'bugs', 'petfood'], fav: 'smallfish', fly: true, flySpeed: 10, climb: true, price: 900, baby: 'Winged kitten' },
+  // round 11: unicorn
+  unicorn: { name: 'Unicorn', many: 'Unicorns', eats: ['apple', 'carrot', 'grass', 'hay', 'berries'], fav: 'apple', fly: true, flySpeed: 11, outdoor: true, price: 2000, baby: 'Baby unicorn' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
@@ -140,6 +142,8 @@ SHOP.push('snowleopard');
 SHOP.push('smilodon');
 // round 11: winged cat
 SHOP.push('wingcat');
+// round 11: unicorn
+SHOP.push('unicorn');
 // round 7: the shop runs from cheap to dear
 SHOP.sort((a, b) => SPECIES[a].price - SPECIES[b].price);
 // round 8: brachiosaurus (the dearest animal, so it goes last)

@@ -6547,6 +6547,60 @@ const Animals = (() => {
     return s;
   };
 
+  // ===== round 11: unicorn =====
+  // A white horse (light dapples, a pale gray muzzle, dark eyes) with a long spiral horn, a long flowing mane and
+  // tail with a soft pastel sheen at the tips, feathered hooves and big white swan's wings that fold along its sides
+  // and beat slowly in flight. The horse's skeleton and gaits, plus the horn bone (the game scales it away on a foal,
+  // which keeps the horn's stub as a nub) and the birds' wing bones on the chest, as the winged cat's (anim.wings).
+  ids.push('unicorn');
+  // the horn: its base on the forehead between the eyes, pointing up and forward; the bone sits on top of the stub
+  const UNI_HORN = { base: [0, 1.881, 1.17], dir: [0, 0.82, 0.57], len: 0.5, stub: 0.045 };
+  const unicornWing = (atlas) => stdWing({
+    s: 6.0, sh: [0.1, 1.6, 0.3], parent: 'chest', prim: 0.9, wid: 1.3, tip: 0.45, secTip: 0.6, atlas,
+    folded: { roll: -40, yaw: 2, pitch: 2 }, foldedPos: [0.06, 0.02, -0.02],
+    featherFold: { tert: [112, 104], sec: [106, 92], prim: [97, 90] },
+    primSpread: [68, 2],
+    flap: { amp: 40, rate: 1.5, upFold: 0.3, twist: 7, glide: 3 },
+    cells: { prim: 0, sec: 1, gcov: 2, lcov: 3, tert: 4, pcov: 3, mcov: 3 },
+  });
+  SPEC.unicorn = () => {
+    const s = SPEC.horse(), W = unicornWing(false), WA = unicornWing(true), H = UNI_HORN;
+    const hp = (t) => [H.base[0] + H.dir[0] * t, H.base[1] + H.dir[1] * t, H.base[2] + H.dir[2] * t];
+    s.bones.push(['horn', 'head', ...hp(H.stub)], ...W.bones);
+    // taller than the horse by its horn
+    s.size = Object.assign({}, s.size, { height: 2.3 });
+    s.lowerBlink = false;
+    const K = { white: hex(0xE8E6E2), shade: hex(0xC9C7C4), dapple: hex(0xD2D1CE), muzzle: hex(0x9C9696), hoof: hex(0xBDB3A2), hair: hex(0xF2F0EC) };
+    // a white coat with light dapples, a pale gray muzzle, pale hooves (the procedural body; the model paints its own)
+    s.paint = (P, C) => {
+      cset(C, K.white);
+      cmix(C, K.shade, sstep(-0.3, -0.9, P.ny) * 0.5);
+      cmix(C, K.dapple, sstep(0.55, 0.75, noise(P.x * 9, P.y * 9, P.z * 9)) * 0.5);
+      if (P.part === 'head') cmix(C, K.muzzle, sstep(1.36, 1.42, P.z) * 0.9);
+      if (P.part === 'hleg' || P.part === 'fleg') cmix(C, K.hoof, sstep(0.105, 0.092, P.y));
+      if (P.part === 'mane' || P.part === 'forelock' || P.part === 'tail') { cset(C, K.hair); cmix(C, hex(0xE8D2EC), sstep(0.6, 0.9, grain(P, 30, 60)) * 0.4); }
+      if (P.part === 'ear') cmix(C, hex(0x8A7E7A), sstep(0.0, 0.6, P.nz) * 0.6);
+      C.ro = P.part === 'mane' || P.part === 'tail' ? 0.5 : 0.62; C.fl = 0.3;
+    };
+    s.eyes[0].lidCol = 0x9A9490;
+    // the horn for the procedural body: a tapering tube on the horn bone
+    const hpts = [], hrad = [];
+    for (let i = 0; i <= 8; i++) { const t = i / 8; hpts.push(hp(H.stub * 0.5 + (H.len - H.stub * 0.5) * t)); hrad.push(lerp(0.036, 0.004, t)); }
+    s.accent.push({ kind: 'tube', bone: 'horn', pts: hpts, radii: hrad, segs: 8, col: 0xEDE2C8 });
+    const KF = { white: hex(0xF4F3F0), shade: hex(0xD6D6D4), edge: hex(0xFFFFFF) };
+    s.feathers = (rest, md) => ({
+      tex: [256, 128], rough: 0.75,
+      list: (md ? WA : W).feathers,
+      paint(u, t, C) { const sx = fract(u * FNC); vane(sx, t, C, KF.white, KF.shade, KF.edge); },
+      babyPaint: downFeather(hex(0xEDEBE6), hex(0xF8F7F4), null),
+    });
+    // foal: small wings (and the horn bone scaled away: only the stub shows)
+    s.baby.wing = 0.45;
+    s.anim.wings = { wing: W.wing, every: 6, beats: 3, climb: 0.6, bob: 0.03, legs: { f: [0.42, 0.06, 2.1, 1.0], h: [0.26, -0.32, 0.5, 0.8] } };
+    s.anim.tailAir = [0.55, 0.2, 0.1];
+    return s;
+  };
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -8578,6 +8632,8 @@ const Animals = (() => {
   COLLAR.smilodon = COLLAR.cat;
   // ===== round 11: winged cat =====
   COLLAR.wingcat = COLLAR.cat;
+  // ===== round 11: unicorn =====
+  COLLAR.unicorn = COLLAR.horse;
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)

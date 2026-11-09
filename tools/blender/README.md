@@ -836,9 +836,10 @@ at detail 2 with 4 fur shell layers); 768 color and normal maps (the membranes g
 `uv_weight`), 256 pup color map, fur map: 45 KB mesh + 12 + 20 + 1 + 8 KB, about 120 KB in the page, 190 KB with its
 two icons. The procedural butterfly (2.9k triangles, 3.7k at detail 2) and caterpillar (2.2k) add only code and icons.
 
-## Round 11: the winged cat (`wingcat.py`)
+## Round 11: the winged cat and the unicorn (`wingcat.py`, `unicorn.py`)
 
-A legged animal with feathered bird wings: the birds' wing (bones and atlas blades, `stdWing`) grafted on a cat.
+Two legged animals with feathered bird wings: the birds' wing (bones and atlas blades, `stdWing`) grafted on a cat
+and a horse.
 - In the game each spec adds the bird wing bones (`wingL`, `wforeL`, `whandL` and the feather bones) with `parent:
   'chest'`, and `spec.feathers` returns the atlas blades for the model (procedural blades for the fallback body).
   `anim.wings` (round 11, `animLegged`; null for every other species) poses them with the bird animator's linkage:
@@ -849,16 +850,16 @@ A legged animal with feathered bird wings: the birds' wing (bones and atlas blad
   curl up asleep. `spec.lowerBlink = false` keeps the mammal's upper lid blink (a spec with `feathers` blinks like a
   bird otherwise).
 - The folded pose: the shoulder pivots sit on top of the back, so a bird's folded wing (trailing edge up over the
-  back) stood up like a fin, and lower rolls sank it into the coat. What works is a moderate roll (-30 for the cat)
-  with `foldedPos` lifting the shoulder out of the coat and a little out to the side; the wings
+  back) stood up like a fin, and lower rolls sank it into the coat. What works is a moderate roll (-30 for the cat,
+  -40 for the unicorn) with `foldedPos` lifting the shoulder out of the coat and a little out to the side; the wings
   then lie on the back like a cape and cover it from above. `wtune.py`-style tuning (set the shoulder bones by hand
   after the animator has folded everything else) saves a rebuild per try.
 - The sculpt has the feathered wing arm (`bird.wing_arm`) in the rest pose, spread straight out from the shoulder
   pivot, so the bounds reach out along x: `grid()` takes coarse steps out along the wing (it changes slowly along its
-  span) and fine ones across its thickness. The arm's skin
+  span), fine ones across its thickness, and the unicorn evaluates the horse only within its own box. The arm's skin
   weights are set in `fix_weights` (place along the span, blended at the joints, the root into the chest over a few
-  centimeters); nothing else may keep weights on the wing or feather bones (the procedural rig's blades are in the weight
-  transfer source). Rings across the arm only around the shoulder, elbow and wrist (rings all
+  centimeters); nothing else may keep weights on the wing, horn or feather bones (the procedural rig's blades and horn
+  tube are in the weight transfer source). Rings across the arm only around the shoulder, elbow and wrist (rings all
   along it took 1,500 triangles). The arm is painted with `bird.plumage` coverts and has no fur shells.
 - Each writes its own feather atlas (`extra_maps` / `export_extra`: only the atlases, not the birds' baby maps) with
   five cells (primaries, secondaries, greater and lesser coverts, tertials) and a down atlas for the babies' wings.
@@ -866,8 +867,21 @@ A legged animal with feathered bird wings: the birds' wing (bones and atlas blad
   the first try rendered white with black stripes), green eyes, barn-owl gray wings (coverts finely peppered, flight
   feathers paling to white with faint bars). Kittens: the tabby kitten's body and stripes, small down wings
   (`baby.wing` 0.5). It still climbs like the other cats.
+- Unicorn: the horse template run in the module with its parts replaced: a white coat with faint dapples (a strong
+  Worley net read as a giraffe's patches), a gray-pink muzzle, dark skin round the eyes, pale hooves; the spiral horn
+  (two grooves wound 4.5 times, ivory with gold in the grooves and a faint pearly tint), its base weighted from the
+  head onto the horn bone over the first 9 cm, so the foal's horn (the game scales the bone away) draws in to a round
+  bud; feathering (a sculpted bell of hair over each hoof under long fur shells, and cards hanging from the fetlocks);
+  a longer mane (two layers walking over the neck), a forelock parted round the horn, a longer, fuller tail, and a
+  strand texture with pastel tips (pink, lavender, blue, mint, peach) in its columns. The wings are a swan's (s 6, 5 m
+  across), white, beating slowly (1.5 a second).
 
 Winged cat (`VOXEL=0.0025 TRIS=3300 TEX=768`): 7.3k triangles plus 192 in the whiskers (10.0k in the game with the
 wing blades and eyes, 29k at detail 2 with 4 fur shell layers); 768 color (WebP 56) and normal (44) maps, 256 kitten
 color map, fur map, feather atlas 512 x 256 and its down atlas: 69 KB mesh and cards + 33 + 16 + 7 + 8 + 6 + 13 + 1 +
 4 KB, about 220 KB in the page plus its two icons (29 KB).
+
+Unicorn (`VOXEL=0.0045 TRIS=4400 TEX=768`): 6.7k triangles plus 1.7k in the hair cards (11.5k in the game with the
+wing blades and eyes, 19.8k at detail 2 with the fur shells); 768 color (WebP 68) and normal (46) maps, 256 foal color
+map, fur map, 192 x 256 strand texture, feather atlases: 78 KB mesh and cards + 16 + 23 + 2 + 5 + 18 + 12 + 1 + 4 KB,
+about 222 KB in the page plus its two icons (43 KB). About 15 minutes for the whole run on the shared machine.
