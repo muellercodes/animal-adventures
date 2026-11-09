@@ -444,6 +444,8 @@ const Plan = (() => {
     for (const t of TOWNS) if (inR(t.rect, x, z, pad)) return true;
     if (inR(TOWN.green, x, z, pad)) return true;
     if (zooAt(x, z, pad + 2)) return true;
+    // (round 11: and the ground just outside each zoo's gate, where the Map drops you off)
+    for (const Z of ZOOS) { const [gx, gz] = zooGate(Z, 6); if (Math.hypot(x - gx, z - gz) < 9 + pad) return true; }
     return false;
   }
   // landmarks (lakes, farms, groves) keep this far away
@@ -481,7 +483,8 @@ const Plan = (() => {
   ];
   for (const t of TOWNS) SPOTS.push({ name: t.name, d: 'A small town', x: t.axis === 'x' ? t.x + 8 : t.x - t.roadSide * 4.6, z: t.axis === 'x' ? t.z - t.roadSide * 4.6 : t.z + 8 });
   // round 10: just outside each zoo's gate
-  for (const Z of ZOOS) { const [gx, gz] = zooGate(Z, 6); SPOTS.push({ name: Z.name, d: Z.d, x: gx, z: gz }); }
+  // (round 11: facing the zoo's gate, so the camera is out on the road and not in the bushes by the gate)
+  for (const Z of ZOOS) { const [gx, gz] = zooGate(Z, 6); SPOTS.push({ name: Z.name, d: Z.d, x: gx, z: gz, yaw: Math.atan2(Z.x - gx, Z.z - gz) }); }
 
   /* ---------- places made when you come near (50_world streams them like landmarks) ---------- */
   const PLACES = [];

@@ -30715,6 +30715,8 @@ const Plan = (() => {
     for (const t of TOWNS) if (inR(t.rect, x, z, pad)) return true;
     if (inR(TOWN.green, x, z, pad)) return true;
     if (zooAt(x, z, pad + 2)) return true;
+    // (round 11: and the ground just outside each zoo's gate, where the Map drops you off)
+    for (const Z of ZOOS) { const [gx, gz] = zooGate(Z, 6); if (Math.hypot(x - gx, z - gz) < 9 + pad) return true; }
     return false;
   }
   // landmarks (lakes, farms, groves) keep this far away
@@ -30752,7 +30754,8 @@ const Plan = (() => {
   ];
   for (const t of TOWNS) SPOTS.push({ name: t.name, d: 'A small town', x: t.axis === 'x' ? t.x + 8 : t.x - t.roadSide * 4.6, z: t.axis === 'x' ? t.z - t.roadSide * 4.6 : t.z + 8 });
   // round 10: just outside each zoo's gate
-  for (const Z of ZOOS) { const [gx, gz] = zooGate(Z, 6); SPOTS.push({ name: Z.name, d: Z.d, x: gx, z: gz }); }
+  // (round 11: facing the zoo's gate, so the camera is out on the road and not in the bushes by the gate)
+  for (const Z of ZOOS) { const [gx, gz] = zooGate(Z, 6); SPOTS.push({ name: Z.name, d: Z.d, x: gx, z: gz, yaw: Math.atan2(Z.x - gx, Z.z - gz) }); }
 
   /* ---------- places made when you come near (50_world streams them like landmarks) ---------- */
   const PLACES = [];
@@ -37876,7 +37879,7 @@ function sheetMap() {
     return `<button class="card${here ? ' here' : ''}" type="button" data-action="go" data-v="${id}"${locked ? ' disabled' : ''}>
       <span class="pv" style="${style}"></span>
       <span class="t">${w.name}</span><span class="d">${w.blurb}</span>
-      <span class="tags">${here ? `<span class="tg">You are here</span>${b && !b.room && Math.hypot(b.pos.x - G.world.def.spawn[0], b.pos.z - G.world.def.spawn[1]) > 150 ? '<span class="tg new">Tap to go back to the start</span>' : ''}` : ''}${locked ? `<span class="tg lock">${A.fly ? 'Grow up to fly here' : A.many + " can't fly"}</span>` : ''}${!here && !locked && isNew ? '<span class="tg new">New! +10 leaves</span>' : ''}</span>
+      <span class="tags">${here ? `<span class="tg">You are here</span>${b && !b.room && Math.hypot(b.pos.x - G.world.def.spawn[0], b.pos.z - G.world.def.spawn[1]) > 150 ? '<span class="tg new">Tap to go back to the start</span>' : ''}` : ''}${locked ? `<span class="tg lock">${A.fly ? 'Grow up to fly here' : A.many + " can't fly"}</span>` : ''}${!here && !locked && isNew ? `<span class="tg new">New! +${LEAVES.world} leaves</span>` : ''}</span>
     </button>`;
   }).join('')}</div>${S.world === 'land' && G.world && G.world.def.places ? `<h3 class="sub">Places in the Land</h3>${b && b.room ? '<p class="note">Go outside first to travel.</p>' : ''}<div class="places">${Plan.SPOTS.map((p, i) => `<button class="place" type="button" data-action="place" data-v="${i}"${b && b.room ? ' disabled' : ''}><span class="t">${p.name}</span><span class="d">${p.d}</span></button>`).join('')}</div>` : ''}`;
 }
@@ -38185,7 +38188,7 @@ document.addEventListener('click', (e) => {
     case 'place': {
       const p = Plan.SPOTS[+v], b = Player.b;
       if (!p || !b || b.room) break;
-      closeSheet(); b.yaw = 0; Player.place(p.x, p.z); Cam.snap = true; Foods.fill(60); UI.toast(p.name === 'The farm' ? 'Back to the farm' : `Welcome to ${p.name}`);
+      closeSheet(); b.yaw = p.yaw || 0; Player.place(p.x, p.z); Cam.snap = true; Foods.fill(60); UI.toast(p.name === 'The farm' ? 'Back to the farm' : `Welcome to ${p.name}`);
       break;
     }
     case 'switch': switchAnimal(v); break;
