@@ -565,6 +565,81 @@ flight pose with the wings spread flat in the plane of the arm (y = `YM`). Thing
 The butterfly and the caterpillar (round 10) are procedural (no Blender files): see `SPEC.butterfly`,
 `SPEC.caterpillar` and their animators in `40_animals.js`.
 
+## Round 11: the cow (`cow.py`)
+
+A Holstein dairy cow at full size: 2.45 m from the nose to the rump, 1.45 m at the withers, built like the giraffe (a
+trunk loft, a neck sweep, the head as a loft in its own frame `hframe()`, leg sweeps, `U.cloven` hooves and
+`U.dewclaws`). Things that are new:
+- Dairy shape: a flat-topped, angular back (loft exponents 2.4 to 2.6 above the widest line) over a round deep belly,
+  the hooks, thurls, pins and tail head as small ellipsoids, a soft hollow in front of the hooks, a thin neck with a
+  small dewlap (a thin plate under the throat), a modest udder in two halves with four teats (its own part, weighted
+  to the hips). Rib grooves in the sculpt read as stripes: left out.
+- The head: a long face with a flat forehead, a bony poll as a ridge between the ears, deep cheeks, a big flat nose pad
+  (a superellipsoid plate in the head frame) with comma nostrils at its sides, thick lips, eyes at the edges of the
+  forehead under a bony brow, ears held out sideways (`U.ear`, on their own bones).
+- Both sides painted (`SIDES = True`): a Holstein's patches are never mirror images, and the game camera looks at the
+  back and the rump all the time, where mirrored patches show. The color map holds the +x side in its left half and
+  the -x side in its right half (`"sides": true` in `meta()`; the game already reads it, see `coat.py`). The species
+  does it itself in `extra_maps()`: texture.py writes the +x side, the hook paints the mirrored points and writes both
+  halves into the same png, so the shared steps stay unchanged. The patch field is evaluated at the real (unmirrored)
+  point: a low-frequency fbm with a little domain warp, cut with a narrow step so the edges are crisp but wavy, a little
+  more black over the back, white on the legs below the knees and hocks, the belly, the udder and the switch. The head
+  is black with an irregular white blaze (a star on the forehead, narrower down the face, wider over the muzzle, a little
+  off the middle) down to the pink-gray nose pad.
+- Texture layout (`unwrap()`, also the camel's): each `uv_regions()` region is unwrapped conformally on its own after
+  cutting seams at the region borders and down the inner side of every leg (`_leg_angle()`: the angle round the leg's
+  middle line jumps across +-pi there). Smart project per region had split the decimated mesh into dozens of single
+  triangle islands; this took the texture used from 46% to 55%.
+- The calf: the game's baby maps (long legs, big head, ears and eyes, a shorter muzzle) and `baby_offset()`, which
+  walks each udder point up onto the belly (`U.surface` against the trunk and thighs), so a calf has no udder.
+
+
+## Round 11: the camel (`camel.py`)
+
+A dromedary at full size: 3.0 m from the lips to the rump, 1.9 m at the shoulder, the hump 2.2 m up; the cow's layout
+(trunk loft, neck sweep, head frame, leg sweeps, per region conformal `unwrap()`). Things that are new:
+- The hump is its own part (`hump()`: an ellipsoid rounder in front with a long slope down to the croup, a shaggy
+  top) on the trunk (`trunk_base()`), so the calf's baby offsets can walk it down onto the back (`U.surface` against
+  the trunk without it), leaving a tiny hump.
+- The neck dips down from the shoulders and curves up to the head. A sweep's first section must start inside the
+  trunk: its start cap is a flat disc, and with the first key at the front of the shoulders it showed as a cut-off
+  face above the withers. The neck's skin weights follow the arc along the polyline of its pivots (`_neck_u()`), not a
+  straight line, since the curve doubles back.
+- The feet (`foot()`): two broad toe lobes on a flat heel pad, a cleft between the toes open in front, a small nail on
+  each toe; knee calluses and the chest pad are sculpted and painted dark.
+- The head: a rounded skull, heavy brows over hooded eyes (`LID_OFF` below the middle, long lashes), small round ears
+  standing up at the back, slit nostrils on top of the muzzle, a split upper lip over a droopy lower lip.
+- Kneeling to sleep is the game's `fold` style with the legs tucked straight under (`front: [0.1, 1.6, 1.4]`,
+  `hind: [0.1, 0, 0.12]`, no roll) and the neck held up (`neck: [0.2, -0.2]`; the chest pad is the belly point).
+  Eating it splays its front legs a little without dropping (a camel's neck reaches the ground).
+- The calf: its own pale color map (`paint_baby`, darker than it looks in a photo: the game's sunlight washes it
+  out) and woolly fur shells on babies only (`FUR` with `babyOnly`, 5 cm in rig units), the game's baby maps (very
+  long legs, a short body, a shorter neck) with `modelSpec.baby.eye` 1.0 (the sculpted sockets grow with the head).
+
+
+## Round 11: the leopard gecko (`gecko.py`)
+
+A leopard gecko, 21 cm from the snout to the tail tip, built from the lizard: the same layout (one loft from the tail
+tip to the snout, head features in a head box, legs as chains, toes with claws, conformal body strips between seams
+plus smart project for the legs, rings where it bends) with its own numbers, and the lizard's generic helpers
+imported from `lizard.py` (`_cells`, `_rows`, `_local_n`, ...), so the lizard itself is untouched. Things that are new:
+- Leopard gecko shape: a wide, tall, rounded head with big bulging eyes (`EYE_R` 4.1 mm) in thick lid rings (they have
+  real eyelids; the game's lids blink over them), a short rounded snout, a wide mouth curving up behind the eye; a
+  plump body held up on slender legs; slender toes with small claws and no pads; a fat carrot tail in rings (a
+  shallow groove every 3.2 mm). Leopard geckos do not climb (no `climb` in the spec).
+- Skin: fine domed granules (0.5 to 0.7 mm) with raised round tubercles scattered over the back, the flanks and the
+  legs (a sparse cell pattern) and lined up on the tail's rings; small flat belly scales in rows. Granule-level color
+  noise made the color map four times bigger for nothing visible at game distance; the granules live in the normal
+  map only.
+- Paint: yellow with black leopard spots (two cell sizes, smaller on the head and the legs) evaluated at the real
+  point, so the two sides differ (`SIDES`, as the cow, for both the adult's and the hatchling's maps), white flanks
+  and belly, the tail lilac-white with yellow spotted bands. The hatchling's own map: broad black-brown bands across a
+  yellow body, a dark cap behind a pale snout, a black and white banded tail. `BABY_MAP` is `(0, q)` so export.py does
+  not squash the two-sided map into a square; `extra_maps()` sizes it.
+- Iris: plain gray with a vertical slit (`pupil: 'v'`); the frogs' `irisNet` looked blotchy on the hatchling's
+  bigger eye. `modelSpec.baby.eye` 1.0 (the sculpted socket grows with the head).
+
+
 ## Budget
 
 Pig: about 6.3k triangles, 4.8k vertices, 1024 x 1024 color and normal maps: 38 KB mesh (format 2; 136 KB before) +
@@ -835,3 +910,18 @@ Fruit bat (`VOXEL=0.002 TRIS=6500 TEX=768`, normal map WebP 64): 6.5k triangles 
 at detail 2 with 4 fur shell layers); 768 color and normal maps (the membranes get a smaller share of them,
 `uv_weight`), 256 pup color map, fur map: 45 KB mesh + 12 + 20 + 1 + 8 KB, about 120 KB in the page, 190 KB with its
 two icons. The procedural butterfly (2.9k triangles, 3.7k at detail 2) and caterpillar (2.2k) add only code and icons.
+
+Cow (`VOXEL=0.0065 TRIS=4000 TEX=768 WEIGHTS=transfer`, then rings across the neck, the legs and the tail): 6.4k
+triangles (7.4k in the game with the eyes); 768 color map with both sides (1536 x 768, WebP 74) and 768 normal map
+(WebP 58), no calf map (the calf has the same patches): 38 KB mesh (with the calf's udder offsets) + 32 + 15 KB, about
+116 KB in the page plus about 61 KB of icons. About 9 minutes for the whole run on the shared machine.
+
+Camel (`VOXEL=0.008 TRIS=3700 TEX=768 WEIGHTS=transfer`, then rings across the neck, the legs and the tail): 7.1k
+triangles (7.8k in the game with the eyes; the calf's fur shells at detail 2 on top); 768 color (WebP 72) and normal
+(WebP 58) maps, 256 calf color map, 384 fur map (calf only): 49 KB mesh (with the calf's hump offsets) + 12 + 14 + 1 +
+5 KB, about 112 KB in the page plus about 55 KB of icons. About 9 minutes for the whole run.
+
+Leopard gecko (`VOXEL=0.0004 TRIS=4400 TEX=512`, then the body seams and rings): 7.2k triangles (7.9k in the game with
+the eyes); 512 color map with both sides (1024 x 512, WebP 50), 512 normal map (WebP 42), 256 hatchling color map with
+both sides (512 x 256): 47 KB mesh + 48 + 42 + 11 KB, about 199 KB in the page plus about 28 KB of icons. The granules
+make the normal map the biggest part; at 640 it was 78 KB.

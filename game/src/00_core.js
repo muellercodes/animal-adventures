@@ -114,6 +114,12 @@ const SPECIES = {
   // round 10: monarch butterfly; its baby is the caterpillar, a hidden species of its own (not in the shop)
   butterfly: { name: 'Monarch butterfly', many: 'Monarch butterflies', eats: ['nectar', 'watermelon', 'banana', 'berries'], fav: 'nectar', fly: true, flySpeed: 4, price: 150, egg: 0xf2ecd2, baby: 'Caterpillar' },
   caterpillar: { name: 'Monarch caterpillar', many: 'Monarch caterpillars', eats: ['lettuce', 'grass', 'twigs'], fav: 'lettuce', noJump: true, hidden: true, price: 150, baby: 'Caterpillar' },
+  // round 11: cow
+  cow: { name: 'Cow', many: 'Cows', eats: ['grass', 'hay', 'corn', 'apple', 'lettuce', 'carrot'], fav: 'grass', outdoor: true, price: 700, baby: 'Calf' },
+  // round 11: camel
+  camel: { name: 'Camel', many: 'Camels', eats: ['dates', 'hay', 'grass', 'twigs', 'apple'], fav: 'dates', outdoor: true, price: 1300, baby: 'Camel calf' },
+  // round 11: leopard gecko
+  gecko: { name: 'Leopard gecko', many: 'Leopard geckos', eats: ['bugs', 'worm'], fav: 'bugs', price: 300, egg: 0xF4F1EA, baby: 'Baby gecko' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
@@ -146,6 +152,12 @@ for (const id of ['bat', 'butterfly']) { let i = SHOP.length; while (i > 0 && SP
 SHOP.push('trex');
 // round 10: giraffe (after the price sort, so it sits at the end with the other round 10 animals)
 SHOP.push('giraffe');
+// round 11: cow
+SHOP.push('cow');
+// round 11: camel
+SHOP.push('camel');
+// round 11: leopard gecko
+SHOP.push('gecko');
 const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow', 'snow', 'savanna'];
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];
 const SKIN = ['#F3D3B8', '#E6B691', '#C98E66', '#9A6544', '#6B4430'];
