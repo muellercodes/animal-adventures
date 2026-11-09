@@ -6617,6 +6617,66 @@ const Animals = (() => {
     baby: { head: 1.35, eye: 1.12, muzzle: 0.8, body: [0.96, 1.04, 0.9], leg: [0.88, 1.06], tail: 0.92 },
   });
 
+  // ===== round 11: green iguana =====
+  ids.push('iguana');
+  // GREEN IGUANA (1.5 m, two thirds of it the whip tail): a deep head with full jowls and the big round shield below
+  // the ear, a dewlap, a crest of spines down the back, long toes. Climbs and swims (legs tucked, the tail sweeping).
+  // The hatchling is a separate size (size.baby): about 32 cm in the game, a big head and eyes, bright green.
+  SPEC.iguana = () => lizardKin({
+    k: 3,
+    size: { length: 1.5, height: 0.15, radius: 0.13, eyeHeight: 0.125, baby: { length: 0.75, height: 0.075, radius: 0.065, eyeHeight: 0.064, float: 0.055 } },
+    bones: [
+      ['hips', null, 0, 0.031, -0.028],
+      ['chest', 'hips', 0, 0.033, 0.046],
+      ['neck', 'chest', 0, 0.036, 0.066],
+      ['head', 'neck', 0, 0.04, 0.082],
+      ['tail1', 'hips', 0, 0.029, -0.058],
+      ['tail2', 'tail1', 0, 0.025, -0.105],
+      ['tail3', 'tail2', 0, 0.0205, -0.16],
+      ['tail4', 'tail3', 0, 0.016, -0.22],
+      ['tail5', 'tail4', 0, 0.012, -0.285],
+      ['tail6', 'tail5', 0, 0.009, -0.34],
+      ['thighL', 'hips', 0.011, 0.028, -0.032, 1],
+      ['shinL', 'thighL', 0.037, 0.033, -0.03, 1],
+      ['hmetaL', 'shinL', 0.046, 0.0055, -0.042, 1],
+      ['hpawL', 'hmetaL', 0.049, 0.003, -0.032, 1],
+      ['armL', 'chest', 0.012, 0.029, 0.047, 1],
+      ['foreL', 'armL', 0.031, 0.032, 0.046, 1],
+      ['fmetaL', 'foreL', 0.037, 0.0055, 0.054, 1],
+      ['fpawL', 'fmetaL', 0.039, 0.003, 0.0605, 1],
+    ],
+    // the loft rows of tools/blender/iguana.py (base units)
+    body: [
+      [-0.385, 0.0068, 0.0064, 0.006, 0.0005, 2], [-0.33, 0.0094, 0.0078, 0.0062, 0.0017, 2.1], [-0.28, 0.012, 0.0094, 0.0068, 0.0026, 2.1],
+      [-0.23, 0.0152, 0.0115, 0.0078, 0.0037, 2.1], [-0.18, 0.019, 0.0142, 0.0094, 0.0051, 2.1], [-0.13, 0.0232, 0.0172, 0.0112, 0.0068, 2.1],
+      [-0.09, 0.0272, 0.02, 0.0128, 0.0088, 2.1], [-0.06, 0.031, 0.0222, 0.0138, 0.011, 2.2], [-0.04, 0.035, 0.0238, 0.0142, 0.0134, 2.2],
+      [-0.02, 0.0398, 0.0254, 0.014, 0.0164, 2.2], [0.005, 0.0438, 0.0266, 0.0136, 0.0184, 2.2], [0.028, 0.045, 0.0276, 0.0142, 0.018, 2.2],
+      [0.045, 0.0448, 0.0288, 0.016, 0.0156, 2.2], [0.06, 0.045, 0.0302, 0.018, 0.013, 2.2], [0.072, 0.046, 0.0316, 0.0194, 0.013, 2.3],
+      [0.082, 0.0474, 0.0328, 0.0204, 0.0134, 2.3], [0.091, 0.048, 0.0338, 0.0222, 0.0118, 2.4], [0.099, 0.0472, 0.0346, 0.024, 0.01, 2.4],
+      [0.106, 0.0458, 0.0348, 0.0256, 0.0084, 2.3], [0.111, 0.0442, 0.0348, 0.027, 0.007, 2.3], [0.1145, 0.0424, 0.0346, 0.0282, 0.0054, 2.2],
+      [0.117, 0.0404, 0.0342, 0.0292, 0.0032, 2],
+    ],
+    zTail: -0.05, legR: [0.0046, 0.0055],
+    col: { base: hex(0x4E7A28), dark: hex(0x262A18), belly: hex(0x9EB46A) },
+    toes: [
+      [{ a: -36, len: 0.0085, r: 0.0011, claw: 0.0016 }, { a: -10, len: 0.0115, r: 0.0011, claw: 0.0016 }, { a: 12, len: 0.0135, r: 0.0011, claw: 0.0016 }, { a: 34, len: 0.0125, r: 0.0011, claw: 0.0016 }, { a: 68, len: 0.008, r: 0.001, claw: 0.0014 }],
+      [{ a: -20, len: 0.009, r: 0.0012, claw: 0.0016 }, { a: 2, len: 0.0135, r: 0.0012, claw: 0.0016 }, { a: 20, len: 0.018, r: 0.0012, claw: 0.0016 }, { a: 38, len: 0.0235, r: 0.0012, claw: 0.0016 }, { a: 95, len: 0.012, r: 0.0011, claw: 0.0014 }],
+    ],
+    toeCol: 0x4A6A2A,
+    eye: { p: [0.007, 0.0408, 0.1005], r: 0.0027, dir: [0.92, 0.26, 0.26], iris: 0xB07A2A, irisR: 0.9, pupilR: 0.38, rim: 0x3A2410 },
+    mouth: [0, 0.031, 0.1155],
+    anim: {
+      walk: 1.0, trot: 2.0, run: 4.0, stride: 0.42, lift: [0.03, 0.03], wave: 0.2, tailSway: 0.05, pushups: 0.02, eatY: 0.012,
+      // swimming: legs tucked back along the body, the long tail sweeping
+      floatDepth: 0.125, swimHead: -0.12, swimPitch: -0.04, paddle: 0.9, swimSweep: 0.3,
+      swimTuck: { f: [0.45, -0.75, 0.9, 1.0], h: [0.6, -0.8, 0.3, 1.0] },
+      climb: { splay: 0.25, drop: 0.7, reach: 0.2, neck: -0.3, tail: [0.05, 0.03, 0.02, 0, 0, 0], flex: 0.2, toe: 0.5 },
+      sleep: { style: 'flat', neck: [0.3, 0.12], tail: [0.9, -0.02] },
+    },
+    // the hatchling: half the size (then the game's 0.42), a big head and eyes, a short snout
+    baby: { head: 0.7, eye: 1.18, muzzle: 0.8, neck: [0.5, 0.55], body: [0.48, 0.5, 0.48], leg: [0.5, 0.56], tail: 0.48, rebind: true, tagK: 0.6 },
+  });
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -8593,6 +8653,8 @@ const Animals = (() => {
   COLLAR.smilodon = COLLAR.cat;
   // ===== round 11: bearded dragon
   COLLAR.beardeddragon = { at: ['neck', 'head', 0.25], tag: PI * 0.6, r: 1.1 };
+  // ===== round 11: green iguana
+  COLLAR.iguana = { at: ['neck', 'head', 0.3], tag: PI * 0.6 };
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)

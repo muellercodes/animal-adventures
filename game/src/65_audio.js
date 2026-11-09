@@ -123,6 +123,8 @@ const Sound = (() => {
       case 'lizard': T({ t, f: 3200, f2: 3600, dur: 0.05 }); T({ t: t + 0.08, f: 3300, f2: 3700, dur: 0.05 }); break;
       // round 11: bearded dragon: a soft puffing hiss with its beard out (a hatchling's is two tiny chirps)
       case 'beardeddragon': if (k > 1) { T({ t, f: 3600, f2: 4000, dur: 0.04, vol: vol * 0.5 }); T({ t: t + 0.1, f: 3700, f2: 4100, dur: 0.04, vol: vol * 0.5 }); } else { noise({ t, f: 2600, q: 0.7, dur: 0.45, vol: vol * 0.55, pan }); noise({ t: t + 0.05, f: 700, q: 1.2, dur: 0.2, vol: vol * 0.3, pan }); } break;
+      // round 11: green iguana: a long breathy hiss (a hatchling's is short and thin)
+      case 'iguana': if (k > 1) { noise({ t, f: 4200, q: 0.9, dur: 0.18, vol: vol * 0.35, pan }); } else { noise({ t, f: 1800, q: 0.6, dur: 0.75, vol: vol * 0.6, pan }); noise({ t: t + 0.05, f: 500, q: 1.0, dur: 0.4, vol: vol * 0.3, pan }); } break;
       case 'snake': noise({ t, f: 5000, type: 'highpass', dur: 0.8, vol: vol * 0.5, pan }); break;
       case 'bunny': T({ t, f: 95, f2: 60, dur: 0.12, vol: vol * 1.4 }); T({ t: t + 0.25, f: 95, f2: 60, dur: 0.12, vol: vol * 1.4 }); break;
       case 'squirrel': for (let i = 0; i < 8; i++) T({ t: t + i * 0.06, f: (2600 + Math.random() * 900) * (k > 1 ? 1.2 : 1), dur: 0.035, vol: vol * 0.6 }); break;

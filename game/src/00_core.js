@@ -116,6 +116,8 @@ const SPECIES = {
   caterpillar: { name: 'Monarch caterpillar', many: 'Monarch caterpillars', eats: ['lettuce', 'grass', 'twigs'], fav: 'lettuce', noJump: true, hidden: true, price: 150, baby: 'Caterpillar' },
   // round 11: bearded dragon
   beardeddragon: { name: 'Bearded dragon', many: 'Bearded dragons', eats: ['bugs', 'worm', 'lettuce', 'carrot', 'berries'], fav: 'bugs', price: 400, egg: 0xEDE6D2, baby: 'Baby bearded dragon' },
+  // round 11: green iguana
+  iguana: { name: 'Green iguana', many: 'Green iguanas', eats: ['lettuce', 'berries', 'banana', 'apple', 'twigs'], fav: 'lettuce', climb: true, swim: true, swimSpeed: 2.0, price: 500, egg: 0xF0EBD8, baby: 'Baby iguana' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
@@ -140,6 +142,8 @@ SHOP.push('snowleopard');
 SHOP.push('smilodon');
 // round 11: bearded dragon
 SHOP.push('beardeddragon');
+// round 11: green iguana
+SHOP.push('iguana');
 // round 7: the shop runs from cheap to dear
 SHOP.sort((a, b) => SPECIES[a].price - SPECIES[b].price);
 // round 8: brachiosaurus (the dearest animal, so it goes last)

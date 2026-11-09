@@ -871,3 +871,16 @@ The hatchling has its own color map (the markings bolder). In the game it does p
 - Budget (`VOXEL=0.0012 TRIS=2900 TEX=768`, `BEND_PITCH` 13.5 and 5 mm): 7.0k triangles; 768 color (WebP 50) and normal
   (WebP 32) maps, 320 hatchling color map: 52 KB mesh + 47 + 48 + 13 KB, 163 KB of files, about 217 KB in the page plus
   about 23 KB of icons. The per-scale color jitter and the dark grooves cost most of the color map: keep them soft.
+
+The green iguana (`iguana.py`, Iguana iguana, 1.5 m, KS 3): a body a little flattened from side to side on long legs with
+long toes (the fourth hind toe longest), a deep head with full jowls, the subtympanic shield (`shield()`: a big round
+domed plate below the ear drum, painted pale gray-green with a dark rim; pure white read as a button), the dewlap
+(`dewlap()`: a thin plate in the middle plane from the chin to the chest, cut to an outline `DEW`, with small spines
+along its front edge), the crest (`lizkit.crest()`: blade spines every 1 cm, tallest over the neck, fading out a third
+of the way down the tail) and the long whip tail. Green, the head grayer, faint broken bars down the flanks, broad
+dark bands round the tail. The eyes are set into the head with `seat_eye()` (the first ones stood out like goggles).
+The hatchling (`size.baby` in the game, about 32 cm there) has its own color map (a brighter, more even green) and its
+own shape (`baby_offset()`: the dewlap pulled up to the throat and the crest low, as on a real hatchling).
+- Budget (`VOXEL=0.0018 TRIS=2800 TEX=768`): 7.3k triangles; 768 color (WebP 50) and normal (WebP 32) maps, 320
+  hatchling color map: 59 KB mesh (with the hatchling offsets) + 31 + 51 + 10 KB, 153 KB of files, about 204 KB in the
+  page plus the icons.
