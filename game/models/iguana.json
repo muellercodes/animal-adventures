@@ -1,0 +1,104 @@
+{
+ "v": 2,
+ "id": "iguana",
+ "data": "iguana.bin",
+ "enc": "deflate",
+ "raw": 101268,
+ "maps": {
+  "color": "iguana-color.webp",
+  "normal": "iguana-normal.webp",
+  "babyColor": "iguana-color-baby.webp"
+ },
+ "nv": 3303,
+ "ntri": 3666,
+ "nbv": 3303,
+ "nbt": 3666,
+ "bbox": [
+  -0.195712,
+  0.001734,
+  -1.15533,
+  0.195712,
+  0.161286,
+  0.353797
+ ],
+ "bones": [
+  "hips",
+  "chest",
+  "neck",
+  "head",
+  "tail1",
+  "tail2",
+  "tail3",
+  "tail4",
+  "tail5",
+  "tail6",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.021,
+   0.1224,
+   0.3015
+  ],
+  "r": 0.0081,
+  "dir": [
+   0.9286,
+   0.2624,
+   0.2624
+  ],
+  "lid": [
+   0.667,
+   -0.741,
+   0.25
+  ],
+  "lidCol": 4017969,
+  "iris": 11565610,
+  "irisR": 0.9,
+  "pupilR": 0.38,
+  "rim": 3810320,
+  "babyIris": 10123824
+ },
+ "mouth": [
+  0.0,
+  0.093,
+  0.3465
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.03,
+  0.05,
+  0.02
+ ],
+ "flat": 5143080,
+ "bdelta": 0.03575,
+ "belly": [
+  0.0,
+  0.0414,
+  -0.084
+ ]
+}

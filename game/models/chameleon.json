@@ -1,0 +1,110 @@
+{
+ "v": 2,
+ "id": "chameleon",
+ "data": "chameleon.bin",
+ "enc": "deflate",
+ "raw": 81972,
+ "maps": {
+  "color": "chameleon-color.webp",
+  "normal": "chameleon-normal.webp",
+  "babyColor": "chameleon-color-baby.webp"
+ },
+ "nv": 2932,
+ "ntri": 3400,
+ "nbv": 2932,
+ "nbt": 3400,
+ "bbox": [
+  -0.03542,
+  0.001349,
+  -0.167257,
+  0.03542,
+  0.115373,
+  0.125682
+ ],
+ "bones": [
+  "hips",
+  "chest",
+  "neck",
+  "head",
+  "tail1",
+  "tail2",
+  "tail3",
+  "tail4",
+  "tail5",
+  "tail6",
+  "tail7",
+  "tail8",
+  "eyeL",
+  "eyeR",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.0112,
+   0.0912,
+   0.093
+  ],
+  "r": 0.0054,
+  "dir": [
+   0.7827,
+   0.2208,
+   0.582
+  ],
+  "lid": [
+   1.0,
+   -1.0,
+   0.0
+  ],
+  "lidCol": 4094518,
+  "iris": 13146682,
+  "irisR": 0.26,
+  "pupilR": 0.5,
+  "rim": 2759182,
+  "bone": "eyeL"
+ },
+ "mouth": [
+  0.0,
+  0.0838,
+  0.1225
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.03,
+  0.05,
+  0.03
+ ],
+ "flat": 4099130,
+ "chroma": {
+  "lum": 0.2035
+ },
+ "belly": [
+  0.0,
+  0.0013,
+  -0.045
+ ]
+}

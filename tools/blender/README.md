@@ -1053,3 +1053,96 @@ on four bones):
 - Budget (`VOXEL=0.0062 TRIS=4200 TEX=768`): 6.7k triangles plus 224 in whisker cards; 768 maps (color WebP 40: the
   spots are most of the bytes, normal 46), 192 cub map, fur and whisker textures: 65 KB mesh and cards + 47 + 13 + 5 +
   5 + 5 KB, 144 KB of files, about 192 KB in the page plus about 28 KB of icons.
+
+## Round 11: more lizards on one template (`lizkit.py`: `beardeddragon.py`, ...)
+
+The lace monitor (`lizard.py`) stays as it is; the round 11 lizards share `lizkit.py`, a template made from it. A species
+file loads the template into its own module (`M = lizkit.load(id)`), sets its tables and landmarks in base units (an
+animal about half a meter long, so the template's blend radii, bake distances and scale sizes fit), replaces the
+functions it needs (`M.paint = paint`, they look names up in M when called) and calls `lizkit.install(globals(), M, KS)`,
+which scales every pipeline hook by KS on the way out, as `bigcat.py` does for the big cats. The template has:
+- the body as one loft from the tail tip to the snout (`BODY`: z, top, height of the widest line, bottom, half width,
+  exponents), ellipsoids added to it (`BLOBS`: girdles, throat) and to the head (`HEAD_BLOBS`, `SNOUT`, `MANDIBLE`),
+  the nostril, ear opening, mouth groove along `MOUTH_LINE` and the eye (lid mound, opening, ball; `seat_eye()` puts
+  the ball into the side of the head instead of standing out of it like goggles), legs as capsule chains with joint
+  balls and a sole (`FLEG`, `HLEG`), toes with hooked claws (`F_TOES`, `H_TOES`), and `EXTRAS` (named fields unioned
+  into the body: spikes, crests, dewlaps; `cones()` and `crest()` help build them);
+- skin weights made entirely from the sculpt and the game skeleton's pivots (read from the rig export): the trunk, neck,
+  head and tail as one chain along the middle line (each bone owns the stretch from its pivot to the next, blended over
+  a few mm), each leg along its own bones and into its girdle, a vertex counted as leg where the leg's field is nearer
+  than the body's;
+- rings across the body, tail and legs (`BEND_PITCH`; fewer through a wide trunk, they cost triangles), texture regions
+  (head, trunk, tail in parts, legs, feet) with the head getting more of the map (`UV_HEAD`);
+- scales as a height field per texel: granular beads, keeled rings round the tail, rows of belly plates, lip plates;
+  `regions()` gives the paint its masks (head, tail, legs, belly, lips, eye, claws, the extras').
+
+The game side is the same idea: `lizardKin(o)` in `40_animals.js` makes a species' spec from its bones and loft rows in
+base units and `o.k` (the procedural body is the Blender file's loft, so the rig the sculpt is fitted to matches it).
+
+The bearded dragon (`beardeddragon.py`, Pogona vitticeps, 50 cm, KS 1): a wide flat body, a broad triangular head with a
+short blunt snout (the first one read as a monitor until the snout was shortened and deepened), the beard as a full
+throat pouch with rows of soft spines along the jaw and across the throat, tufts of spines round the ear and behind the
+jaw angle, a fringe of spikes along each flank and spiky scales over the back (about 90 cones per side, `spike()`),
+stout legs and a thick thigh. Sandy tan with an orange wash over the head, two rows of darker blotches down the back,
+a banded tail, a pale belly; the flanks below the fringe keep most of the body color (a pale band there looked wrong).
+The hatchling has its own color map (the markings bolder). In the game it does push-ups and bobs its head.
+- Budget (`VOXEL=0.0012 TRIS=2900 TEX=768`, `BEND_PITCH` 13.5 and 5 mm): 7.0k triangles; 768 color (WebP 50) and normal
+  (WebP 32) maps, 320 hatchling color map: 52 KB mesh + 47 + 48 + 13 KB, 163 KB of files, about 217 KB in the page plus
+  about 23 KB of icons. The per-scale color jitter and the dark grooves cost most of the color map: keep them soft.
+
+The green iguana (`iguana.py`, Iguana iguana, 1.5 m, KS 3): a body a little flattened from side to side on long legs with
+long toes (the fourth hind toe longest), a deep head with full jowls, the subtympanic shield (`shield()`: a big round
+domed plate below the ear drum, painted pale gray-green with a dark rim; pure white read as a button), the dewlap
+(`dewlap()`: a thin plate in the middle plane from the chin to the chest, cut to an outline `DEW`, with small spines
+along its front edge), the crest (`lizkit.crest()`: blade spines every 1 cm, tallest over the neck, fading out a third
+of the way down the tail) and the long whip tail. Green, the head grayer, faint broken bars down the flanks, broad
+dark bands round the tail. The eyes are set into the head with `seat_eye()` (the first ones stood out like goggles).
+The hatchling (`size.baby` in the game, about 32 cm there) has its own color map (a brighter, more even green) and its
+own shape (`baby_offset()`: the dewlap pulled up to the throat and the crest low, as on a real hatchling).
+- Budget (`VOXEL=0.0018 TRIS=2800 TEX=768`): 7.3k triangles; 768 color (WebP 50) and normal (WebP 32) maps, 320
+  hatchling color map: 59 KB mesh (with the hatchling offsets) + 31 + 51 + 10 KB, 153 KB of files, about 204 KB in the
+  page plus about 16 KB of icons.
+
+The chameleon (`chameleon.py`, a male panther chameleon, Furcifer pardalis, 45 cm with its tail, KS 1):
+- A deep body flattened from side to side (the loft's upper exponent below 2 makes the arched back a ridge), a low
+  crest of cones along it, a short neck, a low casque rising behind the eyes (the loft's top raised there plus a thin
+  ridge; separate ridge chains read as antlers), ridges from the eyes to a small nose, the downturned mouth line.
+- The turret eyes: `eye_parts()` is replaced by a ball of skin round each eyeball, drawn out a little along the gaze,
+  with a small round hole for the pupil (`LID_W`). Each turret is weighted to its own bone (`eyeL`, `eyeR`, children
+  of the head, pivots at the eye centers; `fix_extra()`), and the model's eye names that bone (`'bone': 'eyeL'` in the
+  eye meta), so the game turns the turret and the eyeball together. The game's iris is small (`irisR` 0.26) so the
+  hole shows the pupil with a ring of gold; the lids stay open at the ball's edges and close the hole when it blinks.
+- The tail is not part of the loft: `tail()` sweeps a tapering tube along `tail_path()`, back from the hips and curled
+  down and forward into a spiral (an exponential spiral in the middle plane), with eight bones placed along the curve
+  (`tail_pivots()`, copied into the game's bone table). Its weights go by arc length along the dense curve
+  (`spine_weights()`), its rings follow the curve with a reach of about the tail's radius (a larger reach also cut the
+  next coil), and the paint and texture regions use the position along the curve (`tailS`).
+- Legs held under the body, elbows back and knees forward; zygodactyl feet (`bundle()`: each foot two mittens of
+  fused toes, three inside and two outside on the front feet, two and three on the hind, small claws at their tips).
+- Paint: green with blue bars round the body and red cores in them, a white stripe along the lower flank from the
+  corner of the mouth, red stripes radiating from the eye, green and red rays on the turrets, a banded tail, red spots
+  on the legs. `stats()` also measures the mean brightness of the skin (`chroma.lum` in the json) for the game's color
+  change. The hatchling has its own dull gray-brown color map.
+- In the game (`40_animals.js`, both off for every other species): `spec.extend(R, A, rig)` adds a species' own
+  per-frame steps after the animator and its own rig methods (the chameleon's eyes darting about each by itself and
+  both turning onto the food, the tongue strike, `rig.setTint(color, amount, now)`; the Komodo dragon's tongue
+  flicks), and `anim.rock` sways the body back and forth over the planted feet. The color change gives each chameleon
+  its own copies of the skin materials with a tint uniform: the skin blends toward the color by brightness, so the
+  banded pattern shows through it.
+- Budget (`VOXEL=0.0011 TRIS=2600 TEX=768`): 6.8k triangles; 768 color (WebP 52) and normal (WebP 25) maps, 320
+  hatchling color map: 52 KB mesh + 44 + 53 + 7 KB, 158 KB of files, about 211 KB in the page plus about 34 KB of
+  icons (the banded pattern makes them the biggest of the four).
+
+Synthetic rigs: the lizkit species make every skin weight themselves, so their rig export only has to give the bone
+pivots; a rig json written from the species' bone table (bones times k, mirrored ones doubled, the collar tag, one
+dummy triangle as the procedural mesh) gives the same model as the browser export.
+
+The Komodo dragon (`komodo.py`, Varanus komodoensis, 2.8 m, KS 5.6) is the template's own monitor made heavy: a deep
+broad body on thick upright legs with big curved claws, a long thick neck with loose folds across its sides (`folds()`)
+and a full throat, a long flat head with a rounded snout, small eyes under a brow, slit nostrils near the tip, a long
+muscular tail. Dull gray-brown with paler and darker mottling, faint reddish blotches and pale speckles, the head
+grayer. The hatchling has its own color map (bright yellow bands across a black body, an orange-pink head and neck);
+the game makes it slim and small (`size.baby`, about half a meter in the game).
+- Budget (`VOXEL=0.0065 TRIS=2800 TEX=768`): 7.9k triangles; 768 color (WebP 50) and normal (WebP 30) maps, 256
+  hatchling color map: 54 KB mesh + 29 + 50 + 16 KB, 152 KB of files, about 203 KB in the page plus about 29 KB of
+  icons.
