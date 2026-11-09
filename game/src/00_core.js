@@ -119,7 +119,7 @@ const SPECIES = {
   // round 11: camel
   camel: { name: 'Camel', many: 'Camels', eats: ['dates', 'hay', 'grass', 'twigs', 'apple'], fav: 'dates', outdoor: true, price: 1300, baby: 'Camel calf' },
   // round 11: leopard gecko
-  gecko: { name: 'Leopard gecko', many: 'Leopard geckos', eats: ['bugs', 'worm'], fav: 'bugs', price: 300, egg: 0xF4F1EA, baby: 'Baby gecko' },
+  gecko: { name: 'Leopard gecko', many: 'Leopard geckos', eats: ['bugs', 'worm'], fav: 'bugs', price: 300, egg: 0xF4F1EA, camNear: 0.8, baby: 'Baby gecko' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
@@ -135,6 +135,7 @@ SMALL_PREY.push('cockatiel');
 // round 7: eagle, chickadee, rhino: each goes into the shop list by its price (the list runs from cheap to dear)
 for (const id of ['chickadee', 'eagle', 'rhino']) { let i = SHOP.length; while (i > 0 && SPECIES[SHOP[i - 1]].price > SPECIES[id].price) i--; SHOP.splice(i, 0, id); }
 SMALL_PREY.push('chickadee', 'hamster');
+SMALL_PREY.push('gecko');   // round 11
 SPECIES.chickadee.eggSpeck = [0.72, 0.4, 0.28];   // reddish brown speckles
 // round 10: polar bear
 SHOP.push('polarbear');

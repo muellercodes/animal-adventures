@@ -91,7 +91,8 @@ function followCamera(dt) {
   // and the tiniest (a caterpillar, a butterfly: under 10 cm) closer still
   const tiny = Math.max(m.length, m.height) < 0.1;
   const base = clamp(m.length * 1.35 + m.height * 1.5 + (tiny ? 0.5 : 0.75) * clamp(m.length / 0.15, tiny ? 0.3 : 0.55, 1), tiny ? 0.2 : 0.6, Math.max(8.5, m.height * 2.4));
-  let dist = base * Cam.zoom;
+  // (round 11: a species can ask for a closer camera, camNear, like the leopard gecko, which is long but very flat)
+  let dist = base * (SPECIES[b.form || b.sp]?.camNear || 1) * Cam.zoom;
   const ty = b.pos.y + (b.mode === 'climb' ? m.length * 0.4 : m.eye * 0.8) + (tiny ? 0.015 : 0.05);
   if (Cam.snap) { Cam.target.set(b.pos.x, ty, b.pos.z); Cam.yaw = b.yaw; Cam.snap = false; }
   // when a person is talking to us, pull back so both fit on screen
