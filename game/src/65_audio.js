@@ -127,6 +127,8 @@ const Sound = (() => {
       case 'iguana': if (k > 1) { noise({ t, f: 4200, q: 0.9, dur: 0.18, vol: vol * 0.35, pan }); } else { noise({ t, f: 1800, q: 0.6, dur: 0.75, vol: vol * 0.6, pan }); noise({ t: t + 0.05, f: 500, q: 1.0, dur: 0.4, vol: vol * 0.3, pan }); } break;
       // round 11: chameleon: chameleons are nearly silent; a soft short hiss (a hatchling's a tiny click)
       case 'chameleon': if (k > 1) { noise({ t, f: 5200, q: 2, dur: 0.03, vol: vol * 0.25, pan }); } else { noise({ t, f: 3000, q: 0.8, dur: 0.3, vol: vol * 0.35, pan }); } break;
+      // round 11: komodo dragon: a deep, rough hiss with a growl under it (a hatchling's is a thin hiss)
+      case 'komodo': if (k > 1) { noise({ t, f: 3200, q: 0.9, dur: 0.3, vol: vol * 0.4, pan }); } else { noise({ t, f: 900, q: 0.5, dur: 1.0, vol: vol * 0.8, pan }); T({ t, f: 60, f2: 48, dur: 0.9, a: 0.1, type: 'sawtooth', lp: 240, vib: 18, vibAmt: 5, vol: vol * 0.9 }); } break;
       case 'snake': noise({ t, f: 5000, type: 'highpass', dur: 0.8, vol: vol * 0.5, pan }); break;
       case 'bunny': T({ t, f: 95, f2: 60, dur: 0.12, vol: vol * 1.4 }); T({ t: t + 0.25, f: 95, f2: 60, dur: 0.12, vol: vol * 1.4 }); break;
       case 'squirrel': for (let i = 0; i < 8; i++) T({ t: t + i * 0.06, f: (2600 + Math.random() * 900) * (k > 1 ? 1.2 : 1), dur: 0.035, vol: vol * 0.6 }); break;

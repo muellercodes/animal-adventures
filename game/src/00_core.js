@@ -120,6 +120,8 @@ const SPECIES = {
   iguana: { name: 'Green iguana', many: 'Green iguanas', eats: ['lettuce', 'berries', 'banana', 'apple', 'twigs'], fav: 'lettuce', climb: true, swim: true, swimSpeed: 2.0, price: 500, egg: 0xF0EBD8, baby: 'Baby iguana' },
   // round 11: chameleon
   chameleon: { name: 'Chameleon', many: 'Chameleons', eats: ['bugs', 'worm'], fav: 'bugs', climb: true, price: 450, egg: 0xEFEADA, baby: 'Baby chameleon' },
+  // round 11: komodo dragon (climbBaby: hatchlings live in trees; the game's climbing only reads climb, per species)
+  komodo: { name: 'Komodo dragon', many: 'Komodo dragons', eats: ['meat', 'fish', 'hotdog'], fav: 'meat', swim: true, swimSpeed: 1.8, outdoor: true, hunter: true, climbBaby: true, price: 1500, egg: 0xEDE6D4, baby: 'Baby Komodo dragon' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
@@ -148,6 +150,8 @@ SHOP.push('beardeddragon');
 SHOP.push('iguana');
 // round 11: chameleon
 SHOP.push('chameleon');
+// round 11: komodo dragon
+SHOP.push('komodo');
 // round 7: the shop runs from cheap to dear
 SHOP.sort((a, b) => SPECIES[a].price - SPECIES[b].price);
 // round 8: brachiosaurus (the dearest animal, so it goes last)

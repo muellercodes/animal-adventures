@@ -6842,6 +6842,93 @@ const Animals = (() => {
     extend: (R, A, rig) => chameleonExtend(R, A, rig),
   });
 
+  // ===== round 11: komodo dragon =====
+  ids.push('komodo');
+  // its forked yellow tongue flicks out every couple of seconds (spec.extend)
+  const komodoExtend = (R) => {
+    const tg = R.extras.tongue;
+    let seed = (R.rnd * 1e6) | 0, next = 1 + R.rnd * 2, t0 = -9, clock = 0;
+    const rand = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296;
+    if (tg) tg.visible = false;
+    return (dt, st) => {
+      if (!tg) return;
+      clock += dt;
+      if (clock > next) { next = clock + 1.6 + rand() * 3; if (st.mode !== 'sleep' && !(st.eat > 0)) t0 = clock; }
+      const u = (clock - t0) / 0.6, f = u < 1 ? Math.sin(Math.PI * u) : 0, s0 = tg.userData.s || 1;
+      tg.visible = f > 0.05;
+      tg.scale.set(s0, s0, s0 * Math.max(0.01, f));
+      tg.rotation.set(0.1 + Math.sin(clock * 50) * 0.2 * f, 0, 0);
+    };
+  };
+  // KOMODO DRAGON (2.8 m): a heavy deep body on thick upright legs with big claws, a long thick neck with loose folds,
+  // a long flat head, a long muscular tail; dull gray-brown. Swims (legs tucked, the tail sweeping), hunts. The
+  // hatchling is a separate size (size.baby, about half a meter in the game), slim, banded bright yellow and black.
+  SPEC.komodo = () => lizardKin({
+    k: 5.6,
+    size: { length: 2.8, height: 0.49, radius: 0.34, eyeHeight: 0.4, baby: { length: 1.15, height: 0.17, radius: 0.12, eyeHeight: 0.15, float: 0.15 } },
+    bones: [
+      ['hips', null, 0, 0.059, -0.04],
+      ['chest', 'hips', 0, 0.061, 0.092],
+      ['neck', 'chest', 0, 0.063, 0.128],
+      ['head', 'neck', 0, 0.064, 0.168],
+      ['tail1', 'hips', 0, 0.052, -0.078],
+      ['tail2', 'tail1', 0, 0.044, -0.122],
+      ['tail3', 'tail2', 0, 0.037, -0.165],
+      ['tail4', 'tail3', 0, 0.031, -0.21],
+      ['tail5', 'tail4', 0, 0.026, -0.25],
+      ['thighL', 'hips', 0.026, 0.056, -0.04, 1],
+      ['shinL', 'thighL', 0.06, 0.06, -0.036, 1],
+      ['hmetaL', 'shinL', 0.069, 0.011, -0.055, 1],
+      ['hpawL', 'hmetaL', 0.071, 0.006, -0.044, 1],
+      ['armL', 'chest', 0.026, 0.058, 0.094, 1],
+      ['foreL', 'armL', 0.056, 0.058, 0.09, 1],
+      ['fmetaL', 'foreL', 0.062, 0.011, 0.106, 1],
+      ['fpawL', 'fmetaL', 0.064, 0.006, 0.116, 1],
+    ],
+    // the loft rows of tools/blender/komodo.py (base units)
+    body: [
+      [-0.285, 0.024, 0.0225, 0.021, 0.0009, 2], [-0.24, 0.033, 0.0275, 0.021, 0.0045, 2.1], [-0.2, 0.041, 0.032, 0.0225, 0.007, 2.1],
+      [-0.16, 0.049, 0.0365, 0.024, 0.0094, 2.1], [-0.12, 0.057, 0.041, 0.0258, 0.0122, 2.2], [-0.085, 0.065, 0.0455, 0.027, 0.016, 2.2],
+      [-0.06, 0.072, 0.049, 0.028, 0.0215, 2.3], [-0.035, 0.079, 0.053, 0.0285, 0.0285, 2.4], [0, 0.085, 0.056, 0.0285, 0.0335, 2.5],
+      [0.035, 0.087, 0.058, 0.0295, 0.034, 2.5], [0.07, 0.085, 0.06, 0.032, 0.031, 2.4], [0.095, 0.082, 0.0615, 0.0355, 0.026, 2.3],
+      [0.115, 0.0785, 0.062, 0.041, 0.021, 2.2], [0.135, 0.0775, 0.0625, 0.045, 0.0192, 2.2], [0.155, 0.078, 0.063, 0.048, 0.0196, 2.3],
+      [0.17, 0.0782, 0.0635, 0.0496, 0.0186, 2.4], [0.185, 0.0768, 0.0636, 0.051, 0.016, 2.5], [0.197, 0.0738, 0.0632, 0.0526, 0.014, 2.5],
+      [0.207, 0.0708, 0.0626, 0.054, 0.0122, 2.4], [0.213, 0.0682, 0.062, 0.0552, 0.0098, 2.3], [0.2175, 0.0652, 0.0614, 0.0566, 0.006, 2.1],
+    ],
+    zTail: -0.062, legR: [0.0105, 0.0125],
+    col: { base: hex(0x5A5040), dark: hex(0x3A3329), belly: hex(0x7C7462) },
+    toes: [
+      [{ a: -34, len: 0.012, r: 0.0024, claw: 0.0045 }, { a: -10, len: 0.016, r: 0.0024, claw: 0.0045 }, { a: 12, len: 0.018, r: 0.0024, claw: 0.0045 }, { a: 34, len: 0.017, r: 0.0024, claw: 0.0045 }, { a: 64, len: 0.011, r: 0.0022, claw: 0.004 }],
+      [{ a: -18, len: 0.013, r: 0.0026, claw: 0.0045 }, { a: 4, len: 0.019, r: 0.0026, claw: 0.0045 }, { a: 22, len: 0.024, r: 0.0026, claw: 0.0045 }, { a: 40, len: 0.026, r: 0.0026, claw: 0.0045 }, { a: 95, len: 0.016, r: 0.0024, claw: 0.004 }],
+    ],
+    toeCol: 0x4A4236,
+    eye: { p: [0.0118, 0.0712, 0.1885], r: 0.0021, dir: [0.94, 0.22, 0.26], iris: 0x8A6A30, irisR: 0.92, pupilR: 0.4, rim: 0x2A1E10 },
+    mouth: [0, 0.06, 0.215],
+    anim: {
+      walk: 1.0, trot: 2.0, run: 5.0, stride: 0.8, strideMax: 2.0, maxRate: 4,
+      duty: [0.68, 0.55, 0.45], lift: [0.06, 0.06], flexF: 0.55, flexH: 0.5, splay: 0.8,
+      bob: [0.004, 0.006, 0.02], roll: 0.025, wave: 0.12, tailSway: 0.05, tailWalk: 0.04,
+      neckDist: [0.55, 0.45], chew: 0.03, chewRate: 5, eatY: 0.02, eatMax: 1.0, eatPitch: 0.1, pushups: 0, lookAmp: 0.35,
+      // floating low with the head and back out, the legs tucked along the body, the tail sweeping
+      floatDepth: 0.44, swimHead: -0.15, swimPitch: -0.04, paddle: 0.7, swimSweep: 0.3,
+      swimTuck: { f: [0.45, -0.75, 0.9, 1.0], h: [0.6, -0.8, 0.3, 1.0] },
+      climb: { splay: 0.25, drop: 0.7, reach: 0.2, neck: -0.3, tail: [0.05, 0.03, 0, 0, 0], flex: 0.2, toe: 0.5 },
+      sleep: { style: 'flat', neck: [0.25, 0.1], tail: [0.9, -0.02] }, wag: 0.1,
+    },
+    // the hatchling: about 0.41 of the adult (then the game's 0.42), slim, a big head and eyes, long legs for climbing
+    baby: { head: 0.5, eye: 1.3, muzzle: 0.85, neck: [0.42, 0.4], body: [0.35, 0.37, 0.42], leg: [0.4, 0.42], tail: 0.44, rebind: true, tagK: 0.45 },
+    extras: () => {
+      // the forked tongue: a stem and two prongs (flat), yellow
+      const g = new THREE.BufferGeometry(), L = 0.2, w = 0.007;
+      const v = [-w, 0, 0, w, 0, 0, w, 0, L * 0.6, -w, 0, 0, w, 0, L * 0.6, -w, 0, L * 0.6,
+        -w, 0, L * 0.6, 0, 0, L * 0.6, -0.022, 0, L, 0, 0, L * 0.6, w, 0, L * 0.6, 0.022, 0, L];
+      g.setAttribute('position', new THREE.Float32BufferAttribute(v, 3));
+      g.computeVertexNormals();
+      return [{ bone: 'head', name: 'tongue', geo: g, mat: new THREE.MeshStandardMaterial({ color: linColor(0xE2BE3A), roughness: 0.45, side: THREE.DoubleSide }), at: [0, 0.336, 1.2] }];
+    },
+    extend: (R) => komodoExtend(R),
+  });
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -8825,6 +8912,8 @@ const Animals = (() => {
   COLLAR.iguana = { at: ['neck', 'head', 0.3], tag: PI * 0.6 };
   // ===== round 11: chameleon
   COLLAR.chameleon = { at: ['chest', 'neck', 0.7], tag: PI * 0.6, r: 0.9 };
+  // ===== round 11: komodo dragon
+  COLLAR.komodo = { at: ['neck', 'head', 0.3], tag: PI * 0.6, maxR: 0.3 };
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)

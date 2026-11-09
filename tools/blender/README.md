@@ -918,3 +918,13 @@ The chameleon (`chameleon.py`, a male panther chameleon, Furcifer pardalis, 45 c
 Synthetic rigs: the lizkit species make every skin weight themselves, so their rig export only has to give the bone
 pivots; a rig json written from the species' bone table (bones times k, mirrored ones doubled, the collar tag, one
 dummy triangle as the procedural mesh) gives the same model as the browser export.
+
+The Komodo dragon (`komodo.py`, Varanus komodoensis, 2.8 m, KS 5.6) is the template's own monitor made heavy: a deep
+broad body on thick upright legs with big curved claws, a long thick neck with loose folds across its sides (`folds()`)
+and a full throat, a long flat head with a rounded snout, small eyes under a brow, slit nostrils near the tip, a long
+muscular tail. Dull gray-brown with paler and darker mottling, faint reddish blotches and pale speckles, the head
+grayer. The hatchling has its own color map (bright yellow bands across a black body, an orange-pink head and neck);
+the game makes it slim and small (`size.baby`, about half a meter in the game).
+- Budget (`VOXEL=0.0065 TRIS=2800 TEX=768`): 7.9k triangles; 768 color (WebP 50) and normal (WebP 30) maps, 256
+  hatchling color map: 54 KB mesh + 29 + 50 + 16 KB, 152 KB of files, about 203 KB in the page plus about 29 KB of
+  icons.
