@@ -10418,7 +10418,7 @@ const Animals = (() => {
     const sex = opts && (opts.sex === 'm' || opts.sex === 'f') ? opts.sex : null, L = sex ? sexLook(id, sex) : null;
     const A = getAssets(id, L && L.model && MODELS[id + sex] ? id + sex : id);
     const R = instantiate(A);
-    if (L && L.horns != null) R.hornK = L.horns;
+    if (L && L.horns != null) { R.hornK = L.horns; for (const nm of A.age.horns) R.bones[nm].scale.setScalar(Math.max(0.001, R.hornK)); }
     const sz = A.spec.size, an = A.spec.anim;
     const upd = ANIM[an.type](R, A);
     // round 11: spec.extend(R, A, rig) adds a species' own per-frame steps (run after the animator) and rig methods
