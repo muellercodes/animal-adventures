@@ -9038,10 +9038,12 @@ const Animals = (() => {
   }
   let lashMat = null;
 
-  function getAssets(id) {
-    if (cache[id]) return cache[id];
+  // (round 12: mid is the sculpt to use, the species' own or a boy's or girl's own sculpt of it, game/models/<id><m|f>.json;
+  // each gets its own cached assets on the species' skeleton)
+  function getAssets(id, mid = id) {
+    if (cache[mid]) return cache[mid];
     const spec = SPEC[id]();
-    const M = modelData(id);
+    const M = modelData(mid);
     if (M) {
       // the sculpt places the eyes and the mouth; no loft parts, accents or fur shells
       const e = M.md.eye;
@@ -9212,7 +9214,8 @@ const Animals = (() => {
       babyMats: null,
     };
     A.eat0 = computeEat(A, rest, 0);
-    cache[id] = A;
+    A.mid = mid;
+    cache[mid] = A;
     return A;
   }
   // eat / drink neck poses for a given rest skeleton (adult once per species, babies when their age is set)
@@ -9431,7 +9434,8 @@ const Animals = (() => {
     }
     R.belly.lerpVectors(A.belly, AG.belly1, t);
     for (const m of R.meshes) if (m.morphTargetInfluences) m.morphTargetInfluences[0] = t;
-    const hs = Math.max(0.001, sstep(0.6, 1.0, a));
+    // (round 12: R.hornK, a girl deer's or moose's antlers (0) or a nanny goat's smaller horns)
+    const hs = Math.max(0.001, sstep(0.6, 1.0, a) * (R.hornK == null ? 1 : R.hornK));
     for (const nm of AG.horns) R.bones[nm].scale.setScalar(hs);
     // baby colors (cached per species, built the first time a baby of that species appears)
     const baby = a < 0.4;
@@ -10408,17 +10412,20 @@ const Animals = (() => {
   ANIM.butterfly = animButterfly;
   ANIM.crawl = animCrawl;
 
-  function build(id) {
+  // opts.sex ('m' or 'f', round 12): a boy or a girl, with that one's own sculpt and horns where SEX_LOOK says so
+  function build(id, opts) {
     if (!SPEC[id]) id = 'fox';
-    const A = getAssets(id);
+    const sex = opts && (opts.sex === 'm' || opts.sex === 'f') ? opts.sex : null, L = sex ? sexLook(id, sex) : null;
+    const A = getAssets(id, L && L.model && MODELS[id + sex] ? id + sex : id);
     const R = instantiate(A);
+    if (L && L.horns != null) R.hornK = L.horns;
     const sz = A.spec.size, an = A.spec.anim;
     const upd = ANIM[an.type](R, A);
     // round 11: spec.extend(R, A, rig) adds a species' own per-frame steps (run after the animator) and rig methods
     // (the chameleon's eyes, tongue and color change; the Komodo dragon's tongue); no other species has one
     let ext = null;
     const rig = {
-      id,
+      id, sex, model: A.mid,
       root: R.root,
       length: sz.length, height: sz.height, radius: sz.radius, eyeHeight: sz.eyeHeight,
       stride: an.stride, floatDepth: an.floatDepth || 0,

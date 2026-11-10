@@ -161,12 +161,23 @@ const STICK_R = 54;
 // sound can only start after the first tap or key press
 const wake = () => { Sound.resume(); Sound.setOn(S.sound !== false); Sound.setMusic(S.music !== false); };
 window.addEventListener('pointerdown', wake, { passive: true }); window.addEventListener('keydown', wake);
+// round 12: if a finger's end never reached the game (no pointerup, pointercancel or lost capture: a system gesture, an
+// alert, the screen locking), the stick stayed held where it was, so the animal ran on in one direction (in circles
+// when it was held to the side) and a new finger on the left could only turn the camera, until the page was reloaded.
+// Now everything that can end a touch lets go of the stick, and a finger that comes down while no other finger is on
+// the screen clears whatever was left over first.
+function releaseTouches() {
+  if (stick.id !== null) { stick.id = null; stick.dx = stick.dy = 0; $('stick').hidden = true; }
+  looks.clear(); pinch = null;
+}
+function clearMoveKeys() { for (const k in keys) keys[k] = false; press.jumpHeld = press.landHeld = press.dashHeld = false; }
 touchEl.addEventListener('pointerdown', (e) => {
+  if (e.pointerType === 'touch' && e.isPrimary) releaseTouches();
   if (R.mode !== 'play' || R.paused) return;
   e.preventDefault();
   try { touchEl.setPointerCapture(e.pointerId); } catch (err) {}
   if (e.pointerType !== 'mouse' && e.clientX < innerWidth * 0.45 && stick.id === null) {
-    stick.id = e.pointerId; stick.ox = e.clientX; stick.oy = e.clientY; stick.dx = 0; stick.dy = 0;
+    stick.id = e.pointerId; stick.t0 = performance.now(); stick.ox = e.clientX; stick.oy = e.clientY; stick.dx = 0; stick.dy = 0;
     const s = $('stick'); s.hidden = false; s.style.transform = `translate(${e.clientX}px,${e.clientY}px)`; $('knob').style.transform = '';
     $('stickHint').hidden = true;
   } else {
@@ -194,7 +205,21 @@ const endPointer = (e) => {
   if (e.pointerId === stick.id) { stick.id = null; stick.dx = stick.dy = 0; $('stick').hidden = true; }
   looks.delete(e.pointerId); if (looks.size < 2) pinch = null;
 };
-touchEl.addEventListener('pointerup', endPointer); touchEl.addEventListener('pointercancel', endPointer);
+touchEl.addEventListener('pointerup', endPointer); touchEl.addEventListener('pointercancel', endPointer); touchEl.addEventListener('lostpointercapture', endPointer);
+// (the browser's own count of fingers on the screen: one finger means anything older is gone; its pointerdown came a
+// moment before this, so only a stick older than that is let go)
+window.addEventListener('touchstart', (e) => {
+  if (e.touches.length !== e.changedTouches.length) return;
+  if (stick.id !== null && performance.now() - (stick.t0 || 0) > 250) { stick.id = null; stick.dx = stick.dy = 0; $('stick').hidden = true; }
+}, { capture: true, passive: true });
+// no finger left on the screen: nothing can still be held (the stick, a look, or the jump, land and dash buttons)
+const allUp = (e) => {
+  if (e.touches.length) return;
+  releaseTouches(); press.jumpHeld = press.landHeld = press.dashHeld = false;
+  for (const id of ['btnJump', 'btnLand', 'btnDash']) $(id).classList.remove('held');
+};
+window.addEventListener('touchend', allUp, { capture: true, passive: true });
+window.addEventListener('touchcancel', allUp, { capture: true, passive: true });
 touchEl.addEventListener('wheel', (e) => { if (R.mode !== 'play') return; e.preventDefault(); Cam.zoom = clamp(Cam.zoom * Math.exp(e.deltaY * 0.0012), 0.55, 2.4); }, { passive: false });
 touchEl.addEventListener('contextmenu', (e) => e.preventDefault());
 function holdButton(id, on, off) {
@@ -219,8 +244,13 @@ window.addEventListener('keydown', (e) => {
   if (!e.repeat) { if (k === 'jump') press.jump = true; if (k === 'eat') press.eat = true; if (k === 'act') press.act = true; if (k === 'call') press.call = true; }
   keys[k] = true;
 });
-window.addEventListener('keyup', (e) => { const k = KEYMAP[e.code]; if (k) keys[k] = false; });
-window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; press.jumpHeld = press.landHeld = press.dashHeld = false; });
+window.addEventListener('keyup', (e) => { const k = KEYMAP[e.code]; if (k) keys[k] = false; if (e.key === 'Meta') clearMoveKeys(); });
+// (round 12: on a Mac a key let go while Cmd is held never sends its keyup, so a held W ran on forever: Cmd lets go of
+// every key. Leaving the page or the game losing focus lets go of keys and fingers alike.)
+window.addEventListener('keydown', (e) => { if (e.key === 'Meta') clearMoveKeys(); }, true);
+window.addEventListener('blur', () => { clearMoveKeys(); releaseTouches(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { clearMoveKeys(); releaseTouches(); } });
+window.addEventListener('pagehide', () => { clearMoveKeys(); releaseTouches(); });
 function readInput() {
   let ix = 0, iy = 0;
   if (stick.id !== null) { ix = stick.dx / STICK_R; iy = -stick.dy / STICK_R; const m = Math.hypot(ix, iy); if (m < 0.12) { ix = 0; iy = 0; } }
@@ -631,9 +661,13 @@ function updateHud() {
   if (h.leaves !== S.leaves) { h.leaves = S.leaves; $('leafCount').textContent = S.leaves; }
   const hv = Math.round(S.hunger);
   if (h.hunger !== hv) { h.hunger = hv; const f = $('hungerFill'); f.style.width = hv + '%'; f.style.backgroundColor = hv > 50 ? '#3E9A49' : hv > 20 ? '#F2B124' : '#E07A3A'; }
-  const nm = nameOf(S.animal) + (S.names[S.animal] ? '' : ''), stage = ageOf(S.animal) < 1 ? stageName(S.animal) : '';
-  const nameKey = S.animal + nm + stage;
-  if (h.name !== nameKey) { h.name = nameKey; $('meImg').src = meIcon(S.animal); $('meName').textContent = S.names[S.animal] ? S.names[S.animal] : (stage || sp.name); }
+  const nm = nameOf(S.animal) + (S.names[S.animal] ? '' : ''), stage = ageOf(S.animal) < 1 ? stageName(S.animal) : '', sx = sexOf(S.animal);
+  const nameKey = S.animal + nm + stage + sx;
+  if (h.name !== nameKey) {
+    h.name = nameKey; $('meImg').src = meIcon(S.animal);
+    const shown = S.names[S.animal] ? S.names[S.animal] : (stage || (b.form ? sp.name : sexName(S.animal, sx)));
+    $('meName').innerHTML = `${esc(shown)} ${sexSign(sx)}`;
+  }
   const status = S.sick > 0 ? Sick.label() : S.hunger <= 0 ? 'Hungry!' : (S.names[S.animal] && stage) ? stage : '';
   if (h.status !== status) { h.status = status; $('meStatus').textContent = status; $('meStatus').hidden = !status; }
   const shopName = (rm) => { const n = (rm.house && rm.house.name || 'the shop').replace(/^the /, ''); return n[0].toUpperCase() + n.slice(1); };
@@ -680,8 +714,11 @@ function updateHud() {
 /* ---------- icons (pre-rendered in the published build, drawn on demand otherwise) ---------- */
 const ICON = {};
 let iconR = null;
-function animalIcon(id, age) {
-  const key = id + (age !== undefined && age < (id === 'butterfly' ? FLY_AGE : 0.4) ? '-baby' : '');
+// (round 12: sex picks a grown-up boy's or girl's own picture, icon-<id><m|f>, where they look different)
+function animalIcon(id, age, sex) {
+  const baby = age !== undefined && age < (id === 'butterfly' ? FLY_AGE : 0.4), L = !baby && sex ? sexLook(id, sex) : null;
+  const looks = L && (L.model || L.horns != null);
+  const key = id + (baby ? '-baby' : '') + (looks ? sex : '');
   if (ASSETS.icons[key]) return ASSETS.icons[key];
   if (ASSETS.icons[id] && key === id) return ASSETS.icons[id];
   if (ICON[key] !== undefined) return ICON[key];
@@ -694,8 +731,8 @@ function animalIcon(id, age) {
       const d = new THREE.DirectionalLight(0xfff4e0, 2.2); d.position.set(2, 4, 3); sc.add(d);
       iconR = { r, sc, cam: new THREE.PerspectiveCamera(28, 1, 0.01, 100) };
     }
-    const rig = Animals.build(id);
-    if (key !== id && rig.setAge) rig.setAge(0.1);
+    const rig = Animals.build(id, looks ? { sex } : null);
+    if (baby && rig.setAge) rig.setAge(0.1);
     iconR.sc.add(rig.root);
     rig.update(0.016, { t: 1, speed: 0, mode: 'ground', vy: 0, eat: 0, turn: 0, idle: 0 });
     const size = Math.max(rig.length, rig.height * 1.1), dist = size / (2 * Math.tan((14 * Math.PI) / 180)) * 1.05;
@@ -707,7 +744,17 @@ function animalIcon(id, age) {
   } catch (e) { ICON[key] = ''; }
   return ICON[key];
 }
-const meIcon = (sp) => animalIcon(sp, ageOf(sp));
+const meIcon = (sp) => animalIcon(sp, ageOf(sp), sexOf(sp));
+// the boy or girl sign (text, not emoji)
+const sexSign = (sx) => `<span class="sx sx-${sx}" title="${sx === 'm' ? 'Boy' : 'Girl'}">${sx === 'm' ? '\u2642\uFE0E' : '\u2640\uFE0E'}</span>`;
+// round 12: switch an animal between boy and girl (rebuilds it if you are playing it)
+function setSex(id, sx) {
+  if (!S.owned.includes(id) || (sx !== 'm' && sx !== 'f') || sexOf(id) === sx) return;
+  S.sex[id] = sx; hudState.name = null;
+  if (id === S.animal && Player.b) { Player.set(id); Cam.snap = true; }
+  Sound.click(); save();
+  if (R.sheet) renderSheet();
+}
 const WORLD_BG = {
   land: 'linear-gradient(160deg,#bfe1f5 0 34%,#8cc35c 34% 70%,#c9483a 70% 76%,#79a447 76%)',
   sky: 'linear-gradient(160deg,#a9d8f5,#e8f5fd 55%,#ffd6ec)',
@@ -734,13 +781,19 @@ function tags(id) {
   return out.join('');
 }
 function foodChips(id) { const A = SPECIES[id]; return `<span class="eats">${A.eats.map((f) => `<span class="food${f === A.fav ? ' fav' : ''}">${FOODS[f].name}</span>`).join('')}</span>`; }
-function openSheet(kind) { R.sheet = kind; UI.hideAsk(); for (const k in keys) keys[k] = false; renderSheet(); $('sheetWrap').hidden = false; R.paused = true; }
-function closeSheet() { R.sheet = null; R.naming = null; $('sheetWrap').hidden = true; if (R.mode === 'play') R.paused = false; save(); }
+function openSheet(kind) { R.sheet = kind; UI.hideAsk(); clearMoveKeys(); releaseTouches(); renderSheet(); $('sheetWrap').hidden = false; R.paused = true; }
+function closeSheet() {
+  // (a new animal waiting for boy or girl: closing the question keeps the one it shows first and goes to it)
+  const pend = R.sheet === 'sex' ? R.sexFor : null;
+  R.sheet = null; R.naming = null; R.sexFor = null; releaseTouches(); $('sheetWrap').hidden = true; if (R.mode === 'play') R.paused = false; save();
+  if (pend) { switchAnimal(pend); UI.saved(); }
+}
 function renderSheet() {
   const t = $('sheetTitle'), b = $('sheetBody');
   if (R.sheet === 'map') { t.textContent = 'Where do you want to go?'; b.innerHTML = sheetMap(); }
   else if (R.sheet === 'animals') { t.textContent = 'My animals'; b.innerHTML = sheetAnimals(); if (R.naming) setTimeout(() => { const i = $('nameInput'); if (i) i.focus(); }, 60); }
   else if (R.sheet === 'settings') { t.textContent = 'Settings'; b.innerHTML = sheetSettings(); }
+  else if (R.sheet === 'sex') { t.textContent = 'A boy or a girl?'; b.innerHTML = sheetSex(R.sexFor); }
   else if (R.sheet === 'shop') {
     t.textContent = 'Shop'; b.innerHTML = sheetShop();
   }
@@ -768,12 +821,20 @@ function homeLine(id) {
 function sheetAnimals() {
   const ids = STARTERS.concat(SHOP).filter((i) => S.owned.includes(i));
   return `<p class="note">Tap Play to switch animals. Yellow foods are favorites and give 2 leaves each. Babies grow up by eating.</p><div class="list">${ids.map((id) => {
-    const A = SPECIES[id], on = id === S.animal, a = ageOf(id), nick = S.names[id];
-    const title = nick ? `${esc(nick)} <span class="kind">the ${(a < 1 ? stageName(id) : A.name).toLowerCase()}</span>` : (a < 1 ? stageName(id) : A.name);
+    const A = SPECIES[id], on = id === S.animal, a = ageOf(id), nick = S.names[id], sx = sexOf(id), kind = a < 1 ? stageName(id) : sexName(id, sx);
+    const title = (nick ? `${esc(nick)} <span class="kind">the ${kind.toLowerCase()}</span>` : kind) + ' ' + sexSign(sx);
+    const sw = `<div class="sexsw" role="group" aria-label="Boy or girl">${['m', 'f'].map((v) => `<button type="button" class="${v}${v === sx ? ' on' : ''}" aria-pressed="${v === sx}" data-action="sex" data-v="${id}:${v}">${v === 'm' ? 'Boy' : 'Girl'}</button>`).join('')}</div>`;
     const naming = R.naming === id ? `<form class="nameform" id="nameForm" data-sp="${id}" autocomplete="off"><label for="nameInput">Nickname</label><input id="nameInput" maxlength="16" value="${esc(nick || '')}" placeholder="Like Sprinkles"><button class="btn small green" type="submit">Save</button><button class="btn small ghost" type="button" data-action="name-cancel">Cancel</button></form>` : '';
     return `<div class="arow${on ? ' on' : ''}"><img src="${meIcon(id)}" alt=""><div><div class="aname">${title} ${tags(id)}</div>${foodChips(id)}${a < 1 ? `<span class="growl">Growing up <span class="grow"><i style="width:${Math.max(4, Math.round(a * 100))}%"></i></span></span>` : ''}${homeLine(id)}${naming}</div>
-      <div class="acts">${on ? '<span class="playing">Playing</span>' : `<button class="btn small" type="button" data-action="switch" data-v="${id}">Play</button>`}<button class="btn small ghost" type="button" data-action="name" data-v="${id}">Name</button></div></div>`;
+      <div class="acts">${on ? '<span class="playing">Playing</span>' : `<button class="btn small" type="button" data-action="switch" data-v="${id}">Play</button>`}<button class="btn small ghost" type="button" data-action="name" data-v="${id}">Name</button>${sw}</div></div>`;
   }).join('')}</div>`;
+}
+// round 12: a new animal from the shop: pick a boy or a girl, each shown as it will look grown up
+function sheetSex(id) {
+  if (!SPECIES[id]) return '';
+  const A = SPECIES[id];
+  return `<p class="note">Your new ${A.name.toLowerCase()} starts as a baby. Is it a boy or a girl? You can switch any time in My animals.</p><div class="pick sexpick">${['m', 'f'].map((sx) =>
+    `<button class="pcard" type="button" data-action="sexpick" data-v="${id}:${sx}"><img src="${animalIcon(id, 1, sx)}" alt="">${sexSign(sx)} ${sx === 'm' ? 'Boy' : 'Girl'}<span class="kind">grows up into a ${sexName(id, sx).toLowerCase()}</span></button>`).join('')}</div>`;
 }
 // round 11: animals cost leaves again, earned only by playing (no leaf store, no grown-up check); cheapest first
 function sheetShop() {
@@ -869,8 +930,8 @@ function buyAnimal(id) {
   const A = SPECIES[id]; if (!A || S.owned.includes(id) || S.leaves < priceOf(id)) return;
   S.leaves -= priceOf(id); S.owned.push(id); S.ages[id] = 0;
   Sound.chime();
-  switchAnimal(id);
-  UI.saved();
+  // round 12: a boy or a girl? (you can switch later in My animals)
+  R.sexFor = id; openSheet('sex');
 }
 function showLoading(text, fn) {
   $('loadingText').textContent = text; $('loading').hidden = false;
@@ -906,6 +967,7 @@ function applySave(d) {
   S.saved = Number.isFinite(d.saved) ? d.saved : 0;
   S.ages = {}; for (const [k, v] of Object.entries(obj(d.ages))) if (SPECIES[k] && Number.isFinite(v)) S.ages[k] = clamp(v, 0, 1);
   S.names = {}; for (const [k, v] of Object.entries(obj(d.names))) if (SPECIES[k] && typeof v === 'string') S.names[k] = v.slice(0, 16);
+  S.sex = {}; for (const [k, v] of Object.entries(obj(d.sex))) if (SPECIES[k] && (v === 'm' || v === 'f')) S.sex[k] = v;
   S.homes = {}; for (const [k, v] of Object.entries(obj(d.homes))) if (SPECIES[k] && v && typeof v.name === 'string' && v.look) S.homes[k] = { name: v.name.slice(0, 20), look: v.look, house: clamp(v.house | 0, 0, 5) };
   // which of your animals are sick, and with what (older saves only knew "has a cold")
   S.ills = {}; for (const [k, v] of Object.entries(obj(d.ills))) if (SPECIES[k] && ['cold', 'tummy', 'paw'].includes(v)) S.ills[k] = v;
@@ -1069,6 +1131,8 @@ document.addEventListener('click', (e) => {
     case 'switch': switchAnimal(v); break;
     case 'buy': buyAnimal(v); break;
     case 'name': R.naming = v; renderSheet(); break;
+    case 'sex': { const [sp, sx] = String(v).split(':'); setSex(sp, sx); break; }
+    case 'sexpick': { const [sp, sx] = String(v).split(':'); S.sex[sp] = sx === 'm' ? 'm' : 'f'; closeSheet(); break; }
     case 'name-cancel': R.naming = null; renderSheet(); break;
     case 'close': closeSheet(); break;
     case 'cloud': renderTitle('cloud'); setTimeout(() => { const i = $('cName'); if (i) i.focus(); }, 50); break;

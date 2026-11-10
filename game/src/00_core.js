@@ -218,7 +218,7 @@ const SHOES = ['#2A2A2A', '#5A3A22', '#E8E8E8', '#7A2E2E'];
 /* ---------- save state ---------- */
 // ages: species -> 0 (newborn) .. 1 (grown up). names: nicknames. homes: species -> the person who adopted it.
 const fresh = () => ({ v: 1, d3: true, saved: 0, leaves: 0, owned: [], animal: 'duck', world: 'land', visited: [], time: 120, hunger: 100, x: null, z: null, started: false,
-  ages: {}, names: {}, homes: {}, sick: 0, ills: {}, hatched: [], treats: {}, found: [], sound: true, music: true });
+  ages: {}, names: {}, sex: {}, homes: {}, sick: 0, ills: {}, hatched: [], treats: {}, found: [], sound: true, music: true });
 const ADULT_AT = 1, FLY_AGE = 0.6;
 // round 11: animals cost leaves again (Drew, Nov 2026: earned by playing only, no store, no math), at a fifth of the
 // old list prices (SPECIES price) so a new animal takes a play session or two
@@ -226,6 +226,35 @@ const priceOf = (id) => Math.max(20, Math.round((SPECIES[id].price || 100) / 50)
 // leaves you earn: per food (more for your favorite and for candy), for finding a world or a place, for growing up and
 // for being adopted
 const LEAVES = { food: 2, fav: 4, candy: 5, world: 25, place: 15, grown: 50, adopted: 20, treat: 5 };
+// round 12: boys and girls. Every animal is a boy ('m') or a girl ('f'), kept in S.sex[id] and switched in the Animals
+// menu. Where real animals look different, so do they: for each sex, name (the grown-up's own name), model (its own
+// sculpt, game/models/<id><m|f>.json, used when that file is there), horns (antlers or horns, 1 full, 0 none) and size
+// (body scale). base is the one the species' own sculpt shows (a new or old save starts with it). Not listed: boys and
+// girls look the same.
+const SEX_LOOK = {
+  lion: { base: 'm', f: { name: 'Lioness', model: true, size: 0.88 } },
+  tiger: { base: 'm', f: { name: 'Tigress', size: 0.86 } },
+  leopard: { base: 'm', f: { size: 0.86 } }, snowleopard: { base: 'm', f: { size: 0.88 } }, cheetah: { base: 'm', f: { size: 0.93 } },
+  ocelot: { base: 'm', f: { size: 0.9 } }, smilodon: { base: 'm', f: { size: 0.9 } }, polarbear: { base: 'm', f: { size: 0.82 } },
+  deer: { base: 'm', m: { name: 'Buck' }, f: { name: 'Doe', horns: 0, size: 0.88 } },
+  moose: { base: 'm', f: { horns: 0, size: 0.86 } },
+  goat: { base: 'm', m: { name: 'Billy goat' }, f: { name: 'Nanny goat', horns: 0.55, size: 0.92 } },
+  cow: { base: 'f', m: { name: 'Bull', model: true, size: 1.08 } },
+  chicken: { base: 'f', m: { name: 'Rooster', model: true }, f: { name: 'Hen' } },
+  duck: { base: 'm', f: { model: true } },
+  cockatiel: { base: 'm', f: { model: true } },
+  chameleon: { base: 'm', f: { model: true, size: 0.82 } },
+  swan: { base: 'm', f: { size: 0.92 } },
+  eagle: { base: 'f', m: { size: 0.86 } }, owl: { base: 'f', m: { size: 0.88 } },
+  giraffe: { base: 'm', f: { size: 0.86 } }, camel: { base: 'm', f: { size: 0.92 } }, panda: { base: 'm', f: { size: 0.9 } },
+  crocodile: { base: 'm', f: { size: 0.78 } }, komodo: { base: 'm', f: { size: 0.85 } }, iguana: { base: 'm', f: { size: 0.85 } },
+  rhino: { base: 'm', f: { size: 0.94 } },
+};
+const sexLook = (id, sex) => (SEX_LOOK[id] && SEX_LOOK[id][sex]) || null;
+const sexOf = (id) => (S.sex && (S.sex[id] === 'm' || S.sex[id] === 'f') ? S.sex[id] : (SEX_LOOK[id] && SEX_LOOK[id].base) || 'f');
+// the grown-up's name for a boy or a girl ("Lioness", "Rooster"), else the species' own name
+const sexName = (id, sex) => { const L = sexLook(id, sex); return (L && L.name) || SPECIES[id].name; };
+const sexSize = (id, sex) => { const L = sexLook(id, sex); return (L && L.size) || 1; };
 const ageOf = (sp) => (S.ages[sp] === undefined ? 1 : S.ages[sp]);
 const nameOf = (sp) => S.names[sp] || SPECIES[sp].name;
 const stageName = (sp) => {
