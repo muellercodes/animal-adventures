@@ -1,0 +1,70 @@
+{
+ "v": 2,
+ "id": "cockatielf",
+ "base": "cockatiel",
+ "maps": {
+  "color": "cockatielf-color.webp",
+  "feather": "cockatielf-feather.webp",
+  "featherNormal": "cockatielf-feathernrm.webp"
+ },
+ "srgb": [
+  "feather"
+ ],
+ "eye": {
+  "p": [
+   0.01352,
+   0.16737,
+   0.04851
+  ],
+  "r": 0.00277,
+  "dir": [
+   0.9398,
+   0.12,
+   0.3199
+  ],
+  "lid": [
+   0.8,
+   -0.8,
+   0.12
+  ],
+  "iris": 2759184,
+  "irisR": 0.92,
+  "pupilR": 0.55,
+  "rim": 3811872,
+  "lidCol": 9209474,
+  "babyIris": 1708556,
+  "babyLidCol": 14200996
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "head",
+   0.35
+  ],
+  "babyAt": 0.4,
+  "hug": true,
+  "babyK": 1.8,
+  "lift": 0.35
+ },
+ "mouth": [
+  0.0,
+  0.152,
+  0.0651
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.1,
+  0.1,
+  0.1
+ ],
+ "flat": 8881536
+}

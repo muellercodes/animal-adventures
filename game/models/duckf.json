@@ -1,0 +1,70 @@
+{
+ "v": 2,
+ "id": "duckf",
+ "base": "duck",
+ "maps": {
+  "color": "duckf-color.webp",
+  "feather": "duckf-feather.webp",
+  "featherNormal": "duckf-feathernrm.webp"
+ },
+ "srgb": [
+  "feather"
+ ],
+ "eye": {
+  "p": [
+   0.0172,
+   0.3935,
+   0.1795
+  ],
+  "r": 0.0045,
+  "dir": [
+   0.9324,
+   0.2005,
+   0.3008
+  ],
+  "lid": [
+   0.8,
+   -0.8,
+   0.12
+  ],
+  "iris": 3809294,
+  "irisR": 0.9,
+  "pupilR": 0.42,
+  "rim": 920070,
+  "lidCol": 4272932,
+  "babyLidCol": 3813408
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "neck2",
+   0.55
+  ],
+  "babyAt": 0.8,
+  "hug": true,
+  "babyK": 1.8,
+  "lift": 0.35
+ },
+ "mouth": [
+  0.0,
+  0.3585,
+  0.258
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.1,
+  0.08,
+  0.06
+ ],
+ "flat": 9203792,
+ "look": "hen"
+}

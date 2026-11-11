@@ -1226,3 +1226,44 @@ neck, head and ear bones moved, scaled by the same factor (`SPEC.panda`).
 - Budget (`VOXEL=0.006 TRIS=5200 TEX=768`, then rings across the body and the neck): 7.4k triangles, no cards; 768 color
   and normal maps (WebP 70 and 56: the coat is mostly flat white and black), 256 cub map, 384 fur map: 67 KB mesh + 22 +
   17 + 4 + 7 KB, 120 KB of files, about 160 KB in the page plus about 49 KB of icons.
+
+## Round 12: a rooster, a mallard hen, a female cockatiel and a female panther chameleon
+
+Boys and girls (`SEX_LOOK` in `game/src/00_core.js`): where the real animals look different, the other sex has its own
+model, `game/models/<id><m|f>.json`, on the species' skeleton and spec.
+- Coat variants (`coat.py`): `duckf.py`, `cockatielf.py` and `chameleonf.py` run the base species' file in their own
+  module (as the black cat runs cat.py), set `BASE` and replace the paint (and for the birds the feather atlas cells and
+  `meta()`). New in `coat.py`: a variant without `baby_paint()` writes no baby map, so its babies borrow the base's
+  (ducklings, chicks and hatchlings of both sexes look alike), and a variant with `FEATHER_ATLAS` writes its own
+  feather atlas and its normals (`<id>-feather.webp`, `<id>-feathernrm.webp`, named in `srgb`; the babies' down atlas
+  stays the base's). Run them after the base species' pipeline up to the bake (the work files must be current: a
+  rebuild of the duck, chicken and cockatiel with the scripts here, and the chameleon's round 11 work files, give the
+  shipped models byte for byte).
+- The mallard hen: mottled brown and buff (each feather a dark center in a buff margin, streakier on the neck and the
+  breast, plainer on the belly), a dark crown, a dark stripe through the eye between a pale eyebrow and buff cheeks, a
+  pale throat, an orange bill with a dark saddle, orange feet, the drake's blue speculum with its black and white
+  borders; brown tertials, tail feathers and coverts in her atlas. Her json says `"look": "hen"`: the game's duck spec
+  leaves out the drake's two curled tail feathers.
+- The female cockatiel: gray, the male's yellow face and crest only a faint yellow wash on gray, a duller orange cheek
+  patch, fine pale yellow bars under the tail, the outer tail feathers barred pale yellow all along, pale yellow spots
+  on the inner webs of the flight feathers (they show from below, in flight).
+- The female panther chameleon: tan to peach and pink with rust-brown bars, a faint pale flank stripe, brown rays from
+  the eye turrets, a banded tail, no green, blue or red. The game scales her to 0.82. The color change works on her as
+  on the male (`chroma.lum` in her json is her own map's mean brightness).
+- The rooster (`chickenm.py`, his own sculpt on the chicken's skeleton: copy `work/chicken-rig.json` to
+  `work/chickenm-rig.json`, then `make.py chickenm sculpt export`): chicken.py runs in his module and the parts that
+  differ are replaced. A big upright single comb with five rounded points and a blade behind the head (`_comb_top()`:
+  an arch times a cosine row of points), two long wattle lobes, bigger red earlobes, a fuller hackle cape, a deeper
+  breast, a fuller saddle, thicker legs with real spurs (`spur`, its own part, weighted with the tarsus, pulled back into
+  the leg for the chick by `baby_offset`'s `extra`). Paint: deep mahogany red, golden-orange hackles (not on the front of
+  the neck) and saddle, a dark glossy breast and belly; his atlas: black primaries edged red, the red wing bay, the
+  green-black wing bar, the red wing bow, green-black tail feathers and sickles, golden saddle hackles. His json says
+  `"look": "rooster"`, and the game's chicken spec gives him his own blades: the same wing with red tertials, a steep
+  tent of green-black tail feathers, two sickles each side that arch up, back and down (blades bent in their own plane,
+  `arc` in `featherBladeCut`), lesser sickles over the tail's sides, saddle hackles over the base of the tail; and a
+  prouder stance (`grownStance`: the body raised in front, the neck upright, the tail up, faded in as he grows, so his
+  chick stands as any chick). His chick: the hen's chick (down maps painted alike, the comb, wattles and spurs fold away).
+- Budget: duck hen 107 KB of files (82 KB color map, 21 KB atlas), about 143 KB in the page; female cockatiel 39 KB,
+  about 53 KB; female chameleon 43 KB, about 57 KB; rooster (`VOXEL=0.002 TRIS=6200 TEX=768`) 6.2k body triangles,
+  about 9k in the game with the blades and eyes, 196 KB of files (50 KB mesh, 25 + 51 KB color and normal maps, 37 KB of
+  baby maps, 18 KB atlas), about 261 KB in the page (the hen: 268 KB). Plus one icon each (`icon-<id><m|f>.png`).
