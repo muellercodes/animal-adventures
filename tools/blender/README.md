@@ -1267,3 +1267,47 @@ model, `game/models/<id><m|f>.json`, on the species' skeleton and spec.
   about 53 KB; female chameleon 43 KB, about 57 KB; rooster (`VOXEL=0.002 TRIS=6200 TEX=768`) 6.2k body triangles,
   about 9k in the game with the blades and eyes, 196 KB of files (50 KB mesh, 25 + 51 KB color and normal maps, 37 KB of
   baby maps, 18 KB atlas), about 261 KB in the page (the hen: 268 KB). Plus one icon each (`icon-<id><m|f>.png`).
+
+## Round 12: the lioness and the Holstein bull (`lionf.py`, `cowm.py`)
+
+Boys and girls that look different get their own sculpt on the species' own skeleton, `game/models/<id><m|f>.json`
+(see `SEX_LOOK` in 00_core.js and `Animals.build(id, { sex })`). A variant is made like any model, with two
+differences: its file runs the species' file first and changes what differs, and the rig step does not apply (the
+variant has no `SPEC` of its own): export the species' rig under the variant's name, then run the other steps.
+
+```bash
+python3 tools/blender/export_rig.py lion tools/blender/work/lionf-rig.json
+VOXEL=0.0092 TRIS=5000 TEX=768 BLENDER_PY=... python3 tools/blender/make.py lionf sculpt export
+python3 tools/blender/export_rig.py cow tools/blender/work/cowm-rig.json
+VOXEL=0.0065 TRIS=4000 TEX=768 WEIGHTS=transfer BLENDER_PY=... python3 tools/blender/make.py cowm sculpt export
+```
+
+The lioness (`lionf.py`): lion.py's tables (`import lion`, so she follows the lion) without the mane hooks, made at the
+lion's size (the game scales a lioness to 0.88). Her neck is the plain big cat neck about 7% slimmer, her throat,
+shoulder blades, forelegs (`FORE_K`, `FLEG_X`), chest and front paws lighter. Her head is the lion's in a finer frame
+(`_FineFrame`: the lion's head frame with the muzzle dropped, every part placed in it 10% narrower over the skull and
+the cheeks, 5% over the muzzle, and 5% lower), so the eyes, pads, nose, mouth, whiskers and paint masks all follow and
+the face reads long; her ears stand free of the mane. The coat: the lion's, a little sandier and more even along the
+back, a paler throat and chest (`pattern`), faint spots low on the belly and the legs, black ear backs, the black tuft.
+Her cub is a plain lion cub: the cat's round little body (nothing to pull in, so no lumpy neck), the lion cub's coat and
+its lighter occlusion (`finish_baby`). Budget: 7.4k triangles plus 224 in whisker cards; 768 maps (color WebP 70,
+normal 56), 256 cub map, fur and whisker textures: 72 KB mesh and cards + 27 + 15 + 5 + 5 + 6 KB, 128 KB of files,
+about 171 KB in the page plus a 16 KB icon (the cub uses the lion cub's icon). About 7 minutes on the shared machine.
+
+The Holstein bull (`cowm.py`): cow.py runs in its module (`exec`, so every cow function looks up the bull's tables and
+landmarks), then the bull replaces what differs. No udder (its box lies out of the body, so its parts and paint masks
+are empty and cow.py's code stays as it is). A thick, deep neck with a crest (a roll of muscle along the top, highest a
+little in front of the withers) and a deep dewlap with a wavy lower edge down to a deep brisket; heavy shoulders, a
+little thicker legs, rounder hindquarters (the hooks and pins show less), the flank tucked up. His head is the cow's in
+a warped head frame (`hframe()` and `hp()`: 22% broader over the forehead and eyes, 12% over the muzzle, 8% shorter,
+6% deeper), so the eyes, ears, nose pad, nostrils, mouth and paint masks follow; a broad poll and a mat of curly hair
+over the forehead (a little lumpy in the sculpt, curls in the fine detail, brownish highlights on the black). His own
+patches (`_patches` with seeds picked so both flanks are a little over half black, the neck and shoulders darker) and
+his own narrow blaze; polled; no genital detail. His calf is a plain calf: the baby offsets walk every vertex off the
+head onto the cow's own body without its udder (cow.py's fields, `_calf_body()`), fading out toward the head (the eyes
+are placed by bones, so the head keeps his shape; the game's big calf head covers it). His collar sits a little further up the neck than
+the cow's (`at` 0.8, behind the crest) and the calf's band hugs the calf's neck (`hug`, as the birds' do; a band that
+only moves out floated at the bull's neck outline on a sleeping calf). Budget: 6.4k triangles (7.5k in
+the game with the eyes); 768 color map with both sides (1536 x 768, WebP 74) and 768 normal map (WebP 58), no calf map:
+44 KB mesh (with the calf's offsets) + 35 + 16 KB, 96 KB of files, about 128 KB in the page plus a 25 KB icon. About 5
+minutes for the whole run.
