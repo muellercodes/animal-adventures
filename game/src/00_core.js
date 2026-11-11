@@ -240,7 +240,7 @@ const SEX_LOOK = {
   moose: { base: 'm', f: { horns: 0, size: 0.86 } },
   goat: { base: 'm', m: { name: 'Billy goat' }, f: { name: 'Nanny goat', horns: 0.55, size: 0.92 } },
   cow: { base: 'f', m: { name: 'Bull', model: true, size: 1.08 } },
-  chicken: { base: 'f', m: { name: 'Rooster', model: true }, f: { name: 'Hen' } },
+  chicken: { base: 'f', m: { name: 'Rooster', model: true, size: 1.1 }, f: { name: 'Hen' } },
   duck: { base: 'm', f: { model: true } },
   cockatiel: { base: 'm', f: { model: true } },
   chameleon: { base: 'm', f: { model: true, size: 0.82 } },
