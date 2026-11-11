@@ -1934,8 +1934,8 @@ const Animals = (() => {
     });
     // the sculpted swan's wing (feather atlas blades, same bones), folded close over the back
     const WA = stdWing({
-      s: 2.35, sh: [0.1, 0.5, 0.16], prim: 1.05, wid: 1.05, tip: 0.45, atlas: true,
-      folded: { roll: -26, yaw: 2, pitch: 0 }, foldedPos: [-0.01, 0.01, -0.05],
+      s: 2.35, sh: [0.1, 0.5, 0.16], prim: 0.94, wid: 1.05, tip: 0.45, atlas: true,
+      folded: { roll: -26, yaw: 5, pitch: 0.5 }, foldedPos: [-0.045, -0.035, -0.05],
       featherFold: { tert: [118, 106], sec: [108, 91], prim: [97, 88] },
       flap: { amp: 55, rate: 2.6, upFold: 0.3, twist: 10, glide: 3 },
       cells: { prim: 0, sec: 1, gcov: 2, lcov: 3, tert: 4, pcov: 3 },
@@ -2023,8 +2023,7 @@ const Animals = (() => {
         tex: [256, 128], rough: 0.85,
         list: md ? [
           ...WA.feathers,
-          ...tailFan('tail', [0, 0.432, -0.43], 9, 0.145, 0.06, 32, 14, 5, { dx: 0.07, dz: 0.012, taper: 0.3, curl: 0.05 }),
-          ...tailFan('tail', [0, 0.448, -0.405], 5, 0.095, 0.07, 26, 17, 6, { dx: 0.05, dz: 0.01, taper: 0.2, curl: 0.04 }),
+          ...tailFan('tail', [0, 0.468, -0.47], 7, 0.13, 0.045, 14, 12, 5, { dx: 0.025, dz: 0.01, taper: 0.35, curl: 0.04 }),
         ] : [
           ...W.feathers,
           ...tailFan('tail', [0, 0.43, -0.44], 7, 0.15, 0.05, 30, 12, 3, { dx: 0.06, dz: 0.01, taper: 0.3, curl: 0.05 }),
@@ -2050,7 +2049,12 @@ const Animals = (() => {
         ...babyC([birdWeb(foot, toes, 0x1D1D1D, 'hpawL')], 0x34302E),
       ],
       accentRough: 0.45,
-      modelSpec: { anim: { wing: WA.wing }, baby: { muzzle: 0.45, fluff: 0, wing: 0.2, eye: 1.0, neck: [0.52, 1.45] } },
+      // the sculpted swan: the folded wing's blades tucked under the sculpted wing, asleep the neck laid back over the
+      // body with the head resting on the back
+      modelSpec: {
+        anim: { wing: WA.wing, sleepNeck: [[-0.66, 0.12], [-1.03, -0.49], [0.01, -1.14], [-1.25, -0.85]] },
+        baby: { muzzle: 0.45, fluff: 0, wing: 0.04, eye: 1.0, neck: [0.52, 1.45] },
+      },
       eyes: [{ bone: 'head', p: [0.026, 1.023, 0.41], r: 0.0065, dir: [0.9, 0.2, 0.25], col: 0x120A06 }],
       mouth: [0, 0.95, 0.565],
       anim: {

@@ -5,7 +5,7 @@ Makes a realistic body for one species with Blender, fitted to the skeleton the 
 the procedural loft body. Everything else (bones, walk/run/eat/sleep animation, baby proportions, eyes and blinking,
 collar, moods, swimming) keeps working through the same rig API. Models so far: the pig, frog, lizard, turtle,
 snake, horse, duck, hen, macaw, owl, fox, raccoon, otter, weasel, deer, goat, moose, bunny, squirrel, hedgehog, dog and
-cat (every animal but the swan). `horse.py` is the example for furry animals, `carnivore.py` has the parts the small
+cat, and since then the newer animals and, in round 12, the swan. `horse.py` is the example for furry animals, `carnivore.py` has the parts the small
 carnivores share (the bunny, squirrel and hedgehog use it too, with `smallfur.py`), `ungulate.py` the hooved animals'
 (`deer.py` for antlers), and `bird.py` the birds'. A baby with its own coat colors writes a second color map (`baby_paint()` or
 `paint_baby()`), stored as the `babyColor` map.
@@ -212,10 +212,8 @@ Lessons:
   pushed onto a fat neck: it folds up when the game's baby maps shorten it; keep its own shape and widen it there.
 - Collars on a baby with its own shape: `babyAt` (band position along the neck for the baby), `hug` (the band comes
   in as well as out), `babyK` (thicker, wider band), `babyMaxR` (limb cutoff for the baby slice).
-- The swan (`swan.py`) is made but not shipped: the adult is only a little better than the procedural one. With the
-  down shells the cygnet is now better than the procedural one (gray-brown and fluffy like a real cygnet), but the
-  adult is still not clearly better, so the swan stays procedural. Run `VOXEL=0.004 TRIS=6500 TEX=1024 ... make.py
-  swan` to make it.
+- The swan (`swan.py`) was made here first but not shipped (the adult was only a little better than the procedural
+  one); it was redone and shipped in round 12, see "Round 12: the mute swan" below.
 
 ## The small carnivores (`carnivore.py`)
 
@@ -749,6 +747,12 @@ Siamese (`VOXEL=0.0025 TRIS=4200 TEX=1024`): 7.0k triangles plus 192 in the whis
 Hamster (`VOXEL=0.0008 TRIS=5200 TEX=768`, then rings across the body): 7.6k triangles plus 128 in the whiskers; 768
 color and normal maps, 384 fur map, 256 pup color map: 59 KB mesh and cards + 39 + 14 + 8 + 5 + 4 KB, about 178 KB in
 the page. Fur shells at detail 2: 4 layers.
+
+Mute swan (round 12, `VOXEL=0.004 TRIS=6200 TEX=768`, about 15 minutes on the shared machine): 6.2k body triangles,
+9.3k in the game with the feather blades and the eyes (the cygnet's down shells at detail 2: 35k); 768 color and normal
+maps (WebP 68 and 50), 512 cygnet maps, 384 fur map, 512 x 256 feather atlas: 52 KB mesh with the cygnet's offsets + 27
++ 39 + 10 + 10 + 9 + 18 + 2 + 8 KB, 178 KB of files, about 231 KB in the page plus about 40 KB of icons. The normal map
+(the white plumage shows its feathers only as relief) and the mesh are most of it.
 
 ## More cats and a hamster (round 7: `cat.py` as a template, `coat.py`, `hamster.py`)
 
@@ -1311,3 +1315,54 @@ only moves out floated at the bull's neck outline on a sleeping calf). Budget: 6
 the game with the eyes); 768 color map with both sides (1536 x 768, WebP 74) and 768 normal map (WebP 58), no calf map:
 44 KB mesh (with the calf's offsets) + 35 + 16 KB, 96 KB of files, about 128 KB in the page plus a 25 KB icon. About 5
 minutes for the whole run.
+
+## Round 12: the mute swan (`swan.py`)
+
+The swan was the last animal on the procedural body; an earlier sculpt was not shipped because it read as a white
+goose. `swan.py` is redone around what makes a mute swan read as one at the game camera: the black and orange face and
+the S shaped neck, then the white feathers and the folded wing close up.
+- The head is made level in its own frame (`hl()`, `hw()`: u forward from the back of the skull, v up, x across) and
+  turned down by `HEAD_PITCH` (34 degrees), so the bill points down at the top of the neck. A long skull with a flat
+  crown, the forehead sloping down to the knob; the bill as two lofts in the head frame (`UPPER`, `LOWER`): deep at the
+  base under the knob, the culmen sloping straight down to the nail, a little wider toward the rounded tip, the lower
+  mandible tucked under it, an oval nostril pit near the culmen.
+- The knob is its own part (`knob()`, `KNOB_H`) and `KNOB_K` scales it on the same base (1.0; a cob's knob is bigger
+  than a pen's, so a later boy or girl look can change only this). The cygnet's knob is pressed into the bill by its
+  baby offsets.
+- The black of the face is painted from masks in the head frame (`_face()`): the base of the bill (its edge slanting
+  back from in front of the knob down to the gape), the bare lores narrowing from the bill to the eye, a thin ring
+  round the eye, the lower mandible and the nostrils; the knob and the nail are black parts. The orange of the upper
+  mandible is a little darker at the sides and lighter along the culmen. (A lore mask without a front end covered the
+  whole side of the bill: stop it at the bill's base.)
+- The neck is a `sweep()` along an S: forward out of the breast, back in the middle, arching forward over into the
+  head; thick at the base. Around the tight bend under the head the sweep needs many samples (`n=160`) or the nape
+  shows facets.
+- The body is a long boat (`TRUNK`): a level back, a deep round breast, a broad flat belly, the rear tapering up into
+  the short pointed tail. The folded wing is sculpted on it: a layer `WING_T` thick over the upper side whose lower edge
+  (`WING_EDGE`) is the clean line along the flank, rounded at the shoulder, with the tertials raised a little over the
+  rump and the primaries crossing over the base of the tail. In the paint its feathers are long and narrow
+  (`_fshape()`, `_wing_mask()`) with soft gray lines along their edges; the white shows its feathers by shadow only.
+- The game's wing blades lie inside the sculpted body while the wing is folded (`modelSpec` `folded`, `foldedPos` and
+  shorter primaries, `prim: 0.94`): flat blades over the curved side of a swan read as paddles stuck on. They come out
+  when it flies, jumps or flutters. The tail fan is narrow (14 degrees) and lies along the sculpted tail with only the
+  tips showing.
+- The wing arm leaves the body through a slim root (`arm()`), and its first few centimeters stay with the hips
+  (`fix_weights()`): with part of the root on the shoulder bone the folded wing dented the back, with a thick root left
+  behind it made a fin. Only vertices that really are on the arm get that: far from every part all the part distances
+  are equal, so a plain argmin picks the arm too (the bill's tip went to the hips that way).
+- The decimator threw a few vertices of the thin arm tip far off the sculpt (8 cm out, with no part near them, so their
+  weights went to the head and stretched spikes across the cygnet); `lowpoly_fix()` puts any vertex more than 4 mm off
+  the sculpt back on it.
+- Texture layout (`uv_regions()`, `UV_AVERAGE`, `uv_weight()`): the head and bill get 2.5 times the texels of the
+  rest, or the black and orange edges of the face were jagged.
+- The cygnet: the game's baby neck maps shorten each neck bone along its own segment and thicken it across, so the
+  adult's S (the neck well off the bone line) folded into a zigzag; the baby offsets move the neck onto the bone line
+  (`BABY_NECK_Z`), up into the nape. The knob comes down onto the culmen line and gets down, the bill is narrowed and
+  made shallower toward the tip, gray-brown down, a slate gray bill. The body walks onto the downy egg along the egg's
+  normals (along the sculpt's, the wing's lower edge kept a crease), its flow has no folded wing in it, and its maps
+  use the smooth game mesh normals and less occlusion on the body and neck (`extra_maps()`), so the adult's wing edge
+  and feather creases do not show through the down.
+- In the game (`SPEC.swan.modelSpec`, only with the model): asleep the neck is laid back over the body and the head
+  rests on the back (`sleepNeck`, found with a small forward kinematics fit of the neck chain to points over the back),
+  tiny wing blades on the cygnet (0.04). The procedural swan (no model) is unchanged.
+- Budget: see the Budget section.
