@@ -579,11 +579,16 @@ const Animals = (() => {
 
   // blade for a feather atlas cell (sculpted birds): a rectangle along +X (width along Z, up +Y) that the atlas alpha
   // cuts to the feather's outline; the vane arches a little across (shaft on top), the blade bends down by curl
-  function featherBladeCut(len, wid, curl, camber) {
-    const nL = len > 0.09 ? 6 : 3, cb = camber == null ? 0.06 : camber, pos = [], uv = [], idx = [];
+  // (round 12: arc, in radians, bends the blade's middle line in its own plane through that angle, toward local +z, or
+  // -z when negative: a rooster's long arching sickle feathers; only the rooster's blades have one)
+  function featherBladeCut(len, wid, curl, camber, arc) {
+    const nL = arc ? 12 : len > 0.09 ? 6 : 3, cb = camber == null ? 0.06 : camber, pos = [], uv = [], idx = [];
     for (let i = 0; i <= nL; i++) {
       const t = i / nL, droop = curl * t * t * len;
-      for (let j = 0; j <= 2; j++) { const s = j - 1; pos.push(t * len, -droop - Math.abs(s) * wid * cb, s * wid * 0.5); uv.push(j / 2, t); }
+      if (arc) {
+        const r = len / arc, th = arc * t, cx = r * Math.sin(th), cz = r * (1 - Math.cos(th)), nx = -Math.sin(th), nz = Math.cos(th);
+        for (let j = 0; j <= 2; j++) { const s = j - 1; pos.push(cx + nx * s * wid * 0.5, -droop - Math.abs(s) * wid * cb, cz + nz * s * wid * 0.5); uv.push(j / 2, t); }
+      } else for (let j = 0; j <= 2; j++) { const s = j - 1; pos.push(t * len, -droop - Math.abs(s) * wid * cb, s * wid * 0.5); uv.push(j / 2, t); }
     }
     for (let i = 0; i < nL; i++) for (let j = 0; j < 2; j++) { const a = i * 3 + j, b = a + 3; idx.push(a, b, a + 1, b, b + 1, a + 1); }
     return { pos, nrm: computeNormals(pos, idx), idx, uv };
@@ -1848,7 +1853,8 @@ const Animals = (() => {
           // tail: a fan of whitish rectrices, black uppertail coverts over its base, the drake's two curled feathers
           ...[-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5].map((i) => ({ bone: 'tail', base: [i * 0.0055, 0.246 - Math.abs(i) * 0.0014, -0.236 + Math.abs(i) * 0.002], yaw: (90 + i * 7.5) * DEG, pitch: (7 - Math.abs(i) * 0.9) * DEG, len: 0.094 - Math.abs(i) * 0.0045, wid: 0.034, curl: 0.03, cell: fcell(5) })),
           ...[-2, -1, 0, 1, 2].map((i) => ({ bone: 'tail', base: [i * 0.008, 0.253 - Math.abs(i) * 0.002, -0.212], yaw: (90 + i * 11) * DEG, pitch: 7 * DEG, len: 0.056, wid: 0.04, curl: 0.04, cell: fcell(6) })),
-          ...[-1, 1].map((i) => ({ bone: 'tail', base: [i * 0.004, 0.257, -0.226], yaw: (90 - i * 6) * DEG, roll: 90 * DEG, pitch: 35 * DEG, len: 0.042, wid: 0.016, curl: 0.9, camber: 0.02, cell: fcell(6) })),
+          // (round 12: a hen, duckf.json "look": "hen", has no curled feathers)
+          ...(md.look === 'hen' ? [] : [-1, 1]).map((i) => ({ bone: 'tail', base: [i * 0.004, 0.257, -0.226], yaw: (90 - i * 6) * DEG, roll: 90 * DEG, pitch: 35 * DEG, len: 0.042, wid: 0.016, curl: 0.9, camber: 0.02, cell: fcell(6) })),
         ] : [
           ...W.feathers,
           ...[-2, -1, 0, 1, 2].map((i) => ({ bone: 'tail', base: [i * 0.01, 0.245 - Math.abs(i) * 0.002, -0.24], yaw: (90 + i * 12) * DEG, pitch: 4 * DEG, len: 0.088 - Math.abs(i) * 0.007, wid: 0.028, curl: 0.03, tip: 0.6, cell: fcell(5) })),
@@ -2090,6 +2096,25 @@ const Animals = (() => {
       flap: { amp: 50, rate: 7, upFold: 0.3, twist: 10, glide: 3 },
       cells: { prim: 0, sec: 1, gcov: 2, lcov: 3, tert: 2, pcov: 3 },
     });
+    // round 12: the rooster (his own sculpt, chickenm.json "look": "rooster"): the same wing with its tertials in the red
+    // of the wing bow (cell 3; the green-black wing bar is cell 2), and his own tail: a steep tent of green-black tail
+    // feathers (cell 4), two long sickles each side arching up, back and down (cell 5, blades bent in their own plane),
+    // lesser sickles over the tail's sides (cell 7) and golden saddle hackles hanging from the saddle over the base of
+    // the tail and the wing tips (cell 6). He stands taller (grownStance: body raised in front, neck upright, tail up).
+    const ROOSTER = (md) => !!md && md.look === 'rooster';
+    const WR = stdWing({
+      s: 0.92, sh: [0.06, 0.29, 0.05], prim: 0.85, wid: 1.15, tip: 0.5, atlas: true,
+      folded: { roll: -78, yaw: 0, pitch: 10 }, foldedPos: [0.022, 0.0, -0.02],
+      featherFold: { tert: [110, 102], sec: [104, 90], prim: [96, 88] },
+      flap: { amp: 50, rate: 7, upFold: 0.3, twist: 10, glide: 3 },
+      cells: { prim: 0, sec: 1, gcov: 2, lcov: 3, tert: 3, pcov: 3 },
+    });
+    const roosterTail = () => [
+      ...[0, 1, 2, 3, 4, 5].map((i) => ({ bone: 'tail', mirror: true, base: [0.005 + i * 0.004, 0.312 - i * 0.006, -0.118 - i * 0.003], yaw: (86 + i * 4) * DEG, pitch: (64 - i * 6) * DEG, roll: (-42 - i * 6) * DEG, len: 0.165 - i * 0.009, wid: 0.044, curl: -0.1, cell: fcell(4) })),
+      ...[0, 1, 2, 3].map((i) => ({ bone: 'tail', mirror: true, base: [0.012 + i * 0.006, 0.316 - i * 0.007, -0.104 - i * 0.006], yaw: (92 + i * 5) * DEG, pitch: (52 - i * 7) * DEG, roll: (-72 + i * 6) * DEG, len: 0.17 - i * 0.02, wid: 0.03, arc: -1.5 + i * 0.2, curl: 0.06, cell: fcell(7) })),
+      ...[0, 1].map((i) => ({ bone: 'tail', mirror: true, base: [0.004 + i * 0.004, 0.32 - i * 0.004, -0.11 - i * 0.004], yaw: (91 + i * 4) * DEG, pitch: (66 - i * 6) * DEG, roll: (-84 + i * 4) * DEG, len: 0.28 - i * 0.04, wid: 0.032 - i * 0.002, arc: -2.4 + i * 0.2, curl: 0.05, cell: fcell(5) })),
+      ...[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => ({ bone: 'tail', mirror: true, base: [0.008 + i * 0.0032, 0.36 - i * 0.0012, -0.066 - i * 0.0075], yaw: (94 + i * 3.5) * DEG, pitch: (-4 - i * 1.8) * DEG, roll: (-20 - i * 2.5) * DEG, len: 0.1 + i * 0.005, wid: 0.023, curl: 0.5, cell: fcell(6) })),
+    ];
     const toes = [{ a: -30, len: 0.045, r: 0.0045, claw: 0.008, clawCol: 0x8A6A3A }, { a: 0, len: 0.055, r: 0.005, claw: 0.009, clawCol: 0x8A6A3A }, { a: 30, len: 0.043, r: 0.0045, claw: 0.008, clawCol: 0x8A6A3A }, { a: 180, len: 0.025, r: 0.004, lift: 0.004, claw: 0.007, clawCol: 0x8A6A3A }];
     const foot = [xL, 0.007, 0.004];
     const comb = [[0.105, 0.43], [0.112, 0.452], [0.12, 0.442], [0.127, 0.466], [0.135, 0.448], [0.142, 0.472], [0.15, 0.452], [0.157, 0.466], [0.163, 0.446], [0.17, 0.452], [0.172, 0.432]].map((p) => [0, p[1], p[0]]);
@@ -2179,8 +2204,8 @@ const Animals = (() => {
         if (P.part !== 'leg') { cmul(C, 0.9 + 0.18 * fine); C.ro = 0.88; }
       },
       feathers: (rest, md) => ({
-        tex: [256, 128], rough: 0.85,
-        list: md ? [
+        tex: [256, 128], rough: ROOSTER(md) ? 0.62 : 0.85,
+        list: ROOSTER(md) ? [...WR.feathers, ...roosterTail()] : md ? [
           ...WA.feathers,
           // tail: a steep tent of black feathers, black-and-red coverts over it, pointed red saddle feathers at its base
           ...[0, 1, 2, 3, 4, 5].map((i) => ({ bone: 'tail', mirror: true, base: [0.006 + i * 0.0042, 0.305 - i * 0.006, -0.118 - i * 0.003], yaw: (84 + i * 4) * DEG, pitch: (56 - i * 6) * DEG, roll: (-38 - i * 6) * DEG, len: 0.145 - i * 0.008, wid: 0.044, curl: -0.12, cell: fcell(4) })),
@@ -2218,7 +2243,7 @@ const Animals = (() => {
         ...babyC(birdToes(foot, toes, 0xE4B23A, 'hpawL'), 0xE8B87A),
       ],
       accentRough: 0.55,
-      modelSpec: { anim: { wing: WA.wing }, baby: { muzzle: 0.42, fluff: 0, wing: 0.12, eye: 1.0 } },
+      modelSpec: (md) => ({ anim: Object.assign({ wing: WA.wing }, ROOSTER(md) ? { grownStance: { pitch: -0.14, elev: [84, 80, -3], tail: 0.12 } } : null), baby: { muzzle: 0.42, fluff: 0, wing: 0.12, eye: 1.0 } }),
       eyes: [{ bone: 'head', p: [0.024, 0.415, 0.138], r: 0.0058, dir: [0.92, 0.15, 0.3], iris: 0xD48A26, irisR: 0.8, pupilR: 0.45, babyIris: 0x1E140E }],
       mouth: [0, 0.392, 0.188],
       anim: {
@@ -8348,9 +8373,14 @@ const Animals = (() => {
     const wl = side('L'), wr = side('R');
     // neck poses come from the rig's current rest skeleton (recomputed when the age changes):
     // eating on the ground (body pitched forward) and on the water (body dropped); flight, swim, stand from segment elevations
-    const sp0 = P.standPitch || 0, nN = neck.length;
+    // (round 12: grownStance { pitch, elev, tail }, the grown-up's own stance over the species' (the rooster stands
+    // taller than the hen: body raised in front, neck upright, tail up), faded in as it grows up so the chick stands as
+    // any chick; no other animal has one)
+    const GS = P.grownStance || null, nN = neck.length;
+    let sp0 = P.standPitch || 0, gk = 0;
     let eatG = 0, eatW = 0, eatPG = null, eatPW = null, flyN = null, swimN = null, standN = null;
     const refresh = () => {
+      if (GS) { gk = sstep(0.6, 1.0, R.age); sp0 = (P.standPitch || 0) + (GS.pitch || 0) * gk; }
       for (const lg of legs) refreshLeg(lg, R.rest);
       legH = legs[0].hipH;
       const piv = P.neck.map((n) => R.rest[n].toArray()), mb = A.spec.mouthBone || 'head';
@@ -8368,6 +8398,7 @@ const Animals = (() => {
         return out;
       };
       flyN = poseFromElev(P.flyElev, P.flyPitch || 0); swimN = poseFromElev(P.swimElev, sp0 + (P.swimPitch || 0)); standN = poseFromElev(P.standElev, sp0);
+      if (GS && GS.elev) { const g = poseFromElev(GS.elev, sp0); standN = standN.map((v, i) => lerp(v, g[i], gk)); }
     };
     refresh();
     R.hooks.push(refresh);
@@ -8561,7 +8592,7 @@ const Animals = (() => {
       // ----- tail -----
       if (tail) {
         const wag = Math.max(sstep(0.0, 0.05, fract(it * 0.11 + R.rnd * 3)) * (1 - sstep(0.05, 0.1, fract(it * 0.11 + R.rnd * 3))), hap);
-        tail.rotation.set(fly * (P.flyTail || 0) + (1 - fly) * (1 - swim) * (P.standTail || 0) - S.eat * 0.2 + swim * (P.swimTail || 0.1) + bob * 3 - sick * 0.25 + sl * (P.sleepTail || 0),
+        tail.rotation.set(fly * (P.flyTail || 0) + (1 - fly) * (1 - swim) * ((P.standTail || 0) + (GS ? (GS.tail || 0) * gk : 0)) - S.eat * 0.2 + swim * (P.swimTail || 0.1) + bob * 3 - sick * 0.25 + sl * (P.sleepTail || 0),
           Math.sin(t * 22) * (P.tailWag || 0.15) * wag + yaw * -1.5 + S.lean * 0.1 * fly, 0);
       }
       if (crest) crest.rotation.x = (P.crestHappy || 0.3) * hap + (P.crestFly || 0) * fly - (P.crestSleep || 0.9) * sl - sick * 0.4 + sn * 0.3;
@@ -9052,8 +9083,10 @@ const Animals = (() => {
       spec.accent = null; spec.shell = null;
       // a sculpted coat (FUR in the species' Blender file): fur shells over the model, set up by the model
       if (M.fur && M.md.fur) spec.shell = Object.assign({ model: true, n: 4, n1: 0, lean: 1, babyLen: 1.5 }, M.md.fur);
-      // settings that differ for the sculpted body (a bird's folded wing resting on the sculpted back, baby proportions)
-      if (spec.modelSpec) for (const k in spec.modelSpec) Object.assign(spec[k] || (spec[k] = {}), spec.modelSpec[k]);
+      // settings that differ for the sculpted body (a bird's folded wing resting on the sculpted back, baby proportions);
+      // (round 12: modelSpec can also be a function of the model's json, for a boy's or girl's own sculpt: the rooster)
+      const ms = typeof spec.modelSpec === 'function' ? spec.modelSpec(M.md) : spec.modelSpec;
+      if (ms) for (const k in ms) Object.assign(spec[k] || (spec[k] = {}), ms[k]);
     }
     // bones (expand mirrored)
     const defs = [];
@@ -9157,7 +9190,7 @@ const Animals = (() => {
       const fa = M && M.md.feathers ? M : null;
       const fs = spec.feathers(rest, fa ? M.md : null);
       for (const f of fs.list) {
-        const bl = fa ? featherBladeCut(f.len, f.wid, f.curl || 0, f.camber) : featherBlade(f.len, f.wid, f.curl || 0, f.tip == null ? 0.35 : f.tip, f.rootW);
+        const bl = fa ? featherBladeCut(f.len, f.wid, f.curl || 0, f.camber, f.arc) : featherBlade(f.len, f.wid, f.curl || 0, f.tip == null ? 0.35 : f.tip, f.rootW);
         // transform blade: rotate about Y by yaw, X by roll (twist), then translate to base (rest root space)
         const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(f.roll || 0, f.yaw, f.pitch || 0, 'YZX'));
         const pos = [], nrm = [];

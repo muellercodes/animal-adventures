@@ -34,7 +34,9 @@ with sync_playwright() as p:
     # WORLDS=snow,land redraws only those world pictures (no icons)
     worlds_only = [w for w in os.environ.get('WORLDS', '').split(',') if w]
     if worlds_only: only = ['-']
-    ids = [] if worlds_only else (only or pg.evaluate('Object.keys(__aa.SPECIES)'))
+    # (a copy: the boys' and girls' own pictures are taken out of it below, and "only" must stay as asked, or a call
+    # naming only those, "chickenm duckf", would redraw every world picture too)
+    ids = [] if worlds_only else list(only or pg.evaluate('Object.keys(__aa.SPECIES)'))
     # round 12: a grown-up boy or girl that looks different (its own sculpt or no antlers) gets its own picture,
     # icon-<id><m|f>.png; "lionf" on the command line draws only that one
     looks = pg.evaluate('''() => { const o = {}; for (const id in __aa.SEX_LOOK) for (const sx of ['m', 'f']) { const L = __aa.SEX_LOOK[id][sx]; if (L && (L.model || L.horns != null)) (o[id] = o[id] || []).push(sx); } return o; }''')
