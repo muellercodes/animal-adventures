@@ -1264,7 +1264,9 @@ over the forehead (a little lumpy in the sculpt, curls in the fine detail, brown
 patches (`_patches` with seeds picked so both flanks are a little over half black, the neck and shoulders darker) and
 his own narrow blaze; polled; no genital detail. His calf is a plain calf: the baby offsets walk every vertex off the
 head onto the cow's own body without its udder (cow.py's fields, `_calf_body()`), fading out toward the head (the eyes
-are placed by bones, so the head keeps his shape; the game's big calf head covers it). Budget: 6.4k triangles (7.5k in
+are placed by bones, so the head keeps his shape; the game's big calf head covers it). His collar sits a little further up the neck than
+the cow's (`at` 0.8, behind the crest) and the calf's band hugs the calf's neck (`hug`, as the birds' do; a band that
+only moves out floated at the bull's neck outline on a sleeping calf). Budget: 6.4k triangles (7.5k in
 the game with the eyes); 768 color map with both sides (1536 x 768, WebP 74) and 768 normal map (WebP 58), no calf map:
 44 KB mesh (with the calf's offsets) + 35 + 16 KB, 96 KB of files, about 128 KB in the page plus a 25 KB icon. About 5
 minutes for the whole run.

@@ -286,3 +286,15 @@ def detail(P, N, c):
     dw = sstep(0.06, 0.02, Pm[:, 0]) * sstep(0.6, 0.66, Pm[:, 2]) * sstep(1.05, 0.98, Pm[:, 2]) * sstep(1.1, 0.95, Pm[:, 1])
     fo = np.abs(np.sin(np.pi * ((Pm[:, 2] + 0.2 * Pm[:, 1]) / 0.06 + 0.7 * fbm(Pm * 6, 2, 199))))
     return h - 0.0018 * np.exp(-(fo / 0.25) ** 2) * dw
+
+
+_meta0 = meta
+
+
+def meta(st):
+    m = _meta0(st)
+    # the band a little further up the neck than the cow's (behind the crest, where the neck narrows), and the calf's band
+    # hugs the calf's neck: his baby offsets take his thick neck in to the cow's, and a band that only moves out would
+    # float at the bull's neck outline
+    m['collar'] = dict(m['collar'], at=['neck', 'neck2', 0.8], hug=True)
+    return m
