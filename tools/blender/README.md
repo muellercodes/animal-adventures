@@ -5,7 +5,7 @@ Makes a realistic body for one species with Blender, fitted to the skeleton the 
 the procedural loft body. Everything else (bones, walk/run/eat/sleep animation, baby proportions, eyes and blinking,
 collar, moods, swimming) keeps working through the same rig API. Models so far: the pig, frog, lizard, turtle,
 snake, horse, duck, hen, macaw, owl, fox, raccoon, otter, weasel, deer, goat, moose, bunny, squirrel, hedgehog, dog and
-cat (every animal but the swan). `horse.py` is the example for furry animals, `carnivore.py` has the parts the small
+cat, and since then the newer animals and, in round 12, the swan. `horse.py` is the example for furry animals, `carnivore.py` has the parts the small
 carnivores share (the bunny, squirrel and hedgehog use it too, with `smallfur.py`), `ungulate.py` the hooved animals'
 (`deer.py` for antlers), and `bird.py` the birds'. A baby with its own coat colors writes a second color map (`baby_paint()` or
 `paint_baby()`), stored as the `babyColor` map.
@@ -212,10 +212,8 @@ Lessons:
   pushed onto a fat neck: it folds up when the game's baby maps shorten it; keep its own shape and widen it there.
 - Collars on a baby with its own shape: `babyAt` (band position along the neck for the baby), `hug` (the band comes
   in as well as out), `babyK` (thicker, wider band), `babyMaxR` (limb cutoff for the baby slice).
-- The swan (`swan.py`) is made but not shipped: the adult is only a little better than the procedural one. With the
-  down shells the cygnet is now better than the procedural one (gray-brown and fluffy like a real cygnet), but the
-  adult is still not clearly better, so the swan stays procedural. Run `VOXEL=0.004 TRIS=6500 TEX=1024 ... make.py
-  swan` to make it.
+- The swan (`swan.py`) was made here first but not shipped (the adult was only a little better than the procedural
+  one); it was redone and shipped in round 12, see "Round 12: the mute swan" below.
 
 ## The small carnivores (`carnivore.py`)
 
@@ -750,6 +748,12 @@ Hamster (`VOXEL=0.0008 TRIS=5200 TEX=768`, then rings across the body): 7.6k tri
 color and normal maps, 384 fur map, 256 pup color map: 59 KB mesh and cards + 39 + 14 + 8 + 5 + 4 KB, about 178 KB in
 the page. Fur shells at detail 2: 4 layers.
 
+Mute swan (round 12, `VOXEL=0.004 TRIS=6200 TEX=768`, about 15 minutes on the shared machine): 6.2k body triangles,
+9.3k in the game with the feather blades and the eyes (the cygnet's down shells at detail 2: 35k); 768 color and normal
+maps (WebP 68 and 50), 512 cygnet maps, 384 fur map, 512 x 256 feather atlas: 52 KB mesh with the cygnet's offsets + 27
++ 39 + 10 + 10 + 9 + 18 + 2 + 8 KB, 178 KB of files, about 231 KB in the page plus about 40 KB of icons. The normal map
+(the white plumage shows its feathers only as relief) and the mesh are most of it.
+
 ## More cats and a hamster (round 7: `cat.py` as a template, `coat.py`, `hamster.py`)
 
 Five more cats (`blackcat`, `orangecat`, `calico`, `siamese`, `whitecat`) and a Syrian hamster. The tabby got its fixes
@@ -1226,3 +1230,139 @@ neck, head and ear bones moved, scaled by the same factor (`SPEC.panda`).
 - Budget (`VOXEL=0.006 TRIS=5200 TEX=768`, then rings across the body and the neck): 7.4k triangles, no cards; 768 color
   and normal maps (WebP 70 and 56: the coat is mostly flat white and black), 256 cub map, 384 fur map: 67 KB mesh + 22 +
   17 + 4 + 7 KB, 120 KB of files, about 160 KB in the page plus about 49 KB of icons.
+
+## Round 12: a rooster, a mallard hen, a female cockatiel and a female panther chameleon
+
+Boys and girls (`SEX_LOOK` in `game/src/00_core.js`): where the real animals look different, the other sex has its own
+model, `game/models/<id><m|f>.json`, on the species' skeleton and spec.
+- Coat variants (`coat.py`): `duckf.py`, `cockatielf.py` and `chameleonf.py` run the base species' file in their own
+  module (as the black cat runs cat.py), set `BASE` and replace the paint (and for the birds the feather atlas cells and
+  `meta()`). New in `coat.py`: a variant without `baby_paint()` writes no baby map, so its babies borrow the base's
+  (ducklings, chicks and hatchlings of both sexes look alike), and a variant with `FEATHER_ATLAS` writes its own
+  feather atlas and its normals (`<id>-feather.webp`, `<id>-feathernrm.webp`, named in `srgb`; the babies' down atlas
+  stays the base's). Run them after the base species' pipeline up to the bake (the work files must be current: a
+  rebuild of the duck, chicken and cockatiel with the scripts here, and the chameleon's round 11 work files, give the
+  shipped models byte for byte).
+- The mallard hen: mottled brown and buff (each feather a dark center in a buff margin, streakier on the neck and the
+  breast, plainer on the belly), a dark crown, a dark stripe through the eye between a pale eyebrow and buff cheeks, a
+  pale throat, an orange bill with a dark saddle, orange feet, the drake's blue speculum with its black and white
+  borders; brown tertials, tail feathers and coverts in her atlas. Her json says `"look": "hen"`: the game's duck spec
+  leaves out the drake's two curled tail feathers.
+- The female cockatiel: gray, the male's yellow face and crest only a faint yellow wash on gray, a duller orange cheek
+  patch, fine pale yellow bars under the tail, the outer tail feathers barred pale yellow all along, pale yellow spots
+  on the inner webs of the flight feathers (they show from below, in flight).
+- The female panther chameleon: tan to peach and pink with rust-brown bars, a faint pale flank stripe, brown rays from
+  the eye turrets, a banded tail, no green, blue or red. The game scales her to 0.82. The color change works on her as
+  on the male (`chroma.lum` in her json is her own map's mean brightness).
+- The rooster (`chickenm.py`, his own sculpt on the chicken's skeleton: copy `work/chicken-rig.json` to
+  `work/chickenm-rig.json`, then `make.py chickenm sculpt export`): chicken.py runs in his module and the parts that
+  differ are replaced. A big upright single comb with five rounded points and a blade behind the head (`_comb_top()`:
+  an arch times a cosine row of points), two long wattle lobes, bigger red earlobes, a fuller hackle cape, a deeper
+  breast, a fuller saddle, thicker legs with real spurs (`spur`, its own part, weighted with the tarsus, pulled back into
+  the leg for the chick by `baby_offset`'s `extra`). Paint: deep mahogany red, golden-orange hackles (not on the front of
+  the neck) and saddle, a dark glossy breast and belly; his atlas: black primaries edged red, the red wing bay, the
+  green-black wing bar, the red wing bow, green-black tail feathers and sickles, golden saddle hackles. His json says
+  `"look": "rooster"`, and the game's chicken spec gives him his own blades: the same wing with red tertials, a steep
+  tent of green-black tail feathers, two sickles each side that arch up, back and down (blades bent in their own plane,
+  `arc` in `featherBladeCut`), lesser sickles over the tail's sides, saddle hackles over the base of the tail; and a
+  prouder stance (`grownStance`: the body raised in front, the neck upright, the tail up, faded in as he grows, so his
+  chick stands as any chick). His chick: the hen's chick (down maps painted alike, the comb, wattles and spurs fold away).
+- Budget: duck hen 107 KB of files (82 KB color map, 21 KB atlas), about 143 KB in the page; female cockatiel 39 KB,
+  about 53 KB; female chameleon 43 KB, about 57 KB; rooster (`VOXEL=0.002 TRIS=6200 TEX=768`) 6.2k body triangles,
+  about 9k in the game with the blades and eyes, 196 KB of files (50 KB mesh, 25 + 51 KB color and normal maps, 37 KB of
+  baby maps, 18 KB atlas), about 261 KB in the page (the hen: 268 KB). Plus one icon each (`icon-<id><m|f>.png`).
+
+## Round 12: the lioness and the Holstein bull (`lionf.py`, `cowm.py`)
+
+Boys and girls that look different get their own sculpt on the species' own skeleton, `game/models/<id><m|f>.json`
+(see `SEX_LOOK` in 00_core.js and `Animals.build(id, { sex })`). A variant is made like any model, with two
+differences: its file runs the species' file first and changes what differs, and the rig step does not apply (the
+variant has no `SPEC` of its own): export the species' rig under the variant's name, then run the other steps.
+
+```bash
+python3 tools/blender/export_rig.py lion tools/blender/work/lionf-rig.json
+VOXEL=0.0092 TRIS=5000 TEX=768 BLENDER_PY=... python3 tools/blender/make.py lionf sculpt export
+python3 tools/blender/export_rig.py cow tools/blender/work/cowm-rig.json
+VOXEL=0.0065 TRIS=4000 TEX=768 WEIGHTS=transfer BLENDER_PY=... python3 tools/blender/make.py cowm sculpt export
+```
+
+The lioness (`lionf.py`): lion.py's tables (`import lion`, so she follows the lion) without the mane hooks, made at the
+lion's size (the game scales a lioness to 0.88). Her neck is the plain big cat neck about 7% slimmer, her throat,
+shoulder blades, forelegs (`FORE_K`, `FLEG_X`), chest and front paws lighter. Her head is the lion's in a finer frame
+(`_FineFrame`: the lion's head frame with the muzzle dropped, every part placed in it 10% narrower over the skull and
+the cheeks, 5% over the muzzle, and 5% lower), so the eyes, pads, nose, mouth, whiskers and paint masks all follow and
+the face reads long; her ears stand free of the mane. The coat: the lion's, a little sandier and more even along the
+back, a paler throat and chest (`pattern`), faint spots low on the belly and the legs, black ear backs, the black tuft.
+Her cub is a plain lion cub: the cat's round little body (nothing to pull in, so no lumpy neck), the lion cub's coat and
+its lighter occlusion (`finish_baby`). Budget: 7.4k triangles plus 224 in whisker cards; 768 maps (color WebP 70,
+normal 56), 256 cub map, fur and whisker textures: 72 KB mesh and cards + 27 + 15 + 5 + 5 + 6 KB, 128 KB of files,
+about 171 KB in the page plus a 16 KB icon (the cub uses the lion cub's icon). About 7 minutes on the shared machine.
+
+The Holstein bull (`cowm.py`): cow.py runs in its module (`exec`, so every cow function looks up the bull's tables and
+landmarks), then the bull replaces what differs. No udder (its box lies out of the body, so its parts and paint masks
+are empty and cow.py's code stays as it is). A thick, deep neck with a crest (a roll of muscle along the top, highest a
+little in front of the withers) and a deep dewlap with a wavy lower edge down to a deep brisket; heavy shoulders, a
+little thicker legs, rounder hindquarters (the hooks and pins show less), the flank tucked up. His head is the cow's in
+a warped head frame (`hframe()` and `hp()`: 22% broader over the forehead and eyes, 12% over the muzzle, 8% shorter,
+6% deeper), so the eyes, ears, nose pad, nostrils, mouth and paint masks follow; a broad poll and a mat of curly hair
+over the forehead (a little lumpy in the sculpt, curls in the fine detail, brownish highlights on the black). His own
+patches (`_patches` with seeds picked so both flanks are a little over half black, the neck and shoulders darker) and
+his own narrow blaze; polled; no genital detail. His calf is a plain calf: the baby offsets walk every vertex off the
+head onto the cow's own body without its udder (cow.py's fields, `_calf_body()`), fading out toward the head (the eyes
+are placed by bones, so the head keeps his shape; the game's big calf head covers it). His collar sits a little further up the neck than
+the cow's (`at` 0.8, behind the crest) and the calf's band hugs the calf's neck (`hug`, as the birds' do; a band that
+only moves out floated at the bull's neck outline on a sleeping calf). Budget: 6.4k triangles (7.5k in
+the game with the eyes); 768 color map with both sides (1536 x 768, WebP 74) and 768 normal map (WebP 58), no calf map:
+44 KB mesh (with the calf's offsets) + 35 + 16 KB, 96 KB of files, about 128 KB in the page plus a 25 KB icon. About 5
+minutes for the whole run.
+
+## Round 12: the mute swan (`swan.py`)
+
+The swan was the last animal on the procedural body; an earlier sculpt was not shipped because it read as a white
+goose. `swan.py` is redone around what makes a mute swan read as one at the game camera: the black and orange face and
+the S shaped neck, then the white feathers and the folded wing close up.
+- The head is made level in its own frame (`hl()`, `hw()`: u forward from the back of the skull, v up, x across) and
+  turned down by `HEAD_PITCH` (34 degrees), so the bill points down at the top of the neck. A long skull with a flat
+  crown, the forehead sloping down to the knob; the bill as two lofts in the head frame (`UPPER`, `LOWER`): deep at the
+  base under the knob, the culmen sloping straight down to the nail, a little wider toward the rounded tip, the lower
+  mandible tucked under it, an oval nostril pit near the culmen.
+- The knob is its own part (`knob()`, `KNOB_H`) and `KNOB_K` scales it on the same base (1.0; a cob's knob is bigger
+  than a pen's, so a later boy or girl look can change only this). The cygnet's knob is pressed into the bill by its
+  baby offsets.
+- The black of the face is painted from masks in the head frame (`_face()`): the base of the bill (its edge slanting
+  back from in front of the knob down to the gape), the bare lores narrowing from the bill to the eye, a thin ring
+  round the eye, the lower mandible and the nostrils; the knob and the nail are black parts. The orange of the upper
+  mandible is a little darker at the sides and lighter along the culmen. (A lore mask without a front end covered the
+  whole side of the bill: stop it at the bill's base.)
+- The neck is a `sweep()` along an S: forward out of the breast, back in the middle, arching forward over into the
+  head; thick at the base. Around the tight bend under the head the sweep needs many samples (`n=160`) or the nape
+  shows facets.
+- The body is a long boat (`TRUNK`): a level back, a deep round breast, a broad flat belly, the rear tapering up into
+  the short pointed tail. The folded wing is sculpted on it: a layer `WING_T` thick over the upper side whose lower edge
+  (`WING_EDGE`) is the clean line along the flank, rounded at the shoulder, with the tertials raised a little over the
+  rump and the primaries crossing over the base of the tail. In the paint its feathers are long and narrow
+  (`_fshape()`, `_wing_mask()`) with soft gray lines along their edges; the white shows its feathers by shadow only.
+- The game's wing blades lie inside the sculpted body while the wing is folded (`modelSpec` `folded`, `foldedPos` and
+  shorter primaries, `prim: 0.94`): flat blades over the curved side of a swan read as paddles stuck on. They come out
+  when it flies, jumps or flutters. The tail fan is narrow (14 degrees) and lies along the sculpted tail with only the
+  tips showing.
+- The wing arm leaves the body through a slim root (`arm()`), and its first few centimeters stay with the hips
+  (`fix_weights()`): with part of the root on the shoulder bone the folded wing dented the back, with a thick root left
+  behind it made a fin. Only vertices that really are on the arm get that: far from every part all the part distances
+  are equal, so a plain argmin picks the arm too (the bill's tip went to the hips that way).
+- The decimator threw a few vertices of the thin arm tip far off the sculpt (8 cm out, with no part near them, so their
+  weights went to the head and stretched spikes across the cygnet); `lowpoly_fix()` puts any vertex more than 4 mm off
+  the sculpt back on it.
+- Texture layout (`uv_regions()`, `UV_AVERAGE`, `uv_weight()`): the head and bill get 2.5 times the texels of the
+  rest, or the black and orange edges of the face were jagged.
+- The cygnet: the game's baby neck maps shorten each neck bone along its own segment and thicken it across, so the
+  adult's S (the neck well off the bone line) folded into a zigzag; the baby offsets move the neck onto the bone line
+  (`BABY_NECK_Z`), up into the nape. The knob comes down onto the culmen line and gets down, the bill is narrowed and
+  made shallower toward the tip, gray-brown down, a slate gray bill. The body walks onto the downy egg along the egg's
+  normals (along the sculpt's, the wing's lower edge kept a crease), its flow has no folded wing in it, and its maps
+  use the smooth game mesh normals and less occlusion on the body and neck (`extra_maps()`), so the adult's wing edge
+  and feather creases do not show through the down.
+- In the game (`SPEC.swan.modelSpec`, only with the model): asleep the neck is laid back over the body and the head
+  rests on the back (`sleepNeck`, found with a small forward kinematics fit of the neck chain to points over the back),
+  tiny wing blades on the cygnet (0.04). The procedural swan (no model) is unchanged.
+- Budget: see the Budget section.

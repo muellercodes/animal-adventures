@@ -36,7 +36,7 @@ const Net = {
     const b = Player.b; if (!b) return null;
     const r = (v) => Math.round(v * 100) / 100;
     const hm = S.homes[b.sp];
-    return { sp: b.sp, age: r(b.age), col: hm ? hexNum(hm.look && hm.look.shirt) : -1, x: r(b.pos.x), y: Math.round(b.pos.y * 10) / 10, z: r(b.pos.z), yaw: r(b.yaw), speed: r(b.speed), vy: r(b.vy), eat: r(b.eat), mode: b.mode, room: this.roomKey(b.room) };
+    return { sp: b.sp, sex: b.sex || '', age: r(b.age), col: hm ? hexNum(hm.look && hm.look.shirt) : -1, x: r(b.pos.x), y: Math.round(b.pos.y * 10) / 10, z: r(b.pos.z), yaw: r(b.yaw), speed: r(b.speed), vy: r(b.vy), eat: r(b.eat), mode: b.mode, room: this.roomKey(b.room) };
   },
   sendState(dt) {
     this.sendT -= dt; this.beatT -= dt;
@@ -59,9 +59,9 @@ const Net = {
   setState(id, st) {
     if (!st || !SPECIES[st.sp]) return;
     let o = this.others.get(id);
-    if (o && (o.sp !== st.sp || Math.abs(o.age - st.age) > 0.05)) { this.drop(id); o = null; }
+    if (o && (o.sp !== st.sp || (o.b.sex || '') !== (st.sex || '') || Math.abs(o.age - st.age) > 0.05)) { this.drop(id); o = null; }
     if (!o) {
-      const b = newBody(st.sp, st.age);
+      const b = newBody(st.sp, st.age, st.sex);
       b.remote = true; if (b.rig.setDetail) b.rig.setDetail(1);
       b.pos.set(st.x, st.y, st.z); b.yaw = st.yaw;
       G.scene.add(b.rig.root);

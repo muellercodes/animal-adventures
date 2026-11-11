@@ -38,10 +38,11 @@ const formOf = (sp, age) => (sp === 'butterfly' && age < PUPA_AGE ? 'caterpillar
 const BAT_GRIP = 0.4;
 const nightNo = () => Math.floor(S.time / CYCLE);
 
-function newBody(sp, age = 1) {
-  const form = formOf(sp, clamp(age, 0, 1)), rig = Animals.build(form);
+// (round 12: sex 'm' or 'f', a boy or a girl, which can look different: SEX_LOOK in 00_core)
+function newBody(sp, age = 1, sex = null) {
+  const form = formOf(sp, clamp(age, 0, 1)), rig = Animals.build(form, { sex });
   rig.root.rotation.order = 'YXZ';
-  const b = { sp, form: form !== sp ? form : null, rig, pos: new V3(), yaw: 0, speed: 0, vy: 0, mode: 'ground', hopCd: 0, hopping: false, eat: 0, idle: 0, turn: 0, pitch: 0, bob: Math.random() * 9, blocked: false,
+  const b = { sp, sex: sex === 'm' || sex === 'f' ? sex : null, form: form !== sp ? form : null, rig, pos: new V3(), yaw: 0, speed: 0, vy: 0, mode: 'ground', hopCd: 0, hopping: false, eat: 0, idle: 0, turn: 0, pitch: 0, bob: Math.random() * 9, blocked: false,
     age: 1, k: 1, m: null, room: null, tree: null, ca: 0, sick: 0, happy: 0, stuck: 0,
     st: { t: 0, speed: 0, mode: 'ground', vy: 0, eat: 0, turn: 0, idle: 0, sick: 0, happy: 0, swimSleep: false } };
   setBodyAge(b, age);
@@ -61,7 +62,8 @@ function setBodyAge(b, age) {
     b.k = 1;
   } else {
     if (b.rig.setAge) b.rig.setAge(age);
-    b.k = lerp(0.42, 1, age);
+    // (round 12: a grown-up boy or girl can be a little bigger or smaller, a lioness smaller than a lion)
+    b.k = lerp(0.42, 1, age) * (b.sex ? lerp(1, sexSize(b.sp, b.sex), age) : 1);
   }
   b.rig.root.scale.setScalar(b.k);
   const r = b.rig, k = b.k;
@@ -257,7 +259,7 @@ const Player = {
   set(sp) {
     let keep = null;
     if (this.b) { keep = { x: this.b.pos.x, z: this.b.pos.z, yaw: this.b.yaw, room: this.b.room }; G.scene.remove(this.b.rig.root); }
-    this.b = newBody(sp, ageOf(sp));
+    this.b = newBody(sp, ageOf(sp), sexOf(sp));
     this.b.player = true;
     if (this.b.rig.setDetail) this.b.rig.setDetail(2);
     this.b.rig.onSneeze = () => { if (G.sound) G.sound.sneeze(this.b); G.ui.say('Achoo!', 1.1); };
@@ -427,7 +429,8 @@ const Wild = {
   list: [],
   clear() { for (const c of this.list) G.scene.remove(c.rig.root); this.list = []; },
   make(sp, age, x, z, extra) {
-    const b = newBody(sp, age);
+    // (round 12: wild animals are boys and girls, half and half unless the caller says)
+    const b = newBody(sp, age, (extra && extra.sex) || (Math.random() < 0.5 ? 'm' : 'f'));
     Object.assign(b, { home: { x, z }, range: 10, water: false, state: 'idle', timer: Math.random() * 4, target: null, think: Math.random() * 0.3, stuck: 0, eatPause: 0, flyH: 0 }, extra || {});
     b.yaw = Math.random() * TAU;
     const h = G.world.H(x, z);
