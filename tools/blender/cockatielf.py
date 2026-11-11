@@ -11,7 +11,7 @@ ID = 'cockatielf'
 _M = sys.modules[__name__]
 # (no baby_paint(): her chicks use the male's baby maps)
 
-KF = {'wash': hexc(0xA9A27A), 'washHi': hexc(0xB8AC74), 'cheek': hexc(0xC87A4C), 'bar': hexc(0xE6D486), 'gray': hexc(0x86847F)}
+KF = {'wash': hexc(0x9A9676), 'washHi': hexc(0xB8AC74), 'cheek': hexc(0xC87A4C), 'bar': hexc(0xE6D486), 'gray': hexc(0x86847F)}
 
 
 def paint(P, N, c):
@@ -34,7 +34,7 @@ def paint(P, N, c):
     # the face: the male's yellow area as only a faint wash on gray, a little stronger round the beak and the eye
     yel, cheek = _masks(Pm, Nm, R)
     near = sstep(0.11, 0.125, z) * sstep(0.35, 0.37, y)
-    col = mix(col, KF['wash'], yel * (0.55 + 0.25 * near) * (0.85 + 0.3 * (fid - 0.5)))
+    col = mix(col, KF['wash'], yel * (0.5 + 0.3 * near) * (0.85 + 0.3 * (fid - 0.5)))
     # a duller, smaller orange cheek patch with soft edges
     col = mix(col, KF['cheek'], sstep(0.15, 0.85, cheek) * 0.72)
     bl = R['bill']
