@@ -633,6 +633,8 @@ const World = (() => {
           ...SP7([{ sp: 'eagle', n: 2, home: [0, 0], range: 30 }]),
           // round 11: winged cats and unicorns live up in the sky
           ...SP7([{ sp: 'wingcat', n: 3, home: [0, 0], range: 26 }, { sp: 'unicorn', n: 2, kids: 1, home: [64, -30], range: 14 }]),
+          // round 13: griffins nest on the highest island, winged lions on another
+          ...SP7([{ sp: 'griffin', n: 2, kids: 1, home: [110, -96], range: 9 }, { sp: 'wingedlion', n: 2, kids: 1, home: [-96, 104], range: 12 }]),
         ],
         ambient: [{ sp: 'parrot', w: 3 }, { sp: 'owl', w: 1 }, { sp: 'swan', w: 1 }],
         foods: { berries: 5, apple: 3, acorn: 1, worm: 1, grass: 2, seeds: 2, bugs: 2, carrot: 1, smallfish: 1 },
@@ -723,6 +725,8 @@ const World = (() => {
           { sp: 'moose', n: 1, home: [-70, -30], range: 30 },
           { sp: 'squirrel', n: 2, home: [24, -24], range: 30 },
           ...SP7([{ sp: 'eagle', n: 1, home: [0, 90], range: 50 }, { sp: 'polarbear', n: 3, kids: 1, home: [10, 80], range: 45 }, { sp: 'polarbear', n: 3, kids: 2, home: [-40, 190], range: 80 }, { sp: 'snowleopard', n: 2, kids: 1, home: [-20, -120], range: 50 }, { sp: 'smilodon', n: 2, home: [90, -60], range: 45 }]),
+          // round 13: a pair of griffins and their chick-cub keep to the high rocks up in the mountains
+          ...SP7([{ sp: 'griffin', n: 2, kids: 1, home: [70, -115], range: 35 }]),
         ],
         ambient: [{ sp: 'fox', w: 2 }, { sp: 'owl', w: 1 }, { sp: 'moose', w: 1 }, ...SP7([{ sp: 'polarbear', w: 2 }, { sp: 'snowleopard', w: 1 }])],
         foods: { fish: 4, smallfish: 3, berries: 2, pinecone: 3, twigs: 2, seeds: 1, meat: 1 },
@@ -816,6 +820,8 @@ const World = (() => {
             { sp: 'gecko', n: 2, home: [-150, 40], range: 25 },
             { sp: 'crocodile', n: 1, home: [HOLE.x, HOLE.z], range: 8, water: true },
           ]),
+          // round 13: a pride of winged lions on the far kopje
+          ...SP7([{ sp: 'wingedlion', n: 2, kids: 1, home: [KOPJES[2][0], KOPJES[2][1]], range: 40 }]),
         ],
         ambient: [{ sp: 'giraffe', w: 2 }, { sp: 'rhino', w: 1 }, ...SP7([{ sp: 'lion', w: 1, kids: 1 }, { sp: 'cheetah', w: 1 }])],
         foods: { grass: 4, seeds: 3, bugs: 3, meat: 2, twigs: 2, berries: 1, watermelon: 1, dates: 1, hay: 1 },

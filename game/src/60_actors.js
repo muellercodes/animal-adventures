@@ -15,7 +15,9 @@ const FEAR = { chicken: 3, duck: 4.5, swan: 3, frog: 2.5, lizard: 3, snake: 2, b
   trex: 0, giraffe: 5, polarbear: 2, snowleopard: 4, smilodon: 1, bat: 4, butterfly: 3,
   // round 11
   lion: 0, tiger: 0, leopard: 2, cheetah: 4, ocelot: 4, panda: 2, cow: 3, camel: 3, gecko: 3, wingcat: 4, unicorn: 6,
-  beardeddragon: 3, iguana: 3, chameleon: 2, komodo: 0 };
+  beardeddragon: 3, iguana: 3, chameleon: 2, komodo: 0,
+  // round 13: they stand their ground, but fly off if something much bigger comes at them fast
+  griffin: 4, wingedlion: 3 };
 // extra bump circles along a long body: [how far ahead of the body's middle, as a part of its length; radius, as a part
 // of its radius]. A brachiosaurus's middle is at its shoulders: the trunk runs back from there to its hips and tail
 // (its neck is high up, so fences pass under it)
@@ -27,7 +29,9 @@ const BODY_COL = { long: [[0.32, 0.8], [-0.32, 0.8]], brachiosaurus: [[0.14, 0.9
   cow: [[0.26, 1.0], [-0.3, 1.0]], camel: [[0.2, 0.9], [-0.25, 0.9]], lion: [[0.3, 0.9], [-0.26, 0.9]], tiger: [[0.3, 0.7], [-0.25, 0.7]],
   leopard: [[0.28, 0.65], [-0.24, 0.65]], unicorn: [[0.26, 0.85], [-0.28, 0.85]],
   // a Komodo dragon's middle is over its hips' front: its long thick tail runs well back
-  komodo: [[0.34, 1.0], [-0.12, 1.0], [-0.46, 0.8]] };
+  komodo: [[0.34, 1.0], [-0.12, 1.0], [-0.46, 0.8]],
+  // round 13: a griffin's chest and hips (its beak and tail hang past them); a winged lion is a lion's body
+  griffin: [[0.35, 0.84], [-0.33, 0.84]], wingedlion: [[0.3, 0.9], [-0.26, 0.9]] };
 const NOCTURNAL = { owl: 1, frog: 1, fox: 1, raccoon: 1, hedgehog: 1, hamster: 1, bat: 1, gecko: 1, ocelot: 1, leopard: 1 };
 // round 10: a butterfly starts out as a caterpillar. Below PUPA_AGE its body is the caterpillar (b.form, a hidden
 // species), and when it grows past it, it makes a chrysalis and comes out a grown monarch (70_game: Pupa). A butterfly
