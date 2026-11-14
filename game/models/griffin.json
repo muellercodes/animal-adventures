@@ -1,0 +1,176 @@
+{
+ "v": 2,
+ "id": "griffin",
+ "data": "griffin.bin",
+ "enc": "deflate",
+ "raw": 104172,
+ "maps": {
+  "color": "griffin-color.webp",
+  "normal": "griffin-normal.webp",
+  "babyColor": "griffin-baby.webp",
+  "fur": "griffin-fur.webp",
+  "feather": "griffin-feather.webp",
+  "featherNormal": "griffin-feathernrm.webp",
+  "babyFeather": "griffin-babyfeather.webp"
+ },
+ "nv": 3004,
+ "ntri": 3844,
+ "nbv": 3004,
+ "nbt": 3844,
+ "bbox": [
+  -1.308362,
+  -0.00651,
+  -1.443196,
+  1.308362,
+  1.407643,
+  1.031487
+ ],
+ "bones": [
+  "hips",
+  "rump",
+  "chest",
+  "neck",
+  "neck2",
+  "head",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "earL",
+  "earR",
+  "tail1",
+  "tail2",
+  "tail3",
+  "wingL",
+  "wingR",
+  "wforeL",
+  "wforeR",
+  "whandL",
+  "whandR",
+  "f0L",
+  "f0R",
+  "f1L",
+  "f1R",
+  "f2L",
+  "f2R",
+  "f3L",
+  "f3R",
+  "f4L",
+  "f4R",
+  "f5L",
+  "f5R",
+  "f6L",
+  "f6R",
+  "f7L",
+  "f7R",
+  "f8L",
+  "f8R",
+  "f9L",
+  "f9R",
+  "f10L",
+  "f10R",
+  "f11L",
+  "f11R",
+  "f12L",
+  "f12R",
+  "f13L",
+  "f13R",
+  "f14L",
+  "f14R",
+  "f15L",
+  "f15R",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.09603,
+   1.30108,
+   0.8398
+  ],
+  "r": 0.02759,
+  "dir": [
+   0.6215,
+   0.0501,
+   0.7818
+  ],
+  "lid": [
+   0.58,
+   -0.84,
+   0.12
+  ],
+  "iris": 12878890,
+  "irisR": 0.92,
+  "pupil": "round",
+  "pupilR": 0.34,
+  "rim": 6965792,
+  "lidCol": 3814448,
+  "babyIris": 2760728,
+  "babyLidCol": 10129536
+ },
+ "collar": {
+  "at": [
+   "neck2",
+   "head",
+   0.25
+  ],
+  "lift": 0.4,
+  "maxR": 0.266
+ },
+ "belly": [
+  0.0,
+  0.5396,
+  -0.266
+ ],
+ "mouth": [
+  0.0,
+  1.2141,
+  1.0203
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.14,
+  0.1,
+  0.06
+ ],
+ "flat": 5914662,
+ "fur": {
+  "len": 0.076,
+  "n": 5,
+  "lean": 1.1,
+  "tile": 0.00418,
+  "babyLen": 1.0,
+  "babyLean": 0.4,
+  "shade": 0.62,
+  "babyMask": true,
+  "uvm": 2.4972
+ },
+ "bdelta": 0.118071,
+ "srgb": [
+  "feather",
+  "babyFeather"
+ ],
+ "feathers": {
+  "cols": 8
+ }
+}
