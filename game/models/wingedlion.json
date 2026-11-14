@@ -1,0 +1,190 @@
+{
+ "v": 2,
+ "id": "wingedlion",
+ "data": "wingedlion.bin",
+ "enc": "deflate",
+ "raw": 111821,
+ "maps": {
+  "color": "wingedlion-color.webp",
+  "normal": "wingedlion-normal.webp",
+  "babyColor": "wingedlion-baby.webp",
+  "fur": "wingedlion-fur.webp",
+  "hair": "wingedlion-hair.webp",
+  "feather": "wingedlion-feather.webp",
+  "featherNormal": "wingedlion-feathernrm.webp",
+  "babyFeather": "wingedlion-babyfeather.webp"
+ },
+ "nv": 2973,
+ "ntri": 3821,
+ "nbv": 2973,
+ "nbt": 3821,
+ "bbox": [
+  -1.420552,
+  -0.004628,
+  -1.596943,
+  1.420552,
+  1.339691,
+  1.167873
+ ],
+ "bones": [
+  "hips",
+  "rump",
+  "chest",
+  "neck",
+  "neck2",
+  "head",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "earL",
+  "earR",
+  "tail1",
+  "tail2",
+  "tail3",
+  "wingL",
+  "wingR",
+  "wforeL",
+  "wforeR",
+  "whandL",
+  "whandR",
+  "f0L",
+  "f0R",
+  "f1L",
+  "f1R",
+  "f2L",
+  "f2R",
+  "f3L",
+  "f3R",
+  "f4L",
+  "f4R",
+  "f5L",
+  "f5R",
+  "f6L",
+  "f6R",
+  "f7L",
+  "f7R",
+  "f8L",
+  "f8R",
+  "f9L",
+  "f9R",
+  "f10L",
+  "f10R",
+  "f11L",
+  "f11R",
+  "f12L",
+  "f12R",
+  "f13L",
+  "f13R",
+  "f14L",
+  "f14R",
+  "f15L",
+  "f15R",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.06174,
+   1.1587,
+   0.99271
+  ],
+  "r": 0.03108,
+  "dir": [
+   0.3304,
+   0.0701,
+   0.9412
+  ],
+  "lid": [
+   1.0,
+   -0.9,
+   0.18
+  ],
+  "iris": 12091950,
+  "irisR": 0.97,
+  "pupil": "round",
+  "pupilR": 0.36,
+  "rim": 5913106,
+  "lidCol": 9268289,
+  "babyLidCol": 6968898,
+  "babyIris": 8689320
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "neck2",
+   0.75
+  ],
+  "lift": 0.5
+ },
+ "belly": [
+  0.0,
+  0.5964,
+  -0.294
+ ],
+ "mouth": [
+  0.0,
+  0.9429,
+  1.0853
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.18,
+  0.13,
+  0.08
+ ],
+ "flat": 11043918,
+ "fur": {
+  "len": 0.084,
+  "n": 5,
+  "lean": 1.1,
+  "tile": 0.004620000000000001,
+  "babyLen": 1.3,
+  "babyLean": 0.55,
+  "shade": 0.6,
+  "uvm": 2.9912
+ },
+ "cards": {
+  "nv": 280,
+  "ntri": 224,
+  "bbox": [
+   -0.375121,
+   0.885546,
+   0.971953,
+   0.375121,
+   1.280561,
+   1.121774
+  ],
+  "bscale": 3.848143853247165e-06,
+  "rough": 0.45,
+  "alpha": 0.35
+ },
+ "bdelta": 0.21099,
+ "srgb": [
+  "feather",
+  "babyFeather"
+ ],
+ "feathers": {
+  "cols": 8
+ }
+}

@@ -598,9 +598,21 @@ const Animals = (() => {
   function featherModelMaterial(M, fs, baby) {
     const mm = M.maps, m = new THREE.MeshStandardMaterial({ roughness: fs.rough || 0.8, metalness: 0, side: THREE.DoubleSide, alphaTest: 0.5 });
     m.visible = false;
+    // round 13 (winged lion): fs.under (an sRGB color and an amount) makes the undersides of the blades (their front
+    // faces: featherBladeCut's triangles face down) paler, toward that color, keeping the light and dark of the atlas
+    // (the bars): a spread wing seen from below. No other species gives one, so their feather materials are as before.
+    if (fs.under && !baby) { const u = linColor(fs.under[0]); m.userData.aa = { aaUnder: { value: new THREE.Vector4(u.r, u.g, u.b, fs.under[1]) } }; m.onBeforeCompile = featherUnderCompile; }
     const apply = () => { m.map = (baby ? mm.tex.babyFeather : mm.tex.feather) || null; m.normalMap = baby ? null : mm.tex.featherNormal || null; m.visible = !!m.map; m.needsUpdate = true; };
     if (mm.ready === mm.need) apply(); else mm.waiters.push(apply);
     return m;
+  }
+  // round 13 (winged lion, fs.under): the undersides of the feather blades paler, by their brightness in the atlas
+  function featherUnderCompile(sh) {
+    Object.assign(sh.uniforms, this.userData.aa);
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform vec4 aaUnder;')
+      .replace('#include <map_fragment>', `#include <map_fragment>
+  if (gl_FrontFacing) diffuseColor.rgb = mix(diffuseColor.rgb, aaUnder.rgb * clamp(0.45 + 4.0 * dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11)), 0.0, 1.4), aaUnder.a);`);
   }
 
   // ---------- module temps ----------
@@ -7653,6 +7665,69 @@ const Animals = (() => {
     return s;
   };
 
+  // ===== round 13: winged lion =====
+  // A whole lion (SPEC.lion: the mane, the coat, the tufted tail, the big cat's walk) with a pair of golden eagle wings
+  // growing from its shoulder blades: the birds' wing bones on the chest, posed by the legged animator's anim.wings as
+  // the winged cat's and the unicorn's are (on the ground folded over the upper flanks, the coverts in rows over the
+  // shoulders and the long primaries crossing over the rump as an eagle's cross over its tail; slow deep beats and long
+  // glides in flight, the legs tucked like a leaping cat's). The wing is the bald eagle's sculpted layout (one long
+  // fingered primary per hand bone, broad secondaries under three rows of coverts, tertials) made 2.4 times as big,
+  // about 4.9 m across. The folded pose was fitted so the folded feathers lie just outside the sculpted body. The model
+  // (tools/blender/wingedlion.py, the girl's wingedlionf.py on the lioness) brings the feathered wing arm grown out of
+  // the shoulders and the feather atlas; the cub has small downy wing buds and flies once grown.
+  ids.push('wingedlion');
+  // (o: the folded pose, o.folded, o.foldedPos and o.fold { tert, sec, prim }, for trying poses)
+  const wlionWing = (o = {}) => {
+    const E = 2.4, bl = (len, wid, cell, layer, x) => Object.assign({ len: [len[0] * E, len[1] * E], wid: [wid[0] * E, wid[1] * E], cell, layer: layer * E, curl: 0.08 }, x || {});
+    const bk = (x) => Object.assign({}, x, { back: x.back * E });
+    const fo = Object.assign({ tert: [107, 103], sec: [108, 84], prim: [122, 121] }, o.fold);
+    return birdWing({
+      sh: [0.2, 0.965, 0.168], arm: [0.16 * E, 0.2 * E, 0.15 * E], parent: 'chest',
+      fold: { hum: 86, elb: -170, wri: 172 }, spread: { roll: 2, yaw: 0, pitch: 0 },
+      folded: o.folded || { roll: -37, yaw: 2.6, pitch: 3 }, foldedPos: o.foldedPos || [0.041, 0.07, -0.02],
+      flap: { amp: 48, rate: 1.35, upFold: 0.3, twist: 7, glide: 4 },
+      sets: [
+        { parent: 'wingL', n: 3, at: [0.2, 0.9], spread: [100, 94], fold: fo.tert, y: 0.008 * E, blades: [
+          bl([0.21, 0.19], [0.1, 0.095], 4, 0.0132, { curl: 0.1 }), bl([0.1, 0.09], [0.1, 0.095], 3, 0.0176, bk({ back: -0.028 }))] },
+        { parent: 'wforeL', n: 6, at: [0.0, 0.97], spread: [92, 80], fold: fo.sec, layerStep: -0.0024 * E, blades: [
+          bl([0.23, 0.21], [0.102, 0.096], 1, 0, { curl: 0.1 }), bl([0.14, 0.13], [0.096, 0.09], 2, 0.0055, bk({ back: -0.012 })),
+          bl([0.09, 0.084], [0.09, 0.084], 3, 0.0099, bk({ back: -0.02 })), bl([0.06, 0.056], [0.084, 0.078], 7, 0.0127, bk({ back: -0.032, curl: 0.06 }))] },
+        { parent: 'whandL', n: 7, at: [0.0, 1.0], spread: [66, -6], fold: fo.prim, layerStep: -0.0024 * E, blades: [
+          bl([0.32, 0.43], [0.108, 0.078], 0, -0.0066, { curl: 0.08 }), bl([0.13, 0.11], [0.09, 0.072], 3, 0.0033, bk({ back: -0.024, curl: 0.06 }))] },
+      ],
+    });
+  };
+  SPEC.wingedlion = () => {
+    const s = SPEC.lion(), W = wlionWing();
+    s.bones.push(...W.bones);
+    // a mammal: it blinks with the upper lid (spec.feathers alone would make it blink like a bird)
+    s.lowerBlink = false;
+    // the fallback's feathers: golden brown coverts, darker barred flight feathers, near black finger tips
+    const K = { gold: hex(0x8A6438), goldHi: hex(0xB08850), brown: hex(0x4E3420), dark: hex(0x24180E), pale: hex(0xA08A6C) };
+    s.feathers = () => ({
+      tex: [256, 128], rough: 0.82,
+      // (the model's blades: pale gray-buff undersides with the flight feathers' bars, seen from below in flight)
+      under: [0xB4A690, 0.8],
+      list: W.feathers,
+      paint(u, t, C) {
+        const k = Math.floor(u * FNC), sx = fract(u * FNC);
+        if (k === 0) { vane(sx, t, C, K.brown, K.dark, K.dark); cmix(C, K.dark, sstep(0.55, 0.9, t) * 0.7); }
+        else if (k === 1 || k === 4) { vane(sx, t, C, K.brown, K.gold, K.dark); cmix(C, K.dark, sstep(0.55, 0.85, Math.sin(t * 28) * 0.5 + 0.5) * 0.3); }
+        else vane(sx, t, C, k === 7 ? K.goldHi : K.gold, K.pale, K.brown);
+      },
+      babyPaint: downFeather(hex(0xB8A486), hex(0xD6C8AE), null),
+    });
+    // the cub: small downy wing buds
+    s.baby.wing = 0.34;
+    s.modelSpec.baby.wing = 0.34;
+    // flying: a few slow deep wingbeats, then a long glide on wings held a little up; the front paws tucked up under the
+    // chest and the hind legs stretched out behind like a leaping cat's ([up, forward] in leg heights, flex, toe curl),
+    // the tail streaming out behind, the body rising a little with each downstroke
+    s.anim.wings = { wing: W.wing, every: 7, beats: 3, climb: 0.6, bob: 0.035, legs: { f: [0.36, 0.16, 1.7, 0.9], h: [0.28, -0.45, 0.3, 0.9] } };
+    s.anim.tailAir = [0.55, 0.15, 0.05];
+    return s;
+  };
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -9745,6 +9820,8 @@ const Animals = (() => {
   COLLAR.ocelot = COLLAR.cat;
   // ===== round 11: giant panda
   COLLAR.panda = { at: ['neck2', 'head', 0.3], r: 0.8, maxR: 0.18 };
+  // ===== round 13: winged lion =====
+  COLLAR.wingedlion = COLLAR.cat;
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)

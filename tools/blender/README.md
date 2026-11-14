@@ -754,6 +754,13 @@ maps (WebP 68 and 50), 512 cygnet maps, 384 fur map, 512 x 256 feather atlas: 52
 + 39 + 10 + 10 + 9 + 18 + 2 + 8 KB, 178 KB of files, about 231 KB in the page plus about 40 KB of icons. The normal map
 (the white plumage shows its feathers only as relief) and the mesh are most of it.
 
+Winged lion (round 13, `VOXEL=0.0092 TRIS=4600 TEX=768`, about 6 minutes on the shared machine): 7.6k triangles plus 224
+in whisker cards (about 10k in the game with the 88 wing blades, 2.1k triangles, and the eyes); 768 maps (color WebP 70,
+normal 56), 256 cub map, fur and whisker textures, 512 x 256 feather atlas and its down atlas: 74 KB mesh and cards + 28
++ 21 + 5 + 7 + 5 + 15 + 2 + 6 KB, 166 KB of files, about 222 KB in the page plus about 48 KB of icons (36 KB of PNG).
+Winged lioness (same settings): 8.3k triangles plus 224; 75 KB + 28 + 18 + 5 + 5 + 5 + 15 + 2 + 6 KB, 164 KB of files,
+about 218 KB in the page plus a 19 KB icon (her cub uses the winged lion cub's icon).
+
 ## More cats and a hamster (round 7: `cat.py` as a template, `coat.py`, `hamster.py`)
 
 Five more cats (`blackcat`, `orangecat`, `calico`, `siamese`, `whitecat`) and a Syrian hamster. The tabby got its fixes
@@ -1365,4 +1372,56 @@ the S shaped neck, then the white feathers and the folded wing close up.
 - In the game (`SPEC.swan.modelSpec`, only with the model): asleep the neck is laid back over the body and the head
   rests on the back (`sleepNeck`, found with a small forward kinematics fit of the neck chain to points over the back),
   tiny wing blades on the cygnet (0.04). The procedural swan (no model) is unchanged.
+- Budget: see the Budget section.
+
+## Round 13: the winged lion and the winged lioness (`wingedlion.py`, `wingedlionf.py`)
+
+A whole lion (lion.py on the panthera kit, as it is: the mane, the coat, the tufted tail) with a pair of golden eagle
+wings growing from its shoulder blades. The girl is the lioness (lionf.py, as it is) with the same wings, her own model
+`wingedlionf.json` on the winged lion's skeleton (`SEX_LOOK.wingedlion`: the game scales her to 0.88).
+
+```bash
+python3 tools/blender/export_rig.py wingedlion
+python3 tools/blender/export_rig.py wingedlion tools/blender/work/wingedlionf-rig.json
+VOXEL=0.0092 TRIS=4600 TEX=768 BLENDER_PY=... python3 tools/blender/make.py wingedlion sculpt export
+VOXEL=0.0092 TRIS=4600 TEX=768 BLENDER_PY=... python3 tools/blender/make.py wingedlionf sculpt export
+```
+
+- `graft(C, ID)` in wingedlion.py adds the wings to a big cat's cat module (the lion's or the lioness's, in cat units,
+  before `PT.install`): the feathered wing arm (`bird.wing_arm`, spread flat in the rest pose as the winged cat's) on a
+  flattened round root muscle that grows out of the shoulder blade, the shape and parts with the arm (the cat evaluated
+  only in its own box), a grid with coarse steps out along the wing and fine ones across its thickness, rings across the
+  arm at the shoulder, elbow and wrist, the arm in its own UV region with fewer texels, its skin weights on the wing bones
+  by its place along the span (the root blending into the chest; nothing else keeps weights on the wing or feather
+  bones), the coat strokes and fur shells stopping on the arm, the feather flow, and the arm's paint: small contour
+  feathers where the coat stops, growing into golden tawny coverts with dark centers and pale fringes out along the arm,
+  darker brown along the leading edge, pale buff with fine bars underneath. The lioness's file is a few lines on it.
+- The wing pivot sits on the side of the shoulder (x 0.2 m, just under the mane's edge on the lion), not on top of the
+  back: a pivot near the spine had to slide 15 cm down the flank for the folded wing to clear the body, and the root's
+  skin stretched across the shoulder like a dark sheet. Out at the side the folded pose moves it only about 8 cm.
+- The cub (`baby_offset`): the lion's cub pulls the mane in onto the body without it; that body must not have the wing
+  arm in it (`C.shape` is swapped back for the call), or the mane over the shoulders lands on the arm's root and leaves a
+  shelf there. Its wing buds are small (`baby.wing` 0.34) and downy (the cub's map paints the arm with tawny down, and
+  the down atlas covers the blades).
+- The feather atlas (cells: fingered primaries, secondaries, greater coverts, coverts, tertials, and lesser coverts in
+  the last cell): dark brown flight feathers with faint gray bars, near black finger tips, golden tawny coverts with dark
+  centers, soft mottling in every cell (the flat vane colors read as plastic spoons on a folded wing this size), and
+  shafts only a little darker than their vanes (black shafts drew lines along every folded feather).
+- In the game (`SPEC.wingedlion`, 40_animals.js): the bald eagle's sculpted wing layout (`birdWing`: one long fingered
+  primary per hand bone, broad secondaries under three rows of coverts, tertials and their coverts) made 2.4 times as
+  big, about 4.9 m across, and `anim.wings` (the winged cat's and the unicorn's): slow deep beats (1.35 a second, 48
+  degrees) in threes every 7 seconds and long glides on wings held 4 degrees up, the front paws tucked up under the chest
+  and the hind legs stretched out behind, the tail streaming.
+- The folded pose was fitted, not guessed (a one-off script, not in the repo): the game's wing linkage (birdWing and the
+  legged animator's wingPose) replayed in numpy, every blade sampled and checked against the sculpt's distance field,
+  and the pose (roll, yaw, pitch, the pivot's shift and the three sets' folded angles) searched so the feathers lie 2 to 6
+  cm outside the body (the fur shells), the primaries' tips not far out to the side or far behind the rump. Poses that
+  hang the wing down the flank came out as a flat panel with the long primaries inside the haunch; the fit lays the wing
+  over the upper flank with the coverts in rows over the shoulder and the primaries crossing over the rump as an
+  eagle's cross over its tail. Check it by replaying the pose against the sculpt before rendering: a render shows a wing
+  that is inside the body only as a missing wing.
+- Shared game option (off for every other species): `fs.under` in a spec's `feathers()` (an sRGB color and an amount)
+  makes the undersides of the atlas blades paler toward that color, keeping the atlas's light and dark (the bars), in a
+  small shader patch (`featherUnderCompile`). The blades' front faces are their undersides (featherBladeCut's triangles
+  face down).
 - Budget: see the Budget section.

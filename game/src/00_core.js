@@ -144,6 +144,8 @@ const SPECIES = {
   ocelot: { name: 'Ocelot', many: 'Ocelots', eats: ['meat', 'smallfish', 'fish', 'bugs', 'petfood'], fav: 'smallfish', climb: true, swim: true, swimSpeed: 1.8, price: 600, baby: 'Ocelot kitten' },
   // round 11: giant panda
   panda: { name: 'Giant panda', many: 'Giant pandas', eats: ['bamboo', 'apple', 'carrot', 'lettuce'], fav: 'bamboo', climb: true, outdoor: true, price: 1500, baby: 'Panda cub' },
+  // round 13: winged lion
+  wingedlion: { name: 'Winged lion', many: 'Winged lions', eats: ['meat', 'fish', 'smallfish'], fav: 'meat', fly: true, flySpeed: 11, outdoor: true, hunter: true, price: 1800, baby: 'Winged lion cub' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
@@ -191,6 +193,8 @@ SHOP.push('cheetah');
 SHOP.push('ocelot');
 // round 11: giant panda
 SHOP.push('panda');
+// round 13: winged lion
+SHOP.push('wingedlion');
 // round 7: the shop runs from cheap to dear
 SHOP.sort((a, b) => SPECIES[a].price - SPECIES[b].price);
 // round 8: brachiosaurus (the dearest animal, so it goes last)
@@ -249,6 +253,8 @@ const SEX_LOOK = {
   giraffe: { base: 'm', f: { size: 0.86 } }, camel: { base: 'm', f: { size: 0.92 } }, panda: { base: 'm', f: { size: 0.9 } },
   crocodile: { base: 'm', f: { size: 0.78 } }, komodo: { base: 'm', f: { size: 0.85 } }, iguana: { base: 'm', f: { size: 0.85 } },
   rhino: { base: 'm', f: { size: 0.94 } },
+  // round 13: winged lion (the girl is a winged lioness, the lioness with the same wings)
+  wingedlion: { base: 'm', m: { name: 'Winged lion' }, f: { name: 'Winged lioness', model: true, size: 0.88 } },
 };
 const sexLook = (id, sex) => (SEX_LOOK[id] && SEX_LOOK[id][sex]) || null;
 const sexOf = (id) => (S.sex && (S.sex[id] === 'm' || S.sex[id] === 'f') ? S.sex[id] : (SEX_LOOK[id] && SEX_LOOK[id].base) || 'f');
