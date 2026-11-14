@@ -256,6 +256,8 @@ const Sound = (() => {
       case 'panda': if (k > 1) { T({ t, f: 900, f2: 1300, dur: 0.3, type: 'sawtooth', bp: 1600, q: 1.5, vib: 12, vibAmt: 40, vol: vol * 0.7 }); T({ t: t + 0.35, f: 1200, f2: 800, dur: 0.35, type: 'sawtooth', bp: 1500, q: 1.5, vib: 10, vibAmt: 30, vol: vol * 0.6 }); } else { T({ t, f: 300, f2: 340, dur: 0.45, type: 'sawtooth', bp: 800, q: 2, vib: 7, vibAmt: 25, vol: vol * 0.8 }); noise({ t: t + 0.55, f: 420, q: 0.9, dur: 0.2, vol: vol * 0.6, pan }); } break;
       // round 13: griffin: an eagle's scream over a low growl (a chick-cub gives a chirpy squeak)
       case 'griffin': if (k > 1) { for (let i = 0; i < 3; i++) T({ t: t + i * 0.13, f: 1700 + i * 120, f2: 2300 + i * 80, dur: 0.09, a: 0.008, type: 'triangle', vib: 30, vibAmt: 60, vol: vol * 0.5 }); T({ t: t + 0.42, f: 1500, f2: 1100, dur: 0.14, type: 'sawtooth', bp: 2200, q: 2, vol: vol * 0.3 }); } else { T({ t, f: 2600, f2: 3100, dur: 0.18, a: 0.01, type: 'sawtooth', bp: 2900, q: 3, vib: 22, vibAmt: 120, vol: vol * 0.55 }); T({ t: t + 0.16, f: 3100, f2: 1900, dur: 0.75, a: 0.02, type: 'sawtooth', bp: 2400, q: 2.4, vib: 18, vibAmt: 90, vol: vol * 0.6 }); noise({ t: t + 0.12, f: 2600, q: 1.2, dur: 0.6, vol: vol * 0.18, pan }); T({ t: t + 0.05, f: 92, f2: 70, dur: 1.2, a: 0.15, type: 'sawtooth', lp: 380, vib: 26, vibAmt: 6, vol: vol * 1.0 }); noise({ t: t + 0.2, f: 300, q: 0.7, dur: 0.9, vol: vol * 0.3, pan }); } break;
+      // round 13: winged lion: the lion's roar (a cub gives the lion cub's rough, rising mew)
+      case 'wingedlion': call({ sp: 'lion', age: b.age }, opts); break;
     }
   }
 
