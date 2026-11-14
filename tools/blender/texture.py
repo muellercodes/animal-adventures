@@ -185,8 +185,10 @@ if __name__ == '__main__':
     if colb is not None:
         out(S.finish(down2(pad(img(colb, 3), valid, 24)), ao, v2)).save(os.path.join(WORK, f'{SP}-color-baby.png'))
     if FUR:
-        # fur map at half the texture size: R length (of FUR['len']), G density
-        Fm = pad(img(np.stack([np.clip(flen / FUR['len'], 0, 1), np.clip(fden, 0, 1), np.zeros_like(fden)], 1).astype(F), 3), valid, 24)
+        # fur map at half the texture size: R length (of FUR['len']), G density; B 0, or (round 13, optional
+        # fur_babymask(P, N, comps), with FUR babyMask: the griffin) 1 where only the baby draws its fur shells
+        fbm_ = np.clip(S.fur_babymask(Ph, Nh, comps), 0, 1) if hasattr(S, 'fur_babymask') else np.zeros_like(fden)
+        Fm = pad(img(np.stack([np.clip(flen / FUR['len'], 0, 1), np.clip(fden, 0, 1), fbm_], 1).astype(F), 3), valid, 24)
         out(down2(down2(Fm))).save(os.path.join(WORK, f'{SP}-fur.png'))
     print(f'textures {TEX} saved ({time.time() - t0:.0f}s)')
     # optional species hook for more maps on the same layout (the birds' baby down and feather atlas)

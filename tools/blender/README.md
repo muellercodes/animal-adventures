@@ -754,6 +754,13 @@ maps (WebP 68 and 50), 512 cygnet maps, 384 fur map, 512 x 256 feather atlas: 52
 + 39 + 10 + 10 + 9 + 18 + 2 + 8 KB, 178 KB of files, about 231 KB in the page plus about 40 KB of icons. The normal map
 (the white plumage shows its feathers only as relief) and the mesh are most of it.
 
+Griffin (round 13, `VOXEL=0.0088 TRIS=4000 TEX=768`, about 6 minutes for the whole run on the shared machine): 7.7k body
+triangles, 9.8k in the game with the wing blades (10.5k with the eyes at detail 1; 47k at detail 2, where the fur
+shells cover the eagle's half too: the chick-cub's down is there, and the grown-up's shader drops it); 768 color and
+normal maps (WebP 56 and 44), 256 chick-cub color map, 384 fur map (with the baby-only channel), 512 x 256 feather
+atlas and its down atlas: 70 KB mesh with the chick-cub's offsets + 26 + 25 + 5 + 9 + 14 + 2 + 6 KB, 160 KB of files,
+about 214 KB in the page plus 36 KB of icons (about 47 KB in the page), about 261 KB in all.
+
 ## More cats and a hamster (round 7: `cat.py` as a template, `coat.py`, `hamster.py`)
 
 Five more cats (`blackcat`, `orangecat`, `calico`, `siamese`, `whitecat`) and a Syrian hamster. The tabby got its fixes
@@ -1365,4 +1372,60 @@ the S shaped neck, then the white feathers and the folded wing close up.
 - In the game (`SPEC.swan.modelSpec`, only with the model): asleep the neck is laid back over the body and the head
   rests on the back (`sleepNeck`, found with a small forward kinematics fit of the neck chain to points over the back),
   tiny wing blades on the cygnet (0.04). The procedural swan (no model) is unchanged.
+- Budget: see the Budget section.
+
+## Round 13: the griffin (`griffin.py`)
+
+The front half of a golden eagle and the back half of a lion, on the lion's big-cat template (`panthera.py`,
+`bigcat.py`) at KS 3.8: about 2.45 m from the beak to the tip of the tail, 1.4 m at the top of the head, about 4.6 m
+across the spread wings. The game's skeleton is `SPEC.griffin` (`bigPanthera` with the lion's tail; `GRIF` in
+40_animals.js): the cat's, with the neck and head bones moved up for a raised neck and a head carried high, the ear
+bones holding the feather tufts, and the birds' wing bones on the chest. griffin.py keeps the same numbers.
+
+```bash
+python3 tools/blender/export_rig.py griffin
+VOXEL=0.0088 TRIS=4000 TEX=768 BLENDER_PY=... python3 tools/blender/make.py griffin sculpt export
+```
+
+- The head is eagle.py's (the bald eagle's skull, bill, cere and nostril), mapped onto the griffin's head bone and
+  scaled by `SE` (2.8; at 2.5 the head looked small on the thick neck): `to_eagle()` and `from_eagle()`, distances
+  times `RE` back into cat units. It has its own heavier brow (`brow_e()`, a little further out, so it shades the
+  eye from above) and a 12% bigger eye (`eye_e()`); the fierce look is that brow over the amber eye, the gray lid skin
+  and the dark face. The beak is painted in the eagle's own coordinates: the yellow cere, a horn-yellow base, horn
+  gray, the dark hook, and a small yellow gape (a gape mask not limited across x painted a yellow spot on the cheek).
+  Golden eagle colors: dark brown, a golden crown and nape (the hackles), the face darker.
+- The tufts are the ear bones' part (`ear()`): a narrow flat point swept up and back from the back of the crown,
+  notched where its feathers part, dark with golden edges. Broad pale ones read as a cat's ears.
+- The neck is a thick `sweep()` rising out of the chest. The feathered chest and shoulders end in the ruff:
+  `_tip_rows()` and `feather_edge()` give the last two rows of big feathers, their pointed tips of uneven length
+  lying back over the fur; the feather coat (`ruff_t()`) is a few millimeters thick in front of the edge and a little
+  more over the shoulders, with a small step at each row's tips. Paint: dark brown on the neck and chest,
+  golden-brown toward the edge, the last row golden-tawny toward its tips, the fur just behind a little browner
+  (`furJoin`) and its fur shells a little longer. A plain edge read as a costume's seam; the color running across it
+  and the uneven tips make the join look grown.
+- The front legs are eagle legs on the cat's front leg bones: the lion's upper arm and forearm cut off above `HEM`,
+  the trousers (a round cone with a shaggy hem of feather points) over a round bare tarsus (`TARSUS`, scutes in front,
+  small round scales behind) down to the eagle foot (eagle.py's toes times `FK`, three forward and one back). The
+  talons curve down to the ground (`clawDrop` 0.5; straighter ones stuck out forward like needles). The whole foot is
+  on `fpaw` below 3 cm, blending into `fmeta` above it (`fix_weights()`), so the cat's walk lifts and curls it as it
+  does a paw.
+- Part masks come from the nearest part (`_own()`). A part that is the smooth union of others is always nearest, so
+  the feet without their talons (`paws_soft()`) and the leg without its tarsus (`fleg_up()`) are parts of their own
+  for the masks.
+- The wings: the wing arm (`bird.wing_arm`) spread in the rest pose and weighted as wingcat.py's. In the game the
+  eagle's atlas wing (one long fingered primary per hand bone) times 2.33 on the chest (`griffinWing()`), with broader
+  secondaries, tertials and primaries than the eagle's (the eagle's layout at this size looked like a comb), folded as
+  a cape over the back (`folded` roll -45, pitch -4: the tips a little down; positive pitches raised them over the
+  hips), slow deep beats (1.4 a second) and long glides. The atlas: dark brown flight feathers, grayer and barred on
+  their inner vanes (the undersides), brown coverts golden toward the tips. Pale square coverts read as boards on the
+  folded wing.
+- The chick-cub: the cat's round little body (baby offsets), the ruff's coat pulled in, the game's big head (1.7)
+  with its big beak, small tufts (`ear` 0.45), downy wing buds (`wing` 0.3). White down on the eagle's half, painted
+  and as fur shells. A vertex's fur length is shared by the grown-up and the baby, so the eagle's half carries the
+  down's length, and the fur map's third channel marks it as the baby's only (`fur_babymask()`, written by
+  texture.py; `babyMask` in `FUR`): the grown-up's shells leave it out (`aaMShellCompileB` in 40_animals.js, a shader
+  program of its own, so every other species' shells are as before). The down runs into the cub's woolly spotted coat
+  over a few centimeters; a dark beak with a yellow cere and gape, pale feet, gray talons.
+- The fallback body (no models): the lion's, with SPEC.eagle's head loft, beak, cere, brow and eye mapped the same
+  way (`grifEg`), the feather tufts, eagle toes on the front paws and the feathered coat painted.
 - Budget: see the Budget section.

@@ -7653,6 +7653,152 @@ const Animals = (() => {
     return s;
   };
 
+  // ===== round 13: griffin =====
+  // The front half of a golden eagle and the back half of a lion: an eagle's head (dark golden-brown with a golden nape
+  // and crown, a big hooked beak, fierce eyes under a heavy brow, short pointed feather tufts like ears), a feathered
+  // neck and chest that end in a ruff over the shoulders, eagle legs in front (feathered trousers, then scaly yellow,
+  // big feet with black talons) that it walks on as a big cat walks on its front paws, big golden-brown eagle wings
+  // from the shoulders, and a lion's hindquarters and tufted tail. The lion's big-cat skeleton (bigPanthera, k = 3.8)
+  // with the neck raised and the head carried high, the ear bones holding the feather tufts, and the birds' wing bones
+  // on the chest (anim.wings, as the winged cat's and the unicorn's). The sculpted model is tools/blender/griffin.py,
+  // which keeps the same numbers (GRIF): the bones in cat units and the eagle's head (SPEC.eagle) scaled by se.
+  ids.push('griffin');
+  const GRIF = {
+    k: 3.8, se: 2.8, wing: 2.33,
+    // cat units: the raised neck and the head, the feather tufts (ear bones), the wing's shoulder pivot
+    neck: [0, 0.225, 0.15], neck2: [0, 0.272, 0.178], head: [0, 0.318, 0.2], ear: [0.0164, 0.351, 0.184], sh: [0.03, 0.25, 0.09],
+  };
+  // a point of the eagle's head (SPEC.eagle, its head bone at [0, 0.37, 0.2]) on the griffin's head, in meters
+  const grifEg = (p) => [p[0] * GRIF.se, GRIF.head[1] * GRIF.k + (p[1] - 0.37) * GRIF.se, GRIF.head[2] * GRIF.k + (p[2] - 0.2) * GRIF.se];
+  // the wing: the eagle's (SPEC.eagle) times GRIF.wing, about 4.6 m across. stdWing gives the bones and the fallback's
+  // blades; the sculpted model's atlas blades are the eagle's own layout (one long fingered primary per hand bone,
+  // broad secondaries under three rows of coverts), on the same bones
+  const griffinWing = (atlas) => {
+    const g = GRIF.wing, sh = GRIF.sh.map((v) => v * GRIF.k);
+    const folded = { roll: -45, yaw: 2, pitch: -4 }, foldedPos = [0.05, -0.01, -0.03];
+    const flap = { amp: 42, rate: 1.4, upFold: 0.3, twist: 7, glide: 2.5 };
+    if (!atlas) {
+      return stdWing({
+        s: 2.0 * g, sh, parent: 'chest', prim: 1.0, wid: 1.3, tip: 0.3, secTip: 0.55, primTipWid: 0.85, folded, foldedPos,
+        featherFold: { tert: [112, 104], sec: [106, 93], prim: [98, 91] }, primSpread: [54, -4], flap,
+        cells: { prim: 0, sec: 1, gcov: 2, lcov: 3, tert: 4, pcov: 3, mcov: 3 },
+      });
+    }
+    const bl = (len, wid, cell, layer, o) => Object.assign({ len: len.map((v) => v * g), wid: wid.map((v) => v * g), cell, layer: layer * g, curl: 0.08 }, o || {});
+    return birdWing({
+      sh, parent: 'chest', arm: [0.16 * g, 0.2 * g, 0.15 * g], fold: { hum: 86, elb: -170, wri: 172 }, spread: { roll: 2, yaw: 0, pitch: 0 },
+      folded, foldedPos, flap,
+      sets: [
+        { parent: 'wingL', n: 3, at: [0.2, 0.9], spread: [100, 94], fold: [112, 104], y: 0.008 * g, blades: [bl([0.3, 0.28], [0.14, 0.14], 4, 0.0132, { curl: 0.1 }), bl([0.15, 0.14], [0.105, 0.1], 3, 0.0176, { back: -0.028 * g })] },
+        { parent: 'wforeL', n: 6, at: [0.0, 0.97], spread: [92, 80], fold: [106, 93], layerStep: -0.0024 * g, blades: [
+          bl([0.3, 0.28], [0.125, 0.12], 1, 0, { curl: 0.1 }), bl([0.17, 0.16], [0.115, 0.11], 2, 0.0055, { back: -0.012 * g }),
+          bl([0.1, 0.094], [0.1, 0.094], 3, 0.0099, { back: -0.02 * g }), bl([0.065, 0.06], [0.09, 0.084], 5, 0.0127, { back: -0.032 * g, curl: 0.06 })] },
+        { parent: 'whandL', n: 7, at: [0.0, 1.0], spread: [54, -4], fold: [98, 91], layerStep: -0.0024 * g, blades: [
+          bl([0.34, 0.44], [0.13, 0.098], 0, -0.0066, { curl: 0.05 }), bl([0.15, 0.13], [0.105, 0.085], 3, 0.0033, { back: -0.024 * g, curl: 0.06 })] },
+      ],
+    });
+  };
+  SPEC.griffin = () => {
+    const k = GRIF.k, W = griffinWing(false), WA = griffinWing(true);
+    const s = bigPanthera(k, {
+      // the lion's tail, hanging back and down with the tuft at its end (tools/blender/lion.py)
+      tb: [['tail1', 'rump', 0.205, -0.19], ['tail2', 'tail1', 0.175, -0.251], ['tail3', 'tail2', 0.118, -0.311]],
+      tail: [[0.207, -0.18, 0.013], [0.188, -0.232, 0.0115], [0.149, -0.282, 0.0102], [0.106, -0.321, 0.0093], [0.074, -0.349, 0.0124], [0.057, -0.37, 0.0114]],
+      length: 0.64, iris: 0xC4842A, nose: 0x2A2420, shell: 0.03,
+      // a chick-cub: a big downy head, big feet, a short tail, small downy wing buds
+      baby: { head: 1.7, muzzle: 0.9, ear: 0.45, neck: [0.62, 1.2], wing: 0.3, tail: 0.5 },
+      modelBaby: { muzzle: 0.9, wing: 0.3 },
+      anim: (A) => ({
+        tailIdle: [-0.5, -0.15, 0.3], tailRun: [0.2, 0.1, 0.1], tailFlick: 0.2,
+        sit: Object.assign({}, A.sit, { tail: [0.6, 0.3, 0.2], tailYaw: [0.3, 0.4, 0.4], wrap: [0.6, 1.0, 1.4], wrapY: [0.0, 0.0, 0.0] }),
+      }),
+    });
+    const bone = (n) => s.bones.find((b) => b[0] === n);
+    const setB = (n, p) => { const b = bone(n); b[2] = p[0] * k; b[3] = p[1] * k; b[4] = p[2] * k; };
+    setB('neck', GRIF.neck); setB('neck2', GRIF.neck2); setB('head', GRIF.head); setB('earL', GRIF.ear);
+    s.bones.push(...W.bones);
+    // the fallback's lofts: the raised feathered neck (cat units), the eagle's head
+    const ck = (q) => [q[0] * k, q[1] * k, q[2] * k, q[3] * k, q[4] * k, q[5] * k];
+    const body = s.fur.find((fp) => fp.name === 'body');
+    body.keys = body.keys.slice(0, 7).concat([
+      [0, 0.212, 0.135, 0.05, 0.05, 0.06], [0, 0.245, 0.16, 0.036, 0.036, 0.04], [0, 0.285, 0.18, 0.032, 0.032, 0.034], [0, 0.32, 0.195, 0.03, 0.03, 0.03],
+    ].map(ck));
+    const eg = grifEg, se = GRIF.se;
+    const egK = (keys) => keys.map((q) => eg(q).concat([q[3] * se, q[4] * se, q[5] * se]));
+    s.fur.find((fp) => fp.name === 'head').keys = egK([
+      [0, 0.385, 0.15, 0.04, 0.04, 0.04], [0, 0.392, 0.175, 0.05, 0.048, 0.046], [0, 0.395, 0.205, 0.05, 0.046, 0.044],
+      [0, 0.394, 0.23, 0.042, 0.04, 0.038], [0, 0.392, 0.248, 0.028, 0.028, 0.026], [0, 0.392, 0.258, 0.016, 0.018, 0.014],
+    ]);
+    // the feather tufts: narrow, pointed, swept up and back from the back of the crown
+    s.fur.find((fp) => fp.name === 'ear').keys = [
+      [0.0164, 0.349, 0.186, 0.0085, 0.003, 0.003], [0.019, 0.362, 0.18, 0.0065, 0.0024, 0.0024],
+      [0.0215, 0.374, 0.173, 0.0035, 0.0016, 0.0016], [0.0235, 0.383, 0.167, 0.0008, 0.0008, 0.0008],
+    ].map(ck);
+    // the eagle's eye, beak, cere and brow (no nose leather or whiskers), its feet on the front legs
+    Object.assign(s.eyes[0], { p: eg([0.0343, 0.4031, 0.2285]), r: 0.0099 * se, dir: [0.62, 0.06, 0.78], irisR: 0.9, pupilR: 0.36, rim: 0x6A4A20, babyIris: 0x2A2018 });
+    s.mouth = eg([0, 0.37, 0.296]);
+    const toes = [{ a: -32, len: 0.044, r: 0.0074, claw: 0.032 }, { a: 2, len: 0.054, r: 0.0078, claw: 0.034 },
+      { a: 34, len: 0.044, r: 0.0074, claw: 0.032 }, { a: 180, len: 0.038, r: 0.008, lift: 0.004, claw: 0.038 }]
+      .map((t) => Object.assign(t, { len: t.len * 3.3, r: t.r * 3.3, lift: (t.lift || 0) * 3.3, claw: t.claw * 3.3, clawCol: 0x161210 }));
+    const KY = 0xE8B424;
+    s.accent = [
+      // the beak: horn-yellow at the base, the hook dark
+      { kind: 'loft', bone: 'head', segs: 10, cap0: 2, cap1: 2, capLen1: 0.4, col: 0x9A8C70, babyCol: 0x3A3430, keys: egK([
+        [0, 0.392, 0.252, 0.016, 0.017, 0.012], [0, 0.392, 0.268, 0.015, 0.016, 0.011], [0, 0.388, 0.284, 0.0122, 0.0132, 0.0092],
+      ]) },
+      { kind: 'loft', bone: 'head', segs: 10, cap0: 0, cap1: 2, capLen1: 0.4, col: 0x2A2624, babyCol: 0x3A3430, keys: egK([
+        [0, 0.388, 0.284, 0.012, 0.013, 0.009], [0, 0.379, 0.298, 0.009, 0.01, 0.007], [0, 0.366, 0.306, 0.0065, 0.007, 0.005], [0, 0.352, 0.305, 0.004, 0.004, 0.003], [0, 0.343, 0.299, 0.0015, 0.0015, 0.0015],
+      ]) },
+      { kind: 'loft', bone: 'head', segs: 8, cap0: 2, cap1: 2, capLen1: 0.5, col: 0x4A4440, babyCol: 0x4A4440, keys: egK([
+        [0, 0.371, 0.25, 0.013, 0.008, 0.008], [0, 0.369, 0.272, 0.01, 0.006, 0.006], [0, 0.368, 0.29, 0.005, 0.004, 0.004],
+      ]) },
+      { kind: 'loft', bone: 'head', segs: 8, cap0: 2, cap1: 2, col: KY, babyCol: 0xC8B070, keys: egK([[0, 0.394, 0.247, 0.0165, 0.0175, 0.0125], [0, 0.394, 0.258, 0.016, 0.017, 0.012]]) },
+      { kind: 'loft', bone: 'head', mirror: true, segs: 6, cap0: 2, cap1: 2, col: 0x4A3420, babyCol: 0xD8D0C2, keys: egK([
+        [0.028, 0.416, 0.212, 0.008, 0.006, 0.004], [0.034, 0.417, 0.23, 0.008, 0.006, 0.004], [0.034, 0.413, 0.246, 0.005, 0.004, 0.003],
+      ]) },
+      ...birdToes([0.038 * k, 0.012 * k, 0.095 * k], toes, KY, 'fpawL'),
+    ];
+    s.lowerBlink = false;
+    // the coat: the lion's tawny hind half, the eagle's front (dark golden-brown, a golden nape and crown), feathered
+    // trousers and yellow scaly lower legs in front
+    const K = { tawny: hex(0xB4884E), back: hex(0x9A7444), pale: hex(0xE2D6BE), tuft: hex(0x2A1E16), brown: hex(0x4A3220), brownDk: hex(0x2C1E12),
+      gold: hex(0xB88A40), yellow: hex(KY) };
+    const feath = (P) => (P.part === 'head' || P.part === 'ear' ? 1 : P.part === 'body' ? sstep(0.12 * k, 0.15 * k, P.z + 0.35 * (P.y - 0.2 * k)) : P.part === 'fleg' ? sstep(0.068 * k, 0.076 * k, P.y) : 0);
+    s.paint = (P, C) => {
+      cset(C, K.tawny); cmix(C, K.back, sstep(0.3, 0.9, P.ny) * 0.5); cmix(C, K.pale, sstep(-0.2, -0.7, P.ny) * 0.75);
+      const fe = feath(P);
+      const gold = Math.min(1, sstep(0.345 * k, 0.355 * k, P.y) + sstep(-0.2, -0.6, P.nz) * sstep(0.26 * k, 0.29 * k, P.y));
+      const f = mixc(mixc(K.brown, K.brownDk, sstep(0.55, 0.75, noise(P.x * 40, P.y * 40, P.z * 40)) * 0.6), K.gold, gold * 0.8);
+      cmix(C, f, fe);
+      if (P.part === 'fleg') cmix(C, K.yellow, sstep(0.068 * k, 0.062 * k, P.y));
+      if (P.part === 'tail') cmix(C, K.tuft, sstep(P.len - 0.14 * k, P.len - 0.1 * k, P.arc));
+      cmul(C, 0.94 + 0.1 * grain(P, 60, 20));
+      C.ro = 0.86; C.fl = 0.5 * (1 - fe);
+    };
+    // the chick-cub: pale down on the eagle half, a woolly pale tawny coat behind
+    s.babyPaint = (P, C) => { cmix(C, hex(0xA89070), 0.3); cmix(C, hex(0xE4DCCC), feath(P) * 0.85); C.fl = 1; };
+    const KF = { brown: hex(0x4A3220), brownDk: hex(0x2A1C10), brownLt: hex(0x6E5434), pale: hex(0xB8A890) };
+    s.feathers = (rest, md) => ({
+      tex: [256, 128], rough: 0.8,
+      list: (md ? WA : W).feathers,
+      paint(u, t, C) {
+        const kk = Math.floor(u * FNC), sx = fract(u * FNC);
+        if (kk === 0 || kk === 1) { vane(sx, t, C, KF.brownDk, KF.brown, KF.brownDk); cmix(C, KF.pale, (1 - t) * 0.25); }
+        else vane(sx, t, C, KF.brown, KF.brownLt, KF.brownDk);
+      },
+      babyPaint: downFeather(hex(0xD8D0C2), hex(0xECE6DA), null),
+    });
+    Object.assign(s.size, { length: 0.64 * k, height: 0.36 * k, radius: 0.1 * k, eyeHeight: 0.34 * k });
+    // flying: slow deep wingbeats and long glides, the front feet tucked up under the chest, the hind legs stretched back
+    const wl = { every: 6, beats: 3, climb: 0.6, bob: 0.03, legs: { f: [0.4, 0.1, 2.0, 1.0], h: [0.26, -0.34, 0.45, 0.8] } };
+    s.anim.wings = Object.assign({ wing: W.wing }, wl);
+    s.modelSpec.anim = { wings: Object.assign({ wing: WA.wing }, wl) };
+    s.anim.tailAir = [0.55, 0.2, 0.1];
+    // asleep lying flat like a lion, the head down on the ground beside its front feet
+    s.anim.sleep = { style: 'flat', neck: [0.45, 1.5], tail: [0.4, 0.0] };
+    return s;
+  };
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -9632,14 +9778,22 @@ const Animals = (() => {
   discard;
 #endif`);
   }
+  // round 13 (the griffin, fur.babyMask in its model json; off for every other species): the fur map's third channel
+  // marks fur that only the baby draws (the chick-cub's down where the grown-up has feathers), so the grown-up's shells
+  // leave it out. Its own shader program, so every other species' shells are as before.
+  function aaMShellCompileB(sh) {
+    aaMShellCompile.call(this, sh);
+    sh.fragmentShader = sh.fragmentShader.replace('diffuseColor.rgb *= mix(aaFurK.y, 1.05, vShl);', 'if (texture2D(aaFurMap, vUv).b > 0.5) discard;\n  diffuseColor.rgb *= mix(aaFurK.y, 1.05, vShl);');
+  }
   function modelShellMat(A, baby) {
     const sp = A.spec.shell, M = A.M, base = modelMaterial(M, baby);
     base.userData.aa.aaFur = { value: new THREE.Vector3(sp.len * (baby ? sp.babyLen : 1), baby && sp.babyLean != null ? sp.babyLean : sp.lean, 0) };
     base.userData.aa.aaDots = { value: furDots() };
     base.userData.aa.aaFurMap = { value: M.maps.tex.fur || furDots() };
     base.userData.aa.aaFurK = { value: new THREE.Vector3((sp.uvm || 1) / ((sp.tile || 0.002) * 32), sp.shade == null ? 0.7 : sp.shade, 0) };
-    base.onBeforeCompile = aaMShellCompile;
-    base.customProgramCacheKey = () => 'aaMShell';
+    const bm = sp.babyMask && !baby;
+    base.onBeforeCompile = bm ? aaMShellCompileB : aaMShellCompile;
+    base.customProgramCacheKey = () => (bm ? 'aaMShellB' : 'aaMShell');
     // the fur map arrives with the other maps
     if (!M.maps.tex.fur && M.maps.ready !== M.maps.need) M.maps.waiters.push(() => { base.userData.aa.aaFurMap.value = M.maps.tex.fur || furDots(); });
     return base;
@@ -9745,6 +9899,9 @@ const Animals = (() => {
   COLLAR.ocelot = COLLAR.cat;
   // ===== round 11: giant panda
   COLLAR.panda = { at: ['neck2', 'head', 0.3], r: 0.8, maxR: 0.18 };
+  // ===== round 13: griffin =====
+  // (high on the feathered neck, above the ruff)
+  COLLAR.griffin = { at: ['neck2', 'head', 0.3], r: 0.9 };
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)
