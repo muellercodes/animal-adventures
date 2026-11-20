@@ -148,6 +148,8 @@ function followCamera(dt) {
     const gh = H(x, z), line = hiLine(x, z, gh);
     Cam.iceLim = Cam.iceLim === undefined || line < Cam.iceLim ? line : damp(Cam.iceLim, line, 2.5, dt);
     y = Math.min(y, hiAt(x, z, gh), Cam.iceLim);
+    // (never inside the ice itself, by an iceberg's sunken shoulder: come in toward the animal until it is out)
+    if (w.iceAt) for (let k = 0; k < 6; k++) { const ic = w.iceAt(x, z); if (!ic || y > ic.top + 0.05 || y < ic.bot - 0.05) break; x = lerp(x, tx, 0.35); z = lerp(z, tz, 0.35); y = lerp(y, ty0, 0.35); }
   } else {
     Cam.iceLim = undefined;
     const gh = G.world.groundAt ? G.world.groundAt(x, z, Cam.target.y + 1) : H(x, z), floor = Math.max(gh > -100 ? gh : -1e9, G.world.def.water ? WATER : -1e9) + Math.max(tiny ? 0.05 : 0.12, m.height * 0.45);
