@@ -102,17 +102,20 @@ const Dive = {
   vmax(b) { return clamp((SPECIES[b.sp].swimSpeed || 2) * 0.55, 1, 2.6) * (0.6 + 0.4 * b.k); },
   swimMax(b) { return (SPECIES[b.sp].swimSpeed || 2) * (0.6 + 0.4 * b.k); },
   // the bottom of the ice over (x, z), asked from the sea floor up (so ice reaching down past a diver counts too).
-  // Given y (a diver's height, see reach) and a world with w.iceAt: ice whose top is no higher than y is not over it
-  // but under it, like the sunken shoulder of an iceberg it swims above (see under); other ice there is over it.
+  // Given y (a diver's height, see reach) and a world with w.iceAt: sunken ice (sunk) is not over it but under it,
+  // like the shoulder of an iceberg it swims above (see under); other ice there is over it.
   ice(x, z, y) {
     const w = G.world;
     if (y === undefined || !w.iceAt) return w.ceilAt ? w.ceilAt(x, z, w.H(x, z)) : Infinity;
-    const q = w.iceAt(x, z); return !q || q.top <= y ? Infinity : q.bot;
+    const q = w.iceAt(x, z); return !q || this.sunk(q, y) ? Infinity : q.bot;
   },
+  // ice whose top is no higher than y, and well under the surface (a shoulder close under the surface is a wall, so
+  // a narwhal is never steered up onto it and left stranded)
+  sunk(q, y) { return q.top <= y && q.top < WATER - 2; },
   // what is under a diver at height y at (x, z): the sea floor, or the top of sunken ice under it
   under(x, z, y) {
     const w = G.world, h = w.H(x, z); if (y === undefined || !w.iceAt) return h;
-    const q = w.iceAt(x, z); return q && q.top <= y && q.top > h ? q.top : h;
+    const q = w.iceAt(x, z); return q && this.sunk(q, y) && q.top > h ? q.top : h;
   },
   // the height that sorts ice into under and over for a diver: a little step above its root, so it can rise onto a
   // shoulder just above it as it does onto a rise in the sea floor
@@ -220,7 +223,8 @@ function moveBody(b, dt, c) {
   // below keeps it between the sea floor and the ice and steers it down where the ice reaches deeper, instead of
   // stopping it against every bump on the underside.)
   if (w.iceAt && !b.room && b.mode !== 'dive') {
-    const step = sp.aquatic ? -1e9 : b.mode === 'swim' ? w.ICE_STEP : 0.5, top = p.y + m.height;
+    // (an aquatic animal is stopped by any ice higher than just under its belly, but swims over ice sunk deeper)
+    const step = sp.aquatic ? -0.1 : b.mode === 'swim' ? w.ICE_STEP : 0.5, top = p.y + m.height;
     const mv = Math.hypot(nx - p.x, nz - p.z), ax = mv > 1e-4 ? (nx - p.x) / mv * 0.5 : 0, az = mv > 1e-4 ? (nz - p.z) / mv * 0.5 : 0;
     const solid1 = (x, z, st) => { const q = w.iceAt(x, z); return !!q && q.bot < top && q.top > p.y + st; };
     const solid = (x, z) => solid1(x, z, step) || (b.mode !== 'swim' && mv > 1e-4 && solid1(x + ax, z + az, 0.85));

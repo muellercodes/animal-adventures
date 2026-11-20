@@ -133,7 +133,7 @@ function followCamera(dt) {
     const w = G.world, tx = Cam.target.x, ty0 = Cam.target.y, tz = Cam.target.z;
     // (ice whose top is below the animal, an iceberg's sunken shoulder, is under the camera like the sea floor, not over
     // it; sunk(cx, cz) is that top, or -Infinity)
-    const ry = Dive.reach(b), sunk = (cx, cz) => { const q = w.iceAt ? w.iceAt(cx, cz) : null; return q && q.top <= ry ? q.top : -Infinity; };
+    const ry = Dive.reach(b), sunk = (cx, cz) => { const q = w.iceAt ? w.iceAt(cx, cz) : null; return q && Dive.sunk(q, ry) ? q.top : -Infinity; };
     const hiAt = (cx, cz, gh) => Math.min(WATER - 0.22, (w.ceilAt && sunk(cx, cz) === -Infinity ? w.ceilAt(cx, cz, gh) : Infinity) - 0.22);
     // (under the ice on the way to the animal too, so the edge of a floe it swam under doesn't block the view)
     const hiLine = (cx, cz, gh) => !w.ceilAt ? hiAt(cx, cz, gh) : Math.min(hiAt(cx, cz, gh), ...[0.12, 0.3, 0.55, 0.8].map((j) => { const qx = tx + (cx - tx) * j, qz = tz + (cz - tz) * j; return hiAt(qx, qz, H(qx, qz)); }));
