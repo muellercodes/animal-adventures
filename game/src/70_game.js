@@ -114,12 +114,36 @@ function followCamera(dt) {
   let pitch = Cam.pitch;
   if (b.mode === 'fly') pitch = clamp(pitch + b.vy * 0.03, 0.05, 1.2);
   if (b.mode === 'climb') pitch = clamp(pitch - 0.25, -0.1, 1.0);
+  // round 14: diving: behind and a little above, tipping with the dive (from above when it heads down, from below when
+  // it heads up), eased in and out
+  const diving = b.mode === 'dive' && !room;
+  Cam.dpitch = diving ? damp(Cam.dpitch === undefined ? pitch : Cam.dpitch, clamp(pitch * 0.45 + b.pitch * 0.8, -0.5, 0.85), 3, dt) : pitch;
+  if (diving) pitch = Cam.dpitch;
   const cp = Math.cos(pitch), sp = Math.sin(pitch), fx = Math.sin(Cam.yaw), fz = Math.cos(Cam.yaw);
   let x = Cam.target.x - fx * cp * dist, z = Cam.target.z - fz * cp * dist, y = Cam.target.y + sp * dist;
   if (room) {
     x = clamp(x, room.ox - room.w / 2 + 0.3, room.ox + room.w / 2 - 0.3); z = clamp(z, room.oz - room.d / 2 + 0.3, room.oz + room.d / 2 - 0.3);
     y = clamp(y, 0.3, room.wallH - 0.25);
+  } else if (diving) {
+    // round 14: while you dive the camera stays under the surface and under the ice (never looking down at the animal
+    // from above the water line) and above the sea floor, coming in closer where there is no room for it
+    const w = G.world, tx = Cam.target.x, ty0 = Cam.target.y, tz = Cam.target.z;
+    const hiAt = (cx, cz, gh) => Math.min(WATER - 0.22, (w.ceilAt ? w.ceilAt(cx, cz, gh) : Infinity) - 0.22);
+    // (under the ice on the way to the animal too, so the edge of a floe it swam under doesn't block the view)
+    const hiLine = (cx, cz, gh) => !w.ceilAt ? hiAt(cx, cz, gh) : Math.min(hiAt(cx, cz, gh), ...[0.12, 0.3, 0.55, 0.8].map((j) => { const qx = tx + (cx - tx) * j, qz = tz + (cz - tz) * j; return hiAt(qx, qz, H(qx, qz)); }));
+    for (const k of [1, 0.8, 0.6, 0.45, 0.3, 0.18, 0.08]) {
+      const cx = tx + (x - tx) * k, cz = tz + (z - tz) * k, cy = ty0 + (y - ty0) * k, gh = H(cx, cz), lo = gh + 0.18, hi = hiLine(cx, cz, gh);
+      if (hi >= lo || k === 0.08) { x = cx; z = cz; y = hi >= lo ? clamp(cy, lo, hi) : Math.min(cy, hi); break; }
+    }
+    const k = camBlock(x, y, z, dist);
+    Cam.block = k < (Cam.block || 1) ? k : damp(Cam.block || 1, k, 2.5, dt);
+    if (Cam.block < 0.999) { x = Cam.target.x + (x - Cam.target.x) * Cam.block; y = Cam.target.y + (y - Cam.target.y) * Cam.block; z = Cam.target.z + (z - Cam.target.z) * Cam.block; }
+    // (it goes down at once when ice comes between it and the animal, and back up gently when the ice is gone)
+    const gh = H(x, z), line = hiLine(x, z, gh);
+    Cam.iceLim = Cam.iceLim === undefined || line < Cam.iceLim ? line : damp(Cam.iceLim, line, 2.5, dt);
+    y = Math.min(y, hiAt(x, z, gh), Cam.iceLim);
   } else {
+    Cam.iceLim = undefined;
     const gh = G.world.groundAt ? G.world.groundAt(x, z, Cam.target.y + 1) : H(x, z), floor = Math.max(gh > -100 ? gh : -1e9, G.world.def.water ? WATER : -1e9) + Math.max(tiny ? 0.05 : 0.12, m.height * 0.45);
     if (y < floor) y = floor;
     const k = camBlock(x, y, z, dist);
@@ -275,6 +299,8 @@ function findAction() {
   if (R.hatch) return R.hatch.done ? null : { id: 'hatch', label: 'Tap to hatch!' };
   if (R.pupa) return null;
   if (R.sleeping > 0 || R.doorSeq || Town.busy()) return null;
+  // round 14: an animal that lives in the sea doesn't go through doors, on buses, into pens or up trees
+  if (isAquatic(b.sp) && !b.room) return null;
   if (b.mode === 'climb' || b.mode === 'perch') return { id: 'letgo', label: 'Let go' };
   // the bus: get on at a stop when the doors are open, get off at any stop
   if (b.riding) return b.riding.dwell > 0.8 && b.riding.doors > 0.6 ? { id: 'busoff', label: 'Get off' } : null;
@@ -414,7 +440,8 @@ function beginLife(sp) {
     const tinyEgg = sp === 'butterfly', s = tinyEgg ? 0.022 : clamp(b.rig.height * 0.42 * 0.9, 0.035, 0.5);
     const nest = Env.nest(), egg = Env.egg(SPECIES[sp].egg, true, SPECIES[sp].eggSpeck);
     let x = b.pos.x, z = b.pos.z, y = b.pos.y;
-    if (b.mode === 'swim') { const pt = G.world.ringPoint(x, z, 1, 20, false); if (pt) { x = pt.x; z = pt.z; y = pt.h; b.pos.set(x, y, z); b.mode = 'ground'; } }
+    // (round 14: an animal that lives in the water hatches where it is, on the water)
+    if (b.mode === 'swim' && !isAquatic(sp)) { const pt = G.world.ringPoint(x, z, 1, 20, false); if (pt) { x = pt.x; z = pt.z; y = pt.h; b.pos.set(x, y, z); b.mode = 'ground'; } }
     nest.scale.setScalar((s * 1.7) / 0.59); nest.position.set(x, y, z); if (!tinyEgg) scene.add(nest);
     egg.scale.setScalar(s); egg.position.set(x, y + s * 0.12, z); scene.add(egg);
     nest.traverse((o) => { if (o.isMesh) o.castShadow = true; }); egg.traverse((o) => { if (o.isMesh) o.castShadow = true; });
@@ -655,6 +682,7 @@ function updateLabels(dt) {
 
 /* ---------- HUD ---------- */
 const hudState = {};
+const KEYS_HTML = $('keys').innerHTML;   // (round 14: a diver's key help says Space comes up and C dives)
 function fmt(sec) { sec = Math.max(0, Math.ceil(sec)); return `${(sec / 60) | 0}:${String(sec % 60).padStart(2, '0')}`; }
 function updateHud() {
   const h = hudState, di = dayInfo(), b = Player.b, sp = SPECIES[b.form || b.sp];
@@ -694,17 +722,28 @@ function updateHud() {
   if (h.join !== join) { h.join = join; $('netJoin').hidden = !join; }
   const sick = S.sick > 0;
   if (h.sick !== sick) { h.sick = sick; $('vetBtn').hidden = !sick; }
-  const hasHome = !!S.homes[S.animal];
+  const hasHome = !!S.homes[S.animal] && !isAquatic(S.animal);   // (round 14: no home on land for a sea animal)
   if (h.hasHome !== hasHome) { h.hasHome = hasHome; $('homeBtn').hidden = !hasHome; }
   // action buttons
+  // round 14: a diver in deep water gets Dive (the Land button, the C key) and, under the water, Up (the Jump button,
+  // Space held)
+  const dv = canDive(b) && !b.room, under = dv && b.mode === 'dive';
+  h.diveT = (h.diveT || 0) - 1;
+  if (h.diveT <= 0) { h.diveT = 8; h.deep = dv && (under || (b.mode === 'swim' && Dive.canGo(b))); }
+  const deepHere = dv && (under || (b.mode === 'swim' && h.deep));
   let jl = 'Jump';
-  if (canFlyNow(b) && b.mode === 'air' && !b.room) jl = 'Fly';
+  if (under) jl = 'Up';
+  else if (canFlyNow(b) && b.mode === 'air' && !b.room) jl = 'Fly';
   else if (b.mode === 'fly') jl = 'Flap';
-  if (h.jl !== jl) { h.jl = jl; $('jumpLabel').textContent = jl; }
-  const showJump = !(sp.noJump && !sp.fly) && b.mode !== 'climb' && b.mode !== 'sleep';
+  if (h.jl !== jl) { h.jl = jl; $('jumpLabel').textContent = jl; if (jl === 'Up' || h.jlUp) { h.jlUp = jl === 'Up'; $('btnJump').setAttribute('aria-label', jl === 'Up' ? 'Up' : 'Jump'); } }
+  const showJump = under || (!(sp.noJump && !sp.fly) && b.mode !== 'climb' && b.mode !== 'sleep');
   if (h.showJump !== showJump) { h.showJump = showJump; $('btnJump').hidden = !showJump; }
-  const land = b.mode === 'fly';
+  const land = b.mode === 'fly' || deepHere;
   if (h.land !== land) { h.land = land; $('btnLand').hidden = !land; }
+  const ll = deepHere ? 'Dive' : 'Land';
+  if ((h.ll || 'Land') !== ll) { h.ll = ll; const el = $('btnLand'); el.lastChild.textContent = ll; el.setAttribute('aria-label', ll); }
+  const kd = dv ? (sp.noJump ? 2 : 1) : 0;
+  if (h.keysDive !== kd) { h.keysDive = kd; $('keys').innerHTML = kd ? KEYS_HTML.replace('jump/fly', kd === 2 ? 'up' : 'jump/up').replace('</b> land', '</b> dive') : KEYS_HTML; }
   const ready = !!Player.reachable();
   if (h.ready !== ready) { h.ready = ready; $('btnEat').classList.toggle('ready', ready); }
   const a = R.action, al = a ? a.label : '';
@@ -800,17 +839,22 @@ function renderSheet() {
 }
 function sheetMap() {
   const b = Player.b, flyOK = b ? canFlyNow(b) : SPECIES[S.animal].fly && ageOf(S.animal) >= FLY_AGE;
-  const A = SPECIES[S.animal];
+  const A = SPECIES[S.animal], aq = !!A.aquatic, s0 = spawnOf(S.animal);
   return `<div class="grid">${WORLD_ORDER.map((id) => {
-    const w = World.META[id], here = id === S.world, locked = w.needsFly && !flyOK, isNew = !S.visited.includes(id);
+    // (round 14: an animal that lives in the sea can only go to a world with a sea)
+    const w = World.META[id], here = id === S.world, noSea = aq && !w.sea, locked = (w.needsFly && !flyOK) || noSea, isNew = !S.visited.includes(id);
     const bg = worldBg(id), style = bg.startsWith('url') ? `background-image:${bg}` : `background:${bg}`;
     return `<button class="card${here ? ' here' : ''}" type="button" data-action="go" data-v="${id}"${locked ? ' disabled' : ''}>
       <span class="pv" style="${style}"></span>
       <span class="t">${w.name}</span><span class="d">${w.blurb}</span>
-      <span class="tags">${here ? `<span class="tg">You are here</span>${b && !b.room && Math.hypot(b.pos.x - G.world.def.spawn[0], b.pos.z - G.world.def.spawn[1]) > 150 ? '<span class="tg new">Tap to go back to the start</span>' : ''}` : ''}${locked ? `<span class="tg lock">${A.fly ? 'Grow up to fly here' : A.many + " can't fly"}</span>` : ''}${!here && !locked && isNew ? `<span class="tg new">New! +${LEAVES.world} leaves</span>` : ''}</span>
+      <span class="tags">${here ? `<span class="tg">You are here</span>${b && !b.room && Math.hypot(b.pos.x - s0[0], b.pos.z - s0[1]) > 150 ? '<span class="tg new">Tap to go back to the start</span>' : ''}` : ''}${locked ? `<span class="tg lock">${noSea ? A.many + ' live in the sea' : A.fly ? 'Grow up to fly here' : A.many + " can't fly"}</span>` : ''}${!here && !locked && isNew ? `<span class="tg new">New! +${LEAVES.world} leaves</span>` : ''}</span>
     </button>`;
-  }).join('')}</div>${S.world === 'land' && G.world && G.world.def.places ? `<h3 class="sub">Places in the Land</h3>${b && b.room ? '<p class="note">Go outside first to travel.</p>' : ''}<div class="places">${Plan.SPOTS.map((p, i) => `<button class="place" type="button" data-action="place" data-v="${i}"${b && b.room ? ' disabled' : ''}><span class="t">${p.name}</span><span class="d">${p.d}</span></button>`).join('')}</div>` : ''}`;
+  }).join('')}</div>${S.world === 'land' && G.world && G.world.def.places && !aq ? `<h3 class="sub">Places in the Land</h3>${b && b.room ? '<p class="note">Go outside first to travel.</p>' : ''}<div class="places">${Plan.SPOTS.map((p, i) => `<button class="place" type="button" data-action="place" data-v="${i}"${b && b.room ? ' disabled' : ''}><span class="t">${p.name}</span><span class="d">${p.d}</span></button>`).join('')}</div>` : ''}`;
 }
+// round 14: where you start in a world: an animal that lives in the sea starts in the water (def.seaSpawn) when the
+// world has one; and the first world with a sea, where it lives
+function spawnOf(sp) { const d = G.world.def; return isAquatic(sp) && d.seaSpawn ? d.seaSpawn : d.spawn; }
+const seaWorld = () => WORLD_ORDER.find((id) => World.META[id] && World.META[id].sea) || null;
 function homeLine(id) {
   const hm = S.homes[id]; if (!hm) return '';
   const hh = G.world && G.world.id === 'land' ? Homes.village()[hm.house] : null, color = Homes.color(hh, hm.house), street = hh && hh.street && hh.street !== 'Maple Street' ? ` on ${hh.street}` : '';
@@ -856,10 +900,11 @@ function sheetSettings() {
 function travel(id, after) {
   if (!World.META[id]) return;
   if (World.META[id].needsFly && !canFlyNow(Player.b)) return;
+  if (isAquatic(S.animal) && !World.META[id].sea) return;   // round 14: sea animals only go to a sea
   if (id === S.world) {
     closeSheet();
     // far out in the wilds, tapping the world you're in takes you back to its start
-    const sp0 = G.world.def.spawn, b = Player.b;
+    const sp0 = spawnOf(S.animal), b = Player.b;
     if (b && !b.room && Math.hypot(b.pos.x - sp0[0], b.pos.z - sp0[1]) > 150) { b.yaw = 0; Player.place(sp0[0], sp0[1]); Cam.snap = true; Foods.fill(60); UI.toast(`Back to the start of the ${World.META[id].name}`); }
     if (after) after();
     return;
@@ -868,7 +913,7 @@ function travel(id, after) {
   showLoading(`Going to the ${World.META[id].name}...`, () => {
     loadWorld(id);
     Player.set(S.animal);
-    Player.b.room = null; Player.b.yaw = 0; Player.place(G.world.def.spawn[0], G.world.def.spawn[1]);
+    Player.b.room = null; Player.b.yaw = 0; Player.place(...spawnOf(S.animal));
     Cam.snap = true; Foods.fill(60);
     if (!S.visited.includes(id)) { S.visited.push(id); S.leaves += LEAVES.world; UI.toast(`You found the ${World.META[id].name}! +${LEAVES.world} leaves`); }
     else UI.toast(`Welcome to the ${World.META[id].name}`);
@@ -877,7 +922,7 @@ function travel(id, after) {
   });
 }
 function goHome() {
-  const sp = S.animal; if (!S.homes[sp]) return;
+  const sp = S.animal; if (!S.homes[sp] || isAquatic(sp)) return;   // (round 14: no home on land for a sea animal)
   closeSheet();
   const doIt = () => {
     const house = Homes.homeOf(sp); if (!house) return;
@@ -890,6 +935,7 @@ function goHome() {
 // take a sick animal to the door of the nearest vet (the Maple Town animal pound or the city vet)
 function goVet() {
   closeSheet();
+  if (isAquatic(S.animal)) return;   // (round 14: sea animals don't get sick, and the vets are on land)
   const doIt = () => {
     const b = Player.b, w = G.world;
     const vets = w.houses.filter((h) => h.pound || h.store === 'vet');
@@ -913,6 +959,19 @@ function switchAnimal(id) {
   closeSheet();
   for (const p of Folk.list) Folk.cancel(p);
   const born = S.ages[id] === 0 && !S.hatched.includes(id);
+  // round 14: an animal that lives in the sea goes to a sea world from anywhere else (a new one is born there)
+  const sea = isAquatic(id) && !World.META[S.world].sea ? seaWorld() : null;
+  if (sea) {
+    R.paused = true;
+    showLoading(`Going to the ${World.META[sea].name}...`, () => {
+      loadWorld(sea); Player.set(id); Player.b.room = null; Player.b.yaw = 0; Player.place(...spawnOf(id)); Cam.snap = true; Cam.zoom = 1; Foods.fill(60);
+      if (!S.visited.includes(sea)) { S.visited.push(sea); S.leaves += LEAVES.world; UI.toast(`${SPECIES[id].many} live in the sea. You found the ${World.META[sea].name}! +${LEAVES.world} leaves`, 4500); }
+      else UI.toast(`${SPECIES[id].many} live in the sea, so you went to the ${World.META[sea].name}.`, 4000);
+      R.paused = false; save();
+      if (born) beginLife(id);
+    });
+    return;
+  }
   if (World.META[S.world].needsFly && !(SPECIES[id].fly && ageOf(id) >= FLY_AGE)) {
     R.paused = true;
     showLoading('Going back to Land...', () => {
@@ -977,7 +1036,7 @@ function applySave(d) {
   // which of your animals are sick, and with what (older saves only knew "has a cold")
   S.ills = {}; for (const [k, v] of Object.entries(obj(d.ills))) if (SPECIES[k] && ['cold', 'tummy', 'paw'].includes(v)) S.ills[k] = v;
   if (Number.isFinite(d.sick) && d.sick > 0 && !Object.keys(S.ills).length) S.ills[S.animal] = 'cold';
-  S.sick = S.ills[S.animal] ? 1 : 0;
+  S.sick = S.ills[S.animal] && !isAquatic(S.animal) ? 1 : 0;
   S.sickIn = Number.isFinite(d.sickIn) ? clamp(d.sickIn, 0, 3600) : undefined;
   S.junk = 0;
   S.hatched = Array.isArray(d.hatched) ? d.hatched.filter((id) => SPECIES[id]) : [];
@@ -985,6 +1044,8 @@ function applySave(d) {
   S.found = Array.isArray(d.found) ? d.found.filter((k) => typeof k === 'string').slice(0, 60) : [];
   S.sound = d.sound !== false; S.music = d.music !== false;
   if (World.META[S.world].needsFly && !(SPECIES[S.animal].fly && ageOf(S.animal) >= FLY_AGE)) S.world = 'land';
+  // round 14: an animal that lives in the sea comes back in a sea world
+  if (isAquatic(S.animal) && !World.META[S.world].sea && seaWorld()) { S.world = seaWorld(); S.x = S.z = null; }
 }
 
 /* ---------- cloud saves (only in the GitHub Pages build, where AA_API is set) ---------- */
@@ -1077,7 +1138,7 @@ function play(after) {
   showLoading('Loading...', () => {
     if (!G.world || G.world.id !== S.world) loadWorld(S.world);
     Player.set(S.animal);
-    const s = G.world.def.spawn;
+    const s = spawnOf(S.animal);
     if (S.x !== null && S.z !== null && Math.abs(S.x) < World.ROOM_X / 2 && Math.abs(S.z) < World.ROOM_X / 2) Player.place(S.x, S.z); else Player.place(s[0], s[1]);
     Cam.snap = true; Foods.fill(60);
     R.mode = 'play'; R.paused = false; R.wasNight = dayInfo().night;
@@ -1255,7 +1316,7 @@ function start(data) {
     if (resume) Promise.race([pulled, new Promise((res) => setTimeout(res, 4000))]).then(() => { if (R.mode === 'title' && !$('titleWrap').hidden) play(); });
   } else if (resume) play();
   window.claude?.hot?.snapshot?.(() => ({ S: JSON.parse(JSON.stringify(S)), playing: R.mode === 'play' }));
-  if (/test|assets/.test(location.hash)) window.__aa = { SPECIES, manual(on) { manual = on; if (!on) requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); }); }, step(n, dt = 1 / 30, draw = true) { for (let i = 0; i < n; i++) tick(dt, 1, draw && i === n - 1); }, S, G, R, Player, Wild, Folk, Foods, Homes, World, Cam, inp, keys, press, travel, switchAnimal, loadWorld, play, pickStarter, animalIcon, renderer, camera, scene, dayInfo, timeOfDay, findAction, doAction, Sound, setBodyAge, goHome, buyAnimal, Env, Animals, People, THREE, Net, Town, Nav, Traffic, Plan, CityLife, Sick, applySave, Zoos, SEX_LOOK, sexLook, sexOf, setSex, stick, releaseTouches };
+  if (/test|assets/.test(location.hash)) window.__aa = { SPECIES, manual(on) { manual = on; if (!on) requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); }); }, step(n, dt = 1 / 30, draw = true) { for (let i = 0; i < n; i++) tick(dt, 1, draw && i === n - 1); }, S, G, R, Player, Wild, Folk, Foods, Homes, World, Cam, inp, keys, press, travel, switchAnimal, loadWorld, play, pickStarter, animalIcon, renderer, camera, scene, dayInfo, timeOfDay, findAction, doAction, Sound, setBodyAge, goHome, buyAnimal, Env, Animals, People, THREE, Net, Town, Nav, Traffic, Plan, CityLife, Sick, applySave, Zoos, SEX_LOOK, sexLook, sexOf, setSex, stick, releaseTouches, Dive, Blow, canDive, isAquatic, spawnOf, seaWorld, openSheet, closeSheet };
   requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); });
 }
 // round 11: the animal models load from files beside the page first (build.mjs); the game starts when they are in

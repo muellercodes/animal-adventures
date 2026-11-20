@@ -293,6 +293,8 @@ const Sound = (() => {
     const size = clamp(b.m.height, 0.08, 2), vol = clamp(0.06 + size * 0.12, 0.05, 0.3);
     if (lastMode !== b.mode) {
       if (b.mode === 'swim' && (lastMode === 'ground' || lastMode === 'air' || lastMode === 'fly')) splash(size);
+      // round 14: going under: a soft gulp of water (coming up again blows, Sound.blow)
+      if (b.mode === 'dive' && lastMode === 'swim') noise({ f: 700, f2: 220, type: 'lowpass', dur: 0.35, vol: clamp(0.08 + size * 0.08, 0.08, 0.22) });
       lastMode = b.mode;
     }
     if (b.mode === 'ground' && b.speed > 0.1 && !SPECIES[b.sp].hop) {
@@ -347,6 +349,15 @@ const Sound = (() => {
     click() { if (ac && on) tone({ f: 900, dur: 0.04, vol: 0.08, type: 'triangle' }); },
     hatch() { if (!ac || !on) return; const t = now(); noise({ t, f: 2500, type: 'highpass', dur: 0.15, vol: 0.4 }); [784, 988, 1175, 1568].forEach((f, i) => tone({ t: t + 0.15 + i * 0.1, f, dur: 0.4, vol: 0.16, type: 'triangle' })); },
     splash,
+    // round 14: a diver's breath when it comes up: a quick puff of air out of its blowhole (fainter far away)
+    blow(b, camPos, camYaw) {
+      if (!ac || !on) return;
+      const dx = b.pos.x - camPos.x, dz = b.pos.z - camPos.z, d = Math.hypot(dx, dz);
+      if (d > 45) return;
+      const pan = clamp((dx * -Math.cos(camYaw) + dz * Math.sin(camYaw)) / Math.max(1, d), -0.9, 0.9), v = clamp(0.12 + b.m.height * 0.15, 0.1, 0.35) / (1 + d / 10), t = now();
+      noise({ t, f: 1500, f2: 650, q: 0.6, dur: 0.55, a: 0.03, vol: v, pan });
+      noise({ t, f: 420, type: 'lowpass', dur: 0.4, a: 0.02, vol: v * 0.6, pan });
+    },
     // a wild animal calling from somewhere in the world
     wildCall(b, camPos, camYaw) {
       if (!ac || !on) return;

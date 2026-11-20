@@ -830,7 +830,7 @@ const World = (() => {
     },
   };
   const SEEDS = { land: 11, forest: 23, swamp: 37, jungle: 41, meadow: 53, sky: 67, snow: 79, savanna: 97 };
-  const META = {}; for (const id of WORLD_ORDER) { const d = DEFS[id](SEEDS[id]); META[id] = { name: d.name, blurb: d.blurb, needsFly: !!d.needsFly }; }
+  const META = {}; for (const id of WORLD_ORDER) { const d = DEFS[id](SEEDS[id]); META[id] = { name: d.name, blurb: d.blurb, needsFly: !!d.needsFly, sea: !!d.sea }; }   // (round 14: sea, a world where sea animals live)
   const HOUSE_COLORS = ['white', 'yellow', 'blue', 'brick', 'gray'];
   const SHOP_NAMES = { general: 'general store', bakery: 'bakery', cafe: 'cafe', post: 'post office', library: 'library', icecream: 'ice cream shop', diner: 'diner', hardware: 'hardware store', flower: 'flower shop', toy: 'toy store', pet: 'pet store', books: 'bookstore', vet: 'vet', grocery: 'grocery store', clothes: 'clothes store',
     pizza: 'pizza place', pharmacy: 'pharmacy', music: 'music store', shoes: 'shoe store', barber: 'barber shop', deli: 'deli' };
@@ -1189,12 +1189,15 @@ const World = (() => {
       }
       return h;
     };
-    w.collide = (pos, rad, y, wild, high) => {
+    w.collide = (pos, rad, y, wild, high, under) => {
       const a = w.grid.get(gkey(Math.floor(pos.x / 8), Math.floor(pos.z / 8)));
       let hit = false;
       if (a) for (const c of a) {
         if (c.off || (c.wild && !wild) || (high && !c.roof)) continue;
         if (c.h && y !== undefined && y > c.y0 + c.h) continue;
+        // round 14: a diver under the water (under = the top of its body) passes under anything that starts above it,
+        // like a floe or a dock on the water
+        if (under !== undefined && c.y0 !== undefined && c.y0 > under) continue;
         if (c.box) {
           const dx = pos.x - c.x, dz = pos.z - c.z, lx = dx * c.co - dz * c.si, lz = dx * c.si + dz * c.co;
           const qx = clamp(lx, -c.hw, c.hw), qz = clamp(lz, -c.hd, c.hd), ex = lx - qx, ez = lz - qz, d = Math.hypot(ex, ez);
@@ -2659,8 +2662,16 @@ const World = (() => {
       seeds: 'seeds', corn: 'corn', lettuce: 'lettuce', mushroom: 'mushroom', watermelon: 'watermelon', banana: 'banana', hay: 'hay' };
     // these only show up by their spots (a cornfield, a garden bed, a melon patch, a banana plant, a hay bale)
     const ONLY_AT_SPOTS = { carrot: 1, pumpkin: 1, apple: 1, corn: 1, lettuce: 1, watermelon: 1, banana: 1, hay: 1 };
+    // round 14: in a sea world (def.sea) a fish in deep water swims at any depth between the sea floor and the surface
+    // (or the ice), not only just under the surface; a third of them still swim near the top for animals that can't dive
+    const seaFishY = (x, z) => {
+      const lo = H(x, z) + 0.35, hi = Math.min(WATER - 0.22, (w.ceilAt ? w.ceilAt(x, z, H(x, z)) : Infinity) - 0.35);
+      if (hi < lo) return null;
+      return Math.random() < 0.33 ? Math.max(lo, hi - Math.random() * 0.15) : lerp(lo, hi, Math.random());
+    };
     w.foodPoint = (type, cx, cz, r0, r1) => {
       const spotType = SPOT_FOOD[type];
+      if (FOODS[type].water && def.sea) { const p = w.ringPoint(cx, cz, r0, r1, true), y = p && seaFishY(p.x, p.z); return y !== null && y !== undefined ? { x: p.x, z: p.z, y } : null; }
       if (FOODS[type].water) { const p = w.ringPoint(cx, cz, r0, r1, true); return p ? { x: p.x, z: p.z, y: WATER - 0.22 - Math.random() * 0.15 } : null; }
       if (URBAN[type]) return urbanPoint(type, cx, cz, r0, r1);
       // leafy twigs lie under trees
