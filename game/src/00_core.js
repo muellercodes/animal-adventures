@@ -49,6 +49,8 @@ const FOODS = {
   nectar: { name: 'Nectar' },
   // round 11: meat for the big cats, bamboo for pandas, dates for camels (38_food draws them)
   meat: { name: 'Meat' }, bamboo: { name: 'Bamboo' }, dates: { name: 'Dates' },
+  // round 14: squid in the Arctic Ocean (38_food draws it)
+  squid: { name: 'Squid', water: true },
 };
 // swim/fly/hop/climb are what the animal can do; swimSpeed and flySpeed are m/s
 // egg: hatches from an egg (shell color); outdoor: when adopted it lives in a pen in the yard instead of inside the house
@@ -148,6 +150,9 @@ const SPECIES = {
   griffin: { name: 'Griffin', many: 'Griffins', eats: ['meat', 'smallfish', 'fish'], fav: 'meat', fly: true, flySpeed: 11, outdoor: true, hunter: true, price: 1800, baby: 'Baby griffin' },
   // round 13: winged lion
   wingedlion: { name: 'Winged lion', many: 'Winged lions', eats: ['meat', 'fish', 'smallfish'], fav: 'meat', fly: true, flySpeed: 11, outdoor: true, hunter: true, price: 1800, baby: 'Winged lion cub' },
+  // round 14: narwhal (dive: it can go under the water; aquatic: it never leaves the water and lives only in a sea world;
+  // camNear: it is long and low, so the camera comes a little closer)
+  narwhal: { name: 'Narwhal', many: 'Narwhals', eats: ['fish', 'smallfish', 'squid'], fav: 'fish', swim: true, dive: true, aquatic: true, noJump: true, swimSpeed: 4.5, price: 1600, camNear: 0.85, baby: 'Narwhal calf' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
@@ -215,7 +220,9 @@ SHOP.push('cow');
 SHOP.push('camel');
 // round 11: leopard gecko
 SHOP.push('gecko');
-const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow', 'snow', 'savanna'];
+// round 14: narwhal
+SHOP.push('narwhal');
+const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow', 'snow', 'savanna', 'arctic'];
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];
 const SKIN = ['#F3D3B8', '#E6B691', '#C98E66', '#9A6544', '#6B4430'];
 const HAIR = ['#2B1E16', '#5A3A22', '#A8692E', '#D9B66A', '#8B2E1F', '#1E1E1E', '#B8B2A8'];
@@ -259,6 +266,8 @@ const SEX_LOOK = {
   rhino: { base: 'm', f: { size: 0.94 } },
   // round 13: winged lion (the girl is a winged lioness, the lioness with the same wings)
   wingedlion: { base: 'm', m: { name: 'Winged lion' }, f: { name: 'Winged lioness', model: true, size: 0.88 } },
+  // round 14: narwhal (the tusk is the boy's: a girl's tusk bone, the species' horn bone, scales to nothing)
+  narwhal: { base: 'm', f: { horns: 0, size: 0.86 } },
 };
 const sexLook = (id, sex) => (SEX_LOOK[id] && SEX_LOOK[id][sex]) || null;
 const sexOf = (id) => (S.sex && (S.sex[id] === 'm' || S.sex[id] === 'f') ? S.sex[id] : (SEX_LOOK[id] && SEX_LOOK[id].base) || 'f');

@@ -89,10 +89,15 @@ const Net = {
       const far = Math.hypot(tx - b.pos.x, tz - b.pos.z) > 12;
       const k = far ? 1 : 1 - Math.exp(-10 * dt);
       b.pos.x += (tx - b.pos.x) * k; b.pos.z += (tz - b.pos.z) * k;
-      const ground = st.mode === 'ground' || st.mode === 'sleep' ? w.H(b.pos.x, b.pos.z) : null;
+      // (a diver under the water, mode 'dive', glides to the depth it sent like a flier does; poseBody tips it by its
+      // speed and vy, the same as on its own screen)
+      // (round 14: on the ground means on what it stands on: the terrain, or a roof or ice top at about the height it
+      // sent, so an animal out on a floe, or a narwhal stranded on one, is not drawn down on the sea floor)
+      const ground = st.mode === 'ground' || st.mode === 'sleep' ? (w.groundAt ? w.groundAt(b.pos.x, b.pos.z, st.y + 0.3) : w.H(b.pos.x, b.pos.z)) : null;
       b.pos.y = ground !== null && ground > -100 ? ground : b.pos.y + (st.y - b.pos.y) * k;
       const turn = angDiff(b.yaw, st.yaw); b.yaw += far ? turn : turn * (1 - Math.exp(-10 * dt));
       b.turn = damp(b.turn, turn / Math.max(dt, 0.001) * 0.1, 6, dt);
+      if (b.mode === 'dive' && st.mode === 'swim') surfaced(b);   // round 14: it blows when it comes up
       b.speed = st.speed; b.mode = st.mode; b.vy = st.vy; b.eat = st.eat;
       b.idle = b.speed < 0.06 ? b.idle + dt : 0;
       poseBody(b, dt, true);

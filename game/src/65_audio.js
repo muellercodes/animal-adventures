@@ -258,6 +258,9 @@ const Sound = (() => {
       case 'griffin': if (k > 1) { for (let i = 0; i < 3; i++) T({ t: t + i * 0.13, f: 1700 + i * 120, f2: 2300 + i * 80, dur: 0.09, a: 0.008, type: 'triangle', vib: 30, vibAmt: 60, vol: vol * 0.5 }); T({ t: t + 0.42, f: 1500, f2: 1100, dur: 0.14, type: 'sawtooth', bp: 2200, q: 2, vol: vol * 0.3 }); } else { T({ t, f: 2600, f2: 3100, dur: 0.18, a: 0.01, type: 'sawtooth', bp: 2900, q: 3, vib: 22, vibAmt: 120, vol: vol * 0.55 }); T({ t: t + 0.16, f: 3100, f2: 1900, dur: 0.75, a: 0.02, type: 'sawtooth', bp: 2400, q: 2.4, vib: 18, vibAmt: 90, vol: vol * 0.6 }); noise({ t: t + 0.12, f: 2600, q: 1.2, dur: 0.6, vol: vol * 0.18, pan }); T({ t: t + 0.05, f: 92, f2: 70, dur: 1.2, a: 0.15, type: 'sawtooth', lp: 380, vib: 26, vibAmt: 6, vol: vol * 1.0 }); noise({ t: t + 0.2, f: 300, q: 0.7, dur: 0.9, vol: vol * 0.3, pan }); } break;
       // round 13: winged lion: the lion's roar (a cub gives the lion cub's rough, rising mew)
       case 'wingedlion': call({ sp: 'lion', age: b.age }, opts); break;
+      // round 14: narwhal: a train of clicks speeding up into a buzz, then a whistle that rises and falls; a calf's
+      // softer, higher squeaks
+      case 'narwhal': if (k > 1) { for (let i = 0; i < 3; i++) T({ t: t + i * 0.17, f: 2500 + i * 180, f2: 3300 + i * 140, dur: 0.1, a: 0.015, type: 'sine', vib: 24, vibAmt: 90, vol: vol * 0.3 }); } else { let tc = t; for (let i = 0; i < 12; i++) { noise({ t: tc, f: 3800, q: 5, dur: 0.012, vol: vol * 0.55, pan }); tc += 0.06 * Math.pow(0.82, i) + 0.012; } T({ t: t + 0.55, f: 1400, f2: 2500, dur: 0.38, a: 0.04, type: 'sine', vib: 9, vibAmt: 70, vol: vol * 0.42 }); T({ t: t + 0.92, f: 2500, f2: 1250, dur: 0.5, a: 0.02, type: 'sine', vib: 7, vibAmt: 55, vol: vol * 0.38 }); } break;
     }
   }
 
@@ -268,7 +271,8 @@ const Sound = (() => {
     const daylight = 1 - s.night;
     // wind, crickets, water near the player
     A.wind.gain.setTargetAtTime(s.inside ? 0.0 : (s.world === 'sky' ? 0.32 : 0.12) * (0.7 + 0.3 * Math.sin(G.t * 0.21)), t, 0.6);
-    A.crickets.gain.setTargetAtTime(!s.inside && s.world !== 'sky' && s.night > 0.6 ? 0.018 : 0, t, 1.2);
+    // (round 14: no crickets, songbirds or frogs out on the Arctic Ocean)
+    A.crickets.gain.setTargetAtTime(!s.inside && s.world !== 'sky' && s.world !== 'arctic' && s.night > 0.6 ? 0.018 : 0, t, 1.2);
     waterCheck -= dt;
     if (waterCheck <= 0 && s.pos && G.world) {
       waterCheck = 1; waterNear = 0;
@@ -276,7 +280,7 @@ const Sound = (() => {
     }
     A.water.gain.setTargetAtTime(waterNear * 0.09, t, 0.8);
     nextBird -= dt;
-    if (nextBird <= 0 && !s.inside) {
+    if (nextBird <= 0 && !s.inside && s.world !== 'arctic') {
       nextBird = 2 + Math.random() * 5;
       const pan = Math.random() * 1.6 - 0.8;
       if (daylight > 0.5) {
@@ -293,6 +297,8 @@ const Sound = (() => {
     const size = clamp(b.m.height, 0.08, 2), vol = clamp(0.06 + size * 0.12, 0.05, 0.3);
     if (lastMode !== b.mode) {
       if (b.mode === 'swim' && (lastMode === 'ground' || lastMode === 'air' || lastMode === 'fly')) splash(size);
+      // round 14: going under: a soft gulp of water (coming up again blows, Sound.blow)
+      if (b.mode === 'dive' && lastMode === 'swim') noise({ f: 700, f2: 220, type: 'lowpass', dur: 0.35, vol: clamp(0.08 + size * 0.08, 0.08, 0.22) });
       lastMode = b.mode;
     }
     if (b.mode === 'ground' && b.speed > 0.1 && !SPECIES[b.sp].hop) {
@@ -347,6 +353,15 @@ const Sound = (() => {
     click() { if (ac && on) tone({ f: 900, dur: 0.04, vol: 0.08, type: 'triangle' }); },
     hatch() { if (!ac || !on) return; const t = now(); noise({ t, f: 2500, type: 'highpass', dur: 0.15, vol: 0.4 }); [784, 988, 1175, 1568].forEach((f, i) => tone({ t: t + 0.15 + i * 0.1, f, dur: 0.4, vol: 0.16, type: 'triangle' })); },
     splash,
+    // round 14: a diver's breath when it comes up: a quick puff of air out of its blowhole (fainter far away)
+    blow(b, camPos, camYaw) {
+      if (!ac || !on) return;
+      const dx = b.pos.x - camPos.x, dz = b.pos.z - camPos.z, d = Math.hypot(dx, dz);
+      if (d > 45) return;
+      const pan = clamp((dx * -Math.cos(camYaw) + dz * Math.sin(camYaw)) / Math.max(1, d), -0.9, 0.9), v = clamp(0.12 + b.m.height * 0.15, 0.1, 0.35) / (1 + d / 10), t = now();
+      noise({ t, f: 1500, f2: 650, q: 0.6, dur: 0.55, a: 0.03, vol: v, pan });
+      noise({ t, f: 420, type: 'lowpass', dur: 0.4, a: 0.02, vol: v * 0.6, pan });
+    },
     // a wild animal calling from somewhere in the world
     wildCall(b, camPos, camYaw) {
       if (!ac || !on) return;

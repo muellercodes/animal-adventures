@@ -458,6 +458,7 @@ const Town = {
   inTown(x, z) { const t = G.world.def.town, V = t.village, F = t.fair; return (Math.abs(x - V.x) < V.hw - 2 && Math.abs(z - V.z) < V.hd) || (!!F && Math.abs(x - F.x) < F.hw + 3 && Math.abs(z - F.z) < F.hd + 3); },
   catchable(P) {
     if (!P || P.room || BIG[P.sp] || P.m.height > 1.15 || P.mode === 'fly' || P.mode === 'climb' || P.mode === 'perch' || P.mode === 'swim') return false;
+    if (P.mode === 'dive' || isAquatic(P.sp)) return false;   // round 14: nor a diver, nor an animal of the sea
     if (this.fade || this.trapped || R.doorSeq || !this.inTown(P.pos.x, P.pos.z)) return false;
     if (this.inFairPen(P.pos)) return false;
     // safe with your person, or in your own yard
@@ -527,7 +528,7 @@ const Town = {
     const w = G.world, t = w.def.town;
     p.scoutCool = Math.max(0, (p.scoutCool || 0) - dt);
     // the player's animal, if it has no home: kneel and hold out a hand
-    if (P && reachable && !S.homes[P.sp] && !BIG[P.sp] && w.fair && !this.fade && !this.trapped && !this.inFairPen(P.pos)) {
+    if (P && reachable && !S.homes[P.sp] && !BIG[P.sp] && !isAquatic(P.sp) && w.fair && !this.fade && !this.trapped && !this.inFairPen(P.pos)) {   // (round 14: not a sea animal)
       p.meetCool = Math.max(0, (p.meetCool || 0) - dt);
       if (p.state !== 'kneel' && dP < 8 && p.meetCool <= 0) { p.state = 'kneel'; p.kneelT = 16; p.goal = null; G.ui.bubble(p, 'Hi there! Do you need a home?', 2.4); }
     }
@@ -591,7 +592,7 @@ const Town = {
       for (const pen of f.pens) if (!pen.animal && !pen.player && f.pens.filter((q) => q.animal).length < 2) this.penAnimal(pen, rnd(FAIR_ANIMALS));
     }
     // a homeless animal that walks into an empty pen waits there to be adopted
-    if (P && !P.room && open && !S.homes[P.sp] && !BIG[P.sp]) {
+    if (P && !P.room && open && !S.homes[P.sp] && !BIG[P.sp] && !isAquatic(P.sp)) {   // (round 14: not a sea animal)
       const pen = f.pens.find((q) => !q.animal && !q.player && q.cool <= 0 && this.inPen(q, P.pos));
       if (pen) { pen.inT = (pen.inT || 0) + dt; if (pen.inT > 1.5) { pen.inT = 0; this.joinFair(pen); } }
     }
@@ -676,7 +677,7 @@ const Town = {
     const w = G.world, P = Player.b;
     for (const t of w.traps) {
       if (!t.set) continue;
-      if (P && !this.trapped && !P.room && P.mode === 'ground' && P.m.length < 1.05 && P.m.height < 0.5 && !R.doorSeq && !this.fade && Math.abs(P.pos.x - t.cx) < 2 && Math.abs(P.pos.z - t.cz) < 2 && this.trapZone(t, P.pos, P.m.radius)) { this.spring(t, P); continue; }
+      if (P && !this.trapped && !P.room && P.mode === 'ground' && !isAquatic(P.sp) && P.m.length < 1.05 && P.m.height < 0.5 && !R.doorSeq && !this.fade && Math.abs(P.pos.x - t.cx) < 2 && Math.abs(P.pos.z - t.cz) < 2 && this.trapZone(t, P.pos, P.m.radius)) { this.spring(t, P); continue; }   // (round 14: never a sea animal)
       for (const b of Wild.list) if (b.mode === 'ground' && !b.pen && !b.caged && !b.parent && b.state !== 'trapped' && b.m.length < 1.05 && Math.abs(b.pos.x - t.cx) < 1.6 && Math.abs(b.pos.z - t.cz) < 1.6 && this.trapZone(t, b.pos, b.m.radius)) { this.spring(t, b); break; }
     }
     // stuck in a trap: the farmer comes and takes you to the pound
