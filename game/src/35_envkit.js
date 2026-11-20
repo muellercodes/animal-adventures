@@ -3912,6 +3912,12 @@ void main() {
       nightZ: lcol(0x050a1c), nightH: lcol(0x1a2846),
     };
     const tz = new THREE.Color(), th = new THREE.Color();
+    // round 14: a world can have its own daytime sky (the Arctic Ocean's is paler); null puts the usual one back
+    const P0 = { dayZ: P.dayZ.clone(), dayH: P.dayH.clone() };
+    function palette(o) {
+      P.dayZ.copy(o && o.dayZ != null ? lcol(o.dayZ) : P0.dayZ);
+      P.dayH.copy(o && o.dayH != null ? lcol(o.dayH) : P0.dayH);
+    }
     function update(sunDir, day = 1, dusk = 0) {
       if (sunDir) u.uSun.value.copy(sunDir).normalize();
       day = clamp(day, 0, 1); dusk = clamp(dusk, 0, 1);
@@ -3929,7 +3935,7 @@ void main() {
       displayColor(horizonLinear, horizonColor);
     }
     update(u.uSun.value, 1, 0);
-    return { mesh, update, horizonColor, horizonLinear, uniforms: u };
+    return { mesh, update, horizonColor, horizonLinear, uniforms: u, palette };
   }
 
   /* ============================================================
@@ -7651,6 +7657,8 @@ void main() {`);
     propCache, boxG, meshOf, wallQuadZ, wallQuadX, polyFan, polyX, polyZ, beam, roofX, roofHip, windowParts, addWindow, doorGeo,
     chimneyGeo, roundBox, doorRec, resolveDoors, setDoors, cachedDoors, cachedGroup, pivot, glassMat, glassMesh, quadTo, pipeGeo,
     vPanel, rrect, hexOf, sign, nightU, autumnU, windU,
+    // round 14: for the Arctic Ocean and the look under the water (39_arctic)
+    displayColor, waterUniforms, ico, profPts, leafStrip, upNormals, makeRock,
     // round 11: the tree parts, for 39_savanna's trees
     crown, leafPart, trunkPts, branch, barkColor, flareRad, climbInfo, frond, FALL, C,
     // round 11: the food skin helpers, for the foods in 38_food

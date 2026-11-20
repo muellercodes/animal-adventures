@@ -78,6 +78,15 @@ const canFlyNow = (b) => !!SPECIES[b.sp].fly && b.age >= FLY_AGE;
 // round 11: a Komodo dragon climbs trees only while it is young (real hatchlings live up in the trees)
 const canClimb = (b) => !!SPECIES[b.sp].climb || (!!SPECIES[b.sp].climbBaby && b.age < 0.4);
 function jumpV(b) { const h = b.sp === 'frog' ? 0.45 * b.k : clamp(b.m.height * 0.9, 0.25, 1.3); return Math.sqrt(2 * GRAV * h); }
+// round 14: in the air over a lead between ice floes: is there ice (or land) to come down on ahead, within what is left
+// of the jump? Then an animal that can't swim may cross the gap.
+function iceLeap(b, w, lim) {
+  const p = b.pos, dy = Math.max(0, p.y - 0.3);
+  const t = (b.vy + Math.sqrt(Math.max(0, b.vy * b.vy + 2 * GRAV * dy))) / GRAV, reach = b.speed * t;
+  const fx = Math.sin(b.yaw), fz = Math.cos(b.yaw);
+  for (let d = 0.4; d <= reach; d += 0.4) if (w.groundAt(p.x + fx * d, p.z + fz * d, p.y) >= lim) return true;
+  return false;
+}
 
 /* ---------- round 14: diving ----------
    A species with dive: true can go under the water (body mode 'dive'); at the surface it swims ('swim') as before.
@@ -183,9 +192,25 @@ function moveBody(b, dt, c) {
   b.blocked = false;
   if (!b.room && !swim && !(fly && (b.mode === 'fly' || b.mode === 'air'))) {
     const lim = w.def.water ? WATER - Math.max(0.05, m.height * 0.45) : -100;
-    if (H(nx, nz) < lim) {
+    // (round 14: on sea ice the ground is the ice, not the sea floor under it, and a jump can cross a narrow lead)
+    const gAt = w.iceAt ? (x, z) => w.groundAt(x, z, p.y) : H;
+    if (gAt(nx, nz) < lim && !(w.iceAt && b.mode === 'air' && iceLeap(b, w, lim))) {
       b.blocked = true;
-      if (H(nx, p.z) >= lim) nz = p.z; else if (H(p.x, nz) >= lim) nx = p.x; else { nx = p.x; nz = p.z; b.speed *= 0.5; }
+      if (gAt(nx, p.z) >= lim) nz = p.z; else if (gAt(p.x, nz) >= lim) nx = p.x; else { nx = p.x; nz = p.z; b.speed *= 0.5; }
+    }
+  }
+  // round 14: ice is solid. Nothing walks, swims or flies into an iceberg's cliff or a floe's edge higher than a small
+  // step (and it looks a little ahead, so a steep cliff can't be climbed a bit at a time). An animal swimming at the
+  // surface can haul out onto a floe as high as w.ICE_STEP above it (a polar bear can); one that lives only in the
+  // water (aquatic: the narwhal) never climbs out, it goes under.
+  if (w.iceAt && !b.room) {
+    const step = sp.aquatic ? -1e9 : b.mode === 'swim' ? w.ICE_STEP : 0.5, top = p.y + m.height;
+    const mv = Math.hypot(nx - p.x, nz - p.z), ax = mv > 1e-4 ? (nx - p.x) / mv * 0.5 : 0, az = mv > 1e-4 ? (nz - p.z) / mv * 0.5 : 0;
+    const solid1 = (x, z, st) => { const q = w.iceAt(x, z); return !!q && q.bot < top && q.top > p.y + st; };
+    const solid = (x, z) => solid1(x, z, step) || (b.mode !== 'swim' && mv > 1e-4 && solid1(x + ax, z + az, 0.85));
+    if (solid(nx, nz)) {
+      b.blocked = true;
+      if (!solid(nx, p.z)) nz = p.z; else if (!solid(p.x, nz)) nx = p.x; else { nx = p.x; nz = p.z; b.speed *= 0.5; }
     }
   }
   // round 14: an animal that lives in the water stays in it: in the water it is stopped at the shore line, where its
@@ -363,7 +388,9 @@ function poseBody(b, dt, animate) {
   else if (b.mode === 'fly' && b.sp !== 'owl') pt = -clamp(b.vy * 0.08, -0.3, 0.3);
   else if (b.mode === 'ground' && !UPRIGHT[b.sp]) {
     const d = Math.max(0.12, b.m.length * 0.35), fx = Math.sin(b.yaw) * d, fz = Math.cos(b.yaw) * d;
-    pt = -clamp(Math.atan2(H(b.pos.x + fx, b.pos.z + fz) - H(b.pos.x - fx, b.pos.z - fz), 2 * d), -0.4, 0.4);
+    // (round 14: on sea ice, the slope of the ice, not of the sea floor under it)
+    const GH = G.world.iceAt && !b.room ? (x, z) => G.world.groundAt(x, z, b.pos.y + 0.3) : H;
+    pt = -clamp(Math.atan2(GH(b.pos.x + fx, b.pos.z + fz) - GH(b.pos.x - fx, b.pos.z - fz), 2 * d), -0.4, 0.4);
   }
   // round 14: a diver tips its whole body: nose down going down, up going up, level holding its depth; never so far
   // that its nose or tail would poke into the sea floor or the ice
@@ -498,6 +525,12 @@ const Player = {
     if (b.riding) { b.speed = 0; b.vy = 0; b.mode = 'ground'; } else moveBody(b, dt, c);
     // landing hard from a big fall can hurt a paw
     if (wasAir && b.mode === 'ground' && vy0 < -12.5 && !sp.fly && Math.random() < 0.6) Sick.start('paw');
+    // round 14: an animal that can't swim never stays in the sea (it jumped short of a floe): back up onto the ice
+    if (G.world.iceAt && !sp.swim && !b.room && b.mode !== 'fly' && b.pos.y < WATER - 0.25 && G.world.groundAt(b.pos.x, b.pos.z, b.pos.y) < WATER - 0.25) {
+      const w = G.world, q = w.icePoint(b.pos.x, b.pos.z, 0, 10) || w.icePoint(b.pos.x, b.pos.z, 0, 40) || w.ringPoint(b.pos.x, b.pos.z, 0, 120, false);
+      G.ui.toast('Splash! Back up onto the ice.');
+      if (q) { b.pos.set(q.x, q.h, q.z); b.vy = 0; b.speed = 0; b.mode = 'ground'; } else this.place(w.def.spawn[0], w.def.spawn[1]);
+    }
     if (b.pos.y < -30 && b.mode !== 'dive') { G.ui.toast('Whoosh! Back to an island.'); const I = G.world.ringPoint(b.pos.x, b.pos.z, 0, 120, false); if (I) this.place(I.x, I.z); else this.place(G.world.def.spawn[0], G.world.def.spawn[1]); }
     poseBody(b, dt, true);
     b.rig.root.rotation.z = limp ? Math.sin(this.limpT * Math.PI * 2) * 0.06 * Math.min(1, b.speed) : 0;
@@ -605,7 +638,8 @@ const Wild = {
     const b = newBody(sp, age, (extra && extra.sex) || (Math.random() < 0.5 ? 'm' : 'f'));
     Object.assign(b, { home: { x, z }, range: 10, water: false, state: 'idle', timer: Math.random() * 4, target: null, think: Math.random() * 0.3, stuck: 0, eatPause: 0, flyH: 0 }, extra || {});
     b.yaw = Math.random() * TAU;
-    const h = G.world.H(x, z);
+    // (round 14: on sea ice, standing on the ice)
+    const h = G.world.iceAt ? G.world.groundAt(x, z, 2) : G.world.H(x, z);
     b.pos.set(x, h, z);
     if (SPECIES[sp].swim && !b.room && h < WATER - b.m.float) {
       b.mode = 'swim'; b.pos.y = WATER - b.m.float;
@@ -636,8 +670,10 @@ const Wild = {
       let pt, extra;
       if (spec.pen) { pt = w.penPoint(spec.pen, 1); extra = { pen: spec.pen, home: { x: spec.pen.x, z: spec.pen.z }, range: Math.min(spec.pen.hw, spec.pen.hd) }; }
       else {
-        pt = aq ? this.seaPoint(w, spec.home[0], spec.home[1], 0, spec.range) : (spec.water && sp.swim ? w.ringPoint(spec.home[0], spec.home[1], 0, spec.range, true) : null) || w.ringPoint(spec.home[0], spec.home[1], 0, spec.range, false);
+        // (round 14: ice: lives out on the sea ice, like a polar bear on the floes)
+        pt = aq ? this.seaPoint(w, spec.home[0], spec.home[1], 0, spec.range) : (spec.ice && w.icePoint ? w.icePoint(spec.home[0], spec.home[1], 0, spec.range) : null) || (spec.water && sp.swim ? w.ringPoint(spec.home[0], spec.home[1], 0, spec.range, true) : null) || w.ringPoint(spec.home[0], spec.home[1], 0, spec.range, false);
         extra = { home: { x: spec.home[0], z: spec.home[1] }, range: spec.range, water: !!spec.water || aq };
+        if (spec.ice) extra.ice = true;
       }
       if (!pt) continue;
       extra.own = own; extra.amb = !!spec.amb;
@@ -691,9 +727,9 @@ const Wild = {
     let pick = Math.random() * sum, spec = def.ambient[0];
     for (const q of def.ambient) { pick -= q.w; if (pick <= 0) { spec = q; break; } }
     const water = (!!spec.water && SPECIES[spec.sp].swim) || isAquatic(spec.sp);   // (round 14: sea animals only in the water)
-    const pt = w.ringPoint(x, z, 0, 25, water) || (water ? null : w.ringPoint(x, z, 0, 25, false));
+    const pt = (spec.ice && w.icePoint ? w.icePoint(x, z, 0, 25) : null) || w.ringPoint(x, z, 0, 25, water) || (water ? null : w.ringPoint(x, z, 0, 25, false));
     if (!pt) return;
-    this.group(w, { sp: spec.sp, n: water ? 1 + (Math.random() < 0.4 ? 1 : 0) : 1, kids: spec.kids && Math.random() < 0.5 ? Math.ceil(Math.random() * spec.kids) : 0, home: [pt.x, pt.z], range: 30, water, amb: true }, null);
+    this.group(w, { sp: spec.sp, n: water ? 1 + (Math.random() < 0.4 ? 1 : 0) : 1, kids: spec.kids && Math.random() < 0.5 ? Math.ceil(Math.random() * spec.kids) : 0, home: [pt.x, pt.z], range: 30, water, amb: true, ice: !!spec.ice }, null);
   },
   // animals waiting in the pound's cages (made when you go inside)
   spawnPound(room) {
@@ -745,6 +781,8 @@ const Wild = {
   pickTarget(b) {
     const w = G.world, sp = SPECIES[b.sp];
     if (b.pen) return w.penPoint(b.pen, 0.7 + b.m.radius);
+    // (round 14: a polar bear out on the ice mostly walks about on the floes)
+    if (b.ice && w.icePoint && !sp.aquatic && Math.random() < 0.7) { const q = w.icePoint(b.home.x, b.home.z, 0, b.range); if (q) return q; }
     const water = (b.water && sp.swim && Math.random() < 0.75) || !!sp.aquatic;   // (round 14: sea animals keep to the water)
     if (canDive(b)) b.depthF = Math.random() * 0.8;   // round 14: and a diver picks a depth to swim at
     return w.ringPoint(b.home.x, b.home.z, 0, b.range, water) || w.ringPoint(b.pos.x, b.pos.z, 1, 8, water);

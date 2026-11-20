@@ -268,7 +268,8 @@ const Sound = (() => {
     const daylight = 1 - s.night;
     // wind, crickets, water near the player
     A.wind.gain.setTargetAtTime(s.inside ? 0.0 : (s.world === 'sky' ? 0.32 : 0.12) * (0.7 + 0.3 * Math.sin(G.t * 0.21)), t, 0.6);
-    A.crickets.gain.setTargetAtTime(!s.inside && s.world !== 'sky' && s.night > 0.6 ? 0.018 : 0, t, 1.2);
+    // (round 14: no crickets, songbirds or frogs out on the Arctic Ocean)
+    A.crickets.gain.setTargetAtTime(!s.inside && s.world !== 'sky' && s.world !== 'arctic' && s.night > 0.6 ? 0.018 : 0, t, 1.2);
     waterCheck -= dt;
     if (waterCheck <= 0 && s.pos && G.world) {
       waterCheck = 1; waterNear = 0;
@@ -276,7 +277,7 @@ const Sound = (() => {
     }
     A.water.gain.setTargetAtTime(waterNear * 0.09, t, 0.8);
     nextBird -= dt;
-    if (nextBird <= 0 && !s.inside) {
+    if (nextBird <= 0 && !s.inside && s.world !== 'arctic') {
       nextBird = 2 + Math.random() * 5;
       const pan = Math.random() * 1.6 - 0.8;
       if (daylight > 0.5) {
