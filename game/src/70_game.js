@@ -997,7 +997,11 @@ function switchAnimal(id) {
     });
     return;
   }
+  // round 14: switching to a sea animal while out of the water in a sea world (on the island or the ice, or flying):
+  // it starts in the water, where sea animals start
+  const wet = Player.b && !Player.b.room && (Player.b.mode === 'swim' || Player.b.mode === 'dive');
   Player.set(id); Cam.snap = true; Cam.zoom = 1; Foods.refresh(); Foods.fill(20);
+  if (isAquatic(id) && !wet) { Player.b.yaw = 0; Player.place(...spawnOf(id)); }
   for (const p of Folk.list) if (p.friend && p.owns !== id) { p.friend = false; p.state = 'look'; p.cool = 5; }
   if (born) beginLife(id);
 }

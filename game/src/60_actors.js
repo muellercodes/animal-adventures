@@ -224,7 +224,8 @@ function moveBody(b, dt, c) {
   // stopping it against every bump on the underside.)
   if (w.iceAt && !b.room && b.mode !== 'dive') {
     // (an aquatic animal is stopped by any ice higher than just under its belly, but swims over ice sunk deeper)
-    const step = sp.aquatic ? -0.1 : b.mode === 'swim' ? w.ICE_STEP : 0.5, top = p.y + m.height;
+    // (stranded up on the ice it flops about like a walker, so it can get back to the water)
+    const step = sp.aquatic && b.mode !== 'ground' ? -0.1 : b.mode === 'swim' ? w.ICE_STEP : 0.5, top = p.y + m.height;
     const mv = Math.hypot(nx - p.x, nz - p.z), ax = mv > 1e-4 ? (nx - p.x) / mv * 0.5 : 0, az = mv > 1e-4 ? (nz - p.z) / mv * 0.5 : 0;
     const solid1 = (x, z, st) => { const q = w.iceAt(x, z); return !!q && q.bot < top && q.top > p.y + st; };
     const solid = (x, z) => solid1(x, z, step) || (b.mode !== 'swim' && mv > 1e-4 && solid1(x + ax, z + az, 0.85));
@@ -254,7 +255,13 @@ function moveBody(b, dt, c) {
     // 0: fits, 1: rise to fit, -1: sink to fit, 2: no room (rf, rt: the floor and the top there)
     let rf = 0, rt = 0;
     const room = (x, z) => { const f = Dive.floor(b, x, z), t = Dive.top(b, x, z); rf = f; rt = t; return t < f ? 2 : f > p.y + step ? 1 : t < p.y - step ? -1 : 0; };
-    const r0 = room(nx, nz);
+    let r0 = room(nx, nz);
+    if (r0) {
+      // (wedged where there is hardly any room, as far in under the edge of an iceberg, it may always move to where
+      // there is more room at about its height, so it can't get stuck there)
+      const here = Dive.top(b, p.x, p.z) - Dive.floor(b, p.x, p.z);
+      if (here < 0.3 && rt - rf > here + 0.02 && rf <= p.y + step && rt >= p.y - step) r0 = 0;
+    }
     if (r0) {
       b.blocked = true;
       if (r0 !== 2) { b.steerY = r0 > 0 ? rf + 0.05 : rt - 0.05; b.steerT = 0.2; }
