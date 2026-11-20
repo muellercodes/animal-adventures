@@ -735,9 +735,14 @@ function animalIcon(id, age, sex) {
     if (baby && rig.setAge) rig.setAge(0.1);
     iconR.sc.add(rig.root);
     rig.update(0.016, { t: 1, speed: 0, mode: 'ground', vy: 0, eat: 0, turn: 0, idle: 0 });
-    const size = Math.max(rig.length, rig.height * 1.1), dist = size / (2 * Math.tan((14 * Math.PI) / 180)) * 1.05;
-    const c = iconR.cam; c.position.set(0.72, 0.42, 0.75).normalize().multiplyScalar(dist); c.position.y += rig.height * 0.45;
-    c.lookAt(0, rig.height * 0.45, 0); c.near = dist * 0.05; c.far = dist * 4; c.updateProjectionMatrix();
+    // (round 14: rig.iconFrame(), when a species has one: its own size, look-at point and view direction, the narwhal
+    // with its tusk; every other animal is framed as before)
+    const fr = rig.iconFrame ? rig.iconFrame() : null;
+    const size = fr ? fr.size : Math.max(rig.length, rig.height * 1.1), dist = size / (2 * Math.tan((14 * Math.PI) / 180)) * 1.05;
+    const c = iconR.cam;
+    if (fr) { c.position.fromArray(fr.dir).normalize().multiplyScalar(dist).add(new THREE.Vector3().fromArray(fr.at)); c.lookAt(fr.at[0], fr.at[1], fr.at[2]); }
+    else { c.position.set(0.72, 0.42, 0.75).normalize().multiplyScalar(dist); c.position.y += rig.height * 0.45; c.lookAt(0, rig.height * 0.45, 0); }
+    c.near = dist * 0.05; c.far = dist * 4; c.updateProjectionMatrix();
     iconR.r.render(iconR.sc, c);
     ICON[key] = iconR.r.domElement.toDataURL('image/png');
     iconR.sc.remove(rig.root);

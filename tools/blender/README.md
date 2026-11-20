@@ -768,6 +768,13 @@ normal 56), 256 cub map, fur and whisker textures, 512 x 256 feather atlas and i
 Winged lioness (same settings): 8.3k triangles plus 224; 75 KB + 28 + 18 + 5 + 5 + 5 + 15 + 2 + 6 KB, 164 KB of files,
 about 218 KB in the page plus a 19 KB icon (her cub uses the winged lion cub's icon).
 
+Narwhal (round 14, `VOXEL=0.007 TRIS=4300 WEIGHTS=transfer TEX=768`, about 4 minutes on the shared machine): 6.6k
+triangles (about 8k in the game with the tusk's 1.3k and the eyes); 1536 x 768 color map (both sides, WebP 66), 768
+normal map (WebP 56), 512 x 256 calf map: 42 KB mesh + 69 + 8 + 2 KB, 124 KB of files, about 166 KB in the page plus
+about 56 KB of icons (42 KB of PNG: the male with his tusk, framed by `SPEC.narwhal.icon`; the girl; the calf) and 22 KB
+of code, about 244 KB in all. Texture memory: about 10 MB with mipmaps on a computer, about 2.8 MB on a phone (the color and normal maps
+capped at 512).
+
 ## More cats and a hamster (round 7: `cat.py` as a template, `coat.py`, `hamster.py`)
 
 Five more cats (`blackcat`, `orangecat`, `calico`, `siamese`, `whitecat`) and a Syrian hamster. The tabby got its fixes
@@ -1486,4 +1493,65 @@ VOXEL=0.0092 TRIS=4600 TEX=768 BLENDER_PY=... python3 tools/blender/make.py wing
   makes the undersides of the atlas blades paler toward that color, keeping the atlas's light and dark (the bars), in a
   small shader patch (`featherUnderCompile`). The blades' front faces are their undersides (featherBladeCut's triangles
   face down).
+- Budget: see the Budget section.
+
+## Round 14: the narwhal (`narwhal.py`)
+
+A grown-up male narwhal: 4.3 m from the front of the melon to the notch of the flukes (4.55 m to the trailing edges of
+the flukes, 6.7 m to the tip of the tusk), 1.0 m deep and 0.93 m wide, the belly on y = 0. The nearest bodies before it were the crocodile (one loft
+from the tail to the snout) and the otter (rings so a long body bends); the narwhal is simpler than both: no legs, no
+fur, a smooth wet skin.
+
+```bash
+python3 tools/blender/export_rig.py narwhal
+VOXEL=0.007 TRIS=4300 WEIGHTS=transfer TEX=768 BLENDER_PY=... python3 tools/blender/make.py narwhal sculpt export
+```
+
+- Shape: one loft (`BODY`) from the end of the tail stock to the head, a spindle thickest just behind the flippers; the
+  tail stock's sections have exponents under 2 above and below, which gives it its keels. The head in front of the neck
+  is the loft's own rounded front (`_front_keys()`: the keys follow a quarter ellipse in both views, ending in a tiny
+  section). A separate melon ellipsoid on the loft, or a loft that stopped short of the front, both left a rim round the
+  face (a dome pressed into a ring, seen from the front); a loft end with a wide last section prints a flat disc on the
+  face. The upper lip and the short lower jaw are two ellipsoids blended in under it, the mouth a short groove rising a
+  little to its corner (`mouth_y`), the jaw set in under it; small eyes low on the head behind the corner of the mouth in a
+  soft lid ring; one crescent blowhole on top (horns forward); a slight crease behind the head.
+- No dorsal fin: a low bumpy ridge (`ridge_h`, at most 2.2 cm) along the top line from the middle of the back to the
+  tail stock.
+- The flippers (`flipper()`): a paddle in its own frame (`FL_ROOT`, `FL_AX`), its half chord, chord center (the leading
+  edge rounder), half thickness and an upward curl at the tip given along its length. The flukes (`fluke()`): a plate
+  whose outline is the leading and trailing edge along x (`FK_ZL`, `FK_ZT`): the trailing edge bulges back and has a deep
+  V notch in the middle (the notch comes from the mirror at x = 0), the tips sweep forward and lift a little; a rounded
+  airfoil thickness along the chord with a minimum so the trailing edge meshes. `grid()` samples y finely across the
+  fluke plane.
+- The tusk is not sculpted: the model is one mirrored half, and the tusk grows from the left side of the upper jaw only.
+  The game adds it as a rigid piece on the `tusk` bone (`narwhalTusk()` in 40_animals.js: a tube twisted along a
+  left-handed helix with five grooves, a turn every 0.6 m, tapering to a smoother, paler blunt point, a ring of skin at
+  the lip). The tusk bone is the species' horn bone (`baby.roles.tusk = 'horn'`), so a calf's and a girl's scales away.
+- Weights are all the sculpt's own (`fix_weights`, `WEIGHT_SMOOTH = (0, 0)`): the body one chain along z (`SPINE`,
+  `SPINE_Z`, blended over `SPINE_B` at each joint: each bone bends the body behind its pivot, the neck and head the part
+  in front), the fluke plate on the fluke bone from a little out of the middle (the root shared with the tail stock;
+  the fluke's leading edge lies in front of the fluke pivot and must not stay on tail2), the flippers on their bones from
+  just outside the body. Rings across the body around the spine joints (`lowpoly_fix`); the chest between the hips and
+  the neck is rigid, so it needs none.
+- Paint (`paint()`, both sides, `SIDES` as the cow's: from the top the spots of a mirrored back read as a Rorschach blot):
+  a gray-white ground, cream underneath and gray up the back; marbling from a noise cut at a level taken from its
+  measured quantiles (`_FQ`), so the dark covers a set share of the skin by how dense it should be there (`_density`:
+  about 72% on the back and the head, a third half way down the flanks, almost none on the belly); round ragged spots
+  down the flanks; small pale spots in the dark of the back; the flukes and flippers darker with dark edges; a few old
+  scratches as faint pale lines and grooves (`_scratches`, also in `detail()`). The first passes, a solid black cape and
+  big round blotches on white, read as a Holstein in the game's sunlight, which shows a gray much paler than the map;
+  so the back's ground is mid gray (0x6E7276) and the darks dark gray, not black. A quick check while painting: paint
+  the sculpt's vertices with numpy and splat side, top and under views (seconds instead of a texture run).
+- The calf has its own small map (`paint_baby`: a plain slate blue-gray, paler underneath), doubled side by side in
+  `extra_maps()` for the two-sided material; its shape is the game's baby maps (`SPEC.narwhal.baby`: a bigger head,
+  a blunter melon, a shorter body, `noDrop`).
+- No collar: `meta()` has no collar place, so the game makes none (no `ctag` bone, `setCollar` does nothing,
+  `leashWorld` is null).
+- In the game (`SPEC.narwhal`, `animWhale` in 40_animals.js, `anim.type 'whale'`): up-and-down fluke strokes with a wave
+  running back along the body (`anim.wave`, `anim.lag`), faster and bigger with speed, a slow hover with small beats and
+  sculling flippers when still, a bend and a bank into turns, the tail trailing when the game pitches the whole body to
+  dive or rise (the rig root's rotation.x, set by the Diving part); stranded on the ground a slow flop, the tail lifting;
+  asleep it logs at the surface; eating a head dip and a snap; happy a slow roll right over. The menu picture of the
+  male is framed on the whole length with the tusk (`SPEC.narwhal.icon`, read by `animalIcon` through
+  `rig.iconFrame()`; every other animal is framed as before).
 - Budget: see the Budget section.

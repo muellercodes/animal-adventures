@@ -1,0 +1,88 @@
+{
+ "v": 2,
+ "id": "narwhal",
+ "data": "narwhal.bin",
+ "enc": "deflate",
+ "raw": 64602,
+ "maps": {
+  "color": "narwhal-color.webp",
+  "normal": "narwhal-normal.webp",
+  "babyColor": "narwhal-color-baby.webp"
+ },
+ "nv": 2130,
+ "ntri": 3312,
+ "nbv": 2130,
+ "nbt": 3312,
+ "bbox": [
+  -0.694724,
+  0.002017,
+  -2.554314,
+  0.694724,
+  1.00464,
+  2.000005
+ ],
+ "bones": [
+  "chest",
+  "hips",
+  "tail1",
+  "tail2",
+  "fluke",
+  "neck",
+  "head",
+  "tusk",
+  "flipperL",
+  "flipperR"
+ ],
+ "eye": {
+  "p": [
+   0.26,
+   0.346,
+   1.712
+  ],
+  "r": 0.019,
+  "dir": [
+   0.9091,
+   -0.101,
+   0.4041
+  ],
+  "lid": [
+   0.447,
+   -0.553,
+   0.25
+  ],
+  "iris": 2365972,
+  "irisR": 0.97,
+  "pupil": "h",
+  "pupilR": 0.42,
+  "rim": 657414,
+  "lidCol": 7040366,
+  "babyLidCol": 5068384
+ },
+ "mouth": [
+  0.0,
+  0.302,
+  1.945
+ ],
+ "sides": true,
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.04,
+  0.05,
+  0.06
+ ],
+ "flat": 9211534,
+ "belly": [
+  0.0,
+  0.0323,
+  -0.35000000000000003
+ ]
+}
