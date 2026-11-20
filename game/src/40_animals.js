@@ -7874,6 +7874,171 @@ const Animals = (() => {
     return s;
   };
 
+  // ===== round 14: narwhal =====
+  // A narwhal (Monodon monoceros). The grown-up is a male, 4.5 m from the melon to the tips of the flukes: a spindle
+  // shaped body, thickest just behind the flippers and tapering to a narrow, keeled tail stock; a small round head with a
+  // bulging melon and no beak, a short mouth line, small eyes low on the head behind the corner of the mouth, one
+  // blowhole on top; no dorsal fin, only a low bumpy ridge from the middle of the back to the tail stock; short round
+  // flippers whose tips curl up; flukes that look put on backward (the trailing edge bulges back, with a deep notch in
+  // the middle, and the tips sweep forward). Mottled skin: dark spots and blotches on gray-white, darkest and densest on
+  // the back and the head, a pale belly. The tusk, about 2.2 m, grows straight forward from the left side of the upper
+  // jaw with a left-handed spiral of grooves; it is a rigid piece of its own on the tusk bone (narwhalTusk below), since
+  // the sculpted model is one mirrored half. A girl has no tusk (SEX_LOOK: the tusk bone is the species' horn bone) and
+  // is a little smaller. The calf is about 1.6 m, rounder, with a bigger head and a blunter melon, a plain slate blue-gray
+  // and no tusk. It swims by beating its flukes up and down (animWhale), hovers with small beats when still, rolls over
+  // when happy and lies still at the surface asleep. The sculpted model is tools/blender/narwhal.py.
+  ids.push('narwhal');
+  // the tusk: a tube twisted along a left-handed helix (looking from the base toward the tip the grooves turn
+  // counterclockwise), NW_TUSK.n grooves round it, a full turn every NW_TUSK.p meters along it, the grooves fading out
+  // toward the smoother, paler blunt tip; a ring of skin round its base where it comes out of the lip. Local frame: the
+  // origin is where it leaves the lip, +z along it (x left, y up as in the rig). Vertex colors, one shared material.
+  const NW_TUSK = { len: 2.2, r0: 0.044, r1: 0.012, n: 5, p: 0.6, depth: 0.055, dir: [0.035, -0.045, 1] };
+  let nwTuskC = null;
+  function narwhalTusk() {
+    if (nwTuskC) return nwTuskC;
+    const T = NW_TUSK, AR = T.n * 4, IN = 0.06, NR = 28, pos = [], nrm = [], col = [], idx = [];
+    const ivory = hex(0xF3EEDF), base = hex(0xE0D5B4), tipC = hex(0xFAF8F1), groove = hex(0xC2AE8A), skin = hex(0x3E4246);
+    // the tube's axis: bent a little left and down, as real tusks are
+    const ax = new THREE.Vector3().fromArray(T.dir).normalize(), up0 = new THREE.Vector3(0, 1, 0).addScaledVector(ax, -ax.y).normalize(), sd0 = new THREE.Vector3().crossVectors(up0, ax);
+    const rad = (s) => { const u = clamp(s / T.len, 0, 1); return lerp(T.r0, T.r1, Math.pow(u, 1.1)); };
+    const gdep = (s) => T.depth * (1 - sstep(0.55 * T.len, 0.92 * T.len, s)) * sstep(-0.02, 0.06, s);
+    const ring = (s, r, colFn, twist, gk) => {
+      const b = pos.length / 3;
+      for (let j = 0; j <= AR; j++) {
+        const th0 = (j / AR) * TAU, th = th0 + (twist ? (TAU * s) / T.p : 0), ph = (T.n * j) / AR;
+        const g = 0.5 - 0.5 * Math.cos(TAU * ph), gd = gk ? gdep(s) : 0, re = r * (1 - gd * g);
+        const cs = Math.cos(th), sn = Math.sin(th);
+        // radial and tangential directions, the point
+        const rx = sd0.x * sn + up0.x * cs, ry = sd0.y * sn + up0.y * cs, rz = sd0.z * sn + up0.z * cs;
+        const tx = sd0.x * cs - up0.x * sn, ty = sd0.y * cs - up0.y * sn, tz = sd0.z * cs - up0.z * sn;
+        pos.push(ax.x * s + rx * re, ax.y * s + ry * re, ax.z * s + rz * re);
+        // normal: the radial direction tipped by the groove's slope across (dr/dth) and along (the taper and the twist)
+        const drth = -r * gd * (T.n / 2) * Math.sin(TAU * ph), drs = (rad(s + 0.01) - rad(s - 0.01)) / 0.02 - (twist ? drth * (TAU / T.p) : 0);
+        let nx = rx - (drth / re) * tx - drs * ax.x, ny = ry - (drth / re) * ty - drs * ax.y, nz = rz - (drth / re) * tz - drs * ax.z;
+        const l = Math.hypot(nx, ny, nz) || 1; nrm.push(nx / l, ny / l, nz / l);
+        const c = colFn(s, g * (gd / T.depth), j);
+        col.push(s2l(c[0]), s2l(c[1]), s2l(c[2]));
+      }
+      return b;
+    };
+    const quads = (a, b) => { for (let j = 0; j < AR; j++) idx.push(a + j, a + j + 1, b + j, b + j, a + j + 1, b + j + 1); };
+    // the tusk: ivory, yellower and a little stained near the lip, paler and polished toward the tip, the grooves darker
+    const tuskCol = (s, g, j) => {
+      const u = s / T.len, n = noise(j * 0.7, s * 9, 2.3);
+      let c = mixc(base, ivory, sstep(0.0, 0.35, u));
+      c = mixc(c, tipC, sstep(0.6, 0.97, u));
+      c = mixc(c, groove, g * 0.55);
+      const k = 0.94 + 0.1 * n;
+      return [c[0] * k, c[1] * k, c[2] * k];
+    };
+    let prev = -1;
+    for (let i = 0; i <= NR; i++) {
+      const s = lerp(-IN, T.len - 0.016, i / NR), r = rad(Math.max(s, 0));
+      const b = ring(s, r, tuskCol, true, true);
+      if (prev >= 0) quads(prev, b);
+      prev = b;
+    }
+    // the blunt rounded point
+    for (const [ds, k] of [[0.008, 0.82], [0.014, 0.5]]) { const s = T.len - 0.016 + ds, b = ring(s, rad(s) * k, tuskCol, true, false); quads(prev, b); prev = b; }
+    const tip = pos.length / 3;
+    pos.push(ax.x * T.len, ax.y * T.len, ax.z * T.len); nrm.push(ax.x, ax.y, ax.z);
+    const tc = tuskCol(T.len, 0, 0); col.push(s2l(tc[0]), s2l(tc[1]), s2l(tc[2]));
+    for (let j = 0; j < AR; j++) idx.push(prev + j, prev + j + 1, tip);
+    // the ring of skin round the base: in from the lip, bulging a little, closing onto the tusk
+    const skinCol = () => skin;
+    let pr = -1;
+    for (const [s, r] of [[-0.07, 0.048], [-0.02, 0.058], [0.008, 0.056], [0.022, T.r0 * 1.02]]) { const b = ring(s, r, skinCol, false, false); if (pr >= 0) quads(pr, b); pr = b; }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    g.setIndex(idx);
+    g.computeBoundingSphere();
+    nwTuskC = { geo: g, mat: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.42, metalness: 0 }) };
+    return nwTuskC;
+  }
+  // the rig: the chest at the thickest part is the root bone; the spine runs back from it to the flukes (each bone bends
+  // the body behind its pivot) and forward through the short neck to the head; the tusk (the horn role: scaled away on
+  // calves and girls) on the head, the flippers on the chest
+  const NW = {
+    chest: [0, 0.5, 0.45], hips: [0, 0.52, -0.35], tail1: [0, 0.54, -0.95], tail2: [0, 0.56, -1.55], fluke: [0, 0.56, -2.1],
+    neck: [0, 0.48, 1.12], head: [0, 0.46, 1.45], tusk: [0.066, 0.405, 1.985], flipper: [0.39, 0.29, 1.0],
+    eye: [0.262, 0.335, 1.72], mouth: [0, 0.305, 1.985],
+  };
+  SPEC.narwhal = () => {
+    const K = { pale: hex(0xBDBEBB), cream: hex(0xDAD8D0), mid: hex(0x6E7276), dark: hex(0x2B3035), belly: hex(0xE2E0D8), calf: hex(0x56616C), calfLt: hex(0x7C8792) };
+    const B = (n) => NW[n];
+    // the body as two lofts meeting at the chest: the front one runs forward (chest, neck, head each own the stretch in
+    // front of their pivots), the back one runs back to the tail stock (each bone owns the stretch behind its pivot)
+    const st = (z, top, yw, bot, w, e) => [0, yw, z, w, top - yw, yw - bot, e || 2.1];
+    const front = [st(0.4, 1.0, 0.49, 0.0, 0.48), st(0.8, 0.98, 0.48, 0.01, 0.47), st(1.1, 0.93, 0.475, 0.04, 0.43), st(1.35, 0.875, 0.47, 0.08, 0.385),
+      st(1.55, 0.84, 0.46, 0.11, 0.36), st(1.75, 0.78, 0.45, 0.16, 0.31), st(1.9, 0.68, 0.44, 0.24, 0.235), st(1.99, 0.56, 0.43, 0.32, 0.12)];
+    const back = [st(0.4, 1.0, 0.49, 0.0, 0.48), st(0.0, 1.0, 0.5, 0.01, 0.47), st(-0.4, 0.97, 0.51, 0.06, 0.43), st(-0.9, 0.9, 0.53, 0.15, 0.34, 2.0),
+      st(-1.4, 0.8, 0.55, 0.29, 0.22, 1.85), st(-1.8, 0.71, 0.56, 0.4, 0.12, 1.7), st(-2.08, 0.645, 0.56, 0.475, 0.06, 1.7), st(-2.18, 0.61, 0.56, 0.51, 0.04, 1.8)];
+    // the flukes: a thin plate along x, its chord between the leading edge zl and the trailing edge zt (convex, notched)
+    const fk = [[0.0, -2.07, -2.38, 0.032], [0.07, -2.09, -2.49, 0.03], [0.18, -2.1, -2.55, 0.026], [0.3, -2.08, -2.55, 0.021], [0.4, -2.04, -2.48, 0.016], [0.48, -1.99, -2.36, 0.012], [0.54, -1.96, -2.22, 0.009], [0.565, -1.97, -2.1, 0.007]];
+    const fluke = fk.map(([x, zl, zt, th]) => [x, 0.56, (zl + zt) / 2, (zl - zt) / 2, th, th, 2.0]);
+    // a flipper: short, round, out to the side, back and down, the tip curling up
+    const flip = [[0.38, 0.3, 1.0, 0.085, 0.032], [0.47, 0.24, 0.93, 0.085, 0.028], [0.55, 0.19, 0.85, 0.075, 0.022], [0.61, 0.17, 0.77, 0.055, 0.016], [0.645, 0.19, 0.71, 0.03, 0.011]].map(([x, y, z, w, th]) => [x, y, z, w, th, th, 2.0]);
+    return {
+      size: { length: 4.5, height: 1.0, radius: 0.5, eyeHeight: 0.34, baby: { length: 3.75, height: 1.0, radius: 0.5, eyeHeight: 0.36 } },
+      tex: [256, 512], rough: 0.4,
+      detail: { kind: 'skin', tile: 0.08, amt: 0.08, bump: 0.15, sheen: 0.04 },
+      bones: [
+        ['chest', null, ...B('chest')], ['hips', 'chest', ...B('hips')], ['tail1', 'hips', ...B('tail1')], ['tail2', 'tail1', ...B('tail2')], ['fluke', 'tail2', ...B('fluke')],
+        ['neck', 'chest', ...B('neck')], ['head', 'neck', ...B('head')], ['tusk', 'head', ...B('tusk')], ['flipperL', 'chest', ...B('flipper'), 1],
+      ],
+      fur: [
+        { name: 'body', bones: ['chest', 'hips', 'tail1', 'tail2', 'fluke'], blend: 0.12, segs: 18, sub: 3, cap1: 2, keys: back },
+        { name: 'head', bones: ['chest', 'neck', 'head'], blend: 0.1, segs: 18, sub: 3, cap1: 3, capLen1: 0.7, keys: front },
+        { name: 'fluke', bones: ['fluke'], mirror: true, segs: 8, sub: 2, cap1: 2, side: [0, 0, 1], keys: fluke, texScale: 0.6 },
+        { name: 'flipper', bones: ['flipperL'], mirror: true, segs: 8, sub: 2, cap1: 2, side: [0, 0, 1], keys: flip, texScale: 0.5 },
+      ],
+      // (the sculpted model's look in short: dark gray marbling over a gray back, breaking up into spots down the flanks,
+      // a pale belly, the flukes and flippers darker with dark edges)
+      paint(P, C) {
+        const up = P.ny, fin = P.part === 'fluke' || P.part === 'flipper';
+        cset(C, K.pale);
+        cmix(C, K.cream, sstep(0.1, -0.55, up) * 0.85);
+        cmix(C, K.mid, sstep(-0.2, 0.75, up) * 0.85);
+        // how thick the marbling is: dense on the back and the head, few spots on the belly
+        const D = clamp(0.06 + 0.94 * sstep(-0.6, 0.7, up) + (P.part === 'head' ? 0.3 * sstep(-0.75, 0, up) : 0) + (fin ? 0.4 : 0), 0, 1.1);
+        const n = fbm(P.x * 14 + 0.4 * noise(P.x * 2.3, P.y * 2.3, P.z * 2.3), P.y * 14, P.z * 9.8, 3), t = 0.66 - 0.32 * D;
+        const sp = cells(P.x * 16 + 3.1, P.y * 16, P.z * 11) < 0.24 + 0.1 * noise(P.x * 40, P.y * 40, P.z * 40) ? sstep(0.0, 0.25, D) * sstep(0.95, 0.6, D) : 0;
+        cmix(C, mixc(K.mid, K.dark, 0.4 + 0.6 * noise(P.x * 3.5, P.y * 3.5, P.z * 2.5)), D > 0.05 ? Math.max(sstep(t - 0.025, t + 0.025, n), sp * 0.9) : 0);
+        cmix(C, K.belly, sstep(-0.35, -0.75, up) * (fin ? 0.3 : 0.8));
+        // the flukes and flippers dark at their edges
+        if (fin) cmix(C, K.dark, Math.max(sstep(0.6, 0.95, Math.abs(P.sd)), sstep(0.75, 1.0, P.v)) * 0.8);
+        cmul(C, 0.95 + 0.08 * noise(P.x * 30, P.y * 30, P.z * 30));
+        C.ro = 0.36;
+      },
+      // the calf: a plain slate blue-gray, a little paler underneath
+      babyPaint(P, C) {
+        cset(C, K.calf);
+        cmix(C, K.calfLt, sstep(-0.2, -0.75, P.ny) * 0.8);
+        cmul(C, 0.96 + 0.06 * noise(P.x * 20, P.y * 20, P.z * 20));
+      },
+      accent: [],
+      extras: () => { const T = narwhalTusk(); return [{ bone: 'tusk', name: 'tusk', geo: T.geo, mat: T.mat, at: B('tusk') }]; },
+      // the menu picture of a grown-up with its tusk: framed on the whole length from the tusk's tip to the flukes, seen
+      // more from the side (a girl or a calf has no tusk and is framed as every other animal)
+      icon: (R) => (R.hornK === 0 || R.age < 0.6 ? null : { size: 6.6, at: [0, 0.48, 0.8], dir: [0.9, 0.45, 0.45] }),
+      eyes: [{ bone: 'head', p: B('eye'), r: 0.022, dir: [0.93, 0.08, 0.36], iris: 0x2A2220, irisR: 0.95, pupilR: 0.5, rim: 0x101010, lid: [0.75, -0.72, 0.2] }],
+      mouth: B('mouth'),
+      anim: {
+        type: 'whale', walk: 0.5, run: 1.0, stride: 1.0, floatDepth: 0.82,
+        spine: ['chest', 'hips', 'tail1', 'tail2', 'fluke'], front: ['neck', 'head'],
+        // the stroke: per spine bone the share of the beat (up and down, radians) and its lag (a wave running back to the
+        // flukes, which lead the tail stock a quarter beat so they bite the water)
+        wave: [0.02, 0.05, 0.13, 0.24, 0.44], lag: [0.0, 0.55, 1.15, 1.75, 3.3],
+        rate: 0.33, hover: 0.32, bend: [0.05, 0.08, 0.1, 0.1, 0.06], neckBend: [0.06, 0.08], bank: 0.16,
+        swimHead: [0.035, 0.07, 0.05],
+      },
+      // the calf: rounder and shorter, a bigger head with a blunter melon, flippers and flukes a little smaller
+      baby: { head: 1.08, muzzle: 0.88, eye: 1.15, neck: [0.85, 1.03], body: [1.03, 1.03, 0.8], tail: 0.88, roles: { tusk: 'horn' }, noDrop: true },
+    };
+  };
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -10713,6 +10878,95 @@ const Animals = (() => {
   ANIM.butterfly = animButterfly;
   ANIM.crawl = animCrawl;
 
+  // ===== round 14: narwhal =====
+  // A whale's body (anim.type 'whale', only the narwhal): no legs, a spine from the chest back to the flukes and forward
+  // to the head. It moves only the body's own parts: the whole body's pitch while diving is the rig root's rotation.x
+  // (set by the game), and the strokes, bends and rolls here ride on top of it.
+  // - in the water ('swim' at the surface, 'dive' under it): fluke strokes, up and down, a wave running back along the
+  //   body, faster and bigger with speed; a slow hover with small beats when still; bending and banking into turns,
+  //   the flippers steering; at the surface the head is held up a little (the blowhole out, the tusk tip clear)
+  // - 'ground' (stranded on ice or a beach): a slow side-to-side flop, the tail lifting now and then
+  // - 'sleep': logging still, a slow breathing rise; eating: a head dip and a quick snap; happy: a slow roll right over
+  //   in the water, a playful tail lift on the ground
+  function animWhale(R, A) {
+    const P = A.spec.anim, B = R.bones;
+    const sp = P.spine.map((n) => B[n]), N = sp.length, chest = sp[0], neck = B[P.front[0]], head = B[P.front[1]];
+    const fls = [[B.flipperL, 1], [B.flipperR, -1]];
+    const S = { ph: R.rnd * TAU, fph: R.rnd * TAU, gph: R.rnd * TAU, spd: 0, amp: 0.3, water: 1, surf: 0, eat: 0, bend: 0, look: 0, vy: 0, hapT: 0, roll: 0, rollDir: R.rnd < 0.5 ? 1 : -1, lift: 0 };
+    moodInit(S, R.rnd);
+    chest.rotation.order = 'YXZ';
+    return function update(dt, st) {
+      dt = clamp(dt || 0, 0, 0.1);
+      const mode = st.mode || 'ground', sleeping = mode === 'sleep', wet = mode === 'swim' || mode === 'dive' || sleeping || !!st.swimSleep;
+      moodUpdate(R, S, st, dt);
+      const it = S.it, sl = sstep(0, 1, S.sleep), sick = S.sick, hap = S.happy * (1 - S.sleep), idle = st.idle || 0;
+      spring(S, 'water', wet ? 1 : 0, 2.2, dt);
+      spring(S, 'surf', mode === 'swim' || sleeping ? 1 : 0, 2, dt);
+      spring(S, 'eat', eatEnvelope(st.eat || 0), 7, dt);
+      S.spd = damp(S.spd, sleeping ? 0 : Math.abs(st.speed || 0), 3, dt);
+      S.bend = damp(S.bend, clamp(st.turn || 0, -2.5, 2.5), 3, dt);
+      S.vy = damp(S.vy, mode === 'dive' ? clamp(st.vy || 0, -4, 4) : 0, 3, dt);
+      const W = S.water, G = 1 - W, U = S.spd, moving = sstep(0.15, 1.2, U), eat = S.eat;
+      // the stroke: beats a second from the speed (about a third of the speed in rig m/s, a slow hover when still),
+      // bigger with speed; asleep only a breath
+      const rate = lerp(P.hover, Math.max(P.hover, U * P.rate), moving) * (1 - 0.35 * sick) * (1 - sl);
+      S.ph += TAU * rate * dt;
+      const ampT = (lerp(0.3, 1.0, sstep(0.2, 3.2, U)) + 0.15 * sstep(4.5, 7, U)) * (1 - 0.3 * sick) * (1 - sl) * (1 - 0.6 * eat);
+      S.amp = damp(S.amp, ampT, 2, dt);
+      // happy in the water: now and then a slow roll right over (one way, then the other next time); on the ground the tail
+      // lifts and waves instead
+      // (a roll under way finishes when the happiness ends: a full turn and none look the same, so it stops there)
+      let rp = (S.hapT % 6.5) / 6.5;
+      if ((hap > 0.4 && W > 0.5) || (S.hapT > 0 && rp > 0.06 && rp < 0.64)) S.hapT += dt; else S.hapT = 0;
+      rp = (S.hapT % 6.5) / 6.5;
+      S.roll = S.hapT > 0 ? TAU * sstep(0.08, 0.62, rp) * (Math.floor(S.hapT / 6.5) % 2 ? -S.rollDir : S.rollDir) : 0;
+      // the ground: a slow flop from side to side (faster if it scoots along), the tail lifting twice a flop
+      S.gph += TAU * (0.28 + 0.35 * sstep(0.05, 0.6, U)) * dt * (1 - 0.8 * sl);
+      const flopK = (1 - 0.85 * sl) * (0.7 + 0.3 * sstep(0.05, 0.6, U)), flop = Math.sin(S.gph) * flopK, tlift = (0.5 - 0.5 * Math.cos(2 * S.gph)) * (1 - 0.85 * sl) + hap * (0.6 + 0.4 * Math.sin(it * 3.2));
+      // look about when idle (a whale's neck turns only a little)
+      const lookOn = sstep(1.5, 3, idle) * (1 - eat) * (1 - sl);
+      S.look = damp(S.look, lookTarget(it, R.rnd, 3.6, 0.12) * lookOn, 2, dt);
+      // a head dip and a quick snap when eating
+      const snap = Math.sin(PI * sat(((st.eat || 0) - 0.45) / 0.17));
+      const bnd = S.bend * W, sn = sneezeCurve(S.snT);
+      for (let i = 0; i < N; i++) {
+        const b = sp[i];
+        const stroke = S.amp * P.wave[i] * Math.sin(S.ph - P.lag[i]) * W;
+        // stranded: the back rests on the belly, the tail stock sags and lifts
+        const gx = G * (i === 0 ? 0 : i === 1 ? -0.1 + 0.1 * tlift : i === 2 ? -0.12 + 0.17 * tlift : i === 3 ? -0.1 + 0.15 * tlift : 0.12 + 0.1 * Math.sin(S.gph * 2 + 1.2));
+        const gy = G * flopK * [0.02, 0.07, 0.11, 0.15, 0.2][Math.min(i, 4)] * Math.sin(S.gph - 0.45 * i);
+        // logging asleep: the flukes hang a little; diving or rising: the tail trails the turn of the body
+        const sx = sl * W * (i === N - 1 ? 0.08 : i > 1 ? 0.02 : 0) - (i > 1 ? S.vy * 0.012 : 0);
+        b.rotation.x = stroke + gx + sx + (i === N - 1 ? hap * G * 0.2 * Math.sin(it * 6) : 0);
+        b.rotation.y = bnd * P.bend[i] + gy;
+        b.rotation.z = 0;
+      }
+      // the chest: banks into turns, rolls when happy, rises and falls a little with each beat and with the breath
+      const c0 = chest.userData.p0;
+      chest.rotation.z = -clamp(bnd * P.bank, -0.4, 0.4) + S.roll;
+      chest.rotation.x += -S.surf * P.swimHead[0] * (1 - sl * 0.5) + sick * 0.03;
+      chest.position.set(c0.x, c0.y + S.amp * 0.018 * Math.sin(S.ph + 0.5) * W + sl * 0.014 * Math.sin(it * 0.9) + G * 0.006 * Math.abs(flop), c0.z + 0.04 * eat);
+      // the neck and the head: held up at the surface, the head's little counter-pitch to the stroke, turning with the
+      // body, dipping and snapping to eat
+      const hx = -S.surf * (1 - sl * 0.6) - S.vy * 0.015;
+      neck.rotation.set(hx * P.swimHead[1] + eat * 0.12 - S.amp * 0.02 * Math.sin(S.ph + 0.9) * W - G * 0.04 * tlift + sick * 0.06, bnd * P.neckBend[0] + S.look * 0.5, 0);
+      head.rotation.set(hx * P.swimHead[2] + eat * 0.16 - snap * 0.22 + sn * 0.5 + sick * 0.06 + G * 0.03, bnd * P.neckBend[1] + S.look + G * flop * -0.05, 0);
+      // the flippers: tucked a little in a fast stroke, out and sculling slowly in a hover, the inside one down in a turn,
+      // pitched with the dive, flat on the ground, drooping asleep
+      for (const [f, sd] of fls) {
+        if (!f) continue;
+        const scull = Math.sin(S.fph + (sd > 0 ? 0 : 1.3));
+        const flap = W * (S.amp * 0.06 * Math.sin(S.ph + 0.8) + (1 - moving) * 0.1 * scull * (1 - sl)) - sd * bnd * 0.1 - G * 0.18 - sl * 0.06 + hap * W * 0.15 * Math.sin(it * 2.2);
+        const sweep = W * (moving * 0.18 - 0.05) + G * 0.1 * flop * sd;
+        const pitch = W * ((1 - moving) * 0.25 * Math.sin(S.fph + (sd > 0 ? 1.6 : 2.9)) * (1 - sl) - S.vy * 0.06 + bnd * sd * 0.12);
+        f.rotation.set(pitch, sd * sweep, sd * flap);
+      }
+      S.fph += TAU * 0.35 * dt;
+      setEyes(R, eyeOpen(S, it, R.rnd));
+    };
+  }
+  ANIM.whale = animWhale;
+
   // opts.sex ('m' or 'f', round 12): a boy or a girl, with that one's own sculpt and horns where SEX_LOOK says so
   function build(id, opts) {
     if (!SPEC[id]) id = 'fox';
@@ -10732,6 +10986,8 @@ const Animals = (() => {
       stride: an.stride, floatDepth: an.floatDepth || 0,
       walkSpeed: an.walk, runSpeed: an.run,
       climbs: !!an.climb, flies: !!an.canFly,
+      // round 14: a species can frame its own menu picture (spec.icon(R): the narwhal's tusk reaches far past its body)
+      iconFrame: A.spec.icon ? () => A.spec.icon(R) : null,
       age: 1,
       autoSneeze: true, onSneeze: null,
       mouthWorld(out) { R.mouth.updateWorldMatrix(true, false); return out.setFromMatrixPosition(R.mouth.matrixWorld); },

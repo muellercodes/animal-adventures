@@ -152,7 +152,9 @@ const SPECIES = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny', 
   // round 11
   'lion', 'tiger', 'leopard', 'cheetah', 'ocelot', 'panda', 'cow', 'camel', 'gecko', 'wingcat', 'unicorn', 'beardeddragon', 'iguana', 'chameleon', 'komodo',
   // round 13
-  'griffin', 'wingedlion'];
+  'griffin', 'wingedlion',
+  // round 14
+  'narwhal'];
 const MODES = ['ground', 'air', 'swim', 'fly', 'climb', 'perch', 'sleep',
   'dive'];   // round 14: under the water (an animal that can dive)
 const MAX_IN_WORLD = 60;
