@@ -941,10 +941,15 @@ function showLoading(text, fn) {
 }
 
 /* ---------- saves ---------- */
+// round 14: while you play, a note that you were in the game. iPhone Safari reloads a page it threw out (low on
+// memory, or after a while in the background), which used to land you on the title screen; with this note fresh,
+// the game goes straight back in where you were. Back to the title screen (Settings) clears it.
+const LIVE_KEY = 'animal-adventures-live', LIVE_FOR = 15 * 60 * 1000;
 function save(localOnly) {
   if (!S.started) return;
   S.saved = Date.now();
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {}
+  try { if (R.mode === 'play') localStorage.setItem(LIVE_KEY, String(S.saved)); } catch (e) {}
   if (!localOnly) cloud.dirty = true;
 }
 G.save = save;
@@ -1090,11 +1095,12 @@ function pickStarter(id) {
   play(() => { beginLife(id); });
 }
 function resetGame() {
-  try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+  try { localStorage.removeItem(SAVE_KEY); localStorage.removeItem(LIVE_KEY); } catch (e) {}
   Object.assign(S, fresh()); renderTitle('pick');
 }
 function quitToTitle() {
   closeSheet(); save();
+  try { localStorage.removeItem(LIVE_KEY); } catch (e) {}
   R.mode = 'title'; R.paused = false;
   if (Player.b) { scene.remove(Player.b.rig.root); Player.b = null; }
   for (const id of ['hud', 'side', 'actions', 'keys', 'stickHint', 'prompt']) $(id).hidden = true;
@@ -1239,8 +1245,15 @@ function start(data) {
   applyQuality();
   loadWorld(S.started ? S.world : 'meadow');
   renderTitle();
+  let live = 0;
+  try { live = +localStorage.getItem(LIVE_KEY) || 0; } catch (e) {}
+  const resume = !snap && S.started && live > 0 && Date.now() - live < LIVE_FOR && !/test|assets/.test(location.hash);
   if (snap && data.playing && S.started) play();
-  if (API && cloud.token && !(snap && data.playing)) pullCloud().then(() => { if (R.mode === 'title') renderTitle(); }).catch((err) => { if (err.status === 401) { setSession(null, null); if (R.mode === 'title') renderTitle(); } });
+  if (API && cloud.token && !(snap && data.playing)) {
+    // (round 14: going straight back in waits a moment for a newer save from another device first)
+    const pulled = pullCloud().then(() => { if (R.mode === 'title' && !resume) renderTitle(); }).catch((err) => { if (err.status === 401) { setSession(null, null); if (R.mode === 'title' && !resume) renderTitle(); } });
+    if (resume) Promise.race([pulled, new Promise((res) => setTimeout(res, 4000))]).then(() => { if (R.mode === 'title' && !$('titleWrap').hidden) play(); });
+  } else if (resume) play();
   window.claude?.hot?.snapshot?.(() => ({ S: JSON.parse(JSON.stringify(S)), playing: R.mode === 'play' }));
   if (/test|assets/.test(location.hash)) window.__aa = { SPECIES, manual(on) { manual = on; if (!on) requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); }); }, step(n, dt = 1 / 30, draw = true) { for (let i = 0; i < n; i++) tick(dt, 1, draw && i === n - 1); }, S, G, R, Player, Wild, Folk, Foods, Homes, World, Cam, inp, keys, press, travel, switchAnimal, loadWorld, play, pickStarter, animalIcon, renderer, camera, scene, dayInfo, timeOfDay, findAction, doAction, Sound, setBodyAge, goHome, buyAnimal, Env, Animals, People, THREE, Net, Town, Nav, Traffic, Plan, CityLife, Sick, applySave, Zoos, SEX_LOOK, sexLook, sexOf, setSex, stick, releaseTouches };
   requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); });

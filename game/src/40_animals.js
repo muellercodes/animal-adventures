@@ -8980,28 +8980,46 @@ const Animals = (() => {
   const modelMaps = {}, mapLoads = [];
   let readyNow;
   // resolves once every model's maps are decoded (tools that render pictures of the animals wait for it)
-  const ready = new Promise((res) => { readyNow = res; });
+  const allReady = new Promise((res) => { readyNow = res; });
+  // round 14: on a phone or tablet the big color and normal maps (768 to 2048 across) are drawn down to 512, which
+  // shows the same on a small screen and keeps memory low enough that iPhone Safari does not throw the page out
+  // (it reloads a page that uses too much memory, which lands you back on the title screen). Only those two kinds:
+  // they have no alpha, so a canvas copy keeps them exactly (a canvas would spoil maps that carry data in alpha).
+  const SMALL_MAPS = typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches;
+  const MAP_MAX = 512;
+  function shrink(img, k) {
+    const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height, s = MAP_MAX / Math.max(w, h);
+    if (!SMALL_MAPS || s >= 1 || (k !== 'color' && k !== 'normal')) return img;
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(w * s)); c.height = Math.max(1, Math.round(h * s));
+    const g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(img, 0, 0, c.width, c.height);
+    return c;
+  }
   function useModels(M) {
     MODELS = M || {};
-    // start decoding the maps right away; materials made before they arrive show a flat skin color and swap them in
+    // round 14: a model's maps decode the first time that model is used (modelData), not all 70 at the start;
+    // materials made before they arrive show a flat skin color and swap them in
     for (const id in MODELS) {
-      const md = MODELS[id], mm = modelMaps[id] = { ready: 0, need: 0, waiters: [], tex: {} };
-      for (const k in md.maps || {}) {
-        mm.need++;
-        const img = new Image();
-        mapLoads.push(new Promise((res) => {
-          img.onload = () => {
-            const t = new THREE.Texture(img);
-            if (k === 'color' || k === 'hair' || k === 'babyColor' || (md.srgb && md.srgb.indexOf(k) >= 0)) t.encoding = THREE.sRGBEncoding;
-            t.anisotropy = 4; t.needsUpdate = true;
-            mm.tex[k] = t;
-            if (++mm.ready === mm.need) for (const f of mm.waiters.splice(0)) f();
-            res();
-          };
-          img.onerror = res;
-        }));
-        img.src = md.maps[k];
-      }
+      const md = MODELS[id], mm = modelMaps[id] = { ready: 0, need: 0, waiters: [], tex: {}, started: false };
+      mm.need = Object.keys(md.maps || {}).length;
+      mm.start = () => {
+        if (mm.started) return; mm.started = true;
+        for (const k in md.maps || {}) {
+          const img = new Image();
+          mapLoads.push(new Promise((res) => {
+            img.onload = () => {
+              const t = new THREE.Texture(shrink(img, k));
+              if (k === 'color' || k === 'hair' || k === 'babyColor' || (md.srgb && md.srgb.indexOf(k) >= 0)) t.encoding = THREE.sRGBEncoding;
+              t.anisotropy = 4; t.needsUpdate = true;
+              mm.tex[k] = t;
+              if (++mm.ready === mm.need) for (const f of mm.waiters.splice(0)) f();
+              res();
+            };
+            img.onerror = res;
+          }));
+          img.src = md.maps[k];
+        }
+      };
     }
     // round 7: a coat variant (md.base) borrows the maps it does not bring from the model it shares (normal, fur, hair)
     for (const id in MODELS) {
@@ -9013,8 +9031,19 @@ const Animals = (() => {
         const take = () => { mm.tex[k] = bm.tex[k]; if (++mm.ready === mm.need) for (const f of mm.waiters.splice(0)) f(); };
         if (bm.ready === bm.need) take(); else bm.waiters.push(take);
       }
+      const own = mm.start;
+      mm.start = () => { own(); bm.start(); };   // (round 14: a variant's maps need its base's too)
     }
-    Promise.all(mapLoads).then(() => readyNow());
+  }
+  // round 14: tools that render pictures of every animal (tools/assets.py) still get them all decoded, on asking
+  let allStarted = false;
+  function loadAll() {
+    if (!allStarted) {
+      allStarted = true;
+      for (const id in modelMaps) modelMaps[id].start();
+      Promise.all(mapLoads).then(() => readyNow());
+    }
+    return allReady;
   }
   // raw deflate (RFC 1951) decoder for format 2 model data, small and synchronous
   const INF = {
@@ -9162,6 +9191,7 @@ const Animals = (() => {
   function modelData(id) {
     if (modelCache[id] !== undefined) return modelCache[id];
     const md = MODELS[id];
+    if (modelMaps[id]) modelMaps[id].start();   // round 14: its maps start decoding now
     let out = null;
     // round 7: a coat variant (md.base) shares that model's mesh, skin weights, fur and cards, and has its own maps,
     // eyes and settings (a black cat on the tabby's body)
@@ -10746,5 +10776,5 @@ const Animals = (() => {
     return rig;
   }
 
-  return { ids, build, ready, useModels };
+  return { ids, build, get ready() { return loadAll(); }, useModels };
 })();
