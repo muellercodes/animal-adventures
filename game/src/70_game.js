@@ -821,6 +821,7 @@ const WORLD_BG = {
   meadow: 'linear-gradient(160deg,#c6e6f7 0 35%,#8fbd52 35%)',
   snow: 'linear-gradient(160deg,#d6e6f2 0 30%,#8c96a4 30% 45%,#f2f5f9 45% 75%,#3f7088 75%)',
   savanna: 'linear-gradient(160deg,#cfe0ee 0 35%,#4e5a2a 35% 42%,#c8a868 42% 80%,#8e5434 80%)',
+  arctic: 'linear-gradient(160deg,#d3dde5 0 32%,#eef3f7 32% 48%,#2c5c6a 48% 80%,#0a2530 80%)',   // (round 14)
 };
 const worldBg = (id) => ASSETS.worlds[id] ? `url(${ASSETS.worlds[id]})` : WORLD_BG[id];
 
