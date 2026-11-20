@@ -202,8 +202,10 @@ function moveBody(b, dt, c) {
   // round 14: ice is solid. Nothing walks, swims or flies into an iceberg's cliff or a floe's edge higher than a small
   // step (and it looks a little ahead, so a steep cliff can't be climbed a bit at a time). An animal swimming at the
   // surface can haul out onto a floe as high as w.ICE_STEP above it (a polar bear can); one that lives only in the
-  // water (aquatic: the narwhal) never climbs out, it goes under.
-  if (w.iceAt && !b.room) {
+  // water (aquatic: the narwhal) never climbs out, it goes under. (Not for a diver under the water: the diving check
+  // below keeps it between the sea floor and the ice and steers it down where the ice reaches deeper, instead of
+  // stopping it against every bump on the underside.)
+  if (w.iceAt && !b.room && b.mode !== 'dive') {
     const step = sp.aquatic ? -1e9 : b.mode === 'swim' ? w.ICE_STEP : 0.5, top = p.y + m.height;
     const mv = Math.hypot(nx - p.x, nz - p.z), ax = mv > 1e-4 ? (nx - p.x) / mv * 0.5 : 0, az = mv > 1e-4 ? (nz - p.z) / mv * 0.5 : 0;
     const solid1 = (x, z, st) => { const q = w.iceAt(x, z); return !!q && q.bot < top && q.top > p.y + st; };
