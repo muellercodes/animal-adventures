@@ -36,6 +36,8 @@ const leaves = Env.fallingLeaves(140); scene.add(leaves.points);
 const snowfall = Env.fallingLeaves(260, { snow: true }); scene.add(snowfall.points);   // round 10: snow in the Snowy Mountains
 Env.autumn(AUTUMN ? 0.9 : 0);
 let skyExtras = null;
+// round 14: the look under the water (39_arctic): it takes over the fog, lights and sky while the camera is under it
+if (Env.underwater) Env.underwater.init({ scene, sky, clouds, sun, hemi, renderer, hide: [flies.points, leaves.points, snowfall.points] });
 
 const Q = { pr: Math.min(window.devicePixelRatio || 1, 1.6), shadow: 2048, level: 0 };
 if (Math.min(screen.width, screen.height) < 500) Q.pr = Math.min(Q.pr, 1.4);
@@ -57,6 +59,7 @@ function loadWorld(id) {
   if (G.world) { scene.remove(G.world.group); Wild.clear(); Folk.clear(); Foods.clear(); G.world.dispose(); }
   const w = World.build(id); G.world = w; scene.add(w.group);
   scene.fog.near = w.def.fog[0]; scene.fog.far = w.def.fog[1];
+  if (sky.palette) sky.palette(w.def.sky || null);   // (round 14: the Arctic Ocean's paler sky)
   if (skyExtras) { scene.remove(skyExtras.group); skyExtras = null; }
   if (w.def.islands) {
     const g = new THREE.Group();
@@ -122,6 +125,10 @@ function followCamera(dt) {
   } else {
     const gh = G.world.groundAt ? G.world.groundAt(x, z, Cam.target.y + 1) : H(x, z), floor = Math.max(gh > -100 ? gh : -1e9, G.world.def.water ? WATER : -1e9) + Math.max(tiny ? 0.05 : 0.12, m.height * 0.45);
     if (y < floor) y = floor;
+    // round 14: not inside an iceberg: come in toward the animal until the camera is out of the ice
+    if (G.world.iceAt && b.mode !== 'dive') {
+      for (let k = 0; k < 6; k++) { const ic = G.world.iceAt(x, z); if (!ic || y > ic.top + 0.2 || y < ic.bot) break; x = lerp(x, Cam.target.x, 0.35); z = lerp(z, Cam.target.z, 0.35); y = Math.max(y, lerp(y, Cam.target.y, 0.35)); }
+    }
     const k = camBlock(x, y, z, dist);
     Cam.block = k < (Cam.block || 1) ? k : damp(Cam.block || 1, k, 2.5, dt);
     if (Cam.block < 0.999) { x = Cam.target.x + (x - Cam.target.x) * Cam.block; y = Cam.target.y + (y - Cam.target.y) * Cam.block; z = Cam.target.z + (z - Cam.target.z) * Cam.block; }
@@ -546,7 +553,8 @@ function dayInfo() {
 function timeOfDay(dt, focus) {
   const { tc } = dayInfo();
   let e, az;
-  if (tc < DAY_LEN) { const f = tc / DAY_LEN; e = Math.sin(Math.PI * f) * 1.0; az = -1.35 + 2.7 * f; }
+  // (round 14: a world can keep its sun low all day, sunHigh: the Arctic Ocean's)
+  if (tc < DAY_LEN) { const f = tc / DAY_LEN; e = Math.sin(Math.PI * f) * ((G.world && G.world.def.sunHigh) || 1.0); az = -1.35 + 2.7 * f; }
   else { const f = (tc - DAY_LEN) / NIGHT_LEN; e = -Math.sin(Math.PI * f) * 0.8; az = 1.35 + (TAU - 2.7) * f; }
   const se = Math.sin(e);
   sunDir.set(Math.cos(e) * Math.sin(az), se, Math.cos(e) * Math.cos(az)).normalize();
@@ -568,9 +576,9 @@ function timeOfDay(dt, focus) {
   if (room) { lamp.position.set(room.light.x, room.light.y, room.light.z); lamp.intensity = lerp(0.6, 2.2, G.night); } else lamp.intensity = 0;
   clouds.update(dt, day, dusk);
   if (skyExtras) { skyExtras.low.update(dt, day, dusk); skyExtras.sea.update(dt, camera.position); }
-  flies.update(G.t, focus, G.world && !G.world.def.islands && !room ? G.night : 0);
+  flies.update(G.t, focus, G.world && !G.world.def.islands && !G.world.def.sea && !room ? G.night : 0);   // (round 14: none over the Arctic Ocean)
   leaves.update(G.t, focus, AUTUMN && G.world && !room && ['land', 'meadow', 'forest'].includes(G.world.id) ? 1 : 0);
-  snowfall.update(G.t, focus, G.world && !room && G.world.id === 'snow' ? 1 : 0);
+  snowfall.update(G.t, focus, G.world && !room ? (G.world.id === 'snow' ? 1 : G.world.def.snow || 0) : 0);
   // shadow box follows the focus point
   const m = Player.b ? Player.m : null;
   const Rr = room ? 9 : m ? clamp(m.length * 9 + 9, 10, 30) : 30;
@@ -1217,6 +1225,8 @@ function tick(dt, raw, draw) {
     G.world.updateView(camera.position, focus.x, focus.z, scene.fog.far, playing ? Player.m.length : 1.2);
     Env.wind.time.value = G.t; Env.waterUniforms.time.value = G.t;
     timeOfDay(dt, focus);
+    // round 14: under the water? (fog, light and sky change the moment the camera goes below the surface)
+    if (Env.underwater) Env.underwater.update(dt, camera, G.world, playing ? Player.b.room : null, G.night);
     if (draw) renderer.render(scene, camera);
   }
   Sound.update(dt, { night: G.night, world: G.world ? G.world.id : '', inside: !!(playing && Player.b.room), pos: playing ? Player.pos : focus, body: playing && !R.paused ? Player.b : null });

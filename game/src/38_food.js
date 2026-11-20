@@ -1562,4 +1562,94 @@
   Env.addFood('meat', foodMeat);
   Env.addFood('bamboo', foodBamboo);
   Env.addFood('dates', foodDates);
+
+  /* ---------- round 14: squid (the Arctic Ocean). A small pale pinkish squid about 26 cm long, swimming tail first the
+     way squid jet along (the pointed end of its mantle leads, at +z): a smooth mantle with chromatophore freckles and a
+     pair of round fins at its tip, the head with two big silvery eyes, eight short arms and two longer tentacles with
+     clubs trailing behind. It swims in short jets: the mantle squeezes, the arms draw together and it shoots ahead, then
+     it glides, the mantle fills again and the fins ripple. Water foods circle in the water (60_actors Foods). ---------- */
+  const SQ_FX = 0.012;   // where the fins hinge on the mantle
+  const squidSkin = () => K.skinTex('fSquid', 128, 64, (u, v) => {
+    if (v > 0.86) return [255, 255, 255];
+    // pale pink white, rosier along the back (v near 0.5 is the top of the mantle), freckled with red brown spots
+    const back = 1 - Math.abs(v / 0.86 - 0.5) * 2;
+    let c = K.mixRGB([246, 222, 214], [232, 168, 160], smooth(0.2, 0.9, back) * 0.7);
+    const f = fbm(u * 40 + 3.3, v * 24, 1.1, 2), g = fbm(u * 90, v * 55 + 7, 2.7, 1);
+    c = K.mixRGB(c, [168, 70, 58], smooth(0.18, 0.3, f) * (0.35 + 0.5 * back));
+    c = K.mixRGB(c, [190, 96, 80], smooth(0.32, 0.42, g) * 0.5);
+    return c;
+  });
+  function foodSquid() {
+    const S = soup(), N = 14, R = 12, ML = 0.15, z0 = 0.13;
+    const rad = (t) => 0.023 * Math.pow(Math.sin(Math.PI * 0.5 * Math.min(1, t * 1.15)), 0.75) * (1 - 0.12 * Math.max(0, t - 0.85) / 0.15) + 0.0008;
+    const at = (t, a) => { const r = rad(t); return new V3(Math.cos(a) * r, Math.sin(a) * r * 0.9, z0 - t * ML); };
+    const uv = (t, a) => [t, (0.5 + 0.5 * Math.sin(a)) * 0.86];
+    // the mantle, open at the head end
+    for (let i = 0; i < N; i++) for (let j = 0; j < R; j++) {
+      const t0 = i / N, t1 = (i + 1) / N, a0 = (j / R) * TAU, a1 = ((j + 1) / R) * TAU;
+      S.quad(at(t0, a0), at(t1, a0), at(t1, a1), at(t0, a1), null, null, null, null, uv(t0, a0), uv(t1, a0), uv(t1, a1), uv(t0, a1));
+    }
+    const mantle = S.geo(true);
+    // the head: a short rounded collar, and the eyes on its sides
+    const head = prep(new THREE.SphereGeometry(0.018, 12, 8)); head.scale(1.05, 0.9, 1.5); head.translate(0, 0, z0 - ML - 0.012);
+    paint(head, (x, y, z) => mixc(L(0xf2d6cc), L(0xd89a90), smooth(-0.004, 0.012, y) * 0.6));
+    const eyes = [];
+    for (const s of [-1, 1]) {
+      const e = prep(new THREE.SphereGeometry(0.0085, 10, 8)); e.translate(s * 0.0135, 0.002, z0 - ML - 0.012); paint(e, (x, y, z) => { const d = Math.hypot(y - 0.002, z - (z0 - ML - 0.012)); return d < 0.0045 ? L(0x0a0c10) : mixc(L(0xc8ced6), L(0x8a929c), smooth(0.005, 0.008, d)); });
+      eyes.push(e);
+    }
+    // eight short arms and two longer tentacles with clubs, trailing behind
+    const arms = [], armC = (t) => mixc(L(0xeec4ba), L(0xc87a70), t * 0.7);
+    const zb = z0 - ML - 0.03;
+    for (let k = 0; k < 10; k++) {
+      const a = (k / 8) * TAU + 0.2, tent = k >= 8, len = tent ? 0.11 : 0.055 + (k % 2) * 0.01;
+      const bx = tent ? (k === 8 ? -0.006 : 0.006) : Math.cos(a) * 0.009, by = tent ? -0.004 : Math.sin(a) * 0.008;
+      const pts = [];
+      for (let q = 0; q <= 5; q++) { const t = q / 5; pts.push(new V3(bx * (1 + t * 0.6) + Math.sin(t * 3 + k) * 0.003, by * (1 + t * 0.6), zb - len * t)); }
+      arms.push(tube(path(pts, 8), (i, t) => (tent ? (t > 0.75 ? 0.0028 : 0.0012) : 0.0026 * (1 - t * 0.85)) + 0.0004, { radial: 5, cap: 'end', color: (t) => armC(t) }));
+    }
+    // the fins: two round flaps at the tip of the mantle, thin and see-through pale
+    const fin = (s) => {
+      const F = soup(), c0 = L(0xf4dcd4), c1 = L(0xe6b8ae), base = [], edge = [];
+      for (let q = 0; q <= 6; q++) {
+        const t = q / 6, z = z0 - 0.005 - t * 0.06, w = Math.sin(Math.PI * Math.min(1, t * 1.05)) * 0.026 + 0.002;
+        base.push(new V3(s * rad(0.04 + t * 0.4) * 0.9, 0, z)); edge.push(new V3(s * (rad(0.04 + t * 0.4) * 0.9 + w), 0.001, z - w * 0.25));
+      }
+      for (let q = 0; q < 6; q++) F.quad(base[q], base[q + 1], edge[q + 1], edge[q], c0, c0, c1, c1, K.PLAIN, K.PLAIN, K.PLAIN, K.PLAIN);
+      const g = F.geo(false);
+      g.translate(-s * SQ_FX, 0, 0);   // pivot at the mantle's side (setupSquid puts it back)
+      return g;
+    };
+    const plain = (g) => K.mapUV(prep(g), () => K.PLAIN);
+    const m = mat('fSquid', { std: true, roughness: 0.32, side: DS, map: squidSkin() });
+    return [
+      { geo: merge([mantle, plain(head), ...eyes.map(plain)]), mat: m, name: 'squidBody' },
+      { geo: merge(arms.map(plain)), mat: m, name: 'squidArms' },
+      { geo: fin(-1), mat: m, name: 'squidFinL' }, { geo: fin(1), mat: m, name: 'squidFinR' },
+    ];
+  }
+  function setupSquid(root) {
+    const piv = new THREE.Group(); piv.name = 'squid';
+    const body = root.getObjectByName('squidBody'), arms = root.getObjectByName('squidArms'), fl = root.getObjectByName('squidFinL'), fr = root.getObjectByName('squidFinR');
+    for (const o of [body, arms, fl, fr]) if (o) piv.add(o);
+    if (fl) fl.position.x = -SQ_FX;
+    if (fr) fr.position.x = SQ_FX;
+    root.add(piv);
+    root.userData.squid = { piv, body, arms, fl, fr };
+    root.userData.anim = true;
+  }
+  function updateSquid(root, t) {
+    const q = root.userData.squid; if (!q) return;
+    const T = 1.5, ph = (((t / T) % 1) + 1) % 1, jet = ph < 0.18 ? Math.sin(Math.PI * ph / 0.18) : 0;
+    // the jet: a quick shove ahead, then a long glide back to where the steady swim would have it
+    const surge = 0.06 * (ph < 0.18 ? smooth(0, 1, ph / 0.18) : 1 - smooth(0, 1, (ph - 0.18) / 0.82));
+    q.piv.position.z = surge;
+    q.piv.position.y = Math.sin(t * 1.1) * 0.006;
+    if (q.body) q.body.scale.set(1 - 0.13 * jet, 1 - 0.13 * jet, 1 + 0.04 * jet);
+    if (q.arms) { const g = ph < 0.18 ? jet : -0.12 * Math.sin(Math.PI * (ph - 0.18) / 0.82); q.arms.scale.set(1 - 0.4 * g, 1 - 0.4 * g, 1 + 0.15 * g); q.arms.rotation.z = Math.sin(t * 2.3) * 0.15; }
+    const rip = Math.sin(t * 7.5) * 0.22 * (1 - jet) + jet * 0.5;
+    if (q.fl) q.fl.rotation.z = rip;
+    if (q.fr) q.fr.rotation.z = -rip;
+  }
+  Env.addFood('squid', foodSquid, { setup: setupSquid, update: updateSquid });
 })();

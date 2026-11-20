@@ -11,11 +11,13 @@ const World = (() => {
     hydrant: 1, trashcan: 1, newsbox: 1, bikerack: 1, bollard: 1, mailbox: 1, parkingmeter: 1, cone: 1, barrier: 1, sandwichboard: 1, cafetable: 1, trashbags: 1,
     recycling: 1, pallet: 1, crates: 1, acunit: 1, gaspipe: 1, wheelstop: 1, treegrate: 1, bicycle: 1, drinking: 1, flowerbed: 1, planter: 1, noparking: 1, parkingsign: 1,
     // round 7 food plants
-    mushrooms: 1, melonpatch: 1, lettucebed: 1, birdfeeder: 1 };
+    mushrooms: 1, melonpatch: 1, lettucebed: 1, birdfeeder: 1,
+    // round 14: the Arctic Ocean's sea floor and bits of ice
+    urchins: 1, anemones: 1, sponge: 1, seaweed: 1, brash: 1 };
   // drawn out to a middle distance (parked cars, signs and the like)
   const MID = { parked: 1, stopsign: 1, streetsign2: 1, oneway: 1, speedlimit: 1, busstopsign: 1, crosswalksign: 1, dumpster: 1, fence8: 1, foodcart: 1, phonebooth: 1,
     streetclock: 1, planterbox: 1, parkbooth: 1, bench: 1, parkbench: 1, picnic: 1, busstop: 1, statue: 1, trafficpole: 1,
-    sunflower: 1, cornrow: 1 };
+    sunflower: 1, cornrow: 1, kelp: 1, driftwood: 1, icerubble: 1 };
   const LOD_D = 120;            // towers farther than this are drawn with their simple version
   // rules and placements for props that may not exist yet (made by the food kit in 38_food)
   const HASP = (t) => !!(Env._k && Env._k.PROPS[t]);
@@ -828,9 +830,191 @@ const World = (() => {
         walk: [],
       };
     },
+    // round 14: the Arctic Ocean. Mostly open sea: a small rocky island with a snowy shore and a gravel beach (where
+    // land animals arrive), fast ice frozen to the island from its north side round by the east, a broken field of
+    // drifting floes beyond with open leads between them, a few big icebergs, and open water to the west where the
+    // narwhals live. The sea floor goes from gravel, boulders and kelp in the shallows down to sand, mud and rock
+    // outcrops 30 to 40 m deep. The ice is not part of the ground: def.ice(x, z) gives the ice column anywhere (what
+    // you stand on and what a diver swims under) and def.tileMeshes draws it, tile by tile (39_arctic).
+    arctic(seed) {
+      const n1 = makeNoise(seed), n2 = makeNoise(seed + 1), n3 = makeNoise(seed + 2), n4 = makeNoise(seed + 3), n5 = makeNoise(seed + 4), nC = makeNoise(seed + 5);
+      const c = { snow: P(0xc6ced8), shade: P(0x98a6b8), rock: P(0x3e3a36), rockLt: P(0x605a54), gravel: P(0x6c6862), gravelDk: P(0x46433f),
+        moss: P(0x585a3a), sand: P(0x8a8574), mud: P(0x6c6a5e), deep: P(0x5c5b52), wet: P(0x37352f) };
+      const ISL = { x: 0, z: -6, r: 46 };
+      const BEACH = Math.PI / 2;                  // the beach faces south (+z)
+      const shoreR = (a) => ISL.r * (1 + 0.15 * n1(Math.cos(a) * 1.2, Math.sin(a) * 1.2) + 0.06 * n2(Math.cos(a) * 3, Math.sin(a) * 3));
+      const beachK = (a) => smooth(1 - Math.abs(angDiff(a, BEACH)) / 0.55);
+      // how far out the fast ice reaches at an angle round the island: about 105 m from the north round by the east
+      // to the end of the beach, none on the west
+      const fastW = (a) => 105 * smooth((1.75 - Math.abs(angDiff(-0.4, a))) / 0.35) * (1 + 0.25 * n2(Math.cos(a) * 2 + 9, Math.sin(a) * 2));
+      const feat = (x, z) => { const dx = x - ISL.x, dz = z - ISL.z, a = Math.atan2(dz, dx); return [a, Math.hypot(dx, dz) - shoreR(a)]; };
+      const outcrop = (x, z) => { const v = Math.max(0, 1 - Math.abs(fbm(n4, x * 0.009, z * 0.009, 3)) / 0.11); return v * v; };
+      const ridge = (x, z) => Math.max(0, 1 - Math.abs(fbm(n3, x * 0.035 + 2, z * 0.035, 3)) * 1.6);
+      function H(x, z) {
+        const [a, s] = feat(x, z);
+        // the sea floor: a shallow shelf by the island, then down to 30 to 40 m
+        let floor = -1.2 - 5 * smooth(s / 40) - 16 * smooth((s - 30) / 110) - 14 * smooth((s - 120) / 160);
+        floor += 1.6 * fbm(n3, x * 0.012, z * 0.012, 3) * smooth(s / 60) + outcrop(x, z) * 6 * smooth((s - 50) / 80);
+        floor += 0.8 * Math.max(0, n5(x * 0.15, z * 0.15)) * (1 - smooth((s - 20) / 40)) * smooth(s / 6);   // boulders and ledges in the shallows
+        if (s > 8) return floor;
+        // the island: a gravel beach on the south side, low rocky bluffs elsewhere, snowy hills inland
+        const bk = beachK(a), inl = Math.max(0, -s), rg = ridge(x, z);
+        let land = 0.45 + inl * lerp(0.13, 0.055, bk);
+        land += (1 - bk * 0.75) * smooth((inl - 4) / 28) * (7.5 * (fbm(n1, x * 0.02, z * 0.02, 3) * 0.5 + 0.6) + 7 * rg * rg * rg);
+        land += (1 - bk) * 2.4 * smooth(inl / 3.5) * (0.6 + 0.4 * n2(x * 0.1, z * 0.1));
+        const crag = Math.max(0, n5(x * 0.05 + 3, z * 0.05)); land += crag * crag * 7 * smooth((inl - 8) / 15);
+        return lerp(land, floor, smooth((s + 3) / 11));
+      }
+      // what the ground is made of: snow and gravel on the island, sand and mud under the water, rock on the outcrops
+      function cover(x, z, h) {
+        const [a, s] = feat(x, z), bk = beachK(a);
+        // (snow lies in the hollows and higher up; the wind keeps the ridges bare)
+        const sn = h > 0.3 ? smooth((h - 1.3) / 3 + 0.6 * n4(x * 0.03, z * 0.03) + 0.3 * n1(x * 0.12, z * 0.12) - 0.9 * smooth((ridge(x, z) - 0.55) / 0.3)) * (1 - bk * smooth((3.2 - h) / 2)) : 0;
+        const rk = h < -2 ? smooth((outcrop(x, z) - 0.25) / 0.3) : 0;
+        return [sn, rk, s];
+      }
+      const conc = (x, z) => {
+        const [a, s] = feat(x, z);
+        const far = 0.38 + 0.47 * smooth(fbm(nC, x * 0.0025, z * 0.0025, 2) * 1.4 + 0.5);
+        const pol = smooth((1.1 - Math.abs(angDiff(2.6, a))) / 0.4) * (1 - smooth((s - 190) / 110));   // the open water to the west
+        return lerp(lerp(0.84, far, smooth((s - 260) / 360)), 0, pol);
+      };
+      const kind = (x, z) => {
+        const [a, s] = feat(x, z);
+        if (s < -28) return 'none';
+        const fw = fastW(a);
+        if (fw > 1 && s < fw) return 'fast';
+        return s < 30 ? 'none' : 'pack';
+      };
+      // icebergs: three by the island (one frozen into the fast ice, its low side toward the beach, so you can walk up
+      // it), and out in the endless sea about one in every other 256 m square
+      const SPAWN = [ISL.x + 4, ISL.z + shoreR(BEACH) - 9];
+      const CORE_BERGS = [
+        { x: 92, z: 40, r: 15, h: 10, kind: 'wedge', rot: 0, low: Math.atan2(SPAWN[1] - 40, SPAWN[0] - 92), seed: 7 },
+        { x: -84, z: 118, r: 14, h: 21, kind: 'dome', rot: 1.1, seed: 5 },
+        { x: 168, z: 92, r: 21, h: 13, kind: 'tab', rot: 0.4, seed: 3 },
+      ];
+      let bergs0 = null, iceF = null;
+      const bergCache = new Map();
+      const coreBergs = () => bergs0 || (bergs0 = CORE_BERGS.map((b) => Env.arctic.berg(b)));
+      function regionBergs(i, j) {
+        const k = (i + 4096) * 8192 + (j + 4096);
+        let Lb = bergCache.get(k);
+        if (Lb) return Lb;
+        Lb = [];
+        if (Math.hypot((i + 0.5) * RS, (j + 0.5) * RS) > 430) {
+          const rr = rng(hash2(i, j, seed * 3 + 333) * 4294967296);
+          if (rr() < 0.45) {
+            const kinds = ['tab', 'dome', 'tab', 'wedge'];
+            Lb.push(Env.arctic.berg({ x: (i + 0.2 + rr() * 0.6) * RS, z: (j + 0.2 + rr() * 0.6) * RS, r: 10 + rr() * 13, h: 7 + rr() * 12, kind: kinds[(rr() * 4) | 0], rot: rr() * TAU, low: rr() * TAU, seed: 11 + ((rr() * 1e5) | 0) }));
+          }
+        }
+        if (bergCache.size > 400) bergCache.clear();
+        bergCache.set(k, Lb);
+        return Lb;
+      }
+      const near = [];
+      function bergsNear(x, z) {
+        near.length = 0;
+        for (const b of coreBergs()) if (Math.abs(x - b.x) < b.bound + 40 && Math.abs(z - b.z) < b.bound + 40) near.push(b);
+        const i0 = Math.floor(x / RS), j0 = Math.floor(z / RS);
+        for (let a = -1; a <= 1; a++) for (let b2 = -1; b2 <= 1; b2++) for (const b of regionBergs(i0 + a, j0 + b2)) if (Math.abs(x - b.x) < b.bound + 40 && Math.abs(z - b.z) < b.bound + 40) near.push(b);
+        return near;
+      }
+      function bergAt(x, z) { for (const b of bergsNear(x, z)) { const cb = b.column(x, z); if (cb) return cb; } return null; }
+      // no floes where a berg is
+      const blocked = (x, z) => { for (const b of bergsNear(x, z)) if (Math.hypot(x - b.x, z - b.z) < b.r * 1.05) return true; return false; };
+      const field = () => iceF || (iceF = Env.arctic.iceField({ seed: seed * 5 + 1, kind, conc, blocked }));
+      const both = { top: 0, bot: 0, kind: 0 };
+      function ice(x, z) {
+        const b = bergAt(x, z), f = field().column(x, z);
+        if (!b) return f;
+        if (!f) return b;
+        // a floe pressed against a berg's underwater part: one column from the lowest to the highest
+        both.top = Math.max(b.top, f.top); both.bot = Math.min(b.bot, f.bot); both.kind = 9;
+        return both;
+      }
+      const onIsland = (x, z) => feat(x, z)[1] < -3;
+      const kelpBeds = (x, z) => smooth((n3(x * 0.03 + 4, z * 0.03) + 0.35) / 0.3);
+      const rocky = (x, z) => 0.25 + 0.75 * smooth((outcrop(x, z) - 0.15) / 0.3);
+      // brash collects in the leads, against the floes
+      const inLead = (x, z, h, H2, w) => !w.iceAt(x, z) && (!!w.iceAt(x + 2.6, z) || !!w.iceAt(x - 2.6, z) || !!w.iceAt(x, z + 2.6) || !!w.iceAt(x, z - 2.6));
+      return {
+        name: 'Arctic Ocean', blurb: 'A cold sea with floating ice, giant icebergs and a little rocky island. Narwhals and polar bears live here.',
+        spawn: SPAWN, sea: true, seaSpawn: [-62, 92],
+        H, fog: [26, 185], water: { color: 0x2c5c6a, deep: 0x0a2530, clarity: 0.62 }, people: 0,
+        // a pale polar sky, a low sun all day, and now and then a little snow
+        sky: { dayZ: 0x7ea2c2, dayH: 0xd3dde5 }, sunHigh: 0.42, snow: 0.3,
+        ice, tileMeshes(x0, z0, size, ctx) {
+          const out = [], me = field().mesh(x0, z0, size, Env.arctic.iceMaterial(ctx.groundTex));
+          if (me) out.push(me);
+          for (const b of coreBergs().concat(regionBergs(Math.floor((x0 + 1) / RS), Math.floor((z0 + 1) / RS))))
+            if (b.x >= x0 && b.x < x0 + size && b.z >= z0 && b.z < z0 + size) out.push(b.mesh(ctx.groundTex));
+          return out;
+        },
+        grassH: [0.05, 0.1], grassTint: [0.2, 0.3, 0.4, 0.7], flowerColors: [0xffffff],
+        surface(x, z, h) {
+          const [sn, rk] = cover(x, z, h);
+          return [0, Math.max(0, (1 - sn) * (1 - rk)), rk, sn];
+        },
+        paint(o, x, z, h) {
+          const [sn, rk, s] = cover(x, z, h);
+          if (h > -0.4) {
+            // gravel and stones, darker where wet, moss and lichen on the tundra, snow lying over it all higher up
+            o.copy(c.gravel); mix(o, c.gravelDk, (n2(x * 0.3, z * 0.3) * 0.5 + 0.5) * 0.45);
+            mix(o, c.moss, smooth(n3(x * 0.04, z * 0.04) + 0.1) * 0.45 * smooth((h - 1.2) / 2));
+            mix(o, c.wet, smooth((0.35 - h) / 0.45) * 0.7);
+            if (sn > 0) { mix(o, c.snow, sn); mix(o, c.shade, sn * (n2(x * 0.05, z * 0.05) * 0.5 + 0.5) * 0.4); }
+            const sl = Math.abs(H(x + 1.5, z) - H(x - 1.5, z)) + Math.abs(H(x, z + 1.5) - H(x, z - 1.5));
+            const rkL = Math.max(smooth((sl - 1.6) / 1.6), smooth((ridge(x, z) - 0.62) / 0.25) * smooth((h - 2) / 2) * 0.8) * (0.7 + 0.3 * n4(x * 0.2, z * 0.2));
+            if (rkL > 0) { mix(o, c.rockLt, rkL); mix(o, c.rock, rkL * (0.5 + 0.5 * n2(x * 0.3, z * 0.3))); }
+          } else {
+            // under the water: stones and gravel by the shore, then sand, then mud in the deep; rock on the outcrops
+            o.copy(c.gravelDk); mix(o, c.sand, smooth((s - 10) / 50)); mix(o, c.mud, smooth((-h - 14) / 14)); mix(o, c.deep, smooth((-h - 28) / 10) * 0.6);
+            mix(o, c.sand, (n2(x * 0.06, z * 0.06) * 0.5 + 0.5) * 0.25 * smooth((s - 10) / 50));
+            if (rk > 0) { mix(o, c.rockLt, rk * 0.8); mix(o, c.rock, rk * (0.4 + 0.4 * n5(x * 0.2, z * 0.2))); }
+          }
+        },
+        grassAt() { return 0; },
+        flowersAt() { return 0; },
+        build(w) {
+          // driftwood and a few big stones on the beach by where you arrive
+          w.scatter({ type: 'driftwood', variants: [0, 1], n: 3, sample: (r) => [SPAWN[0] - 14 + r() * 28, SPAWN[1] + 1 + r() * 4], gap: 5, minH: 0.3, maxH: 1.4, scale: [0.9, 1.2], tries: 20 });
+          w.scatter({ type: 'snowrock', variants: [0, 1, 2], n: 4, sample: (r) => [SPAWN[0] - 18 + r() * 36, SPAWN[1] - 6 - r() * 8], gap: 4, minH: 0.8, scale: [1.4, 2.6], tries: 30 });
+        },
+        rules: [
+          { type: 'snowrock', variants: [0, 1, 2], per: 7, test: onIsland, gap: 3.5, minH: 0.7, scale: [0.8, 2.6] },
+          { type: 'rock', variants: [0, 1, 2], per: 5, test: (x, z) => feat(x, z)[1] > -6, gap: 2.2, minH: -0.6, maxH: 1.3, scale: [0.4, 1.1] },
+          { type: 'driftwood', variants: [0, 1], per: 0.6, test: (x, z) => beachK(feat(x, z)[0]) > 0.4, gap: 7, minH: 0.35, maxH: 1.3, scale: [0.8, 1.2] },
+          // the sea floor
+          { type: 'rock', variants: [0, 1, 2], per: 6, minH: -9, maxH: -0.8, gap: 3, scale: [1.0, 3.2], tries: 2 },
+          { type: 'kelp', variants: [0, 1, 2], per: 26, minH: -13, maxH: -2.2, gap: 1.3, mask: kelpBeds, scale: [0.8, 1.3] },
+          { type: 'seaweed', variants: [0, 1], per: 10, minH: -16, maxH: -0.9, gap: 1.0, scale: [0.8, 1.4] },
+          { type: 'urchins', per: 4, minH: -18, maxH: -1.5, gap: 1.6, scale: [0.9, 1.3] },
+          { type: 'anemones', variants: [0, 1], per: 7, minH: -42, maxH: -5, gap: 1.6, mask: rocky, scale: [0.9, 1.6] },
+          { type: 'sponge', variants: [0, 1], per: 4, minH: -42, maxH: -7, gap: 2, mask: rocky, scale: [0.9, 1.5] },
+          { type: 'rock', variants: [0, 1, 2], per: 1.5, minH: -42, maxH: -14, gap: 6, mask: rocky, scale: [2, 4.5] },
+          // on the ice and in the leads
+          { type: 'icerubble', variants: [0, 1, 2], per: 1.4, onIce: true, gap: 9, minH: 0.1, maxH: 1, scale: [0.8, 1.6] },
+          { type: 'brash', variants: [0, 1, 2], per: 6, water: true, minH: -60, maxH: -2, gap: 4, test: inLead, tries: 4 },
+        ],
+        landmarks: { none: 1 },
+        wildlife: [
+          // polar bears on the island, out on the fast ice and on the pack; narwhal pods with calves in the open water
+          ...SP7([{ sp: 'polarbear', n: 2, kids: 1, home: [10, -10], range: 35 }, { sp: 'polarbear', n: 2, kids: 2, home: [110, -20], range: 70, ice: true }, { sp: 'polarbear', n: 1, home: [190, 40], range: 90, ice: true }]),
+          ...SP7([{ sp: 'narwhal', n: 4, kids: 2, home: [-90, 100], range: 60, water: true, depth: [2, 20] }, { sp: 'narwhal', n: 3, kids: 1, home: [-170, -10], range: 70, water: true, depth: [2, 30] }]),
+        ],
+        ambient: [...SP7([{ sp: 'polarbear', w: 2, ice: true }, { sp: 'narwhal', w: 3, water: true, kids: 1 }])],
+        foods: { fish: 5, smallfish: 4, squid: 3, berries: 1, meat: 1 },
+        walk: [],
+        // (for tests: the shapes behind the world)
+        _dbg: { feat, fastW, conc, kind, bergsNear, field: () => field() },
+      };
+    },
   };
-  const SEEDS = { land: 11, forest: 23, swamp: 37, jungle: 41, meadow: 53, sky: 67, snow: 79, savanna: 97 };
-  const META = {}; for (const id of WORLD_ORDER) { const d = DEFS[id](SEEDS[id]); META[id] = { name: d.name, blurb: d.blurb, needsFly: !!d.needsFly }; }
+  const SEEDS = { land: 11, forest: 23, swamp: 37, jungle: 41, meadow: 53, sky: 67, snow: 79, savanna: 97, arctic: 113 };
+  // (round 14: sea is set for a world that is mostly sea, the Arctic Ocean)
+  const META = {}; for (const id of WORLD_ORDER) { const d = DEFS[id](SEEDS[id]); META[id] = { name: d.name, blurb: d.blurb, needsFly: !!d.needsFly, sea: !!d.sea }; }
   const HOUSE_COLORS = ['white', 'yellow', 'blue', 'brick', 'gray'];
   const SHOP_NAMES = { general: 'general store', bakery: 'bakery', cafe: 'cafe', post: 'post office', library: 'library', icecream: 'ice cream shop', diner: 'diner', hardware: 'hardware store', flower: 'flower shop', toy: 'toy store', pet: 'pet store', books: 'bookstore', vet: 'vet', grocery: 'grocery store', clothes: 'clothes store',
     pizza: 'pizza place', pharmacy: 'pharmacy', music: 'music store', shoes: 'shoe store', barber: 'barber shop', deli: 'deli' };
@@ -1004,9 +1188,10 @@ const World = (() => {
     const m = new THREE.MeshLambertMaterial({ vertexColors: true });
     m.onBeforeCompile = (sh) => {
       Object.assign(sh.uniforms, { tGrass: { value: T.grass }, tSoil: { value: T.soil }, tRock: { value: T.rock }, tSnow: { value: T.snow }, tMacro: { value: T.macro } });
+      sh.uniforms.uCaust = Env.underwater ? Env.underwater.caust : { value: 0 }; sh.uniforms.uCaustT = Env.waterUniforms.time;   // (round 14)
       sh.vertexShader = 'attribute vec4 surf;\nvarying vec3 vGW;\nvarying vec3 vGN;\nvarying vec4 vSurf;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
         vGW = (modelMatrix * vec4(transformed, 1.0)).xyz; vGN = normalize(mat3(modelMatrix) * objectNormal); vSurf = surf;`);
-      sh.fragmentShader = 'varying vec3 vGW;\nvarying vec3 vGN;\nvarying vec4 vSurf;\nuniform sampler2D tGrass, tSoil, tRock, tSnow, tMacro;\n' + sh.fragmentShader.replace('#include <color_fragment>', `
+      sh.fragmentShader = 'varying vec3 vGW;\nvarying vec3 vGN;\nvarying vec4 vSurf;\nuniform sampler2D tGrass, tSoil, tRock, tSnow, tMacro;\nuniform float uCaust, uCaustT;\n' + sh.fragmentShader.replace('#include <color_fragment>', `
         vec3 vc = vColor;
         vec3 gn = normalize(vGN);
         // steep ground shows rock whatever it is painted
@@ -1028,7 +1213,16 @@ const World = (() => {
         // real grass is deeper and less yellow than the painted colors read under the bright sun
         // (green grass only: golden savanna grass keeps its color)
         vec3 grade = mix(vec3(0.86), vec3(0.5, 0.6, 0.42), wt.x * leafy);
-        diffuseColor.rgb *= vc * grade * det * patchy;`);
+        diffuseColor.rgb *= vc * grade * det * patchy;
+        // round 14: caustics on the ground under the water, only while the camera is under it (uCaust is 0 otherwise)
+        if (uCaust > 0.0 && vGW.y < -0.1) {
+          vec2 cq = vGW.xz * 0.62;
+          vec2 ca = cq + vec2(sin(cq.y * 1.3 + uCaustT * 0.7), cos(cq.x * 1.1 - uCaustT * 0.6)) * 0.6;
+          vec2 cb = cq * 1.7 + vec2(cos(cq.y * 0.9 - uCaustT * 0.9), sin(cq.x * 1.4 + uCaustT * 0.8)) * 0.7;
+          float c1 = abs(sin(ca.x * 2.1) + sin(ca.y * 2.3)), c2 = abs(sin(cb.x * 1.9) + sin(cb.y * 2.2));
+          float cs = pow(max(0.0, 1.0 - c1 * 0.6), 5.0) + pow(max(0.0, 1.0 - c2 * 0.6), 5.0) * 0.6;
+          diffuseColor.rgb *= 1.0 + cs * uCaust * 1.6 * exp(vGW.y / 9.0) * smoothstep(-0.1, -0.6, vGW.y);
+        }`);
     };
     return m;
   }
@@ -1175,10 +1369,21 @@ const World = (() => {
     }
     w.roofY = roofY;
     const STEP_UP = 0.45;
+    // round 14: sea ice (the Arctic Ocean): def.ice(x, z) is the ice column there ({ top, bot }) or null. Its top is
+    // ground for anything at most ICE_STEP below it that is not under it (an animal swimming at the surface climbs out
+    // onto a floe; a diver under a floe stays under it). w.ceilAt(x, z, y) is the underside of the ice above height y,
+    // or Infinity where there is open water above (at or below y when y is inside the ice).
+    const ICE_STEP = 1.8;
+    if (def.ice) {
+      w.iceAt = (x, z) => (x > ROOM_X - 20 ? null : def.ice(x, z));
+      w.ceilAt = (x, z, y) => { const c = x > ROOM_X - 20 ? null : def.ice(x, z); return c && y < c.top ? c.bot : Infinity; };
+      w.ICE_STEP = ICE_STEP;
+    }
     // the ground under (x, z) for something at height y: the terrain, or a roof it is on (or just above)
     w.groundAt = (x, z, y) => {
       let h = H(x, z);
       if (y === undefined || x > ROOM_X - 20) return h;
+      if (def.ice) { const c = def.ice(x, z); if (c && c.top > h && c.top <= y + ICE_STEP && y >= c.bot - 0.3) h = c.top; }
       const a = w.grid.get(gkey(Math.floor(x / 8), Math.floor(z / 8)));
       if (a) for (const c of a) {
         if (!c.roof || c.off) continue;
@@ -2138,6 +2343,7 @@ const World = (() => {
 
     /* ---- tiles ---- */
     const tkey = (tx, tz) => (tx + 1048576) * 2097152 + (tz + 1048576);
+    const tileCtx = def.tileMeshes ? { groundTex: makeGroundTex() } : null;
     function terrainMesh(t) {
       const N = TSEG, S = TILE / N, W = N + 3, x0 = t.x0, z0 = t.z0;
       const hs = new Float32Array(W * W);
@@ -2229,7 +2435,8 @@ const World = (() => {
         for (let k = 0; k < tries && placed < n; k++) {
           // draw every random number first so one failed test never changes the rest of the tile
           const x = t.x0 + rr() * TILE, z = t.z0 + rr() * TILE, vi = rr(), sr = rr(), rot = rr() * TAU, m = rr();
-          const h = H(x, z);
+          // (round 14: onIce: on the sea ice, at its top)
+          const h = o.onIce ? ((w.iceAt && w.iceAt(x, z)) || { top: -1000 }).top : H(x, z);
           if (h < minH || h > maxH) continue;
           if (o.mask && m > o.mask(x, z, h)) continue;
           if (!o.water && Math.hypot(x - spawn[0], z - spawn[1]) < 7) continue;
@@ -2245,6 +2452,8 @@ const World = (() => {
       const t = newOwner('t' + k); t.tx = tx; t.tz = tz; t.x0 = tx * TILE; t.z0 = tz * TILE;
       if (isl) { for (const I of islandsOf(tx, tz)) { const m = islandMesh(I); out.add(m); t.meshes.push(m); } }
       else { const m = terrainMesh(t); out.add(m); t.meshes.push(m); }
+      // round 14: a world's own meshes for the tile (the Arctic Ocean's floes and icebergs)
+      if (def.tileMeshes) for (const m of def.tileMeshes(t.x0, t.z0, TILE, tileCtx)) { m.userData.cull = 1; out.add(m); t.meshes.push(m); }
       genPlants(t);
       finishOwner(t);
       w.tiles.set(k, t);
@@ -2624,6 +2833,7 @@ const World = (() => {
         const x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
         const h = H(x, z);
         if (h < -100) continue;
+        if (wantWater && w.iceAt && w.iceAt(x, z)) continue;   // (round 14: open water, not under the ice)
         if (wantWater ? (!!def.water && h < WATER - 0.55) : w.dry(h)) {
           if (!wantWater) { tmpRing.set(x, 0, z); if (w.collide(tmpRing, 0.3)) continue; }
           return { x, z, h };
@@ -2632,6 +2842,19 @@ const World = (() => {
       return null;
     };
     const tmpRing = new THREE.Vector3();
+    // round 14: a spot on the sea ice (not on top of an iceberg) inside a ring around (cx, cz), for polar bears out on
+    // the ice and for an animal that fell in the water and can't swim
+    w.icePoint = (cx, cz, r0, r1, rnd = Math.random) => {
+      if (!w.iceAt) return null;
+      for (let k = 0; k < 24; k++) {
+        const a = rnd() * TAU, d = r0 + (r1 - r0) * Math.sqrt(rnd()), x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
+        const c = w.iceAt(x, z);
+        if (!c || c.top < WATER + 0.05 || c.top > WATER + 1.5 || H(x, z) > c.top) continue;
+        tmpRing.set(x, 0, z); if (w.collide(tmpRing, 0.4)) continue;
+        return { x, z, h: c.top };
+      }
+      return null;
+    };
     // food in town and the city: bread by benches and bakeries, hot dogs by the food carts and diners, pet food outside
     // homes and the pet store (and only there)
     const URBAN = {
