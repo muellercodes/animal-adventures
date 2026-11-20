@@ -131,11 +131,14 @@ function followCamera(dt) {
     // round 14: while you dive the camera stays under the surface and under the ice (never looking down at the animal
     // from above the water line) and above the sea floor, coming in closer where there is no room for it
     const w = G.world, tx = Cam.target.x, ty0 = Cam.target.y, tz = Cam.target.z;
-    const hiAt = (cx, cz, gh) => Math.min(WATER - 0.22, (w.ceilAt ? w.ceilAt(cx, cz, gh) : Infinity) - 0.22);
+    // (ice whose top is below the animal, an iceberg's sunken shoulder, is under the camera like the sea floor, not over
+    // it; sunk(cx, cz) is that top, or -Infinity)
+    const ry = Dive.reach(b), sunk = (cx, cz) => { const q = w.iceAt ? w.iceAt(cx, cz) : null; return q && q.top <= ry ? q.top : -Infinity; };
+    const hiAt = (cx, cz, gh) => Math.min(WATER - 0.22, (w.ceilAt && sunk(cx, cz) === -Infinity ? w.ceilAt(cx, cz, gh) : Infinity) - 0.22);
     // (under the ice on the way to the animal too, so the edge of a floe it swam under doesn't block the view)
     const hiLine = (cx, cz, gh) => !w.ceilAt ? hiAt(cx, cz, gh) : Math.min(hiAt(cx, cz, gh), ...[0.12, 0.3, 0.55, 0.8].map((j) => { const qx = tx + (cx - tx) * j, qz = tz + (cz - tz) * j; return hiAt(qx, qz, H(qx, qz)); }));
     for (const k of [1, 0.8, 0.6, 0.45, 0.3, 0.18, 0.08]) {
-      const cx = tx + (x - tx) * k, cz = tz + (z - tz) * k, cy = ty0 + (y - ty0) * k, gh = H(cx, cz), lo = gh + 0.18, hi = hiLine(cx, cz, gh);
+      const cx = tx + (x - tx) * k, cz = tz + (z - tz) * k, cy = ty0 + (y - ty0) * k, gh = H(cx, cz), lo = Math.max(gh, sunk(cx, cz)) + 0.18, hi = hiLine(cx, cz, gh);
       if (hi >= lo || k === 0.08) { x = cx; z = cz; y = hi >= lo ? clamp(cy, lo, hi) : Math.min(cy, hi); break; }
     }
     const k = camBlock(x, y, z, dist);

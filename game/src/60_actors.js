@@ -101,18 +101,32 @@ const Dive = {
   // how fast it goes up and down (and the most it swims), m/s
   vmax(b) { return clamp((SPECIES[b.sp].swimSpeed || 2) * 0.55, 1, 2.6) * (0.6 + 0.4 * b.k); },
   swimMax(b) { return (SPECIES[b.sp].swimSpeed || 2) * (0.6 + 0.4 * b.k); },
-  // the bottom of the ice over (x, z), asked from the sea floor up (so ice reaching down past a diver counts too)
-  ice(x, z) { const w = G.world; return w.ceilAt ? w.ceilAt(x, z, w.H(x, z)) : Infinity; },
-  // the lowest its root can go at (x, z): above the sea floor under its middle, nose and tail
+  // the bottom of the ice over (x, z), asked from the sea floor up (so ice reaching down past a diver counts too).
+  // Given y (a diver's height, see reach) and a world with w.iceAt: ice whose top is no higher than y is not over it
+  // but under it, like the sunken shoulder of an iceberg it swims above (see under); other ice there is over it.
+  ice(x, z, y) {
+    const w = G.world;
+    if (y === undefined || !w.iceAt) return w.ceilAt ? w.ceilAt(x, z, w.H(x, z)) : Infinity;
+    const q = w.iceAt(x, z); return !q || q.top <= y ? Infinity : q.bot;
+  },
+  // what is under a diver at height y at (x, z): the sea floor, or the top of sunken ice under it
+  under(x, z, y) {
+    const w = G.world, h = w.H(x, z); if (y === undefined || !w.iceAt) return h;
+    const q = w.iceAt(x, z); return q && q.top <= y && q.top > h ? q.top : h;
+  },
+  // the height that sorts ice into under and over for a diver: a little step above its root, so it can rise onto a
+  // shoulder just above it as it does onto a rise in the sea floor
+  reach(b) { return b.pos.y + Math.max(0.2, b.m.height * 0.4); },
+  // the lowest its root can go at (x, z): above the sea floor (or sunken ice) under its middle, nose and tail
   floor(b, x, z) {
-    const H = G.world.H, L = b.m.length * 0.5, fx = Math.sin(b.yaw) * L, fz = Math.cos(b.yaw) * L;
-    return Math.max(H(x, z), H(x + fx, z + fz), H(x - fx, z - fz)) + this.clr(b);
+    const L = b.m.length * 0.5, fx = Math.sin(b.yaw) * L, fz = Math.cos(b.yaw) * L, y = this.reach(b);
+    return Math.max(this.under(x, z, y), this.under(x + fx, z + fz, y), this.under(x - fx, z - fz, y)) + this.clr(b);
   },
   // the lowest ice over its middle, nose and tail (Infinity: open water)
   ceil(b, x, z) {
     if (!G.world.ceilAt) return Infinity;
-    const L = b.m.length * 0.5, fx = Math.sin(b.yaw) * L, fz = Math.cos(b.yaw) * L;
-    return Math.min(this.ice(x, z), this.ice(x + fx, z + fz), this.ice(x - fx, z - fz));
+    const L = b.m.length * 0.5, fx = Math.sin(b.yaw) * L, fz = Math.cos(b.yaw) * L, y = this.reach(b);
+    return Math.min(this.ice(x, z, y), this.ice(x + fx, z + fz, y), this.ice(x - fx, z - fz, y));
   },
   // the highest its root can go at (x, z): just under the ice, or the surface (where it swims) in open water
   top(b, x, z) { return Math.min(WATER - b.m.float, this.ceil(b, x, z) - b.m.height - this.clr(b)); },
@@ -286,7 +300,10 @@ function moveBody(b, dt, c) {
       // round 14: under the water: it swims the way it faces, Up and Down change depth smoothly, never through the sea
       // floor or up through ice. Up to the surface in open water it swims again (and blows); under ice it stays down.
       if (!hasGround) { b.mode = 'air'; break; }
-      const fl = Dive.floor(b, p.x, p.z), lid = Dive.ceil(b, p.x, p.z) - m.height - Dive.clr(b), open = lid >= sY, top = Math.min(sY, lid);
+      let fl = Dive.floor(b, p.x, p.z), lid = Dive.ceil(b, p.x, p.z) - m.height - Dive.clr(b);
+      // (its nose or tail turned into the side of an iceberg: that doesn't pin it, only its middle counts then)
+      if (lid < fl) { const ry = Dive.reach(b); fl = Dive.under(p.x, p.z, ry) + Dive.clr(b); lid = Dive.ice(p.x, p.z, ry) - m.height - Dive.clr(b); }
+      const open = lid >= sY, top = Math.min(sY, lid);
       const vm = Dive.vmax(b) * (c.fast ? 1.4 : 1);
       // (steered up over the floor or down under the ice ahead, to just the height where it fits: that wins over Up
       // and Down for a moment)
@@ -401,8 +418,9 @@ function poseBody(b, dt, animate) {
     pt = -clamp(Math.atan2(b.vy, Math.max(b.speed, 0.7)), -0.7, 0.7);
     const L = b.m.length * 0.5, fx = Math.sin(b.yaw) * L, fz = Math.cos(b.yaw) * L, p = b.pos;
     const nx = p.x + fx, nz = p.z + fz, tx = p.x - fx, tz = p.z - fz, top = p.y + b.m.height, as = (v) => Math.asin(clamp(v / L, 0, 1));
-    hi = Math.min(as(p.y - H(nx, nz) - 0.05), as(Dive.ice(tx, tz) - top - 0.05));
-    lo = -Math.min(as(Dive.ice(nx, nz) - top - 0.05), as(p.y - H(tx, tz) - 0.05));
+    const ry = Dive.reach(b);
+    hi = Math.min(as(p.y - Dive.under(nx, nz, ry) - 0.05), as(Dive.ice(tx, tz, ry) - top - 0.05));
+    lo = -Math.min(as(Dive.ice(nx, nz, ry) - top - 0.05), as(p.y - Dive.under(tx, tz, ry) - 0.05));
     pt = clamp(pt, lo, hi);
   }
   b.pitch = b.mode === 'climb' || b.wasClimb ? pt : damp(b.pitch, pt, b.mode === 'dive' ? 3.5 : 6, dt);
