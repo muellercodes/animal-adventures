@@ -796,6 +796,26 @@ blue jay (`VOXEL=0.001`) 6.0k, 162 KB (216 KB); hummingbird (`VOXEL=0.00031`) 5.
 the boy's coat (`snowyowlm`) 41 KB. Texture memory with mipmaps: about 10 to 11.4 MB each on a computer and 6.7 to 8 MB
 on a phone (2.8 MB more for a boy's or girl's own coat, only when one is on screen), the same as the chickadee.
 
+Round 16 birds (the steps above; each about 5 to 8 minutes of Blender on the shared machine). Texture memory with
+mipmaps, on a computer and on a phone (color and normal maps capped at 512); the maps decode the first time a species
+is used:
+- Flamingo (`VOXEL=0.004 TRIS=6200 TEX=768`): 6.2k body triangles; 768 color and normal maps, 384 chick maps and fur
+  map, 512 x 256 feather atlas: 52 KB mesh + 21 + 37 + 6 + 10 + 6 + 18 + 1 + 7 KB, 164 KB of files, about 219 KB in the
+  page. 9.7 MB / 6.4 MB.
+- Emperor penguin (`VOXEL=0.004 TRIS=5600 TEX=768`): 5.6k triangles; 768 color and normal maps, 384 chick maps and fur
+  map, no feather atlas (no feather blades): 43 KB + 16 + 15 + 7 + 6 + 4 KB, 95 KB of files, about 127 KB in the page.
+  8.2 MB / 4.9 MB.
+- Atlantic puffin (`VOXEL=0.0011 TRIS=6000 TEX=768`): 6.0k body triangles; the flamingo's set of maps: 48 KB + 23 + 25
+  + 3 + 8 + 5 + 12 + 1 + 6 KB, 137 KB of files, about 182 KB in the page. 9.7 MB / 6.4 MB.
+- Ostrich (`VOXEL=0.007 TRIS=6200 TEX=1024`): 6.2k body triangles; 1024 color and normal maps, 384 chick maps, 512 fur
+  map, 512 x 256 feather atlas: 48 KB + 32 + 65 + 6 + 12 + 5 + 18 + 1 + 8 KB, 201 KB of files, about 268 KB in the page.
+  15.0 MB / 7.0 MB. The hen (`ostrichf`, her color map and atlas on his mesh): 54 KB of files (about 72 KB in the
+  page), 6.7 MB / 2.7 MB more when she is on screen.
+- Peafowl (`VOXEL=0.003 TRIS=6000 TEX=768`): 6.0k body triangles plus the train's 138 eyespot feather blades; the
+  flamingo's set of maps (the atlas drawn at 1024 x 512 and saved at 512 x 256: saved at 1024 it cost a phone 4 MB
+  more): 49 KB + 46 + 41 + 6 + 10 + 7 + 23 + 1 + 8 KB, 198 KB of files, about 264 KB in the page. 9.7 MB / 6.4 MB. The
+  peahen (`peafowlf`): 40 KB of files (about 53 KB in the page), 4.3 MB / 2.7 MB more.
+
 ## More cats and a hamster (round 7: `cat.py` as a template, `coat.py`, `hamster.py`)
 
 Five more cats (`blackcat`, `orangecat`, `calico`, `siamese`, `whitecat`) and a Syrian hamster. The tabby got its fixes
@@ -1687,3 +1707,74 @@ toucan (0.88 times the macaw, `parrot.py`) and the snowy owl (1.12 times the gre
 - `color-baby.webp` from `export.py`'s generic `paint_baby` path is not used by birds (their baby maps come from
   `bird.export_extra`); delete it after an export.
 - Budget: see the Budget section.
+
+## Round 16: big and water birds (`flamingo.py`, `penguin.py`, `puffin.py`, `ostrich.py`, `peafowl.py`)
+
+Five birds on the shared bird parts (`bird.py`), laid out like `swan.py`: an SDF sculpt around the game's skeleton
+(`SPEC.<id>` in 40_animals.js, exported with `export_rig.py`), the wing arm flat out to the side under the game's
+feather blades, the same steps as the other birds. The two girls with their own colors are coat variants on the boy's
+mesh (`coat.py`), as the hen and the lioness.
+
+```bash
+python3 tools/blender/export_rig.py flamingo     # and penguin, puffin, ostrich, peafowl
+VOXEL=0.004 TRIS=6200 TEX=768 BLENDER_PY=... python3 tools/blender/make.py flamingo sculpt export
+VOXEL=0.004 TRIS=5600 TEX=768 BLENDER_PY=... python3 tools/blender/make.py penguin sculpt export
+VOXEL=0.0011 TRIS=6000 TEX=768 BLENDER_PY=... python3 tools/blender/make.py puffin sculpt export
+VOXEL=0.007 TRIS=6200 TEX=1024 BLENDER_PY=... python3 tools/blender/make.py ostrich sculpt export
+BLENDER_PY=... python3 tools/blender/coat.py ostrichf
+VOXEL=0.003 TRIS=6000 TEX=768 BLENDER_PY=... python3 tools/blender/make.py peafowl sculpt export
+BLENDER_PY=... python3 tools/blender/coat.py peafowlf
+```
+
+(export.py also writes a `<id>-color-baby.webp` that nothing reads for these five; delete it.) A new feather atlas
+cell kind in `bird.py`, `'eye'` (`cell.eye`: the eyespot's rings, its fringe of loose barbs, a bare shaft below), is
+used only by the peacock's train and crest; the other kinds draw as before.
+
+- The American flamingo (about 1.4 m): an egg shaped body with the folded wing over its upper side and the long pink
+  tertials over the tail, a thin S neck (a `sweep()` as the swan's), a small head and the thick bill bent down at its
+  middle (pale pink, black tip), long bare legs with the ankle knob halfway down, webbed feet. Vivid pink-orange (a
+  first pass read pale salmon in the game light: saturate it), black flight feathers in the atlas. The chick: gray
+  down, a straight dark bill, thick gray legs. In the game: rests and sleeps on one leg after standing still a while
+  (`anim.oneLeg`, the other leg folded up under the belly), sweeps its upside-down bill side to side when it eats
+  (`eatSweep`, `eatElev`), the head tucked onto the back asleep (`sleepNeck`, fitted as the swan's). The girl is the boy
+  at 0.88 (`SEX_LOOK`). A flock wades in the Swamp's shallows (`wade: true` in its wildlife entry: targets where the
+  water is 3 to 55 cm deep) and six live in the City Zoo's flamingo pen round a shallow pool.
+- The emperor penguin (about 1.1 m): built upright like the owl. A heavy pear shaped trunk (a vertical loft, `vl()`),
+  a small round head, a long slender bill with an orange plate below, short legs inside the belly, big black feet with
+  claws. The flippers are the wing arm, sculpted as stiff paddles (`arm()`), and the game hangs no feather blades on
+  them (`sets: []`). Black back and head, white belly, the yellow-orange ear patch joined to the pale yellow of the
+  upper breast. The chick: silver-gray down, a black head with a white face mask. In the game: swims level with the
+  flippers beating and the feet trailing (`anim.dive`, `flat`), slides on its belly on snow and ice when it runs
+  (`anim.slide`; `onSnow()` and `st.slide` in 60_actors.js, and it goes faster that way). Six live in the City Zoo's
+  penguin exhibit: snowy ground, snow rocks and a cold pool 2.4 m deep to dive in.
+- The Atlantic puffin (about 30 cm): built level like the chickadee (`standPitch` stands it up). A chunky body, a big
+  round head, the tall triangular summer bill as a loft (`BILL_KEYS`): a blue-gray base plate edged yellow, the
+  red-orange outer half with yellow grooves, the yellow rosette at the gape and the dark plates round the eye. Black
+  back, crown and collar, a pale gray face, white below, orange legs. The puffling: dark gray fluff. In the game: flies,
+  swims and dives (wings half open and beating under the water); a colony on the Arctic island and a few out on the
+  water.
+- The common ostrich (about 2.4 m to the top of the head): a big round body of loose black feathers with the folded
+  wing over its side, white plumes at the wing and tail (feather blades, the atlas's plume cells), a long bare neck
+  darker at the base, a small flat head with big eyes and a flat bill, huge bare thighs, long scaly legs and two toes on
+  each foot (a big one with a thick claw, a small outer one). Texture 1024 for the big bird. The girl (`ostrichf.py`,
+  `"look": "hen"`) is gray-brown with dull grayish plumes and a grayer neck, 0.9 of his size; her chicks use his baby
+  maps (buff down with dark stripes). In the game: runs fast (`run` 13) with the wings held half out, not beating
+  (`anim.runWings`); no jumping; groups in the Savanna.
+- The Indian peafowl: a long body carried level, a slender upright neck, a small head with a short stout bill, long
+  legs with a spur. The rig was first made too tall in the leg: `peafowl.py` ends with a warp of heights (`_YO` to
+  `_YN`) that moves the first sculpt's parts onto the lowered rig, so the shapes stayed and only the proportions
+  changed (the `_o` functions are the first ones, in old heights). The train, crest and tail are the game's feather
+  blades: 25 train rays (`trainC`, `tr1L`..`tr12L` and their R twins, bones of their own on the hips) carrying eyespot
+  feathers (atlas cell 5, `'eye'`), a fan of tufted crest shafts (cell 6). The train rays are the species' horn bones,
+  so a chick and the peahen have none (`SEX_LOOK` `horns: 0`). At rest the train is a low ridge (the middle rays slope
+  less than the outer ones, `TR.roof`: a flat sheet read as a line from the side) and keeps trailing on the ground when
+  he tips forward to eat. His display (`spec.extend`): a happy moment (a call, being petted), or now and then when he
+  stands about, swings each ray up into a half circle fan, which shivers when it is fully up; not while he eats. His
+  menu picture shows the fan up (`spec.icon` calls `R.trainFan`). The crest's bare shafts are too thin to see, so the
+  crest feathers are short (a longer crest floated over the head). Iridescent
+  blue neck and breast, white face stripes, a bronze-green scaled back, barred buff coverts, rufous primaries. The
+  peahen (`peafowlf.py`, `"look": "peahen"`): brown-gray with faint barring, a metallic green lower neck, a white
+  throat, a smaller crest, no train, 0.9 of his size; her chicks use his baby maps (tan down). In the game: in the
+  City Zoo, the Safari Park and by the farm on the Land.
+- Budget: see the Budget section.
+

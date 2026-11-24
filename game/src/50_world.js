@@ -72,7 +72,9 @@ const World = (() => {
     lions: 'Lions', tigers: 'Tigers', cheetahs: 'Cheetahs', camels: 'Camels', leopards: 'Leopards', ocelots: 'Ocelots', komodo: 'Komodo dragons', pandas: 'Giant pandas',
     reptiles: 'Lizards', cows: 'Cows',
     // round 15: the zebras' pen in Safari Park (in the City Zoo they share the giraffes' paddock)
-    zebras: 'Zebras' };
+    zebras: 'Zebras',
+    // round 16: the City Zoo's flamingos and penguins
+    flamingos: 'Flamingos', penguins: 'Penguins' };
   const SIDE_ROT = { n: 0, s: Math.PI, e: Math.PI / 2, w: -Math.PI / 2 };
   function buildZoo(w, Z) {
     const H = w.H, hw = Z.hw, hd = Z.hd, at = (lx, lz) => [Z.x + lx, Z.z + lz];
@@ -108,7 +110,7 @@ const World = (() => {
       if (p.acacia) w.scatter({ type: 'acacia', variants: [0, 1, 2], n: p.acacia, tries: p.acacia * 12, free, sample: inPen(6), test: dry, gap: 12, scale: [0.9, 1.15] });
       if (p.bamboo) w.scatter({ type: 'bamboo', variants: [0, 1], n: p.bamboo, tries: p.bamboo * 12, free, sample: inPen(3), test: dry, gap: 5, scale: [0.9, 1.1] });
       if (p.palms) w.scatter({ type: 'datepalm', variants: [0, 1], n: p.palms, tries: p.palms * 12, free, sample: inPen(4), test: dry, gap: 8, scale: [0.9, 1.1] });
-      if (p.rocks) w.scatter({ type: p.id === 'polar' ? 'snowrock' : 'rock', variants: [0, 1, 2], n: p.rocks, free, sample: inPen(2), test: dry, gap: 3, scale: [1.2, 2.4] });
+      if (p.rocks) w.scatter({ type: p.id === 'polar' || p.snowy ? 'snowrock' : 'rock', variants: [0, 1, 2], n: p.rocks, free, sample: inPen(2), test: dry, gap: 3, scale: [1.2, 2.4] });
       if (p.jungle) {
         w.scatter({ type: 'palm', variants: [0, 1], n: p.jungle, free, sample: inPen(5), test: dry, gap: 9, scale: [1.1, 1.5] });
         w.scatter({ type: 'bigleaf', n: Math.round(p.jungle * 0.8), free, sample: inPen(3), test: dry, gap: 4, scale: [1.2, 1.8] });
@@ -330,6 +332,15 @@ const World = (() => {
             { sp: 'hummingbird', n: 3, home: [-20, -60], range: 22 }, { sp: 'hummingbird', n: 2, home: [226, -10], range: 24 }]),
           // round 11: cows in their pasture
           ...SP7([{ sp: 'cow', n: 3, kids: 1, pen: COWPEN }]),
+          // round 16: peafowl roaming the paths of the City Zoo and Safari Park, as they do in real zoos, and by the farm
+          ...SP7((() => {
+            const C = Plan.ZOOS.find((Z) => Z.id === 'cityzoo'), F = Plan.ZOOS.find((Z) => Z.id === 'safari');
+            return [
+              ...(C ? [{ sp: 'peafowl', n: 3, kids: 1, home: [C.x - 48, C.z + 10], range: 14 }, { sp: 'peafowl', n: 2, home: [C.x + 10, C.z + 36], range: 12 }] : []),
+              ...(F ? [{ sp: 'peafowl', n: 3, home: [F.x - 20, F.z - 26], range: 18 }] : []),
+              { sp: 'peafowl', n: 3, kids: 2, home: [BARN.x - 14, BARN.z - 14], range: 16 },
+            ];
+          })()),
           // round 10: the zoo animals in their pens
           ...ZOO_ANIMALS(),
         ],
@@ -469,6 +480,8 @@ const World = (() => {
           { sp: 'raccoon', n: 2, home: [20, 50], range: 40 },
           // round 7: crocodiles in the swamp water
           ...SP7([{ sp: 'crocodile', n: 3, kids: 1, home: [30, -30], range: 45, water: true }]),
+          // round 16: a flock of flamingos wading in the shallows round the pools (wade: they keep to shallow water)
+          ...SP7([{ sp: 'flamingo', n: 8, kids: 2, home: [-50, -60], range: 30, wade: true }]),
         ],
         ambient: [{ sp: 'frog', w: 4 }, { sp: 'turtle', w: 3, water: true }, { sp: 'snake', w: 2 }, { sp: 'duck', w: 2, water: true, kids: 3 }, { sp: 'otter', w: 1, water: true }, { sp: 'raccoon', w: 1 }],
         foods: { worm: 4, grass: 2, berries: 1, acorn: 1, smallfish: 4, fish: 3, bugs: 4, mushroom: 2, twigs: 1 },
@@ -857,8 +870,13 @@ const World = (() => {
             { sp: 'zebra', n: 6, kids: 2, home: [6, 62], range: 40 },
             { sp: 'zebra', n: 4, kids: 1, home: [HOLE.x - 4, HOLE.z + HOLE.r + 7], range: 14 },
           ]),
+          // round 16: ostriches in groups on the open grass, a family with chicks and a few more near the watering hole
+          ...SP7([
+            { sp: 'ostrich', n: 5, kids: 3, home: [70, 70], range: 45 },
+            { sp: 'ostrich', n: 3, home: [HOLE.x + 28, HOLE.z + 24], range: 25 },
+          ]),
         ],
-        ambient: [{ sp: 'giraffe', w: 2 }, { sp: 'rhino', w: 1 }, ...SP7([{ sp: 'lion', w: 1, kids: 1 }, { sp: 'cheetah', w: 1 }, { sp: 'zebra', w: 2, kids: 1 }])],
+        ambient: [{ sp: 'giraffe', w: 2 }, { sp: 'rhino', w: 1 }, ...SP7([{ sp: 'lion', w: 1, kids: 1 }, { sp: 'cheetah', w: 1 }, { sp: 'zebra', w: 2, kids: 1 }, { sp: 'ostrich', w: 1, kids: 1 }])],
         foods: { grass: 4, seeds: 3, bugs: 3, meat: 2, twigs: 2, berries: 1, watermelon: 1, dates: 1, hay: 1 },
         walk: [],
       };
@@ -1038,8 +1056,10 @@ const World = (() => {
           ...SP7([{ sp: 'narwhal', n: 4, kids: 2, home: [-90, 100], range: 60, water: true, depth: [2, 20] }, { sp: 'narwhal', n: 3, kids: 1, home: [-170, -10], range: 70, water: true, depth: [2, 30] }]),
           // round 16: a pair of snowy owls on the island
           ...SP7([{ sp: 'snowyowl', n: 2, home: [-5, 5], range: 25 }]),
+          // round 16: a puffin colony on the island's west bluffs (pufflings among them), and more out on the water below
+          ...SP7([{ sp: 'puffin', n: 8, kids: 2, home: [-30, -10], range: 12 }, { sp: 'puffin', n: 5, home: [-64, -8], range: 16, water: true }]),
         ],
-        ambient: [...SP7([{ sp: 'polarbear', w: 2, ice: true }, { sp: 'narwhal', w: 3, water: true, kids: 1 }])],
+        ambient: [...SP7([{ sp: 'polarbear', w: 2, ice: true }, { sp: 'narwhal', w: 3, water: true, kids: 1 }, { sp: 'puffin', w: 2, water: true }])],
         foods: { fish: 5, smallfish: 4, squid: 3, berries: 1, meat: 1 },
         walk: [],
         // (for tests: the shapes behind the world)

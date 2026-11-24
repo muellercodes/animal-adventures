@@ -506,6 +506,35 @@ def feather_atlas(cells, W, H, seed=0):
         X, Y = xc[m], yy[m]
         n = len(S)
         hs = _hash(np.floor(Y).astype(np.int64), np.full(n, ci, np.int64), np.zeros(n, np.int64), seed)
+        if cell.kind == 'eye':
+            # round 16 (peacock): an eyespot feather: a bare shaft with loose barbs that thicken toward the tip, where an
+            # oval eye of rings sits (cell.eye: t (its middle along the feather), rt, rs (its radii along and across),
+            # rings [(r, color), ...] from the middle out, fringe (how full the loose barbs are), bare (the shaft is
+            # bare below this t: a crest feather))
+            o = getattr(cell, 'eye', {})
+            t0, rt, rs = o.get('t', 0.84), o.get('rt', 0.12), o.get('rs', 0.7)
+            r = np.sqrt((S / rs) ** 2 + ((T - t0) / rt) ** 2)
+            col = cell.color(S, T, np.sign(S))
+            ringc = col.copy()
+            prev = 0.0
+            for rr, rc in o.get('rings', []):
+                ringc = np.where((r >= prev)[:, None] & (r < rr)[:, None], rc, ringc)
+                prev = rr
+            inside = r < 1.0
+            col = np.where(inside[:, None], ringc, col)
+            # the loose barbs: strands leaving the shaft toward the tip, with gaps between them
+            bq = (Y - np.abs(X - cw * 0.5) * 1.6) / 2.6
+            strand = sstep(0.62, 0.35, np.abs(bq - np.floor(bq) - 0.5) * 2)
+            wv = cell.w * (0.18 + 0.82 * sstep(0.0, t0 - rt * 0.5, T)) * (1 - sstep(t0 + rt * 0.6, t0 + rt * 1.25, T))
+            fr = o.get('fringe', 0.7)
+            barb = (np.abs(S) < wv) & (strand > 1 - fr) & (T > o.get('bare', 0.0))
+            sw = (2.2 * (1 - T) + 0.8) / half
+            shaft = (np.abs(S) < sw) & (T < t0 + rt * 0.8)
+            a = inside | barb | shaft
+            col = mix(col, cell.shaft if cell.shaft is not None else col, (shaft & ~inside).astype(F) * 0.8)
+            rgb[m] = col; alpha[m] = a.astype(F)
+            hgt[m] = shaft * 2.0 + inside * (1.5 - r) + barb * 0.6
+            continue
         if cell.kind == 'down':
             # a soft round puff of down: wisps radiating from its root, a ragged outline
             cy = (T - 0.42) / 0.55

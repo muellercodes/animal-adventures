@@ -335,6 +335,26 @@ const Sound = (() => {
         if (Math.random() < 0.6) T({ t: t + 1.05, f: 295, f2: 278, dur: 0.6, a: 0.08, type: 'triangle', lp: 900, vol: vol * 0.8 });
         break;
       }
+      // round 16: flamingo: goose-like nasal honks, two or three at a time, a little uneven (a chick's thin squeaky
+      // peeps)
+      case 'flamingo': if (k > 1) { for (let i = 0; i < 3; i++) T({ t: t + i * 0.16, f: 1500 + i * 90, f2: 1900, dur: 0.09, type: 'triangle', vol: vol * 0.45 }); } else {
+        for (let i = 0; i < 3; i++) { const t0 = t + i * 0.24 + (i === 2 ? 0.06 : 0), f = [430, 470, 400][i]; T({ t: t0, f, f2: f * 0.86, dur: 0.17, a: 0.01, type: 'sawtooth', bp: 1150, q: 2.2, vib: 26, vibAmt: 14, vol: vol * 0.8 }); T({ t: t0, f: f * 2, f2: f * 1.7, dur: 0.14, type: 'square', bp: 2300, q: 2.5, vol: vol * 0.16 }); } } break;
+      // round 16: peafowl: the peacock's very loud "may-AWE", two or three times (a peahen's is a shorter, softer honk;
+      // a chick's are peeps)
+      case 'peafowl': if (k > 1) { for (let i = 0; i < 2; i++) T({ t: t + i * 0.2, f: 2300, f2: 2600, dur: 0.1, type: 'triangle', vol: vol * 0.45 }); } else if (b.sex === 'f') {
+        for (let i = 0; i < 2; i++) T({ t: t + i * 0.3, f: 620, f2: 540, dur: 0.18, type: 'sawtooth', bp: 1400, q: 2, vol: vol * 0.6 }); } else {
+        for (let i = 0; i < 3; i++) { const t0 = t + i * 0.95; T({ t: t0, f: 700, f2: 980, dur: 0.16, a: 0.01, type: 'sawtooth', bp: 1700, q: 2.2, vol: vol * 0.9 }); T({ t: t0 + 0.15, f: 1180, f2: 860, dur: 0.55, a: 0.02, type: 'sawtooth', bp: 1900, q: 1.8, vib: 7, vibAmt: 25, vol: vol * 1.25 }); T({ t: t0 + 0.15, f: 2360, f2: 1720, dur: 0.45, type: 'square', bp: 3200, q: 2.5, vol: vol * 0.22 }); } } break;
+      // round 16: ostrich: the male's deep booming, two short booms and a long one, felt as much as heard (a chick
+      // whistles)
+      case 'ostrich': if (k > 1) { for (let i = 0; i < 3; i++) T({ t: t + i * 0.22, f: 1700, f2: 1350, dur: 0.14, type: 'sine', vib: 9, vibAmt: 40, vol: vol * 0.45 }); } else {
+        const bo = [[0, 0.32], [0.5, 0.32], [1.0, 1.1]]; for (const [dt, d] of bo) { T({ t: t + dt, f: 68, f2: 58, dur: d, a: 0.08, type: 'sine', vib: 4, vibAmt: 2, vol: vol * 1.6 }); T({ t: t + dt, f: 136, f2: 116, dur: d * 0.9, a: 0.08, type: 'sawtooth', lp: 260, vol: vol * 0.6 }); } } break;
+      // round 16: emperor penguin: a trumpeting call, a run of quick warbling pulses rising and falling (two voices
+      // beating), and a chick's high whistling trill
+      case 'penguin': if (k > 1) { for (let i = 0; i < 6; i++) T({ t: t + i * 0.08, f: 2600 + (i % 2) * 400, f2: 3000 - (i % 2) * 300, dur: 0.07, type: 'sine', vol: vol * 0.4 }); } else {
+        let tc = t; for (let i = 0; i < 7; i++) { const f = 520 + 160 * Math.sin(i * 0.9); T({ t: tc, f, f2: f * 1.12, dur: 0.12, a: 0.01, type: 'sawtooth', bp: 1300, q: 1.8, vib: 34, vibAmt: 30, vol: vol * 0.8 }); T({ t: tc, f: f * 1.5, f2: f * 1.62, dur: 0.11, type: 'sawtooth', bp: 2100, q: 2, vol: vol * 0.3 }); tc += 0.13; } } break;
+      // round 16: Atlantic puffin: a low growling purr, like a far-off motorbike, "arr-arr-arrr" (a puffling peeps)
+      case 'puffin': if (k > 1) { for (let i = 0; i < 3; i++) T({ t: t + i * 0.14, f: 3000, f2: 3400, dur: 0.06, type: 'sine', vol: vol * 0.35 }); } else {
+        for (let i = 0; i < 3; i++) { const t0 = t + i * 0.42, d = i === 2 ? 0.75 : 0.3; T({ t: t0, f: 170, f2: 140, dur: d, a: 0.03, type: 'sawtooth', lp: 900, vib: 34, vibAmt: 40, vol: vol * 0.9 }); noise({ t: t0, f: 600, q: 1.2, dur: d * 0.9, vol: vol * 0.25, pan }); } } break;
     }
   }
 

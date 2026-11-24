@@ -9312,6 +9312,24 @@ const Animals = (() => {
     // ground the folded arms step in turn, the bat walks on its wrists and feet)
     const HG = P.hang || null, CR = P.crawl || null, qCr = new THREE.Quaternion();
     let hangK = 0;
+    // round 16 (flamingo): oneLeg { rest, foot, flex }: asleep, and resting after standing still rest seconds, it
+    // stands on one leg with the other folded up under the belly (foot: [height, forward] in leg heights; flex: the
+    // folded tarsus); eatSweep [amp, rate]: the neck sweeps the upside-down bill from side to side while it feeds.
+    // Both off for every other bird.
+    const OL = P.oneLeg || null, ES = P.eatSweep || null;
+    const olSide = R.rnd < 0.5 ? 0 : 1;
+    S.rest = 0;
+    // round 16 (penguin, puffin): dive { pitch, elev, legs, rate, amp, fold, flat }: under the water (mode 'dive') the
+    // body lies level (pitch: how far it tips forward from its standing pose), the wings beat (rate, amp: times the
+    // wing's own flap), the neck reaches forward (elev: segment elevations) and the legs trail behind (legs: [dy, dz in
+    // leg heights from the hip joint, toe curl, kick]); flat: it floats lying level at the surface too (a penguin), its
+    // neck then held as surf (elevations; default elev).
+    // slide { pitch, drop, fold, rate, legs }: a penguin's belly slide on snow and ice (st.slide), lying on its belly
+    // (drop: a share of the hip height), flippers out, pushing with its feet. runWings (ostrich): the wings held half
+    // out, not beating, when it runs. All off for every other bird.
+    const DV = P.dive || null, SL = P.slide || null, RWG = P.runWings || 0;
+    S.dive = 0; S.slide = 0;
+    let diveN = null, surfN = null;
     let legH = 0.1;
     const side = (s) => (W ? { sh: B['wing' + s], el: B['wfore' + s], wr: B['whand' + s], fs: W.fb.map((f) => B[f.name.slice(0, -1) + s]) } : null);
     const shP0 = W ? B.wingL.userData.p0 : null, fpo = W && W.foldedPos ? W.foldedPos : [0, 0, 0];
@@ -9345,6 +9363,7 @@ const Animals = (() => {
       flyN = poseFromElev(P.flyElev, P.flyPitch || 0); swimN = poseFromElev(P.swimElev, sp0 + (P.swimPitch || 0)); standN = poseFromElev(P.standElev, sp0);
       if (HV) hovN = poseFromElev(HV.elev || P.standElev, HV.pitch);   // (round 16: the hover's level head)
       if (GS && GS.elev) { const g = poseFromElev(GS.elev, sp0); standN = standN.map((v, i) => lerp(v, g[i], gk)); }
+      if (DV) { diveN = poseFromElev(DV.elev, sp0 + DV.pitch); surfN = DV.surf ? poseFromElev(DV.surf, sp0 + DV.pitch) : diveN; }   // round 16
     };
     refresh();
     R.hooks.push(refresh);
@@ -9394,6 +9413,8 @@ const Animals = (() => {
       spring(S, 'air', mode === 'air' ? 1 : 0, 9, dt);
       spring(S, 'swim', mode === 'swim' || (sleeping && st.swimSleep) ? 1 : 0, 4, dt);
       spring(S, 'move', spdIn > 0.04 ? 1 : 0, 5, dt);
+      if (DV) spring(S, 'dive', mode === 'dive' ? 1 : 0, 4, dt);   // round 16
+      if (SL) spring(S, 'slide', st.slide && mode === 'ground' ? 1 : 0, 5, dt);
       S.rw = damp(S.rw, sstep(P.walk, P.run, spd), 3, dt);
       spring(S, 'eat', eatEnvelope(st.eat || 0), 8, dt);
       S.lean = damp(S.lean, clamp((st.turn || 0) * Math.max(spd, 0.5), -4, 4), 4, dt);
@@ -9406,32 +9427,42 @@ const Animals = (() => {
       S.climb = damp(S.climb, mode === 'fly' ? sat(vy / 2) : 0, 3, dt);
       // wings: spread when flying, half open and flapping during a jump for flightless use
       const flutter = hap * (P.canFly ? 0.22 : 0.3) * sstep(0.2, 0.8, Math.sin(it * 3.1)) * (1 - S.move);
-      const wantFold = mode === 'fly' ? 0 : mode === 'air' ? 1 - (P.jumpFlap || 0) : 1 - flutter;
+      let wantFold = mode === 'fly' ? 0 : mode === 'air' ? 1 - (P.jumpFlap || 0) : 1 - flutter;
+      if (DV) wantFold = lerp(wantFold, DV.fold || 0, S.dive);   // round 16
+      if (SL) wantFold = lerp(wantFold, SL.fold, S.slide);
+      if (RWG) wantFold = lerp(wantFold, 1 - RWG, S.rw * S.move * (1 - S.air));
       spring(S, 'fold', wantFold, mode === 'fly' ? 6 : 4, dt);
-      const fly = S.fly, swim = S.swim * (1 - fly), air = Math.max(S.air, fly), ground = (1 - air) * (1 - swim);
+      const fly = S.fly, swim = S.swim * (1 - fly), air = Math.max(S.air, fly);
+      // (round 16: a diver under the water is not on the ground; lay: lying level, under the water or floating flat)
+      const ground = (1 - air) * (1 - swim) * (DV ? 1 - S.dive : 1), lay = DV ? Math.max(S.dive, DV.flat ? swim : 0) : 0, sld = SL ? S.slide : 0;
       const idle = st.idle || 0, still = 1 - S.move, sn = sneezeCurve(S.snT);
       const grab = GR ? S.eat * fly : 0;
       // (round 16: hov, how much it is hovering: flying, slower than HV.slow (backwards too))
       if (HV) spring(S, 'hov', mode === 'fly' && Math.abs(st.speed || 0) < HV.slow ? 1 : 0, 4, dt);
       const hov = HV ? S.hov * fly : 0;
       const eatN = GR ? S.eat * (1 - grab) : S.eat * (1 - hov);
+      if (OL) S.rest = damp(S.rest, idle > OL.rest && ground > 0.5 && S.eat < 0.1 && S.move < 0.1 ? 1 : 0, 1.5, dt);   // round 16
 
       // ----- gait phase -----
       const L = P.stride * clamp(Math.pow(Math.max(spd, 0.2) / P.walk, 0.5), 0.6, P.strideMax || 1.8);
       S.ph += Math.min(spd / L, P.maxRate || 12) * dt * (1 - air);
       S.sph += (1.3 + Math.min(spd, 2) * 0.6) * dt;
       const duty = lerp(P.duty[0], P.duty[1], S.rw), ph = S.ph, w2 = TAU * ph;
-      const gaitOn = S.move * ground;
+      const gaitOn = S.move * ground * (1 - sld);
 
       // ----- flapping -----
       let flapAmt = (1 - S.glide * (SO ? 1 : 0.92)) * (1 - S.fold);
       if (GR) flapAmt *= 1 - grab;
-      const rate = (P.wing && W.flap.rate) || 5;
+      if (RWG) flapAmt *= 1 - S.rw * S.move * (1 - S.air);   // round 16: held out, not beating
+      let rate = (P.wing && W.flap.rate) || 5;
+      if (DV) rate *= lerp(1, DV.rate || 1, S.dive);   // round 16
+      if (SL) rate *= lerp(1, SL.rate || 1, sld);
       S.fph += TAU * rate * (1 + S.climb * 0.25 - S.glide * 0.3) * (1 + hap * (1 - fly) * 1.2) * dt;
       // (round 16: a hoverer's wings beat faster than the screen can show: each frame somewhere in the stroke)
       const fphase = HV && fly > 0.5 ? (S.fph = TAU * hash3(Math.floor(t * 120), 7, R.rnd * 99)) : S.fph;
       S.flap = damp(S.flap, flapAmt, 6, dt);
-      const amp = W ? W.flap.amp * DEG * (1 + S.climb * 0.15) : 0;
+      let amp = W ? W.flap.amp * DEG * (1 + S.climb * 0.15) : 0;
+      if (DV) amp *= lerp(1, DV.amp || 1, S.dive);   // round 16
       const droop = (sick * 0.16 + sl * 0.04) * (1 - fly);
       let flapRoll = W ? amp * Math.cos(fphase) * S.flap + S.glide * (1 - S.fold) * (W.flap.glide || 6) * DEG - droop : 0;
       if (GR && W) flapRoll += grab * GR.wings * DEG;
@@ -9448,8 +9479,9 @@ const Animals = (() => {
       // happy: little bounces on the spot; sleeping: sit down on the belly (on land)
       const bounce = hap * still * ground * Math.abs(Math.sin(it * 7.5)) * legH * 0.22;
       let drop = swim * ((P.swimDrop || 0) - R.ageDrop) + S.eat * ground * (P.eatDrop || 0) + sick * legH * 0.08 * ground + bounce;
+      if (SL) drop += SL.drop * hip0.y * sld;   // round 16: on its belly
       drop = lerp(drop, Math.max(0, R.belly.y - 0.004) * (P.sitDrop == null ? 1 : P.sitDrop), sl * (1 - swim));
-      const pitch = lerp(lerp(sp0, P.flyPitch == null ? 0 : P.flyPitch, fly), HV ? HV.pitch : 0, hov) + S.eat * ((P.eatPitch || 0) * ground + (P.swimEatPitch || 0.1) * swim) + gaitOn * S.rw * (P.runPitch || 0.08) + swim * (P.swimPitch || 0) + sick * 0.12 * (1 - fly) - sl * sp0 * (P.sleepLevel || 0) + sn * 0.1 + (GR ? grab * GR.pitch : 0);
+      const pitch = lerp(lerp(sp0, P.flyPitch == null ? 0 : P.flyPitch, fly), HV ? HV.pitch : 0, hov) + S.eat * ((P.eatPitch || 0) * ground + (P.swimEatPitch || 0.1) * swim) + gaitOn * S.rw * (P.runPitch || 0.08) + swim * (P.swimPitch || 0) + sick * 0.12 * (1 - fly) - sl * sp0 * (P.sleepLevel || 0) + sn * 0.1 + (GR ? grab * GR.pitch : 0) + (DV ? DV.pitch * lay : 0) + (SL ? SL.pitch * sld : 0);
       hips.position.set(hip0.x, hip0.y + bob + br + flyBob - drop, hip0.z);
       hips.rotation.set(pitch, yaw, roll);
       if (HG) {
@@ -9492,8 +9524,16 @@ const Animals = (() => {
         const swY = -drop + legH * (P.paddleY || 0.35) + Math.sin(sa) * legH * 0.08, swZ = lg.Pp.z + Math.cos(sa) * legH * (P.paddleZ || 0.3);
         tx = lerp(tx, lg.Pp.x + sd * legH * 0.08, swim); ty = lerp(ty, swY, swim); tz = lerp(tz, swZ, swim);
         flx = lerp(flx, 0.5 + Math.sin(sa) * 0.3, swim); tqq = lerp(tqq, pw ? 0.3 : 1.6, swim);
+        // round 16 (flamingo): on one leg, the other folded up under the belly
+        if (OL) {
+          const k = Math.max(sl, S.rest) * (1 - swim) * (1 - air);
+          if (k > 0.001) {
+            if (lg.idx === olSide) { tx = lerp(tx, lg.Pp.x * 0.25, k); }
+            else { ty = lerp(ty, lg.Pp.y + legH * OL.foot[0], k); tz = lerp(tz, lg.Pp.z + legH * OL.foot[1], k); tx = lerp(tx, lg.Pp.x * 0.7, k); flx = lerp(flx, OL.flex, k); tqq = lerp(tqq, 1.4, k); }
+          }
+        }
         // sitting asleep: tarsus folded flat under the body
-        if (sl > 0.001 && swim < 0.999) {
+        if (sl > 0.001 && swim < 0.999 && !OL) {
           const k = sl * (1 - swim);
           ty = lerp(ty, lg.Pp.y, k); tz = lerp(tz, lg.Pp.z + legH * 0.22, k); tx = lerp(tx, lg.Pp.x * 1.05, k);
           flx = lerp(flx, -1.35, k); tqq = lerp(tqq, -0.05, k);
@@ -9515,6 +9555,16 @@ const Animals = (() => {
           tx = lerp(tx, lg.Pp.x * 0.8, air); ty = lerp(ty, lerp(jy, fy, fk), air); tz = lerp(tz, lerp(jz, fz, fk), air);
           flx = lerp(flx, lerp(1.2, P.flyFlex || 1.5, fk), air); tqq = lerp(tqq, lerp(1.0, fq, fk), air);
         }
+        // round 16: lying level under the water or on its belly in a slide: the legs trail behind and kick
+        if (DV || SL) {
+          const lk = Math.max(lay, sld) * (1 - air);
+          if (lk > 0.001) {
+            const LG = sld > lay ? SL.legs : DV.legs, kick = Math.sin(S.sph * PI + lg.idx * PI) * (LG[3] || 0) * sat(spd);
+            rootPos(lg.bs[0], root, _v2);
+            tx = lerp(tx, lg.Pp.x * 0.9, lk); ty = lerp(ty, _v2.y + legH * (LG[0] + kick), lk); tz = lerp(tz, _v2.z + legH * LG[1], lk);
+            flx = lerp(flx, 0.2, lk); tqq = lerp(tqq, LG[2], lk);
+          }
+        }
         solveLeg(lg, root, tx, ty, tz, flx, tqq);
       }
 
@@ -9534,11 +9584,14 @@ const Animals = (() => {
         const fN = HV ? lerp(flyN[i], hovN[i], hov) + (HV.eatNeck || 0.35) * S.eat * hov * d : flyN[i];   // (round 16: hovering, drinking)
         let px = lerp(eg, ew, swim) * eatN + (fN * fly + swimN[i] * swim) * poseW + standN[i] * (1 - fly) * (1 - swim) * (1 - S.eat) + dyn;
         if (TS) { const e = st.eat || 0; px -= TS * d * sstep(0.55, 0.66, e) * (1 - sstep(0.78, 0.92, e)) * (1 - fly); }
+        // round 16: level under the water (or floating flat, or on its belly in a slide): the neck reaches forward
+        if (DV) px += (diveN[i] - standN[i] * (1 - fly) * (1 - swim) * (1 - S.eat) - lerp(eg, ew, swim) * eatN * 0.7) * S.dive + (DV.flat ? surfN[i] * swim : 0) + (SL ? (diveN[i] - standN[i] * (1 - S.eat)) * sld : 0);
         if (GR) px += grab * GR.neck[i];
         if (!last) sum += dyn;
         else px -= (sum + gaitPitch) * (1 - S.eat) * (1 - fly);
         px += sick * 0.3 * d + sn * (last ? 0.7 : 0.3) + (last ? Math.sin(it * 9) * 0.06 * hap : 0);
         let py = (S.look + S.lean * 0.05) * (P.lookDist ? P.lookDist[i] : d);
+        if (ES) py += ES[0] * Math.sin(t * ES[1] * TAU) * eatN * (1 - swim) * (i === 0 ? 1 : 0.2);   // round 16
         if (sl > 0.001) { px = lerp(px, tuck[i][0], sl); py = lerp(py, tuck[i][1] * sleepSide, sl); }
         neck[i].rotation.set(px, py, last ? Math.sin(it * 2.6) * 0.25 * hap : 0);
       }
@@ -10747,6 +10800,12 @@ const Animals = (() => {
   COLLAR.griffin = { at: ['neck2', 'head', 0.3], r: 0.9 };
   // ===== round 13: winged lion =====
   COLLAR.wingedlion = COLLAR.cat;
+  // ===== round 16: big and water birds =====
+  COLLAR.flamingo = { at: ['neck', 'neck2', 0.35] };
+  COLLAR.penguin = { at: ['neck', 'neck2', 0.4], r: 0.9 };
+  COLLAR.puffin = { at: ['neck', 'head', 0.4], w: 0.8 };
+  COLLAR.ostrich = { at: ['neck', 'neck2', 0.3] };
+  COLLAR.peafowl = { at: ['neck', 'neck2', 0.5] };
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)
@@ -11596,6 +11655,733 @@ const Animals = (() => {
   }
   ANIM.manatee = animManatee;
   // round 15: manatee (end of the animator)
+
+  // ===== round 16: big and water birds (flamingo, peafowl, ostrich, penguin, puffin) =====
+  // round 16: the American flamingo, about 1.4 m tall (a girl 0.88 of that): vivid pink-orange, black flight feathers
+  // that show when it flies, long pink legs, a long S neck, a thick bent pink bill with a black tip. It rests and sleeps
+  // standing on one leg (anim.oneLeg), feeds with its head upside down in the water sweeping the bill from side to side
+  // (eatElev, anim.eatSweep) and flies with its neck and legs stretched out. The chick: gray down, a straight dark bill.
+  SPEC.flamingo = () => {
+    const xL = 0.062;
+    const K = { pink: hex(0xEC6450), deep: hex(0xD8432F), pale: hex(0xF08C78), black: hex(0x171515), leg: hex(0xE0626E), bill: hex(0xEFD2C8) };
+    const wing = (atlas, folded, pos) => stdWing({
+      s: 1.5, sh: [0.075, 0.96, 0.1], prim: 1.0, wid: 1.0, tip: 0.45, atlas,
+      folded, foldedPos: pos,
+      featherFold: { tert: [116, 106], sec: [106, 91], prim: [97, 88] },
+      flap: { amp: 48, rate: 3.0, upFold: 0.3, twist: 10, glide: 3 },
+      cells: atlas ? { prim: 0, sec: 1, gcov: 2, lcov: 3, tert: 4, pcov: 3 } : { prim: 0, sec: 1, gcov: 2, lcov: 2, tert: 2, pcov: 2 },
+    });
+    const W = wing(false, { roll: -16, yaw: 2, pitch: 2 }, [0, 0, -0.03]);
+    const WA = wing(true, { roll: -24, yaw: 4, pitch: 1 }, [-0.03, -0.02, -0.04]);
+    const toes = [{ a: -26, len: 0.075, r: 0.0055 }, { a: 0, len: 0.088, r: 0.006 }, { a: 26, len: 0.072, r: 0.0055 }, { a: 180, len: 0.012, r: 0.003, back: true, lift: 0.01 }];
+    const foot = [xL, 0.02, 0.02];
+    return {
+      size: { length: 0.8, height: 1.4, radius: 0.16, eyeHeight: 1.36 },
+      tex: [256, 256], rough: 0.85,
+      detail: { kind: 'feather', tile: 0.04, amt: 0.1, bump: 0.25 },
+      shell: { parts: ['body', 'head'], len: 0.008, n: 3, babyOnly: true, babyLen: 1, lean: 0.2 },
+      bones: [
+        ['hips', null, 0, 0.86, 0.0],
+        ['tail', 'hips', 0, 0.9, -0.24],
+        ['neck', 'hips', 0, 0.93, 0.21],
+        ['neck2', 'neck', 0, 1.09, 0.34],
+        ['neck3', 'neck2', 0, 1.25, 0.27],
+        ['neck4', 'neck3', 0, 1.36, 0.17],
+        ['head', 'neck4', 0, 1.38, 0.21],
+        ['thighL', 'hips', xL - 0.012, 0.83, -0.02, 1],
+        ['shinL', 'thighL', xL, 0.75, 0.06, 1],
+        ['hmetaL', 'shinL', xL, 0.39, -0.03, 1],
+        ['hpawL', 'hmetaL', xL, 0.02, 0.02, 1],
+        ...W.bones,
+      ],
+      fur: [
+        { name: 'body', bones: ['tail', 'hips', 'neck', 'neck2', 'neck3', 'neck4', 'head'], blend: 0.04, segs: 14, cap0: 3, capLen0: 0.8, keys: [
+          [0, 0.92, -0.32, 0.02, 0.015, 0.015],
+          [0, 0.91, -0.25, 0.07, 0.05, 0.06],
+          [0, 0.88, -0.12, 0.11, 0.09, 0.11],
+          [0, 0.86, 0.02, 0.12, 0.1, 0.12],
+          [0, 0.88, 0.14, 0.1, 0.09, 0.11],
+          [0, 0.93, 0.22, 0.05, 0.05, 0.06],
+          [0, 1.02, 0.3, 0.032, 0.032, 0.032],
+          [0, 1.1, 0.33, 0.026, 0.026, 0.026],
+          [0, 1.2, 0.3, 0.022, 0.022, 0.022],
+          [0, 1.3, 0.22, 0.02, 0.02, 0.02],
+          [0, 1.36, 0.18, 0.022, 0.022, 0.022],
+        ] },
+        { name: 'head', bones: ['head'], segs: 12, cap0: 3, cap1: 2, capLen1: 0.6, dtile: 0.35, keys: [
+          [0, 1.39, 0.16, 0.022, 0.022, 0.022],
+          [0, 1.4, 0.19, 0.027, 0.028, 0.026],
+          [0, 1.395, 0.22, 0.022, 0.023, 0.02],
+          [0, 1.38, 0.245, 0.014, 0.016, 0.014],
+        ] },
+        { name: 'leg', mirror: true, bones: ['shinL', 'hmetaL', 'hpawL'], blend: 0.01, segs: 8, cap0: 2, cap1: 2, dkind: 'scale', dtile: 0.35, keys: [
+          [xL, 0.75, 0.05, 0.03, 0.03, 0.03],
+          [xL, 0.66, 0.035, 0.011, 0.011, 0.011],
+          [xL, 0.4, -0.028, 0.009, 0.01, 0.01],
+          [xL, 0.37, -0.026, 0.009, 0.009, 0.009],
+          [xL, 0.2, -0.004, 0.0068, 0.0068, 0.0068],
+          [xL, 0.03, 0.018, 0.007, 0.007, 0.007],
+        ] },
+        { name: 'wcov', mirror: true, bones: ['wingL', 'wforeL', 'whandL'], blend: 0.02, segs: 8, cap0: 2, cap1: 2, keys: [
+          [0.075, 0.96, 0.1, 0.022, 0.012, 0.012],
+          [0.2, 0.96, 0.096, 0.024, 0.011, 0.011],
+          [0.35, 0.96, 0.092, 0.018, 0.008, 0.008],
+          [0.46, 0.96, 0.09, 0.01, 0.005, 0.005],
+        ] },
+      ],
+      paint(P, C) {
+        const fine = noise(P.x * 300, P.y * 300, P.z * 300);
+        switch (P.part) {
+          case 'body': case 'wcov': cset(C, K.pink); cmix(C, K.pale, sstep(0.95, 1.2, P.y) * 0.5); cmix(C, K.deep, sstep(0.3, 0.8, P.ny) * sstep(0.2, -0.1, P.z) * 0.4); break;
+          case 'head': cset(C, K.pale); cmix(C, K.pink, 0.4); break;
+          case 'leg': cset(C, K.leg); C.ro = 0.55; break;
+        }
+        if (P.part !== 'leg') { cmul(C, 0.94 + 0.1 * fine); C.ro = 0.86; }
+      },
+      feathers: (rest, md) => ({
+        tex: [256, 128], rough: 0.85,
+        list: md ? [
+          ...WA.feathers,
+          ...tailFan('tail', [0, 0.925, -0.3], 7, 0.11, 0.04, 16, 4, 5, { dx: 0.02, dz: 0.01, taper: 0.25, curl: 0.04 }),
+        ] : [
+          ...W.feathers,
+          ...tailFan('tail', [0, 0.92, -0.3], 7, 0.12, 0.045, 20, 4, 3, { dx: 0.03, dz: 0.01, taper: 0.25, curl: 0.05 }),
+        ],
+        paint(u, t, C) {
+          const k = Math.floor(u * FNC), s = fract(u * FNC);
+          if (k === 0 || k === 1) vane(s, t, C, K.black, hex(0x2A2624), hex(0x3A3432));
+          else vane(s, t, C, K.pink, K.deep, K.pale);
+        },
+        babyPaint: downFeather(hex(0x9A9692), hex(0xB8B4AE)),
+      }),
+      accent: [
+        { kind: 'loft', bone: 'head', segs: 10, cap1: 2, capLen1: 0.5, col: 0xEFD2C8, babyCol: 0x3A3634, keys: [
+          [0, 1.39, 0.235, 0.014, 0.016, 0.018, 2.4],
+          [0, 1.385, 0.28, 0.012, 0.012, 0.015, 2.5],
+          [0, 1.36, 0.31, 0.01, 0.01, 0.012, 2.5],
+          [0, 1.33, 0.325, 0.008, 0.008, 0.008, 2.4],
+          [0, 1.31, 0.33, 0.005, 0.005, 0.005, 2.2],
+        ] },
+        ...babyC(birdToes(foot, toes, 0xD8737C, 'hpawL'), 0x6A6462),
+        ...babyC([birdWeb(foot, toes, 0xCF6A72, 'hpawL')], 0x5E5856),
+      ],
+      accentRough: 0.45,
+      // the sculpted flamingo: the folded wing's blades tucked under the sculpted wing; asleep the neck laid back over
+      // the body with the head on the back
+      modelSpec: {
+        anim: { wing: WA.wing },
+        baby: { muzzle: 0.5, fluff: 0, wing: 0.05, eye: 1.0, neck: [0.5, 1.5] },
+      },
+      eyes: [{ bone: 'head', p: [0.02, 1.405, 0.205], r: 0.0058, dir: [0.9, 0.2, 0.3], iris: 0xE8D86A, irisR: 0.8, pupilR: 0.35, babyIris: 0x1E140E }],
+      mouth: [0, 1.31, 0.33],
+      anim: {
+        type: 'bird', walk: 1.0, run: 3.0, stride: 0.5, strideMax: 1.5, duty: [0.62, 0.45], lift: 0.08, flex: 1.0,
+        bob: 0.01, waddle: 0.015, yawSway: 0.02,
+        neck: ['neck', 'neck2', 'neck3', 'neck4', 'head'], neckDist: [0.3, 0.26, 0.2, 0.14, 0.1], eatPitch: 0.3, eatDrop: 0.04, eatMax: 3.0, peck: 0, eatY: 0.0,
+        eatElev: [-70, -92, -100, -100, -135], drinkElev: [-70, -92, -100, -100, -135],
+        flyElev: [10, 6, 4, 2, -14], flyPitch: 0.04, floatDepth: 0,
+        tail: 'tail', tailWag: 0.1, wing: W.wing, canFly: true, flyLegs: [-0.1, -0.98, 0.3], flyFlex: 1.5, jumpFlap: 0.6,
+        lookAmp: 0.5, lookDist: [0.25, 0.25, 0.2, 0.15, 0.15],
+        sleepNeck: [[-0.39, -0.09], [-0.56, -0.08], [-0.93, -0.11], [-0.88, -0.12], [-0.96, -0.13]], sitDrop: 0,
+        // round 16: rests and sleeps standing on one leg (the other folded up under the belly), sweeps its upside-down
+        // bill from side to side as it feeds
+        oneLeg: { rest: 6, foot: [0.62, 0.2], flex: -2.2 }, eatSweep: [0.35, 1.6],
+      },
+      baby: { head: 1.5, muzzle: 0.55, eye: 1.1, neck: [0.5, 1.4], body: [1.12, 1.15, 0.9], leg: [0.75, 1.5], tail: 0.35, wing: 0.4, fluff: 0.012 },
+      // chick: soft gray down, a straight dark bill, thick gray legs
+      babyPaint(P, C) {
+        if (P.part === 'leg') { cset(C, hex(0x6A6462)); return; }
+        downPaint(C, P, hex(0x9C9894), 0.1);
+        cmix(C, hex(0xC4C0BA), sstep(-0.3, -0.8, P.ny) * 0.5);
+        C.ro = 0.95;
+      },
+    };
+  };
+
+  // round 16: the emperor penguin, about 1.1 m tall, built upright like the owl: black back and head, white belly,
+  // yellow-orange ear patches fading to pale yellow on the upper breast, a long black bill with an orange stripe below.
+  // The flippers are the wing bones with no feathers (sculpted paddles that hang at its sides and beat under the water).
+  // It waddles, slides on its belly on snow and ice (anim.slide, st.slide from poseBody), floats and dives lying level
+  // (anim.dive). The chick: fluffy silver-gray down, a black head with a white face mask.
+  SPEC.penguin = () => {
+    const xL = 0.085;
+    const K = { black: hex(0x1A1D22), white: hex(0xF1EFE8), yellow: hex(0xF0B030), pale: hex(0xF4E6B4), bill: hex(0x16171A), plate: hex(0xEE7A3E) };
+    // the flippers: three arm bones and no feather bones; hanging down at the sides when folded
+    const W = birdWing({
+      sh: [0.15, 0.72, 0.0], arm: [0.06, 0.1, 0.17],
+      fold: { hum: 0, elb: 0, wri: 0 }, spread: { roll: 0, yaw: 6, pitch: 0 },
+      folded: { roll: -78, yaw: -10, pitch: 4 }, foldedPos: [-0.01, -0.01, -0.01],
+      flap: { amp: 55, rate: 2.2, upFold: 0.0, twist: 14, glide: 3 },
+      sets: [],
+    });
+    const toes = [{ a: -24, len: 0.06, r: 0.009, claw: 0.016 }, { a: 0, len: 0.07, r: 0.0095, claw: 0.018 }, { a: 24, len: 0.058, r: 0.009, claw: 0.016 }];
+    const foot = [xL, 0.012, 0.05];
+    return {
+      size: { length: 0.5, height: 1.1, radius: 0.22, eyeHeight: 0.99 },
+      tex: [256, 256], rough: 0.7,
+      detail: { kind: 'feather', tile: 0.02, amt: 0.05, bump: 0.12 },
+      shell: { parts: ['body', 'head'], len: 0.01, n: 3, babyOnly: true, babyLen: 1, lean: 0.2 },
+      bones: [
+        ['hips', null, 0, 0.38, -0.02],
+        ['tail', 'hips', 0, 0.15, -0.17],
+        ['neck', 'hips', 0, 0.8, 0.02],
+        ['neck2', 'neck', 0, 0.91, 0.045],
+        ['head', 'neck2', 0, 0.98, 0.06],
+        ['thighL', 'hips', xL - 0.01, 0.22, 0.0, 1],
+        ['shinL', 'thighL', xL, 0.13, 0.05, 1],
+        ['hmetaL', 'shinL', xL, 0.06, 0.02, 1],
+        ['hpawL', 'hmetaL', xL, 0.012, 0.05, 1],
+        ...W.bones,
+      ],
+      fur: [
+        { name: 'body', bones: ['tail', 'hips', 'neck', 'neck2'], blend: 0.05, segs: 16, cap0: 3, capLen0: 0.6, keys: [
+          [0, 0.05, 0.0, 0.08, 0.06, 0.06],
+          [0, 0.15, 0.01, 0.16, 0.16, 0.16],
+          [0, 0.32, 0.015, 0.19, 0.2, 0.19],
+          [0, 0.5, 0.015, 0.18, 0.19, 0.18],
+          [0, 0.68, 0.01, 0.14, 0.15, 0.14],
+          [0, 0.82, 0.01, 0.1, 0.1, 0.1],
+          [0, 0.92, 0.03, 0.075, 0.075, 0.075],
+        ] },
+        { name: 'head', bones: ['head'], segs: 14, cap0: 3, cap1: 2, capLen1: 0.6, keys: [
+          [0, 0.99, 0.0, 0.055, 0.06, 0.055],
+          [0, 1.0, 0.06, 0.065, 0.065, 0.06],
+          [0, 0.99, 0.12, 0.04, 0.04, 0.035],
+        ] },
+        { name: 'flip', mirror: true, bones: ['wingL', 'wforeL', 'whandL'], blend: 0.03, segs: 8, cap0: 2, cap1: 2, keys: [
+          [0.15, 0.72, 0.0, 0.03, 0.012, 0.012],
+          [0.25, 0.72, 0.0, 0.045, 0.009, 0.009],
+          [0.4, 0.72, 0.0, 0.035, 0.007, 0.007],
+          [0.47, 0.72, -0.01, 0.012, 0.004, 0.004],
+        ] },
+        { name: 'leg', mirror: true, bones: ['hmetaL', 'hpawL'], blend: 0.01, segs: 8, cap0: 2, cap1: 2, keys: [
+          [xL, 0.08, 0.02, 0.022, 0.022, 0.022],
+          [xL, 0.03, 0.04, 0.02, 0.018, 0.018],
+        ] },
+      ],
+      paint(P, C) {
+        const fine = noise(P.x * 300, P.y * 300, P.z * 300);
+        switch (P.part) {
+          case 'body': {
+            // white belly in front, black back; the ear patch's yellow fading down the upper breast
+            const fr = sstep(-0.05, 0.25, P.nz + 0.15 * (0.75 - P.y));
+            cset(C, K.black); cmix(C, K.white, fr * sstep(0.88, 0.8, P.y));
+            cmix(C, K.pale, fr * sstep(0.6, 0.78, P.y) * sstep(0.9, 0.8, P.y) * 0.8);
+            break;
+          }
+          case 'head': cset(C, K.black); cmix(C, K.yellow, sstep(0.3, 0.7, Math.abs(P.nx)) * sstep(0.02, -0.03, P.z - 0.06) * sstep(1.01, 0.96, P.y) * 0.9); break;
+          case 'flip': cset(C, K.black); cmix(C, K.white, sstep(0.2, -0.4, P.ny) * 0.8); break;
+          case 'leg': cset(C, hex(0x202124)); C.ro = 0.6; break;
+        }
+        cmul(C, 0.95 + 0.08 * fine); if (P.part !== 'leg') C.ro = 0.62;
+      },
+      feathers: (rest, md) => ({
+        tex: [256, 128], rough: 0.7,
+        list: [...tailFan('tail', [0, 0.16, -0.18], 7, 0.1, 0.03, 14, -60, 0, { dx: 0.02, dz: 0.005, taper: 0.3, curl: 0.0 })],
+        paint(u, t, C) { const s = fract(u * FNC); vane(s, t, C, K.black, hex(0x2A2E34), hex(0x34383E)); },
+        babyPaint: downFeather(hex(0x9EA2A6), hex(0xBCC0C4)),
+      }),
+      accent: [
+        { kind: 'loft', bone: 'head', segs: 10, cap1: 2, capLen1: 0.5, col: 0x17181B, keys: [
+          [0, 0.985, 0.115, 0.016, 0.014, 0.016, 2.2],
+          [0, 0.98, 0.16, 0.012, 0.01, 0.012, 2.3],
+          [0, 0.97, 0.2, 0.008, 0.007, 0.008, 2.3],
+          [0, 0.958, 0.225, 0.004, 0.004, 0.004, 2.1],
+        ] },
+        ...babyC(birdToes(foot, toes, 0x202124, 'hpawL'), 0x3A3C40),
+      ],
+      accentRough: 0.4,
+      modelSpec: { baby: { muzzle: 0.55, fluff: 0, eye: 1.0 } },
+      eyes: [{ bone: 'head', p: [0.042, 1.005, 0.1], r: 0.0075, dir: [0.85, 0.15, 0.5], iris: 0x3A2418, irisR: 0.85, pupilR: 0.45, rim: 0x0A0806 }],
+      mouth: [0, 0.958, 0.225],
+      anim: {
+        type: 'bird', walk: 0.45, run: 1.3, stride: 0.13, strideMax: 1.6, duty: [0.62, 0.5], lift: 0.025, flex: 0.6,
+        bob: 0.012, waddle: 0.16, yawSway: 0.12,
+        neck: ['neck', 'neck2', 'head'], neckDist: [0.45, 0.35, 0.2], eatPitch: 0.75, eatDrop: 0.02, eatMax: 2.2, peck: 0.12, peckRate: 1.5, eatY: 0.03,
+        flyElev: [0, 0, 0], flyPitch: 1.4, floatDepth: 0.5,
+        tail: 'tail', tailWag: 0.12, wing: W.wing, canFly: false, jumpFlap: 0.6, runPitch: 0.06, standTail: 0,
+        lookAmp: 0.9, lookPeriod: 3.6,
+        sleepNeck: [[0.35, 0], [0.45, 0], [0.4, 0]], sitDrop: 0.18,
+        // round 16: under the water (and floating) it lies level with its flippers beating and its feet trailing; on snow
+        // and ice it toboggans on its belly when it runs
+        dive: { pitch: 1.45, elev: [4, 2, -6], surf: [62, 48, 0], legs: [-0.05, -0.92, 0.3, 0.12], rate: 1.0, amp: 1.0, fold: 0, flat: true },
+        slide: { pitch: 1.5, drop: 0.5, fold: 0.45, rate: 0.7, legs: [-0.1, -0.95, 0.3, 0.3] },
+      },
+      baby: { head: 1.6, muzzle: 0.5, eye: 1.05, neck: [0.6, 1.2], body: [1.15, 0.86, 1.12], leg: [0.85, 1.3], tail: 0.3, wing: 0.55, fluff: 0.015 },
+      // chick: fluffy silver-gray down, a black head with a white face mask
+      babyPaint(P, C) {
+        if (P.part === 'leg') { cset(C, hex(0x3A3C40)); return; }
+        downPaint(C, P, hex(0xA4A8AC), 0.1);
+        if (P.part === 'head') { cset(C, hex(0x1E2024)); cmix(C, hex(0xF2F2EE), sstep(0.2, 0.6, Math.abs(P.nx)) * sstep(0.0, 0.4, P.nz) * 0.95); }
+        C.ro = 0.95;
+      },
+    };
+  };
+
+  // round 16: the Atlantic puffin, about 30 cm, built level like the chickadee (standPitch stands it upright): black
+  // back, crown and collar, a pale gray-white face, white below, orange feet, the big summer bill striped blue-gray,
+  // yellow and red-orange. Fast whirring wingbeats; it floats like a duck and dives with its wings half open, beating
+  // (anim.dive). The puffling: dark gray fluff.
+  SPEC.puffin = () => {
+    const xL = 0.029;
+    const K = { black: hex(0x16171A), white: hex(0xF2F0EA), face: hex(0xD8D8D2), orange: hex(0xF06A28), red: hex(0xE0451E), blue: hex(0x7C8C9C), yellow: hex(0xF2C230) };
+    const wing = (atlas, folded, pos) => stdWing({
+      s: 0.5, sh: [0.03, 0.122, 0.04], prim: 0.95, wid: 0.85, tip: 0.35, atlas,
+      folded, foldedPos: pos,
+      featherFold: { tert: [112, 104], sec: [106, 92], prim: [97, 90] },
+      flap: { amp: 58, rate: 9, upFold: 0.35, twist: 10, glide: 3 },
+      cells: atlas ? { prim: 0, sec: 1, gcov: 2, lcov: 3, tert: 4, pcov: 3, mcov: 3 } : { prim: 0, sec: 1, gcov: 2, lcov: 3, tert: 4, pcov: 3 },
+    });
+    const W = wing(false, { roll: -40, yaw: 3, pitch: -6 }, [0.004, 0.0, -0.004]);
+    const WA = wing(true, { roll: -46, yaw: 3, pitch: -6 }, [0.005, 0.0, -0.004]);
+    const toes = [{ a: -24, len: 0.03, r: 0.0026, claw: 0.005 }, { a: 0, len: 0.036, r: 0.0028, claw: 0.0055 }, { a: 24, len: 0.03, r: 0.0026, claw: 0.005 }, { a: 180, len: 0.006, r: 0.0018, back: true, lift: 0.003 }];
+    const foot = [xL, 0.004, 0.012];
+    return {
+      size: { length: 0.3, height: 0.24, radius: 0.07, eyeHeight: 0.2 },
+      tex: [256, 256], rough: 0.75,
+      detail: { kind: 'feather', tile: 0.012, amt: 0.06, bump: 0.15 },
+      shell: { parts: ['body', 'head'], len: 0.004, n: 3, babyOnly: true, babyLen: 1, lean: 0.2 },
+      bones: [
+        ['hips', null, 0, 0.1, 0.0],
+        ['tail', 'hips', 0, 0.112, -0.085],
+        ['neck', 'hips', 0, 0.122, 0.062],
+        ['head', 'neck', 0, 0.15, 0.078],
+        ['thighL', 'hips', xL - 0.004, 0.088, 0.0, 1],
+        ['shinL', 'thighL', xL, 0.062, 0.02, 1],
+        ['hmetaL', 'shinL', xL, 0.034, -0.008, 1],
+        ['hpawL', 'hmetaL', xL, 0.004, 0.012, 1],
+        ...W.bones,
+      ],
+      fur: [
+        { name: 'body', bones: ['tail', 'hips', 'neck', 'head'], blend: 0.015, segs: 14, cap0: 3, capLen0: 0.8, keys: [
+          [0, 0.118, -0.1, 0.012, 0.01, 0.008],
+          [0, 0.112, -0.07, 0.035, 0.03, 0.03],
+          [0, 0.104, -0.03, 0.05, 0.042, 0.045],
+          [0, 0.102, 0.01, 0.053, 0.045, 0.048],
+          [0, 0.108, 0.045, 0.045, 0.042, 0.042],
+          [0, 0.125, 0.07, 0.036, 0.036, 0.034],
+          [0, 0.145, 0.08, 0.032, 0.032, 0.03],
+        ] },
+        { name: 'head', bones: ['head'], segs: 14, cap0: 3, cap1: 2, capLen1: 0.5, keys: [
+          [0, 0.152, 0.065, 0.026, 0.026, 0.024],
+          [0, 0.156, 0.085, 0.031, 0.03, 0.029],
+          [0, 0.154, 0.105, 0.026, 0.026, 0.024],
+          [0, 0.15, 0.115, 0.016, 0.018, 0.016],
+        ] },
+        { name: 'leg', mirror: true, bones: ['thighL', 'shinL', 'hmetaL', 'hpawL'], blend: 0.004, segs: 6, cap1: 2, keys: [
+          [xL - 0.004, 0.086, 0.0, 0.012, 0.012, 0.012],
+          [xL, 0.062, 0.018, 0.009, 0.009, 0.009],
+          [xL, 0.034, -0.006, 0.0035, 0.0035, 0.0035],
+          [xL, 0.006, 0.01, 0.003, 0.003, 0.003],
+        ] },
+        { name: 'wcov', mirror: true, bones: ['wingL', 'wforeL', 'whandL'], blend: 0.006, segs: 6, cap0: 2, cap1: 2, keys: [
+          [0.03, 0.122, 0.04, 0.012, 0.006, 0.006],
+          [0.07, 0.122, 0.04, 0.012, 0.0055, 0.0055],
+          [0.12, 0.122, 0.04, 0.009, 0.004, 0.004],
+          [0.15, 0.122, 0.04, 0.004, 0.002, 0.002],
+        ] },
+      ],
+      paint(P, C) {
+        switch (P.part) {
+          case 'body': cset(C, K.black); cmix(C, K.white, sstep(0.0, -0.5, P.ny) * sstep(0.135, 0.12, P.y)); break;
+          case 'head': cset(C, K.black); cmix(C, K.face, sstep(0.3, 0.6, Math.abs(P.nx)) * sstep(0.164, 0.156, P.y) * sstep(0.142, 0.148, P.y + 0.0 * P.z)); break;
+          case 'leg': cset(C, K.orange); C.ro = 0.55; if (P.y > 0.05) cset(C, K.white); break;
+          case 'wcov': cset(C, K.black); break;
+        }
+        cmul(C, 0.95 + 0.08 * noise(P.x * 900, P.y * 900, P.z * 900));
+        if (P.part !== 'leg') C.ro = 0.7;
+      },
+      feathers: (rest, md) => ({
+        tex: [256, 128], rough: 0.75,
+        list: [
+          ...(md ? WA : W).feathers,
+          ...tailFan('tail', [0, 0.114, -0.09], md ? 10 : 8, 0.05, 0.016, 18, -4, 5, { dx: 0.008, dy: 0.003, dz: 0.002, roll: 18, taper: 0.1, curl: 0.03 }),
+        ],
+        paint(u, t, C) { const s = fract(u * FNC); vane(s, t, C, K.black, hex(0x26282C), hex(0x2E3034)); },
+        babyPaint: downFeather(hex(0x4E4A48), hex(0x6A6662)),
+      }),
+      accent: [
+        { kind: 'loft', bone: 'head', segs: 8, cap1: 2, capLen1: 0.4, col: 0xE0451E, babyCol: 0x3A3634, keys: [
+          [0, 0.15, 0.108, 0.006, 0.016, 0.018, 2.2],
+          [0, 0.147, 0.125, 0.005, 0.012, 0.014, 2.2],
+          [0, 0.143, 0.14, 0.0035, 0.007, 0.008, 2.0],
+          [0, 0.14, 0.15, 0.0015, 0.003, 0.003, 2.0],
+        ] },
+        ...babyC(birdToes(foot, toes, 0xF06A28, 'hpawL'), 0x4A4442),
+        ...babyC([birdWeb(foot, toes, 0xE85E22, 'hpawL')], 0x403A38),
+      ],
+      accentRough: 0.4,
+      modelSpec: { anim: { wing: WA.wing }, baby: { muzzle: 0.5, fluff: 0, wing: 0.15, eye: 1.0 } },
+      eyes: [{ bone: 'head', p: [0.019, 0.16, 0.098], r: 0.0042, dir: [0.9, 0.15, 0.35], iris: 0x1A1410, irisR: 0.9, pupilR: 0.5, rim: 0xC8301E }],
+      mouth: [0, 0.14, 0.152],
+      anim: {
+        type: 'bird', walk: 0.5, run: 1.4, stride: 0.05, strideMax: 1.6, duty: [0.6, 0.48], lift: 0.012, flex: 1.0,
+        bob: 0.003, waddle: 0.09, yawSway: 0.07,
+        neck: ['neck', 'head'], neckDist: [0.55, 0.45], eatPitch: 0.5, eatDrop: 0.01, eatMax: 2.2, peck: 0.12, peckRate: 2, eatElev: [-50, -85], eatY: 0.008,
+        flyElev: [6, -6], flyPitch: 0.0, standPitch: -0.75, standElev: [72, -2], runPitch: 0.1,
+        tail: 'tail', tailWag: 0.2, wing: W.wing, canFly: true, flyLegs: [-0.15, -0.9, 1.4], flyFlex: 1.0, jumpFlap: 0.4, flyTail: 0.0, standTail: 0.15,
+        floatDepth: 0.055, swimPitch: 0.68, swimElev: [40, -8], paddleY: 0.3, paddleZ: 0.3, swimTail: 0.1,
+        lookPeriod: 2.2, lookRate: 6, lookAmp: 1.0,
+        sleepNeck: [[0.8, 2.6], [0.45, 0.2]], sleepLevel: 0.5, sleepTail: 0.25, sitDrop: 0.8,
+        // round 16: under the water it lies level, its wings half open and beating, its feet trailing
+        dive: { pitch: 0.75, elev: [10, -4], legs: [-0.05, -0.95, 0.6, 0.15], rate: 0.35, amp: 0.8, fold: 0.35 },
+      },
+      baby: { head: 1.4, muzzle: 0.55, eye: 1.08, neck: [0.8, 1.15], body: [1.15, 1.12, 0.95], leg: [0.85, 1.2], tail: 0.3, wing: 0.5, fluff: 0.004 },
+      // puffling: dark gray fluff, a paler belly
+      babyPaint(P, C) {
+        if (P.part === 'leg') { cset(C, hex(0x4A4442)); return; }
+        downPaint(C, P, hex(0x4E4A48), 0.12);
+        cmix(C, hex(0x8A8682), sstep(-0.3, -0.8, P.ny) * 0.5);
+        C.ro = 0.95;
+      },
+    };
+  };
+
+  // round 16: the common ostrich, the biggest bird: about 2.4 m to the top of the head. The boy: black body feathers,
+  // white wing and tail plumes, a bare pinkish neck and legs; the girl (ostrichf.json, "look": "hen": her own colors)
+  // gray-brown. A small head with big lashed eyes and a flat bill, two toes with a big claw. It cannot fly; it runs
+  // very fast (a little under the cheetah) with its wings held out for balance (anim.runWings). The chick: striped
+  // buff-brown spiky down.
+  SPEC.ostrich = () => {
+    const xL = 0.15;
+    const HEN = (md) => !!md && md.look === 'hen';
+    const K = { black: hex(0x1A1817), white: hex(0xF2EFE8), skin: hex(0xD8A098), gray: hex(0x8C7E70), grayDk: hex(0x6A5E52), bill: hex(0xD8B898) };
+    const wing = (atlas, folded, pos) => stdWing({
+      s: 1.9, sh: [0.19, 1.32, 0.12], prim: 1.0, wid: 1.9, tip: 0.8, atlas,
+      folded, foldedPos: pos,
+      featherFold: { tert: [118, 110], sec: [110, 96], prim: [100, 92] },
+      flap: { amp: 40, rate: 2.2, upFold: 0.2, twist: 8, glide: 3 },
+      cells: atlas ? { prim: 0, sec: 1, gcov: 2, lcov: 3, tert: 4, pcov: 3, mcov: 3 } : { prim: 0, sec: 1, gcov: 2, lcov: 2, tert: 2, pcov: 2 },
+      spread: { roll: -12, yaw: 10, pitch: 0 },
+    });
+    const W = wing(false, { roll: -48, yaw: 4, pitch: -8 }, [0.0, -0.02, -0.04]);
+    const WA = wing(true, { roll: -42, yaw: 8, pitch: -12 }, [0.09, 0.0, -0.1]);
+    const toes = [{ a: -6, len: 0.16, r: 0.028, claw: 0.05, clawCol: 0x3A322C }, { a: 30, len: 0.1, r: 0.02, claw: 0.012, clawCol: 0x3A322C }];
+    const foot = [xL, 0.03, 0.06];
+    return {
+      size: { length: 1.25, height: 2.35, radius: 0.36, eyeHeight: 2.3 },
+      tex: [256, 256], rough: 0.85,
+      detail: { kind: 'feather', tile: 0.06, amt: 0.1, bump: 0.25 },
+      shell: { parts: ['body', 'head'], len: 0.012, n: 3, babyOnly: true, babyLen: 1, lean: 0.2 },
+      bones: [
+        ['hips', null, 0, 1.12, 0.0],
+        ['tail', 'hips', 0, 1.24, -0.48],
+        ['neck', 'hips', 0, 1.3, 0.34],
+        ['neck2', 'neck', 0, 1.62, 0.4],
+        ['neck3', 'neck2', 0, 1.96, 0.42],
+        ['head', 'neck3', 0, 2.26, 0.44],
+        ['thighL', 'hips', xL - 0.03, 1.06, 0.0, 1],
+        ['shinL', 'thighL', xL, 0.96, 0.14, 1],
+        ['hmetaL', 'shinL', xL, 0.56, -0.08, 1],
+        ['hpawL', 'hmetaL', xL, 0.03, 0.06, 1],
+        ...W.bones,
+      ],
+      fur: [
+        { name: 'body', bones: ['tail', 'hips', 'neck'], blend: 0.08, segs: 16, cap0: 3, capLen0: 0.7, keys: [
+          [0, 1.28, -0.62, 0.05, 0.04, 0.04],
+          [0, 1.25, -0.5, 0.2, 0.16, 0.18],
+          [0, 1.2, -0.25, 0.3, 0.26, 0.24],
+          [0, 1.18, 0.0, 0.32, 0.28, 0.24],
+          [0, 1.2, 0.2, 0.26, 0.24, 0.22],
+          [0, 1.26, 0.34, 0.14, 0.14, 0.14],
+        ] },
+        { name: 'neck', bones: ['neck', 'neck2', 'neck3', 'head'], blend: 0.05, segs: 12, keys: [
+          [0, 1.3, 0.36, 0.08, 0.08, 0.08],
+          [0, 1.6, 0.41, 0.055, 0.055, 0.055],
+          [0, 1.95, 0.43, 0.045, 0.045, 0.045],
+          [0, 2.24, 0.44, 0.04, 0.04, 0.04],
+        ] },
+        { name: 'head', bones: ['head'], segs: 12, cap0: 3, cap1: 2, capLen1: 0.6, keys: [
+          [0, 2.27, 0.42, 0.05, 0.045, 0.04],
+          [0, 2.29, 0.47, 0.055, 0.045, 0.04],
+          [0, 2.27, 0.53, 0.035, 0.025, 0.025],
+        ] },
+        { name: 'leg', mirror: true, bones: ['shinL', 'hmetaL', 'hpawL'], blend: 0.02, segs: 10, cap0: 2, cap1: 2, keys: [
+          [xL, 0.98, 0.12, 0.09, 0.09, 0.09],
+          [xL, 0.8, 0.04, 0.065, 0.065, 0.065],
+          [xL, 0.58, -0.07, 0.035, 0.035, 0.035],
+          [xL, 0.3, -0.01, 0.026, 0.026, 0.026],
+          [xL, 0.05, 0.05, 0.03, 0.03, 0.03],
+        ] },
+        { name: 'wcov', mirror: true, bones: ['wingL', 'wforeL', 'whandL'], blend: 0.03, segs: 8, cap0: 2, cap1: 2, keys: [
+          [0.19, 1.32, 0.12, 0.04, 0.02, 0.02],
+          [0.35, 1.32, 0.12, 0.04, 0.018, 0.018],
+          [0.55, 1.32, 0.12, 0.03, 0.014, 0.014],
+          [0.62, 1.32, 0.12, 0.015, 0.008, 0.008],
+        ] },
+      ],
+      paint(P, C) {
+        switch (P.part) {
+          case 'body': cset(C, K.black); break;
+          case 'neck': case 'head': cset(C, K.skin); cmix(C, K.gray, 0.35); break;
+          case 'leg': cset(C, K.skin); C.ro = 0.55; break;
+          case 'wcov': cset(C, K.black); break;
+        }
+        cmul(C, 0.94 + 0.1 * noise(P.x * 200, P.y * 200, P.z * 200));
+        if (P.part !== 'leg') C.ro = 0.85;
+      },
+      feathers: (rest, md) => {
+        const hen = HEN(md);
+        const plume = hen ? hex(0xC8BCAE) : K.white, plume2 = hen ? hex(0xA89A8A) : hex(0xE2DED6);
+        return {
+          tex: [256, 128], rough: 0.9,
+          list: [
+            ...(md ? WA : W).feathers,
+            // the tail: a bunch of soft plumes drooping over the rump
+            ...tailFan('tail', [0, 1.25, -0.5], 9, 0.36, 0.13, 40, -40, md ? 5 : 3, { dx: 0.08, dy: 0.03, dz: 0.02, droop: 20, taper: 0.2, curl: 0.25 }),
+          ],
+          paint(u, t, C) { const s = fract(u * FNC); vane(s, t, C, plume, plume2, plume2); },
+          babyPaint: downFeather(hex(0xB89A72), hex(0xD4BC94), hex(0x6A5038)),
+        };
+      },
+      accent: [
+        { kind: 'loft', bone: 'head', segs: 8, cap1: 2, capLen1: 0.4, col: 0xD8B898, babyCol: 0x9A8A78, keys: [
+          [0, 2.272, 0.5, 0.03, 0.012, 0.016, 2.6],
+          [0, 2.268, 0.54, 0.028, 0.009, 0.012, 2.6],
+          [0, 2.262, 0.575, 0.02, 0.006, 0.008, 2.4],
+          [0, 2.258, 0.59, 0.008, 0.004, 0.004, 2.0],
+        ] },
+        ...babyC(birdToes(foot, toes, 0xC89088, 'hpawL'), 0x9A8A78),
+      ],
+      accentRough: 0.5,
+      modelSpec: (md) => ({ anim: { wing: WA.wing }, baby: { muzzle: 0.6, fluff: 0, wing: 0.2, eye: 1.0 } }),
+      eyes: [{ bone: 'head', p: [0.038, 2.29, 0.49], r: 0.022, dir: [0.85, 0.12, 0.5], iris: 0x5A3A1E, irisR: 0.85, pupilR: 0.42, rim: 0x1A1008 }],
+      mouth: [0, 2.258, 0.59],
+      anim: {
+        type: 'bird', walk: 1.4, run: 13.0, stride: 1.15, strideMax: 3.0, duty: [0.6, 0.34], lift: 0.16, flex: 1.4, maxRate: 4,
+        bob: 0.025, waddle: 0.02, yawSway: 0.03, runPitch: 0.14,
+        neck: ['neck', 'neck2', 'neck3', 'head'], neckDist: [0.32, 0.3, 0.24, 0.14], eatPitch: 0.35, eatDrop: 0.12, eatMax: 2.6, peck: 0.08, peckRate: 1.6, eatElev: [-55, -85, -92, -80], eatY: 0.02,
+        tail: 'tail', tailWag: 0.12, wing: W.wing, canFly: false, jumpFlap: 0.6, standTail: 0.1,
+        lookAmp: 0.8, lookPeriod: 3.4, walkNeck: 0.06,
+        sleepNeck: [[0.25, 0], [0.12, 0], [0.12, 0], [0.55, 0]], sitDrop: 1.0, sleepTail: 0.1,
+        // round 16: running, its wings held half out for balance (not beating)
+        runWings: 0.55,
+      },
+      baby: { head: 1.5, muzzle: 0.6, eye: 1.12, neck: [0.4, 1.5], body: [1.12, 1.1, 0.95], leg: [0.8, 1.35], tail: 0.35, wing: 0.4, fluff: 0.02 },
+      // chick: spiky buff-brown down with dark brown stripes along the back and the neck
+      babyPaint(P, C) {
+        if (P.part === 'leg') { cset(C, hex(0x9A8A78)); return; }
+        downPaint(C, P, hex(0xC0A078), 0.12);
+        cmix(C, hex(0x5A4430), sstep(0.6, 0.9, Math.sin(P.x * 60) * 0.5 + 0.5) * sstep(0.2, 0.7, P.ny) * 0.7);
+        C.ro = 0.95;
+      },
+    };
+  };
+
+  // round 16: the Indian peafowl. The peacock: an iridescent blue neck and breast, a fan-shaped crest, a long green
+  // train of eyespot feathers (about 1.5 m) that he lifts into a huge shimmering fan to show off (spec.extend: his happy
+  // display, and now and then by himself), rufous wing feathers. The train is feather blades on 25 bones of their own
+  // (trainC, tr1L..tr12L and their R twins, children of the hips; the species' horn bones, so a chick and a peahen have
+  // none: SEX_LOOK horns 0). The peahen (peafowlf.json, "look": "peahen"): brown-gray with a green neck and a small
+  // crest. The chick: tan down. Walks a lot, flies only short hops.
+  SPEC.peafowl = () => {
+    const xL = 0.062;
+    const HEN = (md) => !!md && md.look === 'peahen';
+    const K = { blue: hex(0x1E4FB0), blueHi: hex(0x2C6CD0), green: hex(0x2E6A3A), bronze: hex(0x7A6A2A), rufous: hex(0xA4502A), buff: hex(0xC8A878), black: hex(0x1A1A18),
+      brown: hex(0x8A7158), brownDk: hex(0x5E4A38), white: hex(0xEDEAE2), leg: hex(0x8C8278) };
+    const wing = (atlas, folded, pos) => stdWing({
+      s: 1.3, sh: [0.09, 0.578, 0.12], prim: 0.9, wid: 1.15, tip: 0.5, atlas,
+      folded, foldedPos: pos,
+      featherFold: { tert: [112, 104], sec: [104, 90], prim: [96, 88] },
+      flap: { amp: 50, rate: 4.5, upFold: 0.3, twist: 10, glide: 3 },
+      cells: atlas ? { prim: 0, sec: 1, gcov: 2, lcov: 3, tert: 4, pcov: 3, mcov: 3 } : { prim: 0, sec: 1, gcov: 2, lcov: 3, tert: 4, pcov: 3 },
+    });
+    const W = wing(false, { roll: -38, yaw: 3, pitch: 8 }, [0.012, 0.0, -0.03]);
+    const WA = wing(true, { roll: -70, yaw: 0, pitch: 8 }, [0.02, 0.0, -0.03]);
+    // the train: 25 rays (bones, the centre one and 12 each side) spread a little behind, sloping down to the ground,
+    // each with a column of eyespot feathers (the eyes at the tips, staggered from one ray to the next). The display
+    // fans the rays out round a half circle (extend), so the feathers of neighbouring rays fill it between them.
+    // (roof: the middle rays slope less than the outer ones, so the train at rest is a low ridge of feathers with its
+    // outer edges on the ground, not a flat sheet: from the side it reads as a mass, not a line)
+    const TR = { y: 0.52, z: -0.27, spread: 1.1, fan: 7.1, slope: -19, roof: 0.45, n: 12 };
+    const trainSlope = (k) => TR.slope + TR.roof * (TR.n - Math.abs(k));
+    const trainName = (k) => (k ? 'tr' + Math.abs(k) + (k > 0 ? 'L' : 'R') : 'trainC');
+    const trainBones = [['trainC', 'hips', 0, TR.y, TR.z]];
+    for (let k = 1; k <= TR.n; k++) trainBones.push(['tr' + k + 'L', 'hips', 0.003 * k, TR.y, TR.z, 1]);
+    const trainBlades = () => {
+      const out = [];
+      for (let k = 0; k <= TR.n; k++) {
+        const th = trainSlope(k) * DEG, yaw = k * TR.spread, a = yaw * DEG, tips = k % 2 ? [0.54, 0.78, 1.02, 1.26, 1.5] : [0.42, 0.66, 0.9, 1.14, 1.38, 1.6];
+        tips.forEach((tip, j) => {
+          // (the shorter feathers near the body lie over the longer ones: up the train, in front of the raised fan)
+          const len = 0.36 + 0.04 * j, s = tip - len;
+          out.push({ bone: trainName(k), mirror: k > 0, base: [0.003 * k + Math.sin(a) * Math.cos(th) * s, TR.y + Math.sin(th) * s + (6 - j) * 0.003 + (k % 2) * 0.0015, TR.z - Math.cos(a) * Math.cos(th) * s],
+            yaw: (90 + yaw) * DEG, pitch: th, roll: 0, len, wid: 0.17, curl: 0.02, cell: fcell(5) });
+        });
+      }
+      return out;
+    };
+    const trainRoles = {};
+    for (let k = -TR.n; k <= TR.n; k++) trainRoles[trainName(k)] = 'horn';
+    const toes = [{ a: -30, len: 0.075, r: 0.007, claw: 0.014, clawCol: 0x5A524A }, { a: 0, len: 0.09, r: 0.0075, claw: 0.016, clawCol: 0x5A524A }, { a: 30, len: 0.072, r: 0.007, claw: 0.014, clawCol: 0x5A524A }, { a: 180, len: 0.045, r: 0.006, lift: 0.006, claw: 0.012, clawCol: 0x5A524A }];
+    const foot = [xL, 0.012, 0.01];
+    // the crest: a little fan of bare shafts with tufted tips, standing up from the crown and leaning back a little
+    const crestFan = (hen) => [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => {
+      const u = i / 4 - 1, hx = 0.5 * u, hz = 0.25, d = Math.atan2(hx, hz), p = Math.atan2(1, Math.hypot(hx, hz));
+      return { bone: 'crest', base: [u * 0.008, 0.904, 0.288], yaw: 90 * DEG + d, pitch: p, roll: 0, len: hen ? 0.026 : 0.034, wid: 0.018, curl: 0.0, cell: fcell(6) };
+    });
+    return {
+      size: { length: 1.1, height: 1.05, radius: 0.18, eyeHeight: 1.0 },
+      // round 16: the peacock's menu picture: his train up in its fan, seen from in front (a peahen and a chick: as usual)
+      icon: (R) => (R.age < 0.6 || !R.trainFan ? null : (R.trainFan(1), { size: 2.9, at: [0, 0.92, -0.25], dir: [0.35, 0.22, 1] })),
+      tex: [256, 256], rough: 0.7,
+      detail: { kind: 'feather', tile: 0.03, amt: 0.1, bump: 0.25 },
+      shell: { parts: ['body', 'head'], len: 0.008, n: 3, babyOnly: true, babyLen: 1, lean: 0.2 },
+      bones: [
+        ['hips', null, 0, 0.47, 0.0],
+        ['tail', 'hips', 0, 0.54, -0.26],
+        ['neck', 'hips', 0, 0.56, 0.2],
+        ['neck2', 'neck', 0, 0.6789, 0.25],
+        ['neck3', 'neck2', 0, 0.7977, 0.27],
+        ['head', 'neck3', 0, 0.88, 0.28],
+        ['crest', 'head', 0, 0.91, 0.29],
+        ['thighL', 'hips', xL - 0.008, 0.42, -0.01, 1],
+        ['shinL', 'thighL', xL, 0.33, 0.06, 1],
+        ['hmetaL', 'shinL', xL, 0.14, -0.03, 1],
+        ['hpawL', 'hmetaL', xL, 0.012, 0.01, 1],
+        ...trainBones,
+        ...W.bones,
+      ],
+      fur: [
+        { name: 'body', bones: ['tail', 'hips', 'neck', 'neck2', 'neck3', 'head'], blend: 0.04, segs: 14, cap0: 3, capLen0: 0.8, keys: [
+          [0, 0.55, -0.34, 0.03, 0.02, 0.02],
+          [0, 0.54, -0.26, 0.09, 0.07, 0.08],
+          [0, 0.5, -0.12, 0.14, 0.12, 0.13],
+          [0, 0.48, 0.02, 0.15, 0.13, 0.14],
+          [0, 0.5, 0.14, 0.12, 0.12, 0.12],
+          [0, 0.56, 0.21, 0.07, 0.07, 0.07],
+          [0, 0.6606, 0.25, 0.045, 0.045, 0.045],
+          [0, 0.7794, 0.27, 0.035, 0.035, 0.035],
+          [0, 0.8617, 0.275, 0.03, 0.03, 0.03],
+        ] },
+        { name: 'head', bones: ['head'], segs: 12, cap0: 3, cap1: 2, capLen1: 0.6, keys: [
+          [0, 0.885, 0.26, 0.025, 0.026, 0.024],
+          [0, 0.89, 0.29, 0.03, 0.03, 0.026],
+          [0, 0.885, 0.32, 0.022, 0.02, 0.018],
+        ] },
+        { name: 'leg', mirror: true, bones: ['thighL', 'shinL', 'hmetaL', 'hpawL'], blend: 0.01, segs: 8, cap1: 2, keys: [
+          [xL - 0.008, 0.42, 0.0, 0.045, 0.045, 0.045],
+          [xL, 0.33, 0.05, 0.035, 0.035, 0.035],
+          [xL, 0.2264, 0.01, 0.014, 0.014, 0.014],
+          [xL, 0.1324, -0.028, 0.011, 0.011, 0.011],
+          [xL, 0.0181, 0.008, 0.01, 0.01, 0.01],
+        ] },
+        { name: 'wcov', mirror: true, bones: ['wingL', 'wforeL', 'whandL'], blend: 0.02, segs: 8, cap0: 2, cap1: 2, keys: [
+          [0.09, 0.5783, 0.12, 0.025, 0.013, 0.013],
+          [0.2, 0.5783, 0.12, 0.026, 0.012, 0.012],
+          [0.32, 0.5783, 0.12, 0.02, 0.009, 0.009],
+          [0.4, 0.5783, 0.12, 0.01, 0.005, 0.005],
+        ] },
+      ],
+      paint(P, C) {
+        switch (P.part) {
+          case 'body': cset(C, K.green); cmix(C, K.blue, sstep(0.1, 0.25, P.z) * sstep(0.38, 0.52, P.y)); cmix(C, K.black, sstep(-0.4, -0.8, P.ny) * sstep(0.1, -0.05, P.z)); break;
+          case 'head': cset(C, K.blue); break;
+          case 'leg': cset(C, K.leg); C.ro = 0.6; if (P.y > 0.34) cset(C, K.buff); break;
+          case 'wcov': cset(C, K.buff); break;
+        }
+        cmul(C, 0.92 + 0.12 * noise(P.x * 300, P.y * 300, P.z * 300));
+        if (P.part !== 'leg') C.ro = 0.6;
+      },
+      feathers: (rest, md) => ({
+        tex: [256, 128], rough: 0.62,
+        list: [
+          ...(md ? WA : W).feathers,
+          // the real tail under the train (a peahen's is all there is): stiff brown feathers
+          ...tailFan('tail', [0, 0.545, -0.27], 9, HEN(md) ? 0.26 : 0.3, 0.05, 22, HEN(md) ? 8 : -6, 7, { dx: 0.03, dy: 0.01, dz: 0.01, taper: 0.15, curl: 0.04 }),
+          ...(HEN(md) ? [] : trainBlades()),
+          ...crestFan(HEN(md)),
+        ],
+        paint(u, t, C) {
+          const k = Math.floor(u * FNC), s = fract(u * FNC), e = Math.abs(s - 0.5) * 2;
+          switch (k) {
+            case 0: vane(s, t, C, K.rufous, hex(0x7A3A20), hex(0x5A2A18)); break;
+            case 1: vane(s, t, C, K.black, hex(0x2A2620), hex(0x3A3428)); break;
+            case 5: {
+              // an eyespot feather: loose bronze-green barbs, at the tip a dark blue heart in turquoise, bronze and gold rings
+              vane(s, t, C, K.green, K.bronze, K.bronze);
+              const ey = (t - 0.84) / 0.12, r = Math.sqrt(e * e * 1.4 + ey * ey);
+              cmix(C, hex(0xC8A040), sstep(1.0, 0.85, r)); cmix(C, hex(0x7A5A22), sstep(0.8, 0.7, r)); cmix(C, hex(0x2AA0A0), sstep(0.66, 0.56, r)); cmix(C, hex(0x1A2A70), sstep(0.45, 0.35, r));
+              break;
+            }
+            case 6: vane(s, t, C, hex(0x3A4A3A), hex(0x2A3A2A)); cmix(C, K.blueHi, sstep(0.75, 0.85, t)); break;
+            case 7: vane(s, t, C, K.brown, K.brownDk, K.brownDk); break;
+            default: vane(s, t, C, K.buff, K.brownDk, K.brownDk); cmix(C, K.black, sstep(0.55, 0.8, Math.sin(t * 40) * 0.5 + 0.5) * 0.6);
+          }
+        },
+        babyPaint: downFeather(hex(0xC8A878), hex(0xDCC49A)),
+      }),
+      accent: [
+        { kind: 'loft', bone: 'head', segs: 8, cap1: 2, capLen1: 0.4, col: 0x8A8072, babyCol: 0x8A7A68, keys: [
+          [0, 0.885, 0.31, 0.009, 0.008, 0.008],
+          [0, 0.882, 0.33, 0.007, 0.006, 0.006],
+          [0, 0.8773, 0.345, 0.004, 0.0035, 0.0035],
+          [0, 0.8727, 0.352, 0.0015, 0.0015, 0.0015],
+        ] },
+        ...babyC(birdToes(foot, toes, 0x8C8278, 'hpawL'), 0xB8A890),
+      ],
+      accentRough: 0.5,
+      modelSpec: (md) => ({ anim: { wing: WA.wing }, baby: { muzzle: 0.55, fluff: 0, wing: 0.15, eye: 1.0 } }),
+      eyes: [{ bone: 'head', p: [0.024, 0.8928, 0.3], r: 0.0065, dir: [0.9, 0.12, 0.38], iris: 0x2A1A10, irisR: 0.9, pupilR: 0.48, rim: 0x0A0806 }],
+      mouth: [0, 0.8727, 0.352],
+      anim: {
+        type: 'bird', walk: 0.9, run: 3.5, stride: 0.34, strideMax: 1.8, duty: [0.6, 0.42], lift: 0.05, flex: 1.2,
+        bob: 0.01, waddle: 0.03, yawSway: 0.03, headBob: 0.8,
+        // (standElev: the neck carried in a gentle S, its base leaning forward, the head held level)
+        neck: ['neck', 'neck2', 'neck3', 'head'], neckDist: [0.35, 0.3, 0.22, 0.13], standElev: [44, 80, 72, -8], eatPitch: 0.45, eatMax: 2.4, peck: 0.2, peckRate: 2.2, eatElev: [-35, -70, -85, -85], eatY: 0.025,
+        flyElev: [10, 4, 0, -10], flyPitch: 0.05,
+        tail: 'tail', tailWag: 0.12, wing: W.wing, canFly: true, flyLegs: [-0.2, -0.8, 1.6], flyFlex: 1.2, jumpFlap: 0.7, runPitch: 0.12,
+        lookPeriod: 2.0, lookRate: 6, lookAmp: 0.9,
+        sleepNeck: [[0.9, 2.6], [0.3, 0.3], [0.2, 0.1], [0.3, 0.1]], sitDrop: 0.85,
+        crest: 'crest', crestHappy: 0.15, crestFly: -0.2, crestSleep: 0.5,
+      },
+      baby: { head: 1.6, muzzle: 0.6, eye: 1.1, neck: [0.45, 1.4], body: [1.12, 1.15, 0.92], leg: [0.8, 1.25], tail: 0.25, wing: 0.4, fluff: 0.01, ear: 0.4,
+        roles: Object.assign({ crest: 'ear' }, trainRoles) },
+      // chick: tan down, paler below, darker on the back
+      babyPaint(P, C) {
+        if (P.part === 'leg') { cset(C, hex(0xB8A890)); return; }
+        downPaint(C, P, hex(0xC8A878), 0.1);
+        cmix(C, hex(0x8A6A48), sstep(0.3, 0.8, P.ny) * 0.4);
+        cmix(C, hex(0xE6D6B8), sstep(-0.3, -0.8, P.ny) * 0.5);
+        C.ro = 0.95;
+      },
+      // round 16: the peacock's display. A happy moment (a call, being petted) lifts the train into a fan for a few
+      // seconds, and he shows off now and then when he stands about; the fan shivers when it is fully up, and the real
+      // tail lifts under it. A peahen (no train) and a chick (the train bones are horn bones, scaled away) skip it.
+      extend(R, A) {
+        if (A.mid === 'peafowlf') return null;
+        const B = R.bones, tail = B.tail, hips = B.hips, q = new THREE.Quaternion(), q2 = new THREE.Quaternion(), qc = new THREE.Quaternion(), X = new THREE.Vector3(1, 0, 0);
+        const rays = [];
+        for (let k = -TR.n; k <= TR.n; k++) {
+          const b = B[trainName(k)];
+          if (!b) continue;
+          const a = k * TR.spread * DEG, th = trainSlope(k) * DEG, phi = k * TR.fan * DEG;
+          const rest = new THREE.Vector3(Math.sin(a) * Math.cos(th), Math.sin(th), -Math.cos(a) * Math.cos(th));
+          const disp = new THREE.Vector3(Math.sin(phi), Math.cos(phi), -0.3 + 0.38 * Math.abs(Math.sin(phi))).normalize();
+          rays.push({ b, q: new THREE.Quaternion().setFromUnitVectors(rest, disp), disp });
+        }
+        let k = 0, hold = 0, idleT = 0, nextT = 10 + Math.random() * 25;
+        // (the menu picture shows him displaying: spec.icon sets the fan up on its own rig)
+        R.trainFan = (f) => { for (const r of rays) r.b.quaternion.copy(q.identity().slerp(r.q, f)); if (tail) tail.rotation.x -= 1.1 * f; };
+        return (dt, st) => {
+          if ((st.happy || 0) > 0.6) hold = Math.max(hold, 4);
+          idleT = (st.idle || 0) > 3 && st.mode === 'ground' ? idleT + dt : 0;
+          if (idleT > nextT) { hold = 5 + Math.random() * 4; idleT = 0; nextT = 20 + Math.random() * 40; }
+          hold = Math.max(0, hold - dt);
+          k = damp(k, hold > 0 && st.mode === 'ground' && (st.speed || 0) < 1.2 && !((st.eat || 0) > 0.1) ? 1 : 0, hold > 0 ? 2.4 : 1.8, dt);
+          const t = st.t || 0, shiver = sstep(0.85, 1, k);
+          // (at rest the train keeps trailing on the ground when the body tips forward to eat or run)
+          qc.setFromAxisAngle(X, -hips.rotation.x * (1 - k));
+          for (const r of rays) {
+            q.identity().slerp(r.q, k).premultiply(qc);
+            if (shiver > 0.01) { q2.setFromAxisAngle(r.disp, Math.sin(t * 31 + r.disp.x * 4) * 0.03 * shiver); q.premultiply(q2); }
+            r.b.quaternion.copy(q);
+          }
+          if (tail) tail.rotation.x -= 1.1 * k;
+        };
+      },
+    };
+  };
 
   // opts.sex ('m' or 'f', round 12): a boy or a girl, with that one's own sculpt and horns where SEX_LOOK says so
   function build(id, opts) {

@@ -7,6 +7,7 @@ const canEat = (sp, type) => type === 'candy' || SPECIES[sp].eats.includes(type)
 const FOOD_OK = {};
 const foodOK = (type) => { if (FOOD_OK[type] === undefined) { try { Env.food(type); FOOD_OK[type] = true; } catch (e) { FOOD_OK[type] = false; } } return FOOD_OK[type]; };
 const UPRIGHT = { duck: 1, swan: 1, chicken: 1, owl: 1, parrot: 1, eagle: 1, chickadee: 1, cockatiel: 1 };
+for (const sp of ['flamingo', 'peafowl', 'ostrich', 'penguin', 'puffin']) UPRIGHT[sp] = 1;   // round 16
 const FEAR = { chicken: 3, duck: 4.5, swan: 3, frog: 2.5, lizard: 3, snake: 2, bunny: 5, squirrel: 4.5, turtle: 1.5, fox: 6, owl: 5, deer: 10, parrot: 4, moose: 0,
   horse: 6, pig: 3, goat: 4, otter: 4, hedgehog: 2, raccoon: 4, weasel: 4, dog: 1.5, cat: 4,
   // round 7
@@ -19,7 +20,9 @@ const FEAR = { chicken: 3, duck: 4.5, swan: 3, frog: 2.5, lizard: 3, snake: 2, b
   // round 13: they stand their ground, but fly off if something much bigger comes at them fast
   griffin: 4, wingedlion: 3,
   // round 15: zebras are wary and quick to bolt
-  zebra: 6 };
+  zebra: 6,
+  // round 16: flamingos and puffins take off at once, an ostrich runs, penguins waddle off
+  flamingo: 6, peafowl: 4, ostrich: 5, penguin: 2, puffin: 4 };
 // round 16: small and tree birds stand upright and fly off when something comes at them
 Object.assign(UPRIGHT, { cardinal: 1, bluejay: 1, hummingbird: 1, toucan: 1, snowyowl: 1 });
 Object.assign(FEAR, { cardinal: 3, bluejay: 3.5, hummingbird: 2.5, toucan: 4, snowyowl: 5 });
@@ -459,6 +462,7 @@ function poseBody(b, dt, animate) {
   // (round 14: a diver's speed is its speed through the water, up and down too)
   const st = b.st; st.t = G.t; st.speed = (b.mode === 'dive' ? Math.hypot(b.speed, b.vy) : b.speed) / b.k; st.mode = b.mode === 'perch' ? 'ground' : b.mode; st.vy = b.vy; st.eat = b.eat; st.turn = b.turn; st.idle = b.idle;
   st.sick = b.sick; st.happy = b.happy; st.swimSleep = b.mode === 'sleep' && b.sp === 'otter';
+  if (SPECIES[b.sp].slide) st.slide = b.mode === 'ground' && b.speed > b.m.walk * 1.5 && onSnow(b);   // round 16: a penguin's belly slide
   // round 11: a chameleon slowly takes on the color of what it is on: the ground under it, or bark when it is up a
   // tree. Indoors it keeps its own colors.
   if (rig.setTint) {
@@ -474,6 +478,15 @@ function poseBody(b, dt, animate) {
   rig.update(dt, st);
 }
 const tintCol = new THREE.Color();
+// round 16: on snow or ice: the snowy worlds (the Snowy Mountains, the Arctic Ocean), sea ice, a snowy zoo pen (a
+// penguin slides on its belly there when it runs)
+function onSnow(b) {
+  const w = G.world;
+  if (!w || b.room) return false;
+  if (w.id === 'snow' || w.id === 'arctic') return true;
+  if (w.iceAt && w.iceAt(b.pos.x, b.pos.z)) return true;
+  return w.id === 'land' && !!Plan.snowyAt && Plan.snowyAt(b.pos.x, b.pos.z);
+}
 
 /* ---------- the player's animal ---------- */
 const Player = {
@@ -544,7 +557,7 @@ const Player = {
     if (b.mode === 'fly') want = sp.flySpeed * mag * boost * (ill ? 0.75 : 1);
     else if (b.mode === 'swim' || b.mode === 'dive') want = (sp.swimSpeed || 1.5) * (0.6 + 0.4 * b.k) * mag * (tired ? 0.6 : ill ? 0.8 : 1) * boost;
     else if (b.mode === 'air') want = b.speed;
-    else { want = mag <= 0.6 ? walkS * (mag / 0.6) : lerp(walkS, runS, (mag - 0.6) / 0.4); if (inp.walk) want = Math.min(want, walkS); if (dash) want = Math.max(want, runS) * boost; }
+    else { want = mag <= 0.6 ? walkS * (mag / 0.6) : lerp(walkS, runS, (mag - 0.6) / 0.4); if (inp.walk) want = Math.min(want, walkS); if (dash) want = Math.max(want, runS) * boost; if (sp.slide && want > walkS * 1.5 && onSnow(b)) want *= 2.2; }   // (round 16: a penguin on its belly goes faster)
     // (round 14: a hungry diver can still come up)
     const c = { dx: inp.mx, dz: inp.mz, want, jump: inp.jump && !(tired && b.mode === 'air'), up: inp.up && (!tired || b.mode === 'dive'), down: inp.down || (tired && b.mode === 'fly'), climbV: inp.iy, around: -inp.ix, letGo: inp.letGo, climb: inp.climb, fast: dash };
     if (b.mode === 'climb' || b.mode === 'perch') { if (inp.jump && b.mode === 'perch') c.letGo = true; }
@@ -721,9 +734,10 @@ const Wild = {
       if (spec.pen) { pt = w.penPoint(spec.pen, 1); extra = { pen: spec.pen, home: { x: spec.pen.x, z: spec.pen.z }, range: Math.min(spec.pen.hw, spec.pen.hd) }; }
       else {
         // (round 14: ice: lives out on the sea ice, like a polar bear on the floes)
-        pt = aq ? this.seaPoint(w, spec.home[0], spec.home[1], 0, spec.range) : (spec.ice && w.icePoint ? w.icePoint(spec.home[0], spec.home[1], 0, spec.range) : null) || (spec.water && sp.swim ? w.ringPoint(spec.home[0], spec.home[1], 0, spec.range, true) : null) || w.ringPoint(spec.home[0], spec.home[1], 0, spec.range, false);
+        pt = aq ? this.seaPoint(w, spec.home[0], spec.home[1], 0, spec.range) : (spec.ice && w.icePoint ? w.icePoint(spec.home[0], spec.home[1], 0, spec.range) : null) || (spec.water && sp.swim ? w.ringPoint(spec.home[0], spec.home[1], 0, spec.range, true) : null) || (spec.wade ? this.wadePoint(w, spec.home[0], spec.home[1], 0, spec.range) : null) || w.ringPoint(spec.home[0], spec.home[1], 0, spec.range, false);
         extra = { home: { x: spec.home[0], z: spec.home[1] }, range: spec.range, water: !!spec.water || aq };
         if (spec.ice) extra.ice = true;
+        if (spec.wade) extra.wade = true;   // round 16
       }
       if (!pt) continue;
       extra.own = own; extra.amb = !!spec.amb;
@@ -739,6 +753,16 @@ const Wild = {
     }
   },
   remove(b) { G.scene.remove(b.rig.root); const i = this.list.indexOf(b); if (i >= 0) this.list.splice(i, 1); },
+  // round 16: a spot in shallow water (3 to 55 cm deep) inside a ring, for wading birds (flamingos: wade in a
+  // wildlife group); null if there is none
+  wadePoint(w, cx, cz, r0, r1) {
+    if (!w.def.water) return null;
+    for (let k = 0; k < 80; k++) {
+      const a = Math.random() * TAU, d = r0 + (r1 - r0) * Math.sqrt(Math.random()), x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d, h = w.H(x, z);
+      if (h > WATER - 0.55 && h < WATER - 0.03) return { x, z, h };
+    }
+    return null;
+  },
   // round 14: a spot in deep water (deeper than 1.2 m if there is one) inside a ring
   seaPoint(w, cx, cz, r0, r1) {
     let first = null;
@@ -833,6 +857,7 @@ const Wild = {
     if (b.pen) return w.penPoint(b.pen, 0.7 + b.m.radius);
     // (round 14: a polar bear out on the ice mostly walks about on the floes)
     if (b.ice && w.icePoint && !sp.aquatic && Math.random() < 0.7) { const q = w.icePoint(b.home.x, b.home.z, 0, b.range); if (q) return q; }
+    if (b.wade && Math.random() < 0.7) { const q = this.wadePoint(w, b.home.x, b.home.z, 0, b.range); if (q) return q; }   // round 16: wading birds
     const water = (b.water && sp.swim && Math.random() < 0.75) || !!sp.aquatic;   // (round 14: sea animals keep to the water)
     if (canDive(b)) b.depthF = Math.random() * 0.8;   // round 14: and a diver picks a depth to swim at
     return w.ringPoint(b.home.x, b.home.z, 0, b.range, water) || w.ringPoint(b.pos.x, b.pos.z, 1, 8, water);

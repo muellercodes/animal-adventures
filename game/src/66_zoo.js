@@ -21,6 +21,11 @@ const ZOO_LINES = {
   zebras: ['Look at the zebras!', 'Aww, a baby zebra!', 'No two zebras have the same stripes!'],
 };
 ZOO_LINES.giraffe.push('Look at the zebra stripes!');   // round 15
+// round 16: the City Zoo's flamingos and penguins, and the peafowl that roam the zoo paths
+Object.assign(ZOO_LINES, {
+  flamingos: ['Look, the flamingos are so pink!', 'That flamingo is standing on one leg!', 'It eats with its head upside down!'],
+  penguins: ['Look at the penguins waddle!', 'The penguin is sliding on its tummy!', 'Look how fast they swim!'],
+});
 const Zoos = {
   t: 0,
   max: { cityzoo: 7, petting: 4, dino: 6, safari: 7 },

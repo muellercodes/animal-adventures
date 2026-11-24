@@ -1,0 +1,70 @@
+{
+ "v": 2,
+ "id": "peafowlf",
+ "base": "peafowl",
+ "maps": {
+  "color": "peafowlf-color.webp",
+  "feather": "peafowlf-feather.webp",
+  "featherNormal": "peafowlf-feathernrm.webp"
+ },
+ "srgb": [
+  "feather"
+ ],
+ "eye": {
+  "p": [
+   0.0222,
+   0.8945,
+   0.3005
+  ],
+  "r": 0.0058,
+  "dir": [
+   0.9144,
+   0.1219,
+   0.3861
+  ],
+  "lid": [
+   0.8,
+   -0.8,
+   0.12
+  ],
+  "iris": 2759184,
+  "irisR": 0.88,
+  "pupilR": 0.46,
+  "rim": 657414,
+  "lidCol": 8284756,
+  "babyLidCol": 9071176
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "neck2",
+   0.5
+  ],
+  "babyAt": 0.5,
+  "hug": true,
+  "babyK": 1.8,
+  "lift": 0.35
+ },
+ "mouth": [
+  0.0,
+  0.8736,
+  0.352
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.12,
+  0.12,
+  0.12
+ ],
+ "flat": 8284756,
+ "look": "peahen"
+}
