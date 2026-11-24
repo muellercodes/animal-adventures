@@ -4,8 +4,8 @@
 # giraffe: a trunk loft with the hump on it, a neck sweep, the head as a loft in its own frame, leg sweeps.
 # Shape: a deep chest with the chest pad, a tucked-up waist, one round hump over the middle of the back, the rump
 # sloping to a short tail with a tuft; a long neck dipping down from the shoulders and curving up to the head; a narrow
-# head with a rounded skull, heavy brows over big hooded eyes, small round ears, a long muzzle with slit nostrils, a
-# split upper lip and a droopy lower lip; long thin legs with knobby knees (with calluses) and hocks, wide flat padded
+# head with a rounded skull, heavy brows over big hooded eyes, small round ears, a long Roman-nosed muzzle with slit
+# nostrils, a deeply split upper lip and a droopy lower lip (round 16b); long thin legs with knobby knees (with calluses) and hocks, wide flat padded
 # feet with two toes and small nails. Long hair on the hump, the shoulders and the throat; the tail tuft.
 # Paint: sandy tan, browner over the hump, the neck and the shoulders, cream below, gray-brown lips, dark calluses and
 # soles. The calf: woolly and pale (its own color map and fur shells on babies only), a tiny hump (baby offsets).

@@ -559,6 +559,15 @@ flight pose with the wings spread flat in the plane of the arm (y = `YM`). Thing
   It found both bugs above faster than renders did.
 - Pups: the game gives them a bigger head and eyes and short wings (`baby.wing`); `baby_paint` makes them gray with a
   pale wash where the ruff will be, and the fur shells are longer.
+- Round 16b (re-sculpt): a flying fox's face instead of a ball with eyes stuck on: a narrower, lower cranium and a
+  long tapering muzzle (`HEAD`, the nose at `NOSE_S` 0.086), smaller eyes (5.3 mm) set back into the skull at the stop
+  under a brow ridge (`BROW`), bigger pointed ears (2.6 cm), a warmer brown iris. The arm wing's trailing edge meets the
+  flank at the hip (`_outline()`); it ran on behind the rump, and that part (on the hips) stuck out as a flat point when
+  the wing folded. In the game (`BAT` in 40_animals.js): folded, the fingers lie back along the forearm toward the
+  elbow and shrink toward the wrist in the wing plane (`BAT.fscl`, read by `wingPose` only when the wing has `fscl`), as
+  a real bat folds its long phalanges, so the folded hand ends by the elbow instead of standing out past the rump as a
+  blade; hanging asleep they fan out and shrink less, so the wings still wrap the body; the arm wing's own bones fold
+  down along the flank (`BAT.plag`, `sc` 0.25).
 
 The butterfly and the caterpillar (round 10) are procedural (no Blender files): see `SPEC.butterfly`,
 `SPEC.caterpillar` and their animators in `40_animals.js`.
@@ -620,6 +629,14 @@ A dromedary at full size: 3.0 m from the lips to the rump, 1.9 m at the shoulder
   long legs, a short body, a shorter neck) with `modelSpec.baby.eye` 1.0 (the sculpted sockets grow with the head).
   Its closed lids get their own color (`babyLidCol` from `paint_baby` round the eye in `stats()`): with the adult's
   they showed as brown balls on the pale calf. The gecko hatchling does the same.
+- Round 16b (re-sculpt; the head read as a llama's or a sheep's): a longer face with a convex (Roman) nose (`HEAD`:
+  a high forehead between the brows, a shallow dip in front of the eyes, the arch of the nose), a narrower muzzle with
+  the bridge pinched in above the lips, the upper lip in two lobes with a deep split down its front, longer slit
+  nostrils (`NOSE_C`), the lower lip part of the jaw instead of a lump; the brow ridge a shelf over each eye (lower and
+  further forward, blended in wide), longer lashes (24, 3.4 cm), the ears smaller and held back. Coat: broad warmer and
+  paler patches and a sun-bleached back (`K['warm']`), and long hair in strokes (`_shag_strands()`, `U.strands` on the
+  `shag` mask: the hump, the withers and shoulders, the throat, the upper legs) in the color, dark tips over paler
+  roots, and in the height field.
 
 
 ## Round 11: the leopard gecko (`gecko.py`)
@@ -781,6 +798,12 @@ normal map (WebP 56), 512 x 256 calf map: 42 KB mesh + 69 + 8 + 2 KB, 124 KB of 
 about 56 KB of icons (42 KB of PNG: the male with his tusk, framed by `SPEC.narwhal.icon`; the girl; the calf) and 22 KB
 of code, about 244 KB in all. Texture memory: about 10 MB with mipmaps on a computer, about 2.8 MB on a phone (the color and normal maps
 capped at 512).
+
+Round 16b re-sculpts (the same settings and map sizes as before, so the same texture memory; about 6 minutes each
+on the shared machine): fruit bat (`VOXEL=0.002 TRIS=6500 TEX=768`) 6.5k triangles, 93 KB of files (89 KB before);
+camel (`VOXEL=0.008 TRIS=3700 TEX=768 WEIGHTS=transfer`) 7.2k triangles, 84 KB (83 KB); narwhal (`VOXEL=0.007 TRIS=4300
+WEIGHTS=transfer TEX=768`) 6.6k triangles, 113 KB (124 KB: the fine speckles compress better than the blotches; the
+mesh is 1.6 KB bigger with the calf's baby offsets).
 
 Manatee (round 15, `VOXEL=0.005 TRIS=4600 WEIGHTS=transfer TEX=1024`, about 5 minutes on the shared machine): 7.0k
 triangles (about 8.2k in the game with the 570 triangles of lip bristles and the eyes); 1024 color map (WebP 70; a dark,
@@ -1586,6 +1609,13 @@ VOXEL=0.007 TRIS=4300 WEIGHTS=transfer TEX=768 BLENDER_PY=... python3 tools/blen
 - The calf has its own small map (`paint_baby`: a plain slate blue-gray, paler underneath), doubled side by side in
   `extra_maps()` for the two-sided material; its shape is the game's baby maps (`SPEC.narwhal.baby`: a bigger head,
   a blunter melon, a shorter body, `noDrop`).
+- Round 16b: the mottling is fine speckles instead of big blotches (`_mottle()`: ragged spots at three sizes, about 1 to
+  6 cm, how many and how big by `_density`: they run together over the back and the head into a dark mottling with pale
+  flecks, thin out down the flanks and leave the belly nearly clear), the mouth line painted fainter. The calf's head is
+  small and round, not a sperm whale calf's square one: `baby_offset()` lowers the top of the head in front of the
+  blowhole into a sloping forehead and a rounder, lower melon (up to 9 cm), and its baby maps no longer blunt the melon
+  or enlarge the head (`SPEC.narwhal.baby`: head 1.02, muzzle 1.0, body 0.88 long). The sculpt is unchanged. The
+  manatee (made from this file) does not import it.
 - No collar: `meta()` has no collar place, so the game makes none (no `ctag` bone, `setCollar` does nothing,
   `leashWorld` is null).
 - In the game (`SPEC.narwhal`, `animWhale` in 40_animals.js, `anim.type 'whale'`): up-and-down fluke strokes with a wave

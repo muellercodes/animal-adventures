@@ -1,7 +1,7 @@
 # A fruit bat (a flying fox, round 10), sculpted as a signed distance field around the game's bat skeleton
 # (tools/blender/work/bat-rig.json). Units are meters in game rig space (x left, y up, z forward, ground at y = 0).
 # Built in its flight pose, wings spread: about 30 cm from nose to rump, 1.15 m across the wings. A fox-like head with
-# a pointed muzzle, a black nose, big dark eyes and small pointed ears; a golden ruff over the neck and shoulders on a
+# a long pointed muzzle, a black nose, dark eyes set in under a brow and pointed ears (round 16b); a golden ruff over the neck and shoulders on a
 # dark brown body; short hind legs with hooked claws. Each wing is the arm (humerus, forearm, a thumb with a claw at
 # the wrist) and four long fingers (the 2nd to the 5th) with the thin leathery membrane between them, the arm, the
 # body and the leg. The membranes are skinned to the arm, finger, body and leg bones (fix_weights), so they stretch

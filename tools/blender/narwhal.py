@@ -10,8 +10,8 @@
 # to the tail stock; short round flippers with their tips curling up; flukes that look put on backward (the trailing
 # edge bulges back, with a deep notch in the middle, and the tips sweep forward).
 # Skin: smooth and wet (a faint height field: fine creases behind the head and at the flippers, a few old scratches).
-# Paint: mottled, dark gray to black spots and blotches on gray-white, darkest and densest on the back and the head,
-# the belly pale with few spots, the flukes and flippers dark edged; the spots differ from side to side (SIDES, as the
+# Paint: fine dark gray to black speckles on gray-white (round 16b; they were big blotches), running together on the
+# back and the head, the belly pale with few spots, the flukes and flippers dark edged; the spots differ from side to side (SIDES, as the
 # cow). The calf has its own color map (paint_baby): a plain slate blue-gray, paler underneath, no spots.
 # Make it with: VOXEL=0.008 TRIS=5600 TEX=768 BLENDER_PY=... python3 tools/blender/make.py narwhal
 import numpy as np
