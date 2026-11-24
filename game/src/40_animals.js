@@ -11838,6 +11838,8 @@ const Animals = (() => {
     });
     return {
       size: { length: 1.1, height: 1.05, radius: 0.18, eyeHeight: 1.0 },
+      // round 16: the peacock's menu picture: his train up in its fan, seen from in front (a peahen and a chick: as usual)
+      icon: (R) => (R.age < 0.6 || !R.trainFan ? null : (R.trainFan(1), { size: 2.9, at: [0, 0.92, -0.25], dir: [0.35, 0.22, 1] })),
       tex: [256, 256], rough: 0.7,
       detail: { kind: 'feather', tile: 0.03, amt: 0.1, bump: 0.25 },
       shell: { parts: ['body', 'head'], len: 0.008, n: 3, babyOnly: true, babyLen: 1, lean: 0.2 },
@@ -11975,6 +11977,8 @@ const Animals = (() => {
           rays.push({ b, q: new THREE.Quaternion().setFromUnitVectors(rest, disp), disp });
         }
         let k = 0, hold = 0, idleT = 0, nextT = 10 + Math.random() * 25;
+        // (the menu picture shows him displaying: spec.icon sets the fan up on its own rig)
+        R.trainFan = (f) => { for (const r of rays) r.b.quaternion.copy(q.identity().slerp(r.q, f)); if (tail) tail.rotation.x -= 1.1 * f; };
         return (dt, st) => {
           if ((st.happy || 0) > 0.6) hold = Math.max(hold, 4);
           idleT = (st.idle || 0) > 3 && st.mode === 'ground' ? idleT + dt : 0;
