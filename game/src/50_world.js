@@ -471,18 +471,26 @@ const World = (() => {
       const n1 = makeNoise(seed), n2 = makeNoise(seed + 1), n3 = makeNoise(seed + 2), n4 = makeNoise(seed + 3);
       const c = { g1: P(0x34582a), g2: P(0x46703a), soil: P(0x6b4a2c), litter: P(0x5a3a20), sand: P(0xc0a66a), mud: P(0x3a2e1e) };
       const xc = (z) => 30 * Math.sin(z * 0.013) + 12 * Math.sin(z * 0.035 + 2) + 48;
-      const ford = (z) => { const u = ((z + 50) % 120 + 120) % 120; return gauss(Math.min(u, 120 - u), 8); };
+      // round 15: manatee. The dry fords that land animals cross by are 240 m apart (they were 120), so a manatee has
+      // long stretches of river to swim in
+      const ford = (z) => { const u = ((z + 50) % 240 + 240) % 240; return gauss(Math.min(u, 240 - u), 8); };
       const LAG = { x: -50, z: 45, r: 17 };
+      // round 15: manatee. The river and the lagoon are deeper in the middle (about 3.3 m), for a manatee to dive in:
+      // the bed below 0.6 m under the water sinks further, smoothly, so the banks, the shallows and everything above
+      // the water stay as they were (soft: the extra depth, 0 at 0.6 m and rising smoothly from there)
+      const soft = (u) => u + 0.3 * (1 - Math.exp(u / 0.3));
       function H(x, z) {
         let h = 2 + 9 * (fbm(n1, x * 0.008, z * 0.008, 4) * 0.5 + 0.5) + 1.5 * n2(x * 0.04, z * 0.04);
         const d = Math.abs(x - xc(z)), deep = lerp(-1.8, 0.3, ford(z));
         h = lerp(h, deep, 1 - smooth((d - 6) / 10));
         if (ring(x, z) < CORE + 20) h = water(n4, h, x, z, LAG, -2.2);
+        if (h < -0.6) { const lag = Math.hypot(x - LAG.x, z - LAG.z) < LAG.r * 1.6; h += (lag ? 1.2 / 1.3015 : 1.5 / 0.9055) * soft(h + 0.6); }
         return h;
       }
       const clear = (x, z) => Math.hypot(x + 8, z + 8) > 10;
       return {
         name: 'Jungle', blurb: 'Giant leaves, palm trees, parrots, a long river and lagoons.', spawn: [-8, -8],
+        seaSpawn: [xc(10), 10],   // round 15: manatee: where an animal of the river starts, in deep water near the spawn
         H, fog: [24, 140], water: { color: 0x4a7a6a, deep: 0x16322a }, people: 0,
         grassH: [0.12, 0.28], grassTint: [0.25, 0.33, 0.5, 0.8], flowerColors: [0xff3b6b, 0xffb020, 0xb44cf0, 0xff6a3d, 0xffffff],
         // round 11: a real jungle floor: brown leaf litter with mossy green patches and undergrowth
@@ -522,9 +530,13 @@ const World = (() => {
           ...SP7([{ sp: 'tiger', n: 2, kids: 1, home: [-40, -60], range: 45 }, { sp: 'ocelot', n: 2, home: [10, 60], range: 35 },
             { sp: 'iguana', n: 3, home: [xc(20) - 10, 20], range: 25 }, { sp: 'chameleon', n: 3, home: [-20, 10], range: 30 },
             { sp: 'komodo', n: 2, kids: 1, home: [LAG.x - 10, LAG.z + 25], range: 30 }]),
+          // round 15: manatee. A mother with her calf in the river by the spawn, another one in the next stretch up the
+          // river, and two in the lagoon (they keep to deep water, divers' code in 60_actors)
+          ...SP7([{ sp: 'manatee', n: 1, kids: 1, home: [xc(75), 75], range: 45, water: true }, { sp: 'manatee', n: 1, home: [xc(-170), -170], range: 45, water: true },
+            { sp: 'manatee', n: 2, home: [LAG.x, LAG.z], range: 12, water: true }]),
         ],
         ambient: [{ sp: 'parrot', w: 4 }, { sp: 'lizard', w: 3 }, { sp: 'frog', w: 2 }, { sp: 'snake', w: 2 }, { sp: 'turtle', w: 1, water: true }, { sp: 'otter', w: 1, water: true }],
-        foods: { berries: 4, apple: 3, worm: 3, grass: 1, smallfish: 2, fish: 2, banana: 4, bugs: 3, twigs: 2, watermelon: 1, mushroom: 1, meat: 1, lettuce: 1 },
+        foods: { berries: 4, apple: 3, worm: 3, grass: 1, smallfish: 2, fish: 2, banana: 4, bugs: 3, twigs: 2, watermelon: 1, mushroom: 1, meat: 1, lettuce: 1, waterplants: 2 },   // (round 15: manatee: water plants in the river and the lagoon)
         walk: [],
       };
     },
@@ -2893,6 +2905,9 @@ const World = (() => {
     };
     w.foodPoint = (type, cx, cz, r0, r1) => {
       const spotType = SPOT_FOOD[type];
+      // round 15: manatee. Water plants (plant): eelgrass on the bottom of deep water, or a mat of water lettuce floating
+      // at the surface (in the Jungle's river and lagoon, the only world that has them)
+      if (FOODS[type].plant) { const p = w.ringPoint(cx, cz, r0, r1, true); if (!p) return null; const bed = p.h < WATER - 1.2 && Math.random() < 0.55; return { x: p.x, z: p.z, y: bed ? p.h : WATER - 0.03 }; }
       if (FOODS[type].water && def.sea) { const p = w.ringPoint(cx, cz, r0, r1, true), y = p && seaFishY(p.x, p.z); return y !== null && y !== undefined ? { x: p.x, z: p.z, y } : null; }
       if (FOODS[type].water) { const p = w.ringPoint(cx, cz, r0, r1, true); return p ? { x: p.x, z: p.z, y: WATER - 0.22 - Math.random() * 0.15 } : null; }
       if (URBAN[type]) return urbanPoint(type, cx, cz, r0, r1);

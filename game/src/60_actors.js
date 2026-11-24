@@ -95,6 +95,12 @@ function iceLeap(b, w, lim) {
    without it has no ice to dive under). A diver's root is at the bottom of its body, like every animal's. */
 const canDive = (b) => !!SPECIES[b.form || b.sp].dive;
 const isAquatic = (sp) => !!(SPECIES[sp] && SPECIES[sp].aquatic);
+// round 15: manatee. An animal that lives in the water lives in one world: SPECIES[sp].waters names it (the manatee: the
+// Jungle, in its river), else it is the sea world (the narwhal). homeWaters(sp): that world's id; livesIn(sp, id): can
+// it be in world id (every other animal can be anywhere); waterWords(sp): where it lives, for the Map and the toasts
+const homeWaters = (sp) => (SPECIES[sp] && SPECIES[sp].waters) || seaWorld();
+const livesIn = (sp, id) => !isAquatic(sp) || (SPECIES[sp].waters ? SPECIES[sp].waters === id : !!(World.META[id] && World.META[id].sea));
+const waterWords = (sp) => (SPECIES[sp].waters && World.META[SPECIES[sp].waters] ? `live in the ${World.META[SPECIES[sp].waters].name} river` : 'live in the sea');
 const Dive = {
   // how far a diver keeps its body off the sea floor and the ice
   clr(b) { return 0.08 + b.m.height * 0.12; },
@@ -140,7 +146,7 @@ const Dive = {
 // surface a while and take a new breath.
 function surfaced(b) {
   // (not again and again when it bobs up and down at the edge of the ice)
-  if (!(b.blowAt > G.t - 4)) { b.blowAt = G.t; Blow.puff(b); }
+  if (!(b.blowAt > G.t - 4)) { b.blowAt = G.t; Blow.puff(b); }   // (round 15: a manatee's puff is only its breath, Blow.puff)
   b.air = 20 + Math.random() * 35; b.restT = 2.5 + Math.random() * 5; b.depthF = Math.random() * 0.8; b.steerT = 0;
 }
 const Blow = {
@@ -150,6 +156,7 @@ const Blow = {
     const d = Math.hypot(b.pos.x - cam.position.x, b.pos.z - cam.position.z);
     if (G.sound && G.sound.blow && (!Player.b || Player.b.room === b.room)) G.sound.blow(b, cam.position, G.camYaw || 0);
     if (d > 70 || b.room) return;
+    if (SPECIES[b.sp].blow === false) return;   // round 15: manatee (blow: false): a quiet breath and no mist
     if (!this.pool.length) for (let i = 0; i < 6; i++) {
       const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: Env.glowTexture, color: 0xf2f6fa, transparent: true, opacity: 0, depthWrite: false }));
       s.visible = false; s.renderOrder = 4; G.scene.add(s); this.pool.push({ s, t: 9, life: 1 });
@@ -1587,7 +1594,10 @@ const Foods = {
     const kind = this.kindOf(type), obj = kind.still ? new THREE.Object3D() : Env.food(type);
     const f = { type, x, y, z, obj, inst: kind.still, gift: !!gift, edible: false, glow: null, phase: Math.random() * TAU };
     obj.position.set(x, y, z); obj.rotation.y = Math.random() * TAU;
-    if (FOODS[type] && FOODS[type].water) {
+    // round 15: manatee. Water plants (plant: true) stay where they grow; the ones on the river bottom are deep (they
+    // glow only for an animal that can dive down to them)
+    if (FOODS[type] && FOODS[type].plant) { f.plant = true; f.deep = y < WATER - 0.6; const wp = obj.userData.wp; if (wp) { if (wp.mat) wp.mat.visible = !f.deep; if (wp.bed) wp.bed.visible = f.deep; } }
+    else if (FOODS[type] && FOODS[type].water) {
       const a = Math.random() * TAU;
       f.fish = { cx: x, cz: z, r: 0.8 + Math.random() * 1.6, a, w: (Math.random() < 0.5 ? -1 : 1) * (0.25 + Math.random() * 0.3) };
       // round 14: in the sea, fish swim at any depth (50_world foodPoint); a deep one keeps off the sea floor and the ice
@@ -1679,7 +1689,7 @@ const Foods = {
     }
     const weights = Object.entries(w.def.foods).filter(([t, n]) => n > 0 && foodOK(t));
     const outdoors = this.list.filter((f) => !f.bowl && f.x < World.ROOM_X - 20);
-    const land = outdoors.filter((f) => !f.fish).length, fish = outdoors.length - land;
+    const land = outdoors.filter((f) => !f.fish && !f.plant).length, fish = outdoors.length - land;   // (round 15: water plants count with the fish)
     const sp = SPECIES[P.form || P.sp];
     let added = 0;
     for (let k = 0; k < 12 && added < maxAdd; k++) {

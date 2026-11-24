@@ -1653,3 +1653,104 @@
   }
   Env.addFood('squid', foodSquid, { setup: setupSquid, update: updateSquid });
 })();
+
+/* ---------- round 15: manatee. Water plants (the Jungle's river and lagoon), the manatee's favorite food ----------
+   Env.food('waterplants') has two looks in one group; 60_actors shows the one that fits where it grows (userData.wp):
+     wpMat  a floating mat of water lettuce (Pistia): five rosettes of thick, velvety, pale green spatula leaves with
+            deep parallel ridges fanning out from the middle, the outer leaves lying flat on the water and the inner ones
+            standing up, and bunches of dark feathery roots hanging down into the water (about 45 cm across). Its
+            origin is at the surface (it is set 3 cm under it, so the rosettes float), the roots reach 20 cm down.
+     wpBed  a tuft of eelgrass on the river bottom: two dozen long narrow ribbons, dark green going olive and brown at
+            the tips, rising from the mud and curving over, up to 70 cm long. Its origin is on the bottom.
+   The mat bobs and turns slowly; the eelgrass sways in the current. ---------- */
+(() => {
+  const K = Env._k;
+  const { TAU, V3, clamp, lerp, smooth, rng, L, mixc, mulc, prep, merge, soup, path, tube, mat } = K;
+  const DS = THREE.DoubleSide;
+  // the leaf skin: u across the leaf, v from the base (0) to the tip (0.86); ridges fanning out from the base, darker
+  // grooves between them, the velvet paler toward the rounded tip
+  const leafSkin = () => K.skinTex('f15wpLeaf', 128, 128, (u, v) => {
+    const t = clamp(v / 0.86, 0, 1), x = (u - 0.5) * 2;
+    const fan = x / (0.25 + 0.75 * t);
+    const rid = Math.cos(fan * Math.PI * 5.5), gro = smooth(0.55, 1, -rid);
+    let c = K.mixRGB([150, 190, 98], [196, 222, 140], smooth(0.2, 0.95, t) * 0.8);
+    c = K.mixRGB(c, [96, 136, 62], gro * (0.55 + 0.25 * t));
+    c = K.mixRGB(c, [218, 234, 170], smooth(0.6, 1, rid) * 0.35 * t);
+    // a faint fuzz of velvet hairs, and the edge a little darker
+    const n = Math.sin(u * 377 + Math.sin(v * 91) * 3) * Math.sin(v * 311 + u * 57);
+    c = K.mulRGB(c, 0.96 + 0.06 * n);
+    return K.mixRGB(c, [110, 146, 70], smooth(0.8, 1, Math.abs(x) / Math.max(0.2, 0.3 + 0.7 * Math.sin(Math.PI * Math.min(1, t * 1.1)))) * 0.5);
+  });
+  function rosette(S, r, cx, cz, size, rot) {
+    const n = 9 + ((r() * 4) | 0);
+    for (let i = 0; i < n; i++) {
+      const inner = i / n, a = rot + i * 2.4 + (r() - 0.5) * 0.3, d = new V3(Math.cos(a), 0, Math.sin(a)), side = new V3(-d.z, 0, d.x);
+      const len = size * (0.11 - 0.045 * inner) * (0.85 + r() * 0.3), wid = len * (0.62 + r() * 0.12);
+      const lift = lerp(0.12, 1.05, inner) + (r() - 0.5) * 0.15;   // outer leaves lie flat, inner ones stand up
+      const NV = 5, NU = 6;
+      const P = (t, s) => {
+        // along: up at the lift angle, flattening out toward the tip; across: cupped up at the edges, a wavy rim
+        const ang = lift * (1 - 0.55 * t), along = len * t;
+        const w = wid * 0.5 * Math.pow(Math.sin(Math.PI * 0.5 * Math.min(1, t * 1.25)), 1.3) * (1 - 0.35 * Math.pow(Math.max(0, t - 0.75) / 0.25, 2)) + 0.003;
+        const cup = Math.abs(s) * Math.abs(s) * w * 0.35 + Math.sin(s * 3 + t * 5 + a) * 0.002 * t;
+        const p = new V3(cx + size * 0.008 * d.x, 0.035 + inner * 0.012 * size, cz + size * 0.008 * d.z);
+        p.addScaledVector(d, Math.cos(ang) * along * 0.9); p.y += Math.sin(ang) * along * 0.75 + cup;
+        p.addScaledVector(side, s * w);
+        return p;
+      };
+      const uv = (t, s) => [0.5 + s * 0.5, t * 0.86];
+      const sh = (t) => { const g = 0.82 + 0.18 * t + 0.08 * inner; return [g, g, g]; };
+      for (let j = 0; j < NV; j++) for (let k = 0; k < NU; k++) {
+        const t0 = j / NV, t1 = (j + 1) / NV, s0 = (k / NU) * 2 - 1, s1 = ((k + 1) / NU) * 2 - 1;
+        S.quad(P(t0, s0), P(t1, s0), P(t1, s1), P(t0, s1), sh(t0), sh(t1), sh(t1), sh(t0), uv(t0, s0), uv(t1, s0), uv(t1, s1), uv(t0, s1));
+      }
+    }
+  }
+  function foodWaterplants() {
+    const r = rng(1507);
+    // the mat: five rosettes, the biggest in the middle
+    const S = soup(), roots = [];
+    const spots = [[0, 0, 1.25], [0.15, 0.07, 0.95], [-0.12, 0.12, 0.85], [-0.07, -0.15, 1.0], [0.12, -0.13, 0.75]];
+    for (const [x, z, s] of spots) {
+      rosette(S, r, x, z, s, r() * TAU);
+      // the roots: a bunch of dark feathery strands hanging down, swept a little one way by the water
+      for (let k = 0; k < 7; k++) {
+        const a = r() * TAU, rr = 0.012 * s * r(), len = (0.1 + r() * 0.12) * s;
+        const top = new V3(x + Math.cos(a) * rr, 0.03, z + Math.sin(a) * rr), sw = new V3(0.03 + r() * 0.03, 0, (r() - 0.5) * 0.04);
+        const pts = path([top, top.clone().add(new V3(sw.x * 0.3, -len * 0.5, sw.z * 0.3)), top.clone().add(new V3(sw.x, -len, sw.z))], 5);
+        roots.push(tube(pts, (i, t) => 0.0022 * (1 - t * 0.6) * s, { radial: 4, color: (t) => mixc(L(0x6a5a3e), L(0x2a2418), t) }));
+      }
+    }
+    const plain = (g) => K.mapUV(prep(g), () => K.PLAIN);
+    const matG = merge([S.geo(true), ...roots.map(plain)]);
+    // the eelgrass: ribbons rising from a clump on the bottom, curving over, each its own way, twisting a little
+    const E = soup();
+    for (let i = 0; i < 26; i++) {
+      const a = r() * TAU, rr = Math.sqrt(r()) * 0.07, bx = Math.cos(a) * rr, bz = Math.sin(a) * rr;
+      const len = 0.3 + r() * 0.4, wid = 0.008 + r() * 0.005, lean = 0.25 + r() * 0.6, tw = (r() - 0.5) * 2.4, dir = (r() - 0.5) * 1.2, tone = r();
+      const fx = Math.cos(dir), fz = Math.sin(dir), N = 7;
+      const at = (t) => { const ben = lean * t * t; return new V3(bx + fx * Math.sin(ben) * len * t * 0.9, Math.cos(ben * 0.8) * len * t, bz + fz * Math.sin(ben) * len * t * 0.9); };
+      const sd = (t) => { const th = a + tw * t; return new V3(Math.cos(th), 0, Math.sin(th)).multiplyScalar(wid * 0.5 * (1 - 0.5 * Math.pow(t, 3))); };
+      const col = (t) => { let c = mixc(L(0x2c4a1e), L(0x5a6a2a), t); c = mixc(c, L(0x7a6a3a), smooth(0.6, 1, t) * (0.3 + 0.5 * tone)); return mulc(c, 0.8 + 0.4 * tone); };
+      for (let j = 0; j < N; j++) {
+        const t0 = j / N, t1 = (j + 1) / N, p0 = at(t0), p1 = at(t1), s0 = sd(t0), s1 = sd(t1);
+        E.quad(p0.clone().sub(s0), p1.clone().sub(s1), p1.clone().add(s1), p0.clone().add(s0), col(t0), col(t1), col(t1), col(t0), K.PLAIN, K.PLAIN, K.PLAIN, K.PLAIN);
+      }
+    }
+    const m = mat('f15wp', { std: true, roughness: 0.62, side: DS, map: leafSkin() });
+    return [{ geo: matG, mat: m, name: 'wpMat' }, { geo: E.geo(false), mat: m, name: 'wpBed' }];
+  }
+  function setupWaterplants(root) {
+    const mt = root.getObjectByName('wpMat'), bd = root.getObjectByName('wpBed');
+    if (bd) bd.castShadow = false;
+    root.userData.wp = { mat: mt, bed: bd };
+    root.userData.anim = true;
+  }
+  function updateWaterplants(root, t) {
+    const q = root.userData.wp; if (!q) return;
+    const ph = root.userData.phase || 0;
+    if (q.mat && q.mat.visible) { q.mat.position.y = Math.sin(t * 1.1 + ph) * 0.006; q.mat.rotation.y = Math.sin(t * 0.13 + ph) * 0.4; q.mat.rotation.z = Math.sin(t * 0.9 + ph * 2) * 0.03; }
+    if (q.bed && q.bed.visible) { q.bed.rotation.z = Math.sin(t * 0.8 + ph) * 0.07 - 0.04; q.bed.rotation.x = Math.sin(t * 0.63 + ph * 1.7) * 0.05; }
+  }
+  Env.addFood('waterplants', foodWaterplants, { setup: setupWaterplants, update: updateWaterplants });
+})();

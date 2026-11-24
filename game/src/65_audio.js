@@ -261,6 +261,11 @@ const Sound = (() => {
       // round 14: narwhal: a train of clicks speeding up into a buzz, then a whistle that rises and falls; a calf's
       // softer, higher squeaks
       case 'narwhal': if (k > 1) { for (let i = 0; i < 3; i++) T({ t: t + i * 0.17, f: 2500 + i * 180, f2: 3300 + i * 140, dur: 0.1, a: 0.015, type: 'sine', vib: 24, vibAmt: 90, vol: vol * 0.3 }); } else { let tc = t; for (let i = 0; i < 12; i++) { noise({ t: tc, f: 3800, q: 5, dur: 0.012, vol: vol * 0.55, pan }); tc += 0.06 * Math.pow(0.82, i) + 0.012; } T({ t: t + 0.55, f: 1400, f2: 2500, dur: 0.38, a: 0.04, type: 'sine', vib: 9, vibAmt: 70, vol: vol * 0.42 }); T({ t: t + 0.92, f: 2500, f2: 1250, dur: 0.5, a: 0.02, type: 'sine', vib: 7, vibAmt: 55, vol: vol * 0.38 }); } break;
+      // round 15: manatee: soft chirps and squeaks, the way a mother and her calf call to each other (short rising and
+      // falling whistles with a squeaky edge); a calf's are higher and thinner
+      case 'manatee': { const c = [[0, 2900, 3700, 0.13], [0.2, 3500, 2700, 0.16], [0.52, 3100, 4000, 0.1], [0.68, 3900, 3300, 0.18]]; const n = k > 1 ? 3 : 4;
+        for (let i = 0; i < n; i++) { const [dt, f, f2, d] = c[i]; T({ t: t + dt * (k > 1 ? 0.8 : 1), f: f * (k > 1 ? 1.25 : 1), f2: f2 * (k > 1 ? 1.25 : 1), dur: d, a: 0.02, type: 'sine', vib: 22, vibAmt: 120, vol: vol * 0.32 }); T({ t: t + dt * (k > 1 ? 0.8 : 1), f: f * 2.01 * (k > 1 ? 1.25 : 1), f2: f2 * 2.01 * (k > 1 ? 1.25 : 1), dur: d * 0.8, a: 0.02, type: 'triangle', vol: vol * 0.05 }); }
+        break; }
     }
   }
 
@@ -359,6 +364,8 @@ const Sound = (() => {
       const dx = b.pos.x - camPos.x, dz = b.pos.z - camPos.z, d = Math.hypot(dx, dz);
       if (d > 45) return;
       const pan = clamp((dx * -Math.cos(camYaw) + dz * Math.sin(camYaw)) / Math.max(1, d), -0.9, 0.9), v = clamp(0.12 + b.m.height * 0.15, 0.1, 0.35) / (1 + d / 10), t = now();
+      // round 15: manatee (blow: false): a quiet breath through the nostrils, a soft huff out and a short draw in
+      if (SPECIES[b.sp] && SPECIES[b.sp].blow === false) { noise({ t, f: 900, f2: 500, q: 0.7, dur: 0.32, a: 0.04, vol: v * 0.4, pan }); noise({ t: t + 0.42, f: 1300, f2: 1700, q: 0.8, dur: 0.38, a: 0.12, vol: v * 0.22, pan }); return; }
       noise({ t, f: 1500, f2: 650, q: 0.6, dur: 0.55, a: 0.03, vol: v, pan });
       noise({ t, f: 420, type: 'lowpass', dur: 0.4, a: 0.02, vol: v * 0.6, pan });
     },

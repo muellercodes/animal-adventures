@@ -222,6 +222,15 @@ SHOP.push('camel');
 SHOP.push('gecko');
 // round 14: narwhal
 SHOP.push('narwhal');
+// round 15: manatee
+// An Amazonian manatee: a slow diver that lives only in the Jungle's river (waters: the world it lives in, instead of
+// the sea world; blow: false, it comes up with a quiet breath and no puff of mist). Water plants are its favorite: water
+// lettuce floating in mats and eelgrass on the river bottom (38_food draws them; plant: they grow in one place and do
+// not swim about like fish).
+FOODS.waterplants = { name: 'Water plants', water: true, plant: true };
+SPECIES.manatee = { name: 'Manatee', many: 'Manatees', eats: ['lettuce', 'grass', 'waterplants'], fav: 'waterplants', swim: true, dive: true, aquatic: true, noJump: true, swimSpeed: 2.2, price: 1400, camNear: 0.85, baby: 'Manatee calf', waters: 'jungle', blow: false };
+SHOP.push('manatee');
+// round 15: manatee (end)
 const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow', 'snow', 'savanna', 'arctic'];
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];
 const SKIN = ['#F3D3B8', '#E6B691', '#C98E66', '#9A6544', '#6B4430'];

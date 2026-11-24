@@ -8039,6 +8039,81 @@ const Animals = (() => {
     };
   };
 
+  // ===== round 15: manatee =====
+  // An Amazonian manatee (Trichechus inunguis), 2.6 m from the lip to the edge of the tail and 0.9 m deep: a long round
+  // body with no neck to speak of, a small head ending in a big bristly upper lip pad that faces down and forward, the
+  // nostrils on top of the snout, tiny eyes, no ears to see; long flippers with no nails; a round paddle of a tail.
+  // Smooth dark gray skin with fine wrinkles, and the white to pink patch on the chest and belly this kind has. Boys
+  // and girls look the same. The calf, about 1.1 m, is the same shape, paler and smoother. It swims by slow up and
+  // down strokes of the paddle (the narwhal's whale animator, with the manatee's own steps on top: animManatee). The
+  // sculpted model is tools/blender/manatee.py; without it this is the loft body below.
+  ids.push('manatee');
+  const MN = {
+    chest: [0, 0.45, 0.15], hips: [0, 0.45, -0.3], tail1: [0, 0.46, -0.65], tail2: [0, 0.47, -0.9], fluke: [0, 0.47, -1.0],
+    neck: [0, 0.44, 0.6], head: [0, 0.42, 0.8], snout: [0, 0.33, 1.02], flipper: [0.32, 0.29, 0.52],
+    eye: [0.196, 0.5, 0.86], mouth: [0, 0.17, 1.12],
+  };
+  SPEC.manatee = () => {
+    const K = { skin: hex(0x4C5053), back: hex(0x3E4245), belly: hex(0x5E6264), patch: hex(0xE6CBC2), patchPk: hex(0xD9A9A0), lip: hex(0x5A5650), calf: hex(0x75797C), calfLt: hex(0x878B8D) };
+    const B = (n) => MN[n];
+    const st = (z, top, yw, bot, w, e) => [0, yw, z, w, top - yw, yw - bot, e || 2.1];
+    const front = [st(0.15, 0.9, 0.45, 0.0, 0.42), st(0.4, 0.86, 0.45, 0.03, 0.39), st(0.6, 0.77, 0.45, 0.09, 0.32), st(0.75, 0.72, 0.44, 0.12, 0.275),
+      st(0.9, 0.66, 0.42, 0.13, 0.235), st(1.02, 0.6, 0.38, 0.13, 0.2), st(1.12, 0.52, 0.33, 0.14, 0.17), st(1.2, 0.43, 0.3, 0.17, 0.12)];
+    const back = [st(0.15, 0.9, 0.45, 0.0, 0.42), st(-0.15, 0.88, 0.46, 0.02, 0.41), st(-0.45, 0.82, 0.47, 0.1, 0.36), st(-0.7, 0.72, 0.47, 0.22, 0.27, 2.0),
+      st(-0.9, 0.62, 0.47, 0.33, 0.17, 1.9), st(-1.0, 0.56, 0.47, 0.39, 0.1, 1.9)];
+    // the paddle: a round flat spoon along x, its chord between the leading edge zl and the trailing edge zt
+    const pd = [[0.0, -0.95, -1.38, 0.032], [0.1, -0.96, -1.37, 0.029], [0.18, -0.98, -1.34, 0.025], [0.24, -1.0, -1.3, 0.021], [0.28, -1.04, -1.25, 0.017], [0.31, -1.1, -1.18, 0.013], [0.32, -1.13, -1.15, 0.01]];
+    const paddle = pd.map(([x, zl, zt, th]) => [x, 0.47, (zl + zt) / 2, (zl - zt) / 2, th, th, 2.0]);
+    // a flipper: long, out to the side and down, a little forward, round at the tip, no nails
+    const flip = [[0.32, 0.29, 0.52, 0.08, 0.035], [0.42, 0.22, 0.5, 0.075, 0.03], [0.5, 0.15, 0.47, 0.07, 0.025], [0.57, 0.09, 0.43, 0.06, 0.02], [0.62, 0.05, 0.4, 0.035, 0.014]].map(([x, y, z, w, th]) => [x, y, z, w, th, th, 2.0]);
+    return {
+      size: { length: 2.6, height: 0.9, radius: 0.42, eyeHeight: 0.5, baby: { length: 2.5, height: 0.9, radius: 0.42, eyeHeight: 0.5 } },
+      tex: [256, 512], rough: 0.5,
+      detail: { kind: 'skin', tile: 0.06, amt: 0.1, bump: 0.2, sheen: 0.03 },
+      bones: [
+        ['chest', null, ...B('chest')], ['hips', 'chest', ...B('hips')], ['tail1', 'hips', ...B('tail1')], ['tail2', 'tail1', ...B('tail2')], ['fluke', 'tail2', ...B('fluke')],
+        ['neck', 'chest', ...B('neck')], ['head', 'neck', ...B('head')], ['snout', 'head', ...B('snout')], ['flipperL', 'chest', ...B('flipper'), 1],
+      ],
+      fur: [
+        { name: 'body', bones: ['chest', 'hips', 'tail1', 'tail2', 'fluke'], blend: 0.12, segs: 18, sub: 3, cap1: 2, keys: back },
+        { name: 'head', bones: ['chest', 'neck', 'head', 'snout'], blend: 0.1, segs: 18, sub: 3, cap1: 3, capLen1: 0.5, keys: front },
+        { name: 'fluke', bones: ['fluke'], mirror: true, segs: 8, sub: 2, cap1: 2, side: [0, 0, 1], keys: paddle, texScale: 0.6 },
+        { name: 'flipper', bones: ['flipperL'], mirror: true, segs: 8, sub: 2, cap1: 2, side: [0, 0, 1], keys: flip, texScale: 0.5 },
+      ],
+      // (the sculpted model's look in short: dark gray, darker on the back, the pale pink patch on the chest and belly)
+      paint(P, C) {
+        const up = P.ny;
+        cset(C, K.skin);
+        cmix(C, K.back, sstep(0.1, 0.8, up) * 0.8);
+        cmix(C, K.belly, sstep(-0.2, -0.8, up) * 0.6);
+        if (P.part === 'body' || P.part === 'head') cmix(C, mixc(K.patch, K.patchPk, 0.5 + 0.5 * noise(P.x * 6, P.y * 6, P.z * 6)), sstep(-0.35, -0.75, up) * sstep(-0.55, -0.2, P.z) * sstep(0.62, 0.35, P.z) * sstep(0.1, 0.6, noise(P.x * 3.2, P.y * 3.2, P.z * 2.4) + 0.45));
+        if (P.part === 'head') cmix(C, K.lip, sstep(1.0, 1.12, P.z) * 0.6);
+        cmul(C, 0.95 + 0.08 * noise(P.x * 30, P.y * 30, P.z * 30));
+        C.ro = 0.48;
+      },
+      // the calf: paler and smoother, the same patch faintly
+      babyPaint(P, C) {
+        cset(C, K.calf);
+        cmix(C, K.calfLt, sstep(-0.2, -0.75, P.ny) * 0.8);
+        cmul(C, 0.96 + 0.06 * noise(P.x * 20, P.y * 20, P.z * 20));
+      },
+      accent: [],
+      eyes: [{ bone: 'head', p: B('eye'), r: 0.009, dir: [0.9, 0.18, 0.4], iris: 0x2A2018, irisR: 0.97, pupilR: 0.45, rim: 0x0E0C0A, lid: [0.7, -0.7, 0.2] }],
+      mouth: B('mouth'), mouthBone: 'snout',
+      anim: {
+        type: 'manatee', walk: 0.4, run: 0.8, stride: 1.0, floatDepth: 0.76,
+        spine: ['chest', 'hips', 'tail1', 'tail2', 'fluke'], front: ['neck', 'head'],
+        // slow strokes, most of the beat in the paddle, which leads the tail stock a little
+        wave: [0.015, 0.04, 0.11, 0.2, 0.34], lag: [0.0, 0.5, 1.0, 1.5, 2.5],
+        rate: 0.3, hover: 0.24, bend: [0.05, 0.09, 0.12, 0.12, 0.08], neckBend: [0.08, 0.1], bank: 0.18,
+        swimHead: [0.04, 0.09, 0.07],
+      },
+      // the calf: the same shape, the head a little bigger, the body a little shorter
+      baby: { head: 1.12, muzzle: 0.92, eye: 1.12, neck: [0.95, 1.02], body: [1.02, 1.02, 0.94], tail: 0.95, noDrop: true },
+    };
+  };
+  // round 15: manatee (end of the spec)
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -10966,6 +11041,63 @@ const Animals = (() => {
     };
   }
   ANIM.whale = animWhale;
+
+  // ===== round 15: manatee =====
+  // The manatee swims like the narwhal (animWhale: slow up and down strokes of its paddle, a hover with the flippers
+  // sculling, turning and banking, the tail trailing the dive, a roll when happy, a flop when stranded) with its own
+  // steps on top:
+  // - the big upper lip (the snout bone) never quite still: it twitches and works now and then, and eating it grips
+  //   and pulls (the lips work the plants in) while the flippers sweep in toward the mouth, one then the other; no snap
+  // - the head turns more (a manatee has a neck it can bend), and at the surface tips up a little so the nostrils on
+  //   top of the snout come out for a breath
+  // - asleep it rests low in the water, the back just awash, and every half minute or so rises slowly for a breath
+  //   and sinks back
+  function animManatee(R, A) {
+    const base = animWhale(R, A), B = R.bones, P = A.spec.anim;
+    const head = B[P.front[1]], neck = B[P.front[0]], snout = B.snout, chest = B[P.spine[0]];
+    const fls = [[B.flipperL, 1], [B.flipperR, -1]];
+    const S = { lip: 0, lipT: 1 + R.rnd * 3, lipPh: 0, eat: 0, sl: 0, br: 0, brT: 8 + R.rnd * 20, surf: 0, t: R.rnd * 50 };
+    return function update(dt, st) {
+      base(dt, st);
+      dt = clamp(dt || 0, 0, 0.1);
+      const mode = st.mode || 'ground', sleeping = mode === 'sleep', e = st.eat || 0;
+      S.t += dt;
+      spring(S, 'eat', eatEnvelope(e), 7, dt);
+      spring(S, 'sl', sleeping ? 1 : 0, 0.8, dt);
+      spring(S, 'surf', mode === 'swim' || sleeping ? 1 : 0, 2, dt);
+      // undo the whale's quick snap when eating (a manatee grazes, it does not snap)
+      const snap = Math.sin(PI * sat((e - 0.45) / 0.17));
+      if (head) head.rotation.x += snap * 0.22;
+      // the lip: small twitches every few seconds, working steadily while it eats
+      S.lipT -= dt;
+      if (S.lipT <= 0) { S.lipT = 1.5 + Math.random() * 4; S.lipPh = 0.0001; }
+      if (S.lipPh > 0) { S.lipPh += dt / 0.6; if (S.lipPh >= 1) S.lipPh = 0; }
+      const tw = S.lipPh > 0 ? Math.sin(PI * S.lipPh) * Math.sin(S.lipPh * 18) : 0;
+      const work = S.eat * Math.sin(S.t * 9.5), grip = S.eat * (0.5 + 0.5 * Math.sin(S.t * 4.75));
+      if (snout) {
+        snout.rotation.set(0.05 * tw * (1 - S.eat) + 0.12 * work - 0.06 * grip, 0.04 * tw, 0);
+        const p0 = snout.userData.p0; if (p0) snout.position.set(p0.x, p0.y - 0.006 * grip, p0.z + 0.01 * work);
+      }
+      // eating: the head dips a little more and nods with the lips; the flippers sweep in toward the mouth in turn
+      if (head) head.rotation.x += S.eat * (0.1 + 0.05 * Math.sin(S.t * 4.75));
+      for (const [f, sd] of fls) {
+        if (!f) continue;
+        const k = S.eat * (0.6 + 0.4 * Math.sin(S.t * 2.4 + (sd > 0 ? 0 : PI)));
+        f.rotation.y += -sd * 0.55 * k;      // forward, in front of the chest
+        f.rotation.z += sd * 0.25 * k;       // lifted toward the mouth
+        f.rotation.x += -0.3 * k;
+      }
+      // asleep: low in the water, rising slowly for a breath now and then (the nostrils up), then sinking back
+      if (sleeping) { S.brT -= dt; if (S.brT <= 0) { S.br += dt / 7; if (S.br >= 1) { S.br = 0; S.brT = 25 + Math.random() * 20; } } }
+      else { S.br = 0; S.brT = 8 + Math.random() * 10; }
+      const breath = S.br > 0 ? Math.sin(PI * S.br) : 0;
+      if (chest && chest.userData.p0) chest.position.y += S.sl * (-0.13 + 0.15 * breath);
+      if (neck) neck.rotation.x -= S.sl * breath * 0.08;
+      if (head) head.rotation.x -= S.sl * breath * 0.1 + S.surf * (1 - S.sl) * 0.04;
+    };
+  }
+  ANIM.manatee = animManatee;
+  // round 15: manatee (end of the animator)
 
   // opts.sex ('m' or 'f', round 12): a boy or a girl, with that one's own sculpt and horns where SEX_LOOK says so
   function build(id, opts) {

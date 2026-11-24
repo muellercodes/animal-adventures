@@ -861,12 +861,13 @@ function sheetMap() {
   const A = SPECIES[S.animal], aq = !!A.aquatic, s0 = spawnOf(S.animal);
   return `<div class="grid">${WORLD_ORDER.map((id) => {
     // (round 14: an animal that lives in the sea can only go to a world with a sea)
-    const w = World.META[id], here = id === S.world, noSea = aq && !w.sea, locked = (w.needsFly && !flyOK) || noSea, isNew = !S.visited.includes(id);
+    // (round 15: manatee: or only to its own world, livesIn)
+    const w = World.META[id], here = id === S.world, noSea = aq && !livesIn(S.animal, id), locked = (w.needsFly && !flyOK) || noSea, isNew = !S.visited.includes(id);
     const bg = worldBg(id), style = bg.startsWith('url') ? `background-image:${bg}` : `background:${bg}`;
     return `<button class="card${here ? ' here' : ''}" type="button" data-action="go" data-v="${id}"${locked ? ' disabled' : ''}>
       <span class="pv" style="${style}"></span>
       <span class="t">${w.name}</span><span class="d">${w.blurb}</span>
-      <span class="tags">${here ? `<span class="tg">You are here</span>${b && !b.room && Math.hypot(b.pos.x - s0[0], b.pos.z - s0[1]) > 150 ? '<span class="tg new">Tap to go back to the start</span>' : ''}` : ''}${locked ? `<span class="tg lock">${noSea ? A.many + ' live in the sea' : A.fly ? 'Grow up to fly here' : A.many + " can't fly"}</span>` : ''}${!here && !locked && isNew ? `<span class="tg new">New! +${LEAVES.world} leaves</span>` : ''}</span>
+      <span class="tags">${here ? `<span class="tg">You are here</span>${b && !b.room && Math.hypot(b.pos.x - s0[0], b.pos.z - s0[1]) > 150 ? '<span class="tg new">Tap to go back to the start</span>' : ''}` : ''}${locked ? `<span class="tg lock">${noSea ? A.many + ' ' + waterWords(S.animal) : A.fly ? 'Grow up to fly here' : A.many + " can't fly"}</span>` : ''}${!here && !locked && isNew ? `<span class="tg new">New! +${LEAVES.world} leaves</span>` : ''}</span>
     </button>`;
   }).join('')}</div>${S.world === 'land' && G.world && G.world.def.places && !aq ? `<h3 class="sub">Places in the Land</h3>${b && b.room ? '<p class="note">Go outside first to travel.</p>' : ''}<div class="places">${Plan.SPOTS.map((p, i) => `<button class="place" type="button" data-action="place" data-v="${i}"${b && b.room ? ' disabled' : ''}><span class="t">${p.name}</span><span class="d">${p.d}</span></button>`).join('')}</div>` : ''}`;
 }
@@ -919,7 +920,7 @@ function sheetSettings() {
 function travel(id, after) {
   if (!World.META[id]) return;
   if (World.META[id].needsFly && !canFlyNow(Player.b)) return;
-  if (isAquatic(S.animal) && !World.META[id].sea) return;   // round 14: sea animals only go to a sea
+  if (!livesIn(S.animal, id)) return;   // round 14: sea animals only go to a sea (round 15: a manatee only to the Jungle)
   if (id === S.world) {
     closeSheet();
     // far out in the wilds, tapping the world you're in takes you back to its start
@@ -979,13 +980,14 @@ function switchAnimal(id) {
   for (const p of Folk.list) Folk.cancel(p);
   const born = S.ages[id] === 0 && !S.hatched.includes(id);
   // round 14: an animal that lives in the sea goes to a sea world from anywhere else (a new one is born there)
-  const sea = isAquatic(id) && !World.META[S.world].sea ? seaWorld() : null;
+  // (round 15: manatee: an animal of the river goes to its own world, homeWaters, and the words say where it lives)
+  const sea = !livesIn(id, S.world) ? homeWaters(id) : null;
   if (sea) {
     R.paused = true;
     showLoading(`Going to the ${World.META[sea].name}...`, () => {
       loadWorld(sea); Player.set(id); Player.b.room = null; Player.b.yaw = 0; Player.place(...spawnOf(id)); Cam.snap = true; Cam.zoom = 1; Foods.fill(60);
-      if (!S.visited.includes(sea)) { S.visited.push(sea); S.leaves += LEAVES.world; UI.toast(`${SPECIES[id].many} live in the sea. You found the ${World.META[sea].name}! +${LEAVES.world} leaves`, 4500); }
-      else UI.toast(`${SPECIES[id].many} live in the sea, so you went to the ${World.META[sea].name}.`, 4000);
+      if (!S.visited.includes(sea)) { S.visited.push(sea); S.leaves += LEAVES.world; UI.toast(`${SPECIES[id].many} ${waterWords(id)}. You found the ${World.META[sea].name}! +${LEAVES.world} leaves`, 4500); }
+      else UI.toast(`${SPECIES[id].many} ${waterWords(id)}, so you went to the ${World.META[sea].name}.`, 4000);
       R.paused = false; save();
       if (born) beginLife(id);
     });
@@ -1068,7 +1070,8 @@ function applySave(d) {
   S.sound = d.sound !== false; S.music = d.music !== false;
   if (World.META[S.world].needsFly && !(SPECIES[S.animal].fly && ageOf(S.animal) >= FLY_AGE)) S.world = 'land';
   // round 14: an animal that lives in the sea comes back in a sea world
-  if (isAquatic(S.animal) && !World.META[S.world].sea && seaWorld()) { S.world = seaWorld(); S.x = S.z = null; }
+  // (round 15: manatee: an animal of the river comes back in its own world)
+  if (!livesIn(S.animal, S.world) && homeWaters(S.animal) && World.META[homeWaters(S.animal)]) { S.world = homeWaters(S.animal); S.x = S.z = null; }
 }
 
 /* ---------- cloud saves (only in the GitHub Pages build, where AA_API is set) ---------- */
@@ -1341,7 +1344,7 @@ function start(data) {
     if (resume) Promise.race([pulled, new Promise((res) => setTimeout(res, 4000))]).then(() => { if (R.mode === 'title' && !$('titleWrap').hidden) play(); });
   } else if (resume) play();
   window.claude?.hot?.snapshot?.(() => ({ S: JSON.parse(JSON.stringify(S)), playing: R.mode === 'play' }));
-  if (/test|assets/.test(location.hash)) window.__aa = { SPECIES, manual(on) { manual = on; if (!on) requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); }); }, step(n, dt = 1 / 30, draw = true) { for (let i = 0; i < n; i++) tick(dt, 1, draw && i === n - 1); }, S, G, R, Player, Wild, Folk, Foods, Homes, World, Cam, inp, keys, press, travel, switchAnimal, loadWorld, play, pickStarter, animalIcon, renderer, camera, scene, dayInfo, timeOfDay, findAction, doAction, Sound, setBodyAge, goHome, buyAnimal, Env, Animals, People, THREE, Net, Town, Nav, Traffic, Plan, CityLife, Sick, applySave, Zoos, SEX_LOOK, sexLook, sexOf, setSex, stick, releaseTouches, Dive, Blow, canDive, isAquatic, spawnOf, seaWorld, openSheet, closeSheet };
+  if (/test|assets/.test(location.hash)) window.__aa = { SPECIES, manual(on) { manual = on; if (!on) requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); }); }, step(n, dt = 1 / 30, draw = true) { for (let i = 0; i < n; i++) tick(dt, 1, draw && i === n - 1); }, S, G, R, Player, Wild, Folk, Foods, Homes, World, Cam, inp, keys, press, travel, switchAnimal, loadWorld, play, pickStarter, animalIcon, renderer, camera, scene, dayInfo, timeOfDay, findAction, doAction, Sound, setBodyAge, goHome, buyAnimal, Env, Animals, People, THREE, Net, Town, Nav, Traffic, Plan, CityLife, Sick, applySave, Zoos, SEX_LOOK, sexLook, sexOf, setSex, stick, releaseTouches, Dive, Blow, canDive, isAquatic, spawnOf, seaWorld, livesIn, homeWaters, openSheet, closeSheet };
   requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); });
 }
 // round 11: the animal models load from files beside the page first (build.mjs); the game starts when they are in
