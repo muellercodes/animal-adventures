@@ -87,7 +87,7 @@ C.WCFG = dict(C.WCFG, arm=(C.SH, C.EL, C.WR, C.WT))
 K = {
     'black': hexc(0x121212), 'blackHi': hexc(0x2A282E), 'blackBr': hexc(0x241E1A), 'white': hexc(0xF2EEDE), 'whiteSh': hexc(0xDCD6C4),
     'yellow': hexc(0xF2D488), 'red': hexc(0xC81E28), 'redDk': hexc(0x9A1820),
-    'orange': hexc(0xF2841A), 'orangeLt': hexc(0xF8A830), 'ridge': hexc(0xE04A1A), 'billBlk': hexc(0x141210),
+    'orange': hexc(0xEC7012), 'orangeLt': hexc(0xF49426), 'ridge': hexc(0xD83A14), 'billBlk': hexc(0x141210),
     'skin': hexc(0xF08A22), 'ring': hexc(0x3A70D8), 'ringDk': hexc(0x2850A8),
     'leg': hexc(0x5A6C90), 'legHi': hexc(0x7888A8), 'claw': hexc(0x2A2C34), 'lid': hexc(0x2E5AB8),
 }

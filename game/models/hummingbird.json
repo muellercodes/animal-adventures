@@ -3,7 +3,7 @@
  "id": "hummingbird",
  "data": "hummingbird.bin",
  "enc": "deflate",
- "raw": 72486,
+ "raw": 73152,
  "maps": {
   "color": "hummingbird-color.webp",
   "normal": "hummingbird-normal.webp",
@@ -14,15 +14,15 @@
   "featherNormal": "hummingbird-feathernrm.webp",
   "babyFeather": "hummingbird-babyfeather.webp"
  },
- "nv": 2026,
- "ntri": 2964,
- "nbv": 2026,
- "nbt": 2964,
+ "nv": 2050,
+ "ntri": 2967,
+ "nbv": 2050,
+ "nbt": 2967,
  "bbox": [
-  -0.048077,
+  -0.042262,
   -0.000326,
-  -0.026637,
-  0.048077,
+  -0.026793,
+  0.042262,
   0.048052,
   0.048446
  ],
@@ -145,9 +145,9 @@
   "babyLean": 0.35,
   "shade": 0.88,
   "babyOnly": true,
-  "uvm": 0.0779
+  "uvm": 0.0645
  },
- "bdelta": 0.043737,
+ "bdelta": 0.037922,
  "belly": [
   0.0,
   -0.0003,

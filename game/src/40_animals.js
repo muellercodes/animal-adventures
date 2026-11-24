@@ -5363,7 +5363,7 @@ const Animals = (() => {
       gape: [0.0016, 0.0708, 0.0478], mouth: [0, 0.0701, 0.0776],
       eye: { r: 0.0029 * 0.62, iris: 0x120C08 },
       // long narrow pointed wings, nearly all hand: the hover's wingbeat is anim.hover
-      wing: { s: 0.25, prim: 1.45, wid: 0.72, tip: 0.18, primTipWid: 0.7, flap: { amp: 62, rate: 22, upFold: 0.1, twist: 26, glide: 2 }, folded: { roll: -56, yaw: 2, pitch: -6 } },
+      wing: { s: 0.2, prim: 1.25, wid: 1.05, tip: 0.3, primTipWid: 0.95, flap: { amp: 62, rate: 22, upFold: 0.1, twist: 26, glide: 2 }, folded: { roll: -56, yaw: 2, pitch: -6 } },
       // the girl's rounded tail with white tips; the boy's (his own sculpt's json says look: 'm') forked
       tail: (md, P3, k) => (md && md.look === 'm'
         ? tailFan('tail', P3([0, 0.051, -0.036]), 10, 0.042 * k, 0.0115 * k, 26, -4, 5, { dx: 0.009 * k, dy: 0.002 * k, dz: 0, roll: 20, taper: -0.45, curl: 0.03 })
@@ -5389,7 +5389,7 @@ const Animals = (() => {
         // hover (round 16, the hummingbird; off for every other bird): flying slowly or still, the body tips up and the
         // tail hangs down, the wings sweep forward and back in a flat figure of eight too fast to see (a soft blur over
         // the stroke), and it can fly backwards
-        hover: { pitch: -0.95, tail: -0.35, blur: 0.4, slow: 1.6, blurCol: 0x8a9a88 },
+        hover: { pitch: -0.95, tail: -0.35, blur: 0.22, slow: 1.6, blurCol: 0xa8b0a4, span: 0.05 },
       },
     });
   };
@@ -5451,7 +5451,7 @@ const Animals = (() => {
       list: [
         ...(md ? WA : W).feathers,
         // a square black tail, white coverts over its base
-        ...tailFan('tail', S3([0, 0.205, -0.124]), md ? 10 : 8, 0.18 * k, 0.042 * k, 12, -6, 5, { dx: 0.016 * k, dz: 0.004 * k, taper: 0.05, curl: 0.03, tip: md ? undefined : 0.7 }),
+        ...tailFan('tail', S3([0, 0.205, -0.124]), md ? 10 : 8, 0.18 * k, 0.044 * k, 20, 2, 5, { dx: 0.02 * k, dy: 0.004 * k, dz: 0.004 * k, roll: 24, taper: 0.05, curl: 0.03, tip: md ? undefined : 0.7 }),
         ...tailFan('tail', S3([0, 0.214, -0.108]), 5, 0.07 * k, 0.04 * k, 20, 8, 6, { dx: 0.02 * k, taper: 0.15, curl: 0.04 }),
       ],
       paint(u, t, C) { const kk = Math.floor(u * FNC), s2 = fract(u * FNC); if (kk === 6) vane(s2, t, C, K.white, hex(0xD8D4C4)); else vane(s2, t, C, K.black, K.blackHi, K.blackHi); },
@@ -9291,12 +9291,14 @@ const Animals = (() => {
     // soft see-through blur over the whole stroke (blurL/blurR, on the hips at the shoulders)
     const HV = P.hover || null;
     let blurL = null, blurR = null, hovN = null;
+    if (HV) S.hov = 0;
     // round 16: toss (the toucan; no other bird has it): near the end of a bite the head flicks up, tossing the food
     // up to catch it
     const TS = P.toss || 0;
     if (HV && W) {
-      const sh = B.wingL.userData.p0, ln = W.span || (A.spec.size.length * 0.62), a = (W.flap.amp + 8) * DEG, n = 14, pos = [0, 0, 0], idx = [];
-      for (let i = 0; i <= n; i++) { const t = -a + (2 * a * i) / n; pos.push(Math.cos(t) * ln, Math.sin(t) * ln, 0); if (i) idx.push(0, i, i + 1); }
+      // (a ring sector over the outer two thirds of the wing: its root hardly moves)
+      const sh = B.wingL.userData.p0, ln = HV.span || A.spec.size.length * 0.6, r0 = ln * 0.3, a = (W.flap.amp + 6) * DEG, n = 14, pos = [], idx = [];
+      for (let i = 0; i <= n; i++) { const t = -a + (2 * a * i) / n; pos.push(Math.cos(t) * r0, Math.sin(t) * r0, 0, Math.cos(t) * ln, Math.sin(t) * ln, 0); if (i) idx.push(2 * i - 2, 2 * i - 1, 2 * i + 1, 2 * i - 2, 2 * i + 1, 2 * i); }
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
       g.setIndex(idx);
@@ -9458,7 +9460,8 @@ const Animals = (() => {
           hips.rotation.set(lerp(pitch, HG.pitch, hangK), yaw * (1 - hangK), roll * (1 - hangK) + Math.sin(it * 0.7) * 0.03 * hangK);
         }
       }
-      if (W) wingPose(wl, wr, S.fold, flapRoll, twist, g, pitch);
+      // (round 16: hovering, the wings beat in the tipped-up body's own frame, a nearly level figure of eight)
+      if (W) wingPose(wl, wr, S.fold, flapRoll, twist, g, pitch * (1 - hov));
       if (blurL) {
         const op = HV.blur * fly * S.flap * (1 - S.fold);
         blurL.visible = blurR.visible = op > 0.02;

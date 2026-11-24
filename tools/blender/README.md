@@ -788,6 +788,14 @@ even skin compresses to 5 KB), 1024 normal map with the wrinkles (WebP 58), 256 
 1 KB, 85 KB of files, about 114 KB in the page plus about 46 KB of icons (34 KB of PNG). Texture memory: about 11 MB
 with mipmaps on a computer, about 3 MB on a phone (the color and normal maps capped at 512).
 
+Round 16 small and tree birds (`TRIS=6000 TEX=768`, a few minutes each on the shared machine; the same maps as the
+chickadee: 768 color and normal maps, 384 or 512 baby maps, 384 fur map, 512 x 256 feather atlas): cardinal
+(`VOXEL=0.0008`) 6.0k body triangles, 159 KB of files (about 212 KB in the page), the girl's coat (`cardinalf`) 39 KB;
+blue jay (`VOXEL=0.001`) 6.0k, 162 KB (216 KB); hummingbird (`VOXEL=0.00031`) 5.9k, 149 KB (199 KB), the boy's coat
+(`hummingbirdm`) 40 KB; toucan (`VOXEL=0.0018`) 6.0k, 170 KB (227 KB); snowy owl (`VOXEL=0.0022`) 6.0k, 182 KB (243 KB),
+the boy's coat (`snowyowlm`) 41 KB. Texture memory with mipmaps: about 10 to 11.4 MB each on a computer and 6.7 to 8 MB
+on a phone (2.8 MB more for a boy's or girl's own coat, only when one is on screen), the same as the chickadee.
+
 ## More cats and a hamster (round 7: `cat.py` as a template, `coat.py`, `hamster.py`)
 
 Five more cats (`blackcat`, `orangecat`, `calico`, `siamese`, `whitecat`) and a Syrian hamster. The tabby got its fixes
@@ -1650,3 +1658,32 @@ VOXEL=0.0035 TRIS=6500 WEIGHTS=transfer TEX=1024 BLENDER_PY=... python3 tools/bl
   the boy at 0.94 (`SEX_LOOK.zebra`); the call is a barking "kwa-ha-ha" (65_audio.js).
 - Budget: see the Budget section.
 
+
+## Round 16: small and tree birds on bigger and smaller bird bodies (`refit.py`: `cardinal.py`, `bluejay.py`, `hummingbird.py`, `toucan.py`, `snowyowl.py`)
+
+Five birds made from existing bird files instead of from nothing: the northern cardinal (1.6 times the chickadee), the
+blue jay (2.0 times the chickadee), the ruby-throated hummingbird (0.62 times the chickadee, with short legs), the toco
+toucan (0.88 times the macaw, `parrot.py`) and the snowy owl (1.12 times the great horned owl, `owl.py`).
+- `refit.load(base, name)` runs the base bird's file in a private module of its own, so a species can replace its
+  shapes, constants, paints and feather cells there without touching the base (in the base's units: the cardinal's
+  bill is drawn in chickadee millimeters). `refit.api(globals(), C, KS, DROP)` then writes the pipeline's hooks into
+  the new species' module in game meters: points go to the base as `P / KS`, lengths come back times `KS`. `DROP`
+  shortens the legs (the hummingbird's): the body comes down that far between the feet and the knees
+  (`y' = y - DROP * sstep(0.002, 0.022, y)`, solved backwards for the base), the feet keep their shape. The game's
+  specs use the same numbers: `songBird(o)` in 40_animals.js builds the cardinal, the blue jay and the hummingbird
+  from the chickadee's numbers times `k` (and the same leg drop); `scaleBird(spec, k)` sizes the macaw's and the
+  owl's specs for the toucan and the snowy owl.
+- Each species' own parts: the cardinal's thick cone bill and pointed crest (a ridge sculpted on the crown; the game's
+  crest blades lie back along it), the blue jay's stout straight bill and crest, the hummingbird's long thin bill,
+  tiny feet and slimmer body, the toucan's bill (one loft, deep at the base and narrow across, saw-toothed cutting
+  edges) with a thicker neck and the wing arm shortened to the toucan's short round wings, the snowy owl's head with
+  no ear tufts.
+- Paint: masks from the base's units (the cardinal's black mask: everything in front of a line from over the bill to
+  the front of the eye and down the throat; the jay's necklace: a band along a tilted plane, kept off the nape; the
+  toucan's white bib, bare orange and blue eye skin, the orange bill with its red ridge, black tip and base line; the
+  snowy owl's broken bars). Boys and girls that differ in color are coat variants on the same mesh (`coat.py`):
+  `cardinalf.py` (the tan-brown girl), `hummingbirdm.py` (the boy's ruby throat and dark tail; his json says
+  `"look": "m"`, so the game gives him the forked tail) and `snowyowlm.py` (the nearly white boy).
+- `color-baby.webp` from `export.py`'s generic `paint_baby` path is not used by birds (their baby maps come from
+  `bird.export_extra`); delete it after an export.
+- Budget: see the Budget section.

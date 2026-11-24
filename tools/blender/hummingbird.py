@@ -26,6 +26,11 @@ C.GAPE = V(0.0017, 0.0707, 0.0474)
 UPPER = ([V(0, 0.0721, 0.0466), V(0, 0.0718, 0.052), V(0, 0.0714, 0.059), V(0, 0.071, 0.066), V(0, 0.0706, 0.0725), V(0, 0.0702, 0.0778)],
          [0.0016, 0.0011, 0.00085, 0.0007, 0.00055, 0.00028])
 LOWER = ([V(0, 0.0706, 0.047), V(0, 0.0705, 0.054), V(0, 0.0703, 0.064), V(0, 0.0701, 0.0745)], [0.0012, 0.0008, 0.00062, 0.00034])
+# its wing arm as long as the game's hummingbird wing (stdWing s = 0.2 in chickadee units: long hands, short arms)
+C.EL = C.SH + V(0.016, 0, 0)
+C.WR = C.EL + V(0.02, 0, 0)
+C.WT = C.WR + V(0.015, 0, 0)
+C.WCFG = dict(C.WCFG, arm=(C.SH, C.EL, C.WR, C.WT))
 # tiny feet
 C.TOES = [dict(t, len=t['len'] * 0.62, claw=t['claw'] * 0.7, r=t['r'] * 0.8, r1=t['r1'] * 0.8) for t in C.TOES]
 
@@ -179,8 +184,8 @@ def cells(tail_mid, tail_out):
     def tert(s, t, side):
         return mix(np.tile(grD, (len(s), 1)), dk, sstep(0.5, 1.0, t) * 0.4)
 
-    return [F_('flight', prim, w=0.5, outer=0.45, tip=0.2, shaft=sh),
-            F_('flight', prim, w=0.62, outer=0.7, tip=0.35, shaft=sh),
+    return [F_('flight', prim, w=0.64, outer=0.5, tip=0.3, shaft=sh),
+            F_('flight', prim, w=0.7, outer=0.75, tip=0.4, shaft=sh),
             F_('round', cov, w=0.8, outer=0.9, tip=0.8, shaft=sh),
             F_('round', cov, w=0.8, outer=0.9, tip=1.1, shaft=sh),
             F_('round', tert, w=0.76, outer=0.85, tip=0.7, shaft=sh),
