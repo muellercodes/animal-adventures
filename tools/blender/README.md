@@ -483,6 +483,16 @@ Two more birds on `bird.py` and the biggest land animal on `ungulate.py`. Things
 - Skin (height field per texel): small domed scales everywhere (finer on the head), bigger plates over the back, long
   wrinkles, creases across the neck and rings round the legs. Paint: muted gray-brown with an olive cast on top, soft
   darker mottling, a paler belly. The hatchling has its own small color map (paler, bolder blotches).
+- Round 16b (the audit found a small smooth bulb of a head, a plain elephant gray body and column legs): the skull roof
+  behind the eyes lower, so the nasal arch stands up in front of and above the eyes as the head's highest point (a
+  taller dome, the nostrils high on its front, a low ridge joining it back between the eyes); a longer, deeper, broad
+  rounded snout; a bigger eye (`EYE_R` 3.4 cm, set into the side of the head by `_seat()`) in a socket hollow under
+  the brow. `TRIS` 5700 (was 5300) and a lower keep floor (0.33), so the head gets about a fifth more triangles (it
+  looked low-poly). The hatchling's arch is only about half as tall (`baby_offset()`: a young sauropod's arch is low,
+  and the full dome on the baby's big short head looked like a hammer). The legs: a thicker wrist below a slimmer forearm, the ankle with its heel pushed out behind
+  below a slimmer shin; the front foot flares a little at its base, with four blunt nails round its front and a bigger
+  thumb claw. Paint: a dark olive-brown back, warm gray-brown flanks, a pale belly and underside of the neck and tail.
+  The neck's part box now reaches past its blend into the head (it cut a seam across the arch).
 - Weights are the sculpt's own: the trunk and the tail by z, the neck by its place along the straight line from the
   neck's pivot to the head's (nearest point on a bent path jumped between bones at the throat), the head on the head,
   the legs by height down each leg, blending into the chest or the hips at the top. Claw tips just below the ground
@@ -504,6 +514,19 @@ Two more birds on `bird.py` and the biggest land animal on `ungulate.py`. Things
   (`bird.toes`) and a dewclaw; tiny two-fingered arms with claws.
 - Skin (height field per texel): pebbly scales, bigger ones down the back, rugose knobs on the head, rings on the shins.
   Paint: earthy brown with an olive top, a paler belly, faint darker bands and a darker mask round the eye.
+- Round 16b (the audit found a hippo's head: a low wide skull with small eyes on its top corners, a bulbous snout, a
+  straight row of crocodile-toy teeth, one plain gray-beige skin): the head loft is wide only at the back, where the
+  cheeks and the jaw joints sit low, with a narrow skull roof above them (a low top exponent, the sides slope in), so
+  the eyes sit on those sloping sides and look forward; in front of the eyes it narrows fast into a tall snout with
+  flat sides and a blunt deep tip. A brow ridge runs from the postorbital boss over the eye to the lacrimal hornlet and
+  on along the top edge of the snout; the jaw muscles bulge behind the eye, the antorbital hollow sits in front of it.
+  The lips cover the teeth but for the tips of a few uneven ones (`TEETH`), along a lip line (`lip_u()`) whose corner
+  is below the back of the eye and whose tooth row bulges down a little. A bigger eye (`EYE_R` 5.6 cm, set into the
+  side of the head by `_seat()`), its opening carved only just in front of it (the open cut along the gaze notched the
+  brow), a brighter iris with a smaller pupil and paler lids round it. Paint: a dark olive-brown back, warm brown
+  flanks, a pale cream belly, throat and underside of the jaw, each pebble a shade of its own; deeper pebbles in the
+  normal map. The neck's part box now reaches past its blend into the head (it cut a seam across the cheek). The
+  hatchling is the same head through the game's baby maps (short snout, big eyes) and was left as it was.
 - It is a biped in the legged animator (`anim.biped`, round 10: the hind legs are the first legs in its list, so the
   leg height comes from them): the two legs alternate at every speed; eating, it tips forward over the hips and bends
   its knees (`eatPitch`, `eatDrop`); asleep it folds its legs under it and lays its head down (`sleep.style 'fold'`).
@@ -899,11 +922,16 @@ Crocodile (`VOXEL=0.006 TRIS=3300 TEX=704 WEIGHTS=transfer`; TRIS here gives abo
 
 Brachiosaurus (`VOXEL=0.03 TRIS=5300 TEX=1024 WEIGHTS=transfer`): 8.5k triangles; 1024 color (WebP 68) and normal (WebP
 50) maps, 384 hatchling color map: 58 KB mesh + 18 + 123 + 4 KB, 206 KB of files, about 275 KB in the page. About 4
-minutes for the whole run.
+minutes for the whole run. Round 16b (`TRIS=5700`): 8.7k triangles, 61 KB mesh (with the hatchling's arch offsets) + 25
++ 121 + 4 KB, 213 KB of files, about 284 KB in the page. Texture memory with mipmaps (unchanged): about 12 MB on a
+computer, about 3.6 MB on a phone (the color and normal maps capped at 512).
 
 T. rex (`VOXEL=0.03 TRIS=4400 TEX=768 WEIGHTS=transfer`): 6.9k triangles; 768 color (WebP 64) and normal (WebP 34) maps,
 256 hatchling color map, 384 fur map: 55 KB mesh + 14 + 51 + 3 + 8 KB, 134 KB of files, about 190 KB in the page plus
-about 33 KB of icons (the round 10 budget is about 220 KB per animal, icons included).
+about 33 KB of icons (the round 10 budget is about 220 KB per animal, icons included). Round 16b (same settings): 6.9k
+triangles, 56 KB mesh + 22 + 64 + 3 + 8 KB (the countershading and the deeper pebbles cost about 21 KB), 155 KB of
+files, about 207 KB in the page. Texture memory with mipmaps (unchanged): about 7.4 MB on a computer, about 3.9 MB on a
+phone.
 
 Giraffe (`VOXEL=0.02 TRIS=3600 TEX=768 WEIGHTS=transfer`): 6.4k triangles; 768 color (WebP 40: the patch pattern is
 most of the bytes) and normal (WebP 44) maps, 192 calf color map: 48 KB mesh + 58 + 18 + 9 KB, 135 KB of files, about
@@ -1159,9 +1187,18 @@ jaw angle, a fringe of spikes along each flank and spiky scales over the back (a
 stout legs and a thick thigh. Sandy tan with an orange wash over the head, two rows of darker blotches down the back,
 a banded tail, a pale belly; the flanks below the fringe keep most of the body color (a pale band there looked wrong).
 The hatchling has its own color map (the markings bolder). In the game it does push-ups and bobs its head.
+Round 16b (the audit found a smooth orange loaf of a head with the eyes lost in it and a monitor's body): the head is a
+broad triangle seen from above (straight sides tapering from the spiky jaw corners to a blunt snout, the snout top
+sloping down to it; the old snout stayed wide to its tip), a bigger eye (`EYE_R` 4.2 mm, set in by `seat_eye()`) under a
+longer brow ridge, a brighter iris; longer, thicker spikes round the sides of the head, along the jaw edge (sticking out
+sideways and down, so the beard shows from the side) and in the flank fringe; the tail a tenth shorter (`_tail_z()`)
+and thicker at its base; a softer orange wash and fainter blotches and bands. All of it is in `beardeddragon.py`
+(`lizkit.py` is unchanged).
 - Budget (`VOXEL=0.0012 TRIS=2900 TEX=768`, `BEND_PITCH` 13.5 and 5 mm): 7.0k triangles; 768 color (WebP 50) and normal
   (WebP 32) maps, 320 hatchling color map: 52 KB mesh + 47 + 48 + 13 KB, 163 KB of files, about 217 KB in the page plus
   about 23 KB of icons. The per-scale color jitter and the dark grooves cost most of the color map: keep them soft.
+  Round 16b (same settings): 6.7k triangles, 52 KB + 46 + 51 + 14 KB, 163 KB of files (the same). Texture memory with
+  mipmaps (unchanged): about 6.8 MB on a computer, about 3.3 MB on a phone.
 
 The green iguana (`iguana.py`, Iguana iguana, 1.5 m, KS 3): a body a little flattened from side to side on long legs with
 long toes (the fourth hind toe longest), a deep head with full jowls, the subtympanic shield (`shield()`: a big round
@@ -1216,9 +1253,18 @@ and a full throat, a long flat head with a rounded snout, small eyes under a bro
 muscular tail. Dull gray-brown with paler and darker mottling, faint reddish blotches and pale speckles, the head
 grayer. The hatchling has its own color map (bright yellow bands across a black body, an orange-pink head and neck);
 the game makes it slim and small (`size.baby`, about half a meter in the game).
+Round 16b (the audit found a rock-like lump of a head with tiny eyes, and the hatchling's bands too bold): a longer,
+narrower snout with a flat top and steep sides (a high top exponent in the head rows), a clear jaw line (a deeper mouth
+groove, paler lip scales), a bigger eye (`EYE_R` 1.5 cm in the game) under a heavier brow, a bigger ear opening,
+deeper folds across the neck and loose skin under the throat, coarser beaded scales (`SC`; the fine ones blurred into a
+rocky crust at the map's resolution), lighter grooves between the head's scales, a brighter iris. The hatchling's
+bands are narrower and softer (a dull ochre on a dark brown-gray, more speckled). The forked tongue is the game's
+(unchanged). All of it is in `komodo.py`.
 - Budget (`VOXEL=0.0065 TRIS=2800 TEX=768`): 7.9k triangles; 768 color (WebP 50) and normal (WebP 30) maps, 256
   hatchling color map: 54 KB mesh + 29 + 50 + 16 KB, 152 KB of files, about 203 KB in the page plus about 29 KB of
-  icons.
+  icons. Round 16b (same settings): 7.9k triangles, 57 KB + 28 + 60 + 14 KB (the coarser scales cost the normal map
+  about 10 KB), 160 KB of files, about 213 KB in the page. Texture memory with mipmaps (unchanged): about 6.6 MB on a
+  computer, about 3.2 MB on a phone.
 
 ## Round 11: the cheetah on the cat template with longer legs (`cheetah.py`)
 

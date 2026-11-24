@@ -3,24 +3,24 @@
  "id": "trex",
  "data": "trex.bin",
  "enc": "deflate",
- "raw": 84318,
+ "raw": 84408,
  "maps": {
   "color": "trex-color.webp",
   "normal": "trex-normal.webp",
   "babyColor": "trex-color-baby.webp",
   "fur": "trex-fur.webp"
  },
- "nv": 2653,
- "ntri": 3441,
- "nbv": 2653,
- "nbt": 3441,
+ "nv": 2654,
+ "ntri": 3452,
+ "nbv": 2654,
+ "nbt": 3452,
  "bbox": [
-  -1.059772,
+  -1.059886,
   -0.010219,
   -7.309671,
-  1.059772,
+  1.059886,
   4.272692,
-  4.491445
+  4.490796
  ],
  "bones": [
   "hips",
@@ -67,7 +67,7 @@
   "irisR": 0.92,
   "pupilR": 0.3,
   "rim": 2759178,
-  "lidCol": 5063731,
+  "lidCol": 5129267,
   "babyIris": 8018474
  },
  "collar": {
@@ -113,6 +113,6 @@
   "babyLean": 0.5,
   "shade": 0.85,
   "babyOnly": true,
-  "uvm": 6.7978
+  "uvm": 6.6875
  }
 }

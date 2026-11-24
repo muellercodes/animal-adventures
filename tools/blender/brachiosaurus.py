@@ -7,7 +7,8 @@
 # with a thumb claw on the inside, a long padded hind foot with three claws). Skin (height field per texel): pebbly
 # scales, bigger on the back, wrinkles across the neck, rings on the legs. Paint: muted gray-brown with an olive cast,
 # darker mottling over the back, a paler belly. The hatchling has its own color map; its shape is the game's baby maps.
-# Make it with: VOXEL=0.03 TRIS=5300 TEX=1024 WEIGHTS=transfer BLENDER_PY=... python3 tools/blender/make.py brachiosaurus
+# Make it with: VOXEL=0.03 TRIS=5700 TEX=1024 WEIGHTS=transfer BLENDER_PY=... python3 tools/blender/make.py brachiosaurus
+# (round 16b: TRIS 5700, was 5300: the head was low-poly)
 import numpy as np
 from sdf import V, F, nrm, smin, smax, sstep, sat, ellipsoid, superellipsoid, round_cone, loft, sweep, fbm, vnoise, worley, length, axis_steps
 import ungulate as U
@@ -15,7 +16,7 @@ import bird as BD
 from ungulate import local as _local, local_n as _local_n, mirror as _mirror, groove
 
 ID = 'brachiosaurus'
-BOUNDS = (V(-1.3, -0.001, -7.95), V(1.3, 7.62, 5.3))
+BOUNDS = (V(-1.3, -0.001, -7.95), V(1.3, 7.7, 5.42))   # round 16b: room for the longer snout and the arch
 TAIL_RINGS = 0
 DISSOLVE_DEGENERATE = True
 BAKE_DIST = (0.05, 0.14, 0.45)
@@ -40,12 +41,13 @@ def hframe(Q):
     return np.stack([D[:, 0], D @ HU, D @ HA], 1)
 
 
-EYE_C = hp(0.16, 0.045, 0.128)
-EYE_R = 0.03
-EYE_DIR = nrm([0.86, 0.12, 0.5])
-LID_W, LID_H, LID_OFF = 0.031, 0.021, 0.0
-NOS_C = V(0.048, 0.03, 0.54)            # nostril (head frame x, u, s): fleshy, near the front of the snout
-MOUTH = hp(0.6, -0.1)
+# round 16b: a bigger eye in a visible socket (placed on the head by _seat() below), the nostril high on the arch
+EYE_S, EYE_U = 0.11, 0.05
+EYE_R = 0.034
+EYE_DIR = nrm([0.86, 0.14, 0.48])
+LID_W, LID_H, LID_OFF = 0.035, 0.024, 0.001
+NOS_C = V(0.05, 0.215, 0.33)            # nostril (head frame x, u, s): high on the front of the nasal arch
+MOUTH = hp(0.68, -0.1)
 
 TRUNK = [
     (-2.9, 3.28, 2.85, 2.45, 0.46, 2.0, 2.0),
@@ -72,16 +74,31 @@ NECK = [
     (7.33, 4.6, 0.135, 0.16, 0.125, 2.0, 2.0),
 ]
 # head, in the head frame: s (forward), top, yw, bottom (u), half width, exponents
+# round 16b: re-sculpted: the back of the skull lower, so the domed nasal arch in front of the eyes stands up as the
+# head's highest point, and a longer, broad, rounded snout in front of it (the old head was a small smooth bulb)
 HEAD = [
-    (-0.1, 0.1, -0.02, -0.14, 0.14, 2.2, 2.0),
-    (0.02, 0.14, -0.02, -0.17, 0.155, 2.3, 2.1),
-    (0.14, 0.15, -0.02, -0.18, 0.16, 2.4, 2.2),
-    (0.26, 0.12, -0.03, -0.165, 0.142, 2.5, 2.3),
-    (0.4, 0.07, -0.04, -0.145, 0.135, 2.6, 2.4),
-    (0.52, 0.045, -0.05, -0.13, 0.136, 2.8, 2.5),
-    (0.6, 0.022, -0.055, -0.118, 0.122, 2.6, 2.4),
-    (0.655, 0.0, -0.06, -0.1, 0.08, 2.2, 2.0),
+    (-0.12, 0.06, -0.03, -0.13, 0.115, 2.2, 2.0),
+    (0.0, 0.09, -0.02, -0.165, 0.145, 2.3, 2.1),
+    (0.12, 0.12, -0.02, -0.18, 0.152, 2.4, 2.2),
+    (0.26, 0.125, -0.035, -0.18, 0.138, 2.4, 2.3),
+    (0.42, 0.1, -0.045, -0.175, 0.128, 2.5, 2.4),
+    (0.58, 0.072, -0.055, -0.165, 0.13, 2.7, 2.5),
+    (0.7, 0.045, -0.06, -0.15, 0.12, 2.6, 2.4),
+    (0.765, 0.01, -0.065, -0.125, 0.075, 2.2, 2.0),
 ]
+
+
+def _seat(s, u, r, out=0.35):
+    """round 16b: the eye's center for a ball of radius r standing out of the head loft's side at (s, u) by out times r"""
+    a, b = 0.0, 0.4
+    for _ in range(40):
+        m = 0.5 * (a + b)
+        d = float(loft(np.array([[m, u, s]], F), HEAD)[0])
+        a, b = (m, b) if d < 0 else (a, m)
+    return hp(s, u, a - r * (1 - out))
+
+
+EYE_C = _seat(EYE_S, EYE_U, EYE_R)
 TAIL = [
     (2.95, -2.3, 0.56, 0.6, 0.52, 2.0, 2.0),
     (2.85, -2.9, 0.5, 0.53, 0.43, 2.0, 2.0),
@@ -135,22 +152,43 @@ def head(P):
     L = hframe(Q)
     x, u, s = L[:, 0], L[:, 1], L[:, 2]
     d = loft(L, HEAD)
-    # the arched crest: a tall rounded dome over the nostril openings, rising in front of the eyes
-    d = smin(d, superellipsoid(L, V(0.0, 0.14, 0.27), (0.085, 0.115, 0.13), 2.2, rb=0.12), 0.07)
-    # the openings of the bony nostrils on the front of the arch: shallow hollows facing up and forward
-    d = d + 0.012 * np.exp(-(((np.abs(x) - 0.05) / 0.03) ** 2 + ((u - 0.17) / 0.04) ** 2 + ((s - 0.37) / 0.05) ** 2))
+    # round 16b: the domed nasal arch: a tall rounded dome rising in front of and above the eyes, narrower than the
+    # skull, its front sloping down into the snout; a low ridge carries it back between the eyes
+    d = smin(d, superellipsoid(L, V(0.0, 0.19, 0.27), (0.095, 0.165, 0.15), 2.2, rb=0.16), 0.06)
+    d = smin(d, round_cone(L, V(0.0, 0.14, 0.06), V(0.0, 0.2, 0.22), 0.05, 0.07), 0.06)
+    # the nostrils high on the front of the arch: oval hollows facing up, forward and out
+    d = d + 0.014 * np.exp(-(((np.abs(x) - 0.052) / 0.03) ** 2 + ((u - 0.2) / 0.035) ** 2 + ((s - 0.34) / 0.05) ** 2))
     # cheeks and jaw muscles behind the eye, the brow over it
-    d = smin(d, ellipsoid(L, V(0.11, -0.07, 0.06), V(0.06, 0.08, 0.1)), 0.05)
-    d = smin(d, ellipsoid(L, V(0.1, 0.1, 0.15), V(0.05, 0.03, 0.06)), 0.03)
+    d = smin(d, ellipsoid(L, V(0.115, -0.07, 0.04), V(0.06, 0.08, 0.1)), 0.05)
+    d = smin(d, ellipsoid(L, V(0.1, 0.105, 0.11), V(0.052, 0.03, 0.065)), 0.03)
+    # the eye socket: a hollow round the eye (the lids and the ball sit in it), deepest below and behind it
+    de = (L - V(float(np.abs(EYE_HF[0])), EYE_HF[1], EYE_HF[2])) / V(0.06, 0.05, 0.065)
+    d = d + 0.011 * np.exp(-np.sum(de * de, 1)) * sstep(0.06, 0.1, np.abs(x))
     # the mouth: a lip line along the jaw (straight, no smile), round the front of the snout
-    jaw = u + 0.068 + 0.02 * sstep(0.35, 0.65, s)
+    jaw = u + 0.068 + 0.02 * sstep(0.35, 0.68, s)
     lip = np.exp(-(jaw / 0.007) ** 2) * sstep(0.17, 0.23, s)
     d = d + 0.008 * lip
     # the lower jaw a little narrower than the upper (the upper lip overhangs)
     d = d + 0.006 * sstep(0.002, -0.02, jaw) * sstep(0.2, 0.3, s) * sstep(0.08, 0.13, np.abs(x))
-    # the fleshy nostril near the front of the snout
-    d = smax(d, -ellipsoid(L, NOS_C, V(0.014, 0.006, 0.02)), 0.006)
+    # the nostril openings on the arch
+    d = smax(d, -ellipsoid(L, NOS_C, V(0.018, 0.01, 0.03)), 0.006)
     return d
+
+
+EYE_HF = hframe(EYE_C[None])[0]
+
+
+def baby_offset(P, N, c):
+    """round 16b: the hatchling's nasal arch only about half as tall (a young sauropod's arch is low; the full dome on
+    the baby's big short head looked like a hammer): every point of the arch moves down toward the skull's top line"""
+    Q = _mirror(P)
+    L = hframe(Q)
+    x, u, s = L[:, 0], L[:, 1], L[:, 2]
+    top0 = np.interp(s, [h[0] for h in HEAD], [h[1] for h in HEAD]).astype(F)
+    m = sstep(0.0, 0.1, s) * sstep(0.52, 0.42, s) * sstep(0.12, 0.08, np.abs(x)) * (c['head'] < c['neck'] + 0.02) * (Q[:, 1] > 6.8)
+    ex = np.maximum(u - top0, 0.0) * m
+    out = -np.outer(0.55 * ex, HU).astype(F)
+    return out.astype(F)
 
 
 def eye_parts(P):
@@ -163,6 +201,9 @@ def fleg(P):
     Q = _mirror(P)
     d = sweep(Q, FORE, mirror_x=False)
     d = smin(d, ellipsoid(Q, V(XF - 0.02, 1.78, 1.02), V(0.2, 0.2, 0.16)), 0.12)      # point of the elbow
+    # round 16b: the wrist a little thicker than the forearm above it (the legs read as plain columns)
+    d = smin(d, ellipsoid(Q, V(XF, 0.66, 1.25), V(0.3, 0.13, 0.3)), 0.12)
+    d = d + 0.025 * sstep(0.85, 1.05, Q[:, 1]) * sstep(1.55, 1.3, Q[:, 1])           # a slimmer forearm
     return d
 
 
@@ -170,6 +211,10 @@ def hleg(P):
     Q = _mirror(P)
     d = sweep(Q, HIND, mirror_x=False)
     d = smin(d, ellipsoid(Q, V(XH + 0.02, 1.52, -1.32), V(0.2, 0.18, 0.16)), 0.12)    # knee
+    # round 16b: the ankle, its heel pushed out behind, and a slimmer shin above it
+    d = smin(d, ellipsoid(Q, V(XH, 0.52, -1.7), V(0.31, 0.14, 0.33)), 0.12)
+    d = smin(d, ellipsoid(Q, V(XH, 0.42, -1.94), V(0.2, 0.15, 0.13)), 0.1)
+    d = d + 0.025 * sstep(0.75, 0.95, Q[:, 1]) * sstep(1.35, 1.15, Q[:, 1])
     return d
 
 
@@ -187,8 +232,14 @@ def manus(Q):
     # the toes: low rounded columns round the front
     ang = np.arctan2(x, z)
     d = d - 0.012 * sstep(0.35, 0.0, y) * (0.5 + 0.5 * np.cos(ang * 7.0)) * sstep(1.9, 1.2, np.abs(ang))
-    claw = round_cone(Q, c + V(-0.22, 0.2, 0.2), c + V(-0.3, 0.14, 0.31), 0.075, 0.05)
-    claw = smin(claw, round_cone(Q, c + V(-0.3, 0.14, 0.31), c + V(-0.33, 0.03, 0.37), 0.05, 0.01), 0.015)
+    # round 16b: the foot flares a little at its base, like an elephant's, with blunt nails round the front
+    d = d - 0.03 * sstep(0.22, 0.02, y)
+    for a in (-0.35, 0.15, 0.62, 1.05):
+        nc = c + V(np.sin(a) * 0.34, 0.07, np.cos(a) * 0.32)
+        d = smin(d, ellipsoid(Q, nc, V(0.075, 0.06, 0.05)), 0.03)
+    # the single big thumb claw on the inside front, curved forward and down
+    claw = round_cone(Q, c + V(-0.22, 0.24, 0.2), c + V(-0.31, 0.17, 0.33), 0.085, 0.055)
+    claw = smin(claw, round_cone(Q, c + V(-0.31, 0.17, 0.33), c + V(-0.35, 0.03, 0.4), 0.055, 0.012), 0.015)
     return d, claw
 
 
@@ -226,9 +277,9 @@ def tail(P):
     return sweep(Q, TAIL, n=48)
 
 
-HEAD_BOX = (V(-0.3, 6.8, 4.35), V(0.3, 7.6, 5.3))
+HEAD_BOX = (V(-0.3, 6.8, 4.35), V(0.3, 7.7, 5.42))
 EYE_BOX = (EYE_C * V(-1, 1, 1) - V(0.09, 0.09, 0.09), EYE_C + V(0.09, 0.09, 0.09))
-NECK_BOX = (V(-0.9, 2.2, 1.1), V(0.9, 7.6, 4.85))
+NECK_BOX = (V(-0.9, 2.2, 1.1), V(0.9, 7.7, 5.3))   # round 16b: past the neck's blend (it cut the head in a seam)
 FL_BOX = (V(-1.15, -0.1, 0.75), V(1.15, 3.7, 1.9))
 HL_BOX = (V(-1.25, -0.1, -2.45), V(1.25, 3.65, -0.9))
 FOOT_BOX = (V(-1.2, -0.1, -2.05), V(1.2, 0.62, 1.85))
@@ -273,7 +324,7 @@ def grid(h):
 # fine bake-only meshes over small features (box lo, box hi on the +x side, voxel size)
 PATCHES = [
     (EYE_C * V(0, 1, 1) + V(0.04, -0.1, -0.1), EYE_C * V(0, 1, 1) + V(0.22, 0.1, 0.1), 0.004),     # eye and lids
-    (V(0.0, 6.85, 4.85), V(0.2, 7.55, 5.3), 0.006),                                                 # arch, snout, lips
+    (V(0.0, 6.85, 4.8), V(0.2, 7.62, 5.42), 0.006),                                                 # arch, snout, lips
     (V(0.4, -0.001, 1.0), V(1.12, 0.45, 1.85), 0.01),                                               # front foot, claw
     (V(0.38, -0.001, -2.0), V(1.22, 0.45, -1.0), 0.01),                                             # hind foot, claws
 ]
@@ -297,7 +348,7 @@ def keep(P):
     L = hframe(Pm)
     hd = sstep(-0.05, 0.05, L[:, 2]) * sstep(6.8, 6.95, Pm[:, 1]) * 0.95
     ft = sstep(0.3, 0.15, Pm[:, 1]) * 0.55
-    base = np.full(len(P), 0.36, F)
+    base = np.full(len(P), 0.33, F)   # round 16b: a little lower, so the head (TRIS 5700) gets more of the budget
     return np.maximum.reduce([base, e, hd, ft]).astype(F)
 
 
@@ -434,8 +485,10 @@ def fix_weights(W, wpos, names, G, weld):
 
 # ---------- skin paint (sRGB 0..1) and fine detail (meters) ----------
 hx = U.hexc
+# round 16b: stronger countershading (it came out one plain elephant gray in the game's light): a dark olive-brown
+# back, warm gray-brown flanks, a pale belly and throat
 K = {
-    'skin': hx(0x736B59), 'top': hx(0x5F5B44), 'dk': hx(0x4C4838), 'belly': hx(0xA69D87), 'lt': hx(0x948B76), 'claw': hx(0x3A342C),
+    'skin': hx(0x766A54), 'top': hx(0x45402F), 'dk': hx(0x38342A), 'belly': hx(0xC2B79C), 'lt': hx(0x968A70), 'claw': hx(0x2E2A24),
     'clawHi': hx(0x6A6152), 'lip': hx(0x6E6656), 'nose': hx(0x3E3A32), 'ball': hx(0x120C08), 'lid': hx(0x5A5444),
     'babyA': hx(0x837965), 'babyB': hx(0x564E3E), 'babyBelly': hx(0xAAA18B),
 }
@@ -493,8 +546,12 @@ def paint(P, N, c, baby=False):
     else:
         col = np.tile(K['skin'], (len(P), 1))
         # countershading: darker, more olive on top, paler below
-        col = U.mix(col, K['top'], R['top'] * 0.55)
-        col = U.mix(col, K['belly'], R['belly'] * 0.75)
+        # round 16b: wider and stronger: the back and the top of the neck and tail dark, the belly, throat and the
+        # underside of the neck and tail pale, the change soft over the flanks
+        dors = sstep(-0.2, 0.7, N[:, 1])
+        col = U.mix(col, K['top'], dors * (0.85 - 0.35 * R['leg']))
+        under = sstep(-0.1, -0.7, N[:, 1]) * (1 - R['leg'])
+        col = U.mix(col, K['belly'], np.maximum(R['belly'], under) * 0.85)
         # muted mottling: big soft darker patches along the back and the neck, smaller flecks on the flanks
         col = U.mix(col, K['dk'], sstep(0.5, 0.7, n1) * sstep(-0.3, 0.4, N[:, 1]) * 0.45)
         col = U.mix(col, K['dk'], sstep(0.6, 0.75, n2) * sstep(-0.1, 0.3, N[:, 1]) * 0.25 * (1 - R['belly']))
