@@ -870,8 +870,10 @@ void main() {
       const ice = UWS.ice, nt = night || 0, day = 1 - nt;
       const wd = w.def.water, murky = wd.swampy ? 1 : 0, clear = wd.clarity != null ? wd.clarity : murky ? 0.15 : 0.62;
       // the water's color: its own (lakes greener, the swamp brown), deeper and darker the further down
-      cShal.copy(lcol(wd.color != null ? wd.color : murky ? 0x6a6e3e : 0x3c7484));
-      cDeep.copy(lcol(wd.deep != null ? wd.deep : murky ? 0x3a3a20 : 0x0f3446));
+      // (round 15: manatee: a world can give the water its own color under the surface, under and underDeep: the
+      // Jungle river's brown green, which from above looks the same as before)
+      cShal.copy(lcol(wd.under != null ? wd.under : wd.color != null ? wd.color : murky ? 0x6a6e3e : 0x3c7484));
+      cDeep.copy(lcol(wd.underDeep != null ? wd.underDeep : wd.deep != null ? wd.deep : murky ? 0x3a3a20 : 0x0f3446));
       const light = (0.08 + 0.92 * day) * (0.4 + 0.6 * Math.exp(-depth / 22)) * (1 - 0.6 * ice);
       fogLin.copy(cShal).lerp(cDeep, ks(0, 28, depth) * 0.5).multiplyScalar(0.35 + 1.1 * light);
       displayColor(fogLin, cTmp);

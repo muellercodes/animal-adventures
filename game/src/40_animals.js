@@ -8051,8 +8051,48 @@ const Animals = (() => {
   const MN = {
     chest: [0, 0.45, 0.15], hips: [0, 0.45, -0.3], tail1: [0, 0.46, -0.65], tail2: [0, 0.47, -0.9], fluke: [0, 0.47, -1.0],
     neck: [0, 0.44, 0.6], head: [0, 0.42, 0.8], snout: [0, 0.33, 1.02], flipper: [0.32, 0.29, 0.52],
-    eye: [0.196, 0.5, 0.86], mouth: [0, 0.17, 1.12],
+    eye: [0.237, 0.505, 0.862], mouth: [0, 0.165, 1.115],
   };
+  // the bristles on the lip pads: short stiff pale bristles standing out of the two pads of the upper lip (the pads as
+  // in tools/blender/manatee.py: PAD_C, PAD_R, where they stand out of the muzzle, MUZ_C, MUZ_R), pointing out and a
+  // little down, both sides in one rigid piece on the snout bone (its origin at the snout's pivot). Vertex colors.
+  let mnBristleC = null;
+  function manateeBristles() {
+    if (mnBristleC) return mnBristleC;
+    const pos = [], col = [], idx = [], r = rng(1507), root = MN.snout;
+    const PC = [0.055, 0.25, 1.1], PR = [0.09, 0.09, 0.1], MC = [0, 0.31, 1.08], MR = [0.17, 0.155, 0.15];
+    const ell = (p, c, rr) => { const q = [(p[0] - c[0]) / rr[0], (p[1] - c[1]) / rr[1], (p[2] - c[2]) / rr[2]]; return (Math.hypot(q[0], q[1], q[2]) - 1) * Math.min(rr[0], rr[1], rr[2]); };
+    const pale = hex(0xC9BFAE), dark = hex(0x6A6258);
+    let n = 0;
+    for (let k = 0; k < 4000 && n < 95; k++) {
+      // a point on the pad's ellipsoid, front and lower half; kept where the pad stands out of the muzzle
+      const u = r() * TAU, v = Math.acos(1 - 2 * r());
+      const e = [Math.sin(v) * Math.cos(u), Math.cos(v), Math.sin(v) * Math.sin(u)];
+      const p = [PC[0] + e[0] * PR[0], PC[1] + e[1] * PR[1], PC[2] + e[2] * PR[2]];
+      if (p[2] < 1.08 || p[1] > 0.33 || p[1] < 0.185 || p[0] < 0.012 || ell(p, MC, MR) < 0.006) continue;
+      const nr = [e[0] / PR[0], e[1] / PR[1], e[2] / PR[2]], nl = Math.hypot(...nr);
+      let d = [nr[0] / nl, nr[1] / nl - 0.45, nr[2] / nl + 0.15]; const dl = Math.hypot(...d); d = d.map((a) => a / dl);
+      const len = 0.012 + 0.01 * r(), rad = 0.0011 + 0.0005 * r(), sh = 0.85 + 0.3 * r();
+      for (const sx of [1, -1]) {
+        const b = pos.length / 3, P0 = [p[0] * sx - d[0] * sx * 0.003, p[1] - d[1] * 0.003, p[2] - d[2] * 0.003], D = [d[0] * sx, d[1], d[2]];
+        // two sides across the bristle, then the tip
+        const a0 = Math.abs(D[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
+        let s1 = [D[1] * a0[2] - D[2] * a0[1], D[2] * a0[0] - D[0] * a0[2], D[0] * a0[1] - D[1] * a0[0]]; const sl = Math.hypot(...s1); s1 = s1.map((a) => a / sl);
+        const s2 = [D[1] * s1[2] - D[2] * s1[1], D[2] * s1[0] - D[0] * s1[2], D[0] * s1[1] - D[1] * s1[0]];
+        for (let j = 0; j < 3; j++) { const a = (j / 3) * TAU, c = Math.cos(a) * rad, s = Math.sin(a) * rad; pos.push(P0[0] + s1[0] * c + s2[0] * s - root[0], P0[1] + s1[1] * c + s2[1] * s - root[1], P0[2] + s1[2] * c + s2[2] * s - root[2]); col.push(...dark.map((q) => s2l(q * sh))); }
+        pos.push(P0[0] + D[0] * len - root[0], P0[1] + D[1] * len - root[1], P0[2] + D[2] * len - root[2]); col.push(...pale.map((q) => s2l(Math.min(1, q * sh))));
+        for (let j = 0; j < 3; j++) idx.push(b + j, b + ((j + 1) % 3), b + 3);
+      }
+      n++;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    g.setIndex(idx);
+    g.computeVertexNormals(); g.computeBoundingSphere();
+    mnBristleC = { geo: g, mat: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, metalness: 0 }) };
+    return mnBristleC;
+  }
   SPEC.manatee = () => {
     const K = { skin: hex(0x4C5053), back: hex(0x3E4245), belly: hex(0x5E6264), patch: hex(0xE6CBC2), patchPk: hex(0xD9A9A0), lip: hex(0x5A5650), calf: hex(0x75797C), calfLt: hex(0x878B8D) };
     const B = (n) => MN[n];
@@ -8098,7 +8138,8 @@ const Animals = (() => {
         cmul(C, 0.96 + 0.06 * noise(P.x * 20, P.y * 20, P.z * 20));
       },
       accent: [],
-      eyes: [{ bone: 'head', p: B('eye'), r: 0.009, dir: [0.9, 0.18, 0.4], iris: 0x2A2018, irisR: 0.97, pupilR: 0.45, rim: 0x0E0C0A, lid: [0.7, -0.7, 0.2] }],
+      extras: () => { const T = manateeBristles(); return [{ bone: 'snout', name: 'bristles', geo: T.geo, mat: T.mat, at: B('snout') }]; },
+      eyes: [{ bone: 'head', p: B('eye'), r: 0.009, dir: [0.93, 0.12, 0.34], iris: 0x2A2018, irisR: 0.97, pupilR: 0.45, rim: 0x0E0C0A, lid: [0.7, -0.7, 0.2] }],
       mouth: B('mouth'), mouthBone: 'snout',
       anim: {
         type: 'manatee', walk: 0.4, run: 0.8, stride: 1.0, floatDepth: 0.76,

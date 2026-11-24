@@ -491,7 +491,8 @@ const World = (() => {
       return {
         name: 'Jungle', blurb: 'Giant leaves, palm trees, parrots, a long river and lagoons.', spawn: [-8, -8],
         seaSpawn: [xc(10), 10],   // round 15: manatee: where an animal of the river starts, in deep water near the spawn
-        H, fog: [24, 140], water: { color: 0x4a7a6a, deep: 0x16322a }, people: 0,
+        // (round 15: manatee: under the water the river is a murky brown green, under, underDeep and clarity)
+        H, fog: [24, 140], water: { color: 0x4a7a6a, deep: 0x16322a, under: 0x5e6c42, underDeep: 0x2a2c16, clarity: 0.3 }, people: 0,
         grassH: [0.12, 0.28], grassTint: [0.25, 0.33, 0.5, 0.8], flowerColors: [0xff3b6b, 0xffb020, 0xb44cf0, 0xff6a3d, 0xffffff],
         // round 11: a real jungle floor: brown leaf litter with mossy green patches and undergrowth
         paint(o, x, z, h) { o.copy(c.g1); mix(o, c.g2, n2(x * 0.05, z * 0.05) * 0.6 + 0.5); mix(o, c.soil, smooth(n3(x * 0.07, z * 0.07) * 1.2 + 0.45) * 0.8); mix(o, c.litter, smooth(n4(x * 0.11, z * 0.11) * 1.5 + 0.2) * 0.5); shore(o, h, c.sand, c.mud); },

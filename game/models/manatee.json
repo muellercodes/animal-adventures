@@ -1,0 +1,87 @@
+{
+ "v": 2,
+ "id": "manatee",
+ "data": "manatee.bin",
+ "enc": "deflate",
+ "raw": 67977,
+ "maps": {
+  "color": "manatee-color.webp",
+  "normal": "manatee-normal.webp",
+  "babyColor": "manatee-color-baby.webp"
+ },
+ "nv": 2241,
+ "ntri": 3486,
+ "nbv": 2241,
+ "nbt": 3486,
+ "bbox": [
+  -0.658395,
+  0.006108,
+  -1.389692,
+  0.658395,
+  0.900058,
+  1.235672
+ ],
+ "bones": [
+  "chest",
+  "hips",
+  "tail1",
+  "tail2",
+  "fluke",
+  "neck",
+  "head",
+  "snout",
+  "flipperL",
+  "flipperR"
+ ],
+ "eye": {
+  "p": [
+   0.237,
+   0.505,
+   0.862
+  ],
+  "r": 0.0095,
+  "dir": [
+   0.9324,
+   0.1203,
+   0.3409
+  ],
+  "lid": [
+   0.611,
+   -0.611,
+   0.25
+  ],
+  "iris": 1971730,
+  "irisR": 0.97,
+  "pupil": "h",
+  "pupilR": 0.4,
+  "rim": 657414,
+  "lidCol": 3356216,
+  "babyLidCol": 4869713
+ },
+ "mouth": [
+  0.0,
+  0.165,
+  1.115
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.04,
+  0.05,
+  0.05
+ ],
+ "flat": 5790814,
+ "belly": [
+  0.0,
+  0.0464,
+  -0.29999999999999993
+ ]
+}
