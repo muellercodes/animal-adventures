@@ -779,10 +779,12 @@ function animalIcon(id, age, sex) {
       const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
       r.setPixelRatio(1); r.setSize(192, 192); r.outputEncoding = THREE.sRGBEncoding; r.toneMapping = THREE.ACESFilmicToneMapping; r.setClearColor(0x000000, 0);
       const sc = new THREE.Scene();
-      sc.add(new THREE.HemisphereLight(0xe8f2ff, 0x6a5a40, 1.1));
+      const hm = new THREE.HemisphereLight(0xe8f2ff, 0x6a5a40, 1.1); sc.add(hm);
       const d = new THREE.DirectionalLight(0xfff4e0, 2.2); d.position.set(2, 4, 3); sc.add(d);
-      iconR = { r, sc, cam: new THREE.PerspectiveCamera(28, 1, 0.01, 100) };
+      iconR = { r, sc, cam: new THREE.PerspectiveCamera(28, 1, 0.01, 100), hm, d, hz: new THREE.Color(0xbfdcef), dir: new THREE.Vector3(2, 4, 3).normalize() };
     }
+    // (round 16: the animals' sky light from the picture's own lights; the next frame puts the world's back)
+    Animals.setSky(iconR.hm, iconR.hz, iconR.dir, iconR.d);
     const rig = Animals.build(id, looks ? { sex } : null);
     if (baby && rig.setAge) rig.setAge(0.1);
     iconR.sc.add(rig.root);
@@ -1306,6 +1308,8 @@ function tick(dt, raw, draw) {
     timeOfDay(dt, focus);
     // round 14: under the water? (fog, light and sky change the moment the camera goes below the surface)
     if (Env.underwater) Env.underwater.update(dt, camera, G.world, playing ? Player.b.room : null, G.night);
+    // round 16: the animals' sky light (their reflections of the sky, the horizon and the ground) from this frame's lights
+    Animals.setSky(hemi, sky.horizonLinear, lightDir, sun);
     if (draw) renderer.render(scene, camera);
   }
   Sound.update(dt, { night: G.night, world: G.world ? G.world.id : '', inside: !!(playing && Player.b.room), pos: playing ? Player.pos : focus, body: playing && !R.paused ? Player.b : null });

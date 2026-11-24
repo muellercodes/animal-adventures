@@ -553,6 +553,81 @@ const Animals = (() => {
     return m;
   }
 
+  // ---------- round 16: the realism lift ----------
+  // One shared change to how every animal is lit (all but the monarch butterfly and its caterpillar, which stay as they
+  // were). A material takes part when it has the AA_LIFT define (liftMat); its shader then gets:
+  // - light from the sky in its reflections: an environment worked out in the shader from a few colors the game sets
+  //   each frame (setSky: the sky above, the horizon, the ground and the sun), blurred by the surface's roughness, so wet
+  //   eyes, noses, beaks, scales and skin catch the sky and the horizon, and fur gets a soft sheen at its edges. No
+  //   texture and no extra render pass, so it costs no memory and changes with the time of day for free.
+  // - softer light across the shadow line (light that wraps round, as it does through fur and skin), and less of the
+  //   sun's plastic-looking shine on fur;
+  // - a little more light on the side that faces the sun's half of the sky, so the shaded side is not flat.
+  // How much of each, by the coat (detail kind): x sky reflection, y sun shine, z wrap.
+  const LIFT_KIND = { fur: [0.75, 0.45, 0.4], feather: [0.85, 0.7, 0.25], scale: [1.1, 1.0, 0.12], skin: [1.0, 0.85, 0.25] };
+  const LIFT_SKIP = { butterfly: 1, caterpillar: 1 };   // (the monarch, its caterpillar and its chrysalis keep their look)
+  const LIFT = {
+    aaSkyZ: { value: new THREE.Vector3(0.6, 0.69, 0.8) }, aaSkyH: { value: new THREE.Vector3(0.9, 0.98, 1.05) },
+    aaSkyG: { value: new THREE.Vector3(0.28, 0.33, 0.18) }, aaSunD: { value: new THREE.Vector3(0.3, 0.8, 0.5).normalize() },
+    aaSunC: { value: new THREE.Vector3(0.2, 0.19, 0.17) },
+  };
+  // the game sets these from its lights each frame (70_game timeOfDay); sky and ground are radiance (the hemisphere
+  // light's colors times its intensity), the horizon a little brighter and paler than the sky above
+  const _lc = new THREE.Color();
+  function setSky(hemi, horizon, sunDir, sun) {
+    const I = hemi.intensity, s = hemi.color, g = hemi.groundColor;
+    LIFT.aaSkyZ.value.set(s.r * I * 0.82, s.g * I * 0.82, s.b * I * 0.82);
+    _lc.copy(s).lerp(horizon, 0.5);
+    LIFT.aaSkyH.value.set(_lc.r * I * 1.2, _lc.g * I * 1.2, _lc.b * I * 1.2);
+    LIFT.aaSkyG.value.set(g.r * I, g.g * I, g.b * I);
+    LIFT.aaSunD.value.copy(sunDir);
+    const k = sun.intensity * 0.12;
+    LIFT.aaSunC.value.set(sun.color.r * k, sun.color.g * k, sun.color.b * k);
+  }
+  const LIFT_PARS = `
+#ifdef AA_LIFT
+uniform vec3 aaSkyZ, aaSkyH, aaSkyG, aaSunD, aaSunC, aaLiftK;
+// the sky's light coming from world direction d, blurred by roughness r
+vec3 aaSkyRad(vec3 d, float r) {
+  float w = 0.04 + 0.7 * r * r;
+  vec3 c = mix(aaSkyG, mix(aaSkyH, aaSkyZ, smoothstep(0.0, 0.45 + 0.5 * r, d.y)), smoothstep(-w, w, d.y));
+  return c + aaSunC * pow(max(dot(d, aaSunD), 0.0), mix(24.0, 2.0, r)) * (1.0 - 0.6 * r);
+}
+void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext geometry, const in PhysicalMaterial material, inout ReflectedLight reflectedLight) {
+  float aaNL = dot(geometry.normal, directLight.direction);
+  vec3 irradiance = saturate(aaNL) * directLight.color;
+  reflectedLight.directSpecular += irradiance * BRDF_GGX(directLight.direction, geometry.viewDir, geometry.normal, material.specularColor, material.specularF90, material.roughness) * aaLiftK.y;
+  reflectedLight.directDiffuse += saturate((aaNL + aaLiftK.z) / (1.0 + aaLiftK.z)) * directLight.color * BRDF_Lambert(material.diffuseColor);
+}
+#undef RE_Direct
+#define RE_Direct RE_Direct_AA
+#endif`;
+  const LIFT_END = `
+#ifdef AA_LIFT
+{
+  vec3 aaNw = inverseTransformDirection(geometry.normal, viewMatrix);
+  irradiance *= 1.0 + 0.22 * dot(aaNw, normalize(vec3(aaSunD.x, 0.25, aaSunD.z))) * step(0.0, aaSunD.y);
+  radiance += aaSkyRad(inverseTransformDirection(reflect(-geometry.viewDir, geometry.normal), viewMatrix), material.roughness) * aaLiftK.x;
+}
+#endif`;
+  // adds the lift to a MeshStandardMaterial shader (inert without the define)
+  function liftPatch(sh) {
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <lights_physical_pars_fragment>', '#include <lights_physical_pars_fragment>' + LIFT_PARS)
+      .replace('#include <lights_fragment_end>', LIFT_END + '\n#include <lights_fragment_end>');
+  }
+  // for materials with no shader patch of their own (feather blades, hair cards, beaks, tusks, tongues)
+  function aaLiftCompile(sh) { Object.assign(sh.uniforms, this.userData.aa); liftPatch(sh); }
+  function liftMat(m, kind) {
+    if (!m || !m.isMeshStandardMaterial || (m.defines && m.defines.AA_LIFT !== undefined)) return m;
+    const k = LIFT_KIND[kind] || LIFT_KIND.skin;
+    m.defines = Object.assign(m.defines || {}, { AA_LIFT: '' });
+    m.userData.aa = Object.assign(m.userData.aa || {}, LIFT, { aaLiftK: { value: new THREE.Vector3(k[0], k[1], k[2]) } });
+    if (m.onBeforeCompile === THREE.Material.prototype.onBeforeCompile) m.onBeforeCompile = aaLiftCompile;
+    m.needsUpdate = true;
+    return m;
+  }
+
   // ---------- feathers (wings and tails) ----------
   // Each feather is a rigid, slightly cambered blade bound to one bone. Blades are defined in their bone's rest frame.
   function featherBlade(len, wid, curl, tipRound, rootW) {
@@ -613,6 +688,7 @@ const Animals = (() => {
       .replace('#include <common>', '#include <common>\nuniform vec4 aaUnder;')
       .replace('#include <map_fragment>', `#include <map_fragment>
   if (gl_FrontFacing) diffuseColor.rgb = mix(diffuseColor.rgb, aaUnder.rgb * clamp(0.45 + 4.0 * dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11)), 0.0, 1.4), aaUnder.a);`);
+    liftPatch(sh);   // (round 16)
   }
 
   // ---------- module temps ----------
@@ -7349,6 +7425,7 @@ const Animals = (() => {
       let c = own.get(m);
       if (!c) {
         c = new THREE.MeshStandardMaterial({ roughness: m.roughness, metalness: m.metalness });
+        if (m.defines) c.defines = Object.assign({}, m.defines);   // (round 16: keeps the realism lift)
         c.userData.aa = Object.assign({}, m.userData.aa, { aaChroma: uni, aaChromaL: uL });
         c.userData.src = m;
         c.onBeforeCompile = chameleonCompile;
@@ -9619,6 +9696,7 @@ const Animals = (() => {
   }
 #endif`);
     }
+    liftPatch(sh);   // (round 16: the realism lift, on with the AA_LIFT define)
   }
   function modelMaterial(M, baby) {
     const md = M.md, tint = (baby ? md.babyTint : md.tint) || [1, 1, 1], rim = md.rim || [0.25, 0.1, 0.08];
@@ -9631,7 +9709,7 @@ const Animals = (() => {
     let apply = () => { m.map = (baby && mm.tex.babyColor) || mm.tex.color || null; m.normalMap = (baby && mm.tex.babyNormal) || mm.tex.normal || null; m.color.setRGB(tint[0], tint[1], tint[2]); m.needsUpdate = true; };
     // round 7: md.sides: the color map holds the +x side in its left half and the -x side in its right half (a coat
     // that differs from side to side, such as a calico's patches; the mesh shares one layout for both sides)
-    if (md.sides) { const a0 = apply; apply = () => { a0(); m.userData.aa.aaSideMap = { value: m.map }; m.map = null; m.defines = { AA_SIDES: '' }; }; }
+    if (md.sides) { const a0 = apply; apply = () => { a0(); m.userData.aa.aaSideMap = { value: m.map }; m.map = null; m.defines = Object.assign(m.defines || {}, { AA_SIDES: '' }); }; }
     if (mm && mm.ready === mm.need) apply();
     else { m.color.copy(flat); if (mm) mm.waiters.push(apply); }
     return m;
@@ -9822,6 +9900,17 @@ const Animals = (() => {
       eyeDefs.push(Object.assign({}, e, { p: [-e.p[0], e.p[1], e.p[2]], dir: [-e.dir[0], e.dir[1], e.dir[2]], bone: mirrorBoneName(e.bone, boneIndex) }));
     }
     const A = { id, spec, defs, boneIndex, rest, geos, eyeDefs, det, furParts: furBatch.parts, extras: spec.extras ? spec.extras(rest) : [], cplan, ag, M };
+    // round 16: the realism lift on every material of the animal (but the monarch's): the coat by its detail kind, hair
+    // cards as fur, feather blades as feathers, beaks, horns, tusks and tongues as skin; baby materials when made
+    A.lift = !LIFT_SKIP[id];
+    if (A.lift) {
+      for (const g of geos) {
+        const k = g.cards ? 'fur' : g.accent ? 'skin' : g.fur ? det.kind : 'feather';
+        liftMat(g.mat, k);
+        if (g.babyMat) { const bm = g.babyMat; g.babyMat = () => liftMat(bm(), k); }
+      }
+      for (const x of A.extras) liftMat(x.mat, 'skin');
+    }
     // eyelid colors (adult, baby): the painted coat right at the eye, unless the spec names one
     if (spec.eyes && spec.eyes[0]) {
       const e = spec.eyes[0], ep = new THREE.Vector3().fromArray(e.p).addScaledVector(new THREE.Vector3().fromArray(e.dir).normalize(), e.r * 1.2);
@@ -9925,26 +10014,55 @@ const Animals = (() => {
   }
   // eye shader: a sky catchlight fixed in view space (wet look), and eyelids drawn on the eye ball itself:
   // above the upper lid edge and below the lower one the ball takes the lid (skin) color, with a dark lid margin.
+  // round 16 (the realism lift, AA_LIFT; every eye but the monarch's): the iris lies a little under a clear dome, so
+  // seen from the side it shifts as it does under a real cornea (sampled again through the dome, aaIris: depth and the
+  // iris edge); the ball darkens just under the upper lid (the lid's shadow), and the cornea reflects the sky and the
+  // horizon (setSky), except where the lids cover it
   function aaEyeCompile(sh) {
     Object.assign(sh.uniforms, this.userData.aa);
     sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vEyeP;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvEyeP = position;');
+      .replace('#include <common>', '#include <common>\nvarying vec3 vEyeP;\n#ifdef AA_LIFT\nvarying vec3 vEyeV;\n#endif')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvEyeP = position;')
+      .replace('#include <project_vertex>', `#include <project_vertex>
+#ifdef AA_LIFT
+  { vec3 aaVd = -mvPosition.xyz; vEyeV = vec3(dot(normalMatrix[0], aaVd), dot(normalMatrix[1], aaVd), dot(normalMatrix[2], aaVd)); }
+#endif`);
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vEyeP;\nuniform vec3 aaLid;\nuniform vec2 aaOpen;\nuniform vec3 aaLidK;')
-      .replace('#include <map_fragment>', `#include <map_fragment>
+      .replace('#include <common>', '#include <common>\nvarying vec3 vEyeP;\nuniform vec3 aaLid;\nuniform vec2 aaOpen;\nuniform vec3 aaLidK;\n#ifdef AA_LIFT\nvarying vec3 vEyeV;\nuniform vec2 aaIris;\n#endif')
+      .replace('#include <map_fragment>', `#if defined(AA_LIFT) && defined(USE_MAP) && __VERSION__ >= 300
+  {
+    vec3 aaP = normalize(vEyeP), aaV = normalize(vEyeV);
+    vec3 aaQ = normalize(aaP - aaV * aaIris.x * smoothstep(aaIris.y - 0.15, aaIris.y + 0.25, aaP.y) / max(dot(aaP, aaV), 0.4));
+    vec2 aaUv = vec2(fract(atan(aaQ.z, -aaQ.x) / 6.2831853), 1.0 - acos(clamp(aaQ.y, -1.0, 1.0)) / 3.1415927);
+    diffuseColor *= textureGrad(map, aaUv, dFdx(vUv), dFdy(vUv));
+  }
+#else
+#include <map_fragment>
+#endif
   float aaSd = vEyeP.x, aaUp = vEyeP.z;
   float aaEU = mix(aaLidK.y + 0.04, aaLidK.x, aaOpen.x) - aaLidK.z * aaSd * aaSd;
   float aaEL = mix(aaLidK.x - 0.04, aaLidK.y, aaOpen.y) + aaLidK.z * 0.6 * aaSd * aaSd;
   float aaLidF = max(smoothstep(aaEU - 0.015, aaEU + 0.015, aaUp), smoothstep(aaEL + 0.015, aaEL - 0.015, aaUp));
   float aaM = max(1.0 - smoothstep(0.0, 0.06, abs(aaUp - aaEU)), 1.0 - smoothstep(0.0, 0.045, abs(aaUp - aaEL)));
-  diffuseColor.rgb = mix(diffuseColor.rgb, aaLid, aaLidF) * (1.0 - 0.55 * aaM);`)
+  diffuseColor.rgb = mix(diffuseColor.rgb, aaLid, aaLidF) * (1.0 - 0.55 * aaM);
+#ifdef AA_LIFT
+  float aaSh = 1.0 - 0.5 * smoothstep(0.3, 0.0, aaEU - aaUp) * (1.0 - aaLidF);
+  diffuseColor.rgb *= aaSh;
+#endif`)
       .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n  roughnessFactor = mix(roughnessFactor, 0.75, aaLidF);')
       .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
 {
   float aaC = pow(saturate(dot(normal, normalize(vec3(-0.42, 0.55, 0.72)))), 160.0) + 0.5 * pow(saturate(dot(normal, normalize(vec3(0.38, 0.12, 0.92)))), 700.0);
   reflectedLight.indirectSpecular += aaC * (1.0 - aaLidF) * (irradiance * RECIPROCAL_PI * 2.4 + 0.04);
+#ifdef AA_LIFT
+  {
+    vec3 aaR = inverseTransformDirection(reflect(-geometry.viewDir, normal), viewMatrix);
+    float aaF = 0.04 + 0.96 * pow(1.0 - saturate(dot(normal, geometry.viewDir)), 5.0);
+    reflectedLight.indirectSpecular += aaSkyRad(aaR, 0.06) * aaF * aaSh * (1.0 - aaLidF);
+  }
+#endif
 }`);
+    sh.fragmentShader = sh.fragmentShader.replace('#include <lights_physical_pars_fragment>', '#include <lights_physical_pars_fragment>' + LIFT_PARS);
   }
   function eyeMaterial(A) {
     const e = A.spec.eyes[0];
@@ -9952,6 +10070,12 @@ const Animals = (() => {
     const lk = e.lid || (A.spec.feathers ? [0.62, -0.62, 0.15] : [0.7, -0.72, 0.2]);
     m.userData.aa = { aaLid: { value: A.lidCol[0].clone() }, aaOpen: { value: new THREE.Vector2(1, 1) }, aaLidK: { value: new THREE.Vector3().fromArray(lk) } };
     m.onBeforeCompile = aaEyeCompile;
+    // (round 16: the lift; the eye's own sky reflection and the lid shadow come with it; sun shine and wrap as they were)
+    if (A.lift) {
+      liftMat(m, 'skin');
+      m.userData.aa.aaLiftK.value.set(0, 1, 0);
+      m.userData.aa.aaIris = { value: new THREE.Vector2(e.irisDepth == null ? 0.16 : e.irisDepth, Math.cos((e.irisR || 0.8) * 0.5 * PI)) };
+    }
     return m;
   }
   // open: 0 closed .. 1 open. Birds blink with the lower lid, mammals and reptiles with the upper.
@@ -10151,7 +10275,7 @@ const Animals = (() => {
     A.shellMat = A.shellMat || [null, null];
     const k = baby ? 1 : 0;
     if (A.shellMat[k]) return A.shellMat[k];
-    if (A.spec.shell.model) return (A.shellMat[k] = modelShellMat(A, baby));
+    if (A.spec.shell.model) return (A.shellMat[k] = A.lift ? liftMat(modelShellMat(A, baby), A.det.kind) : modelShellMat(A, baby));
     const sp = A.spec.shell, base = baby && A.age.babyMats && A.age.babyMats[0] ? A.age.babyMats[0] : A.geos[0].mat;
     const m = furMaterial(base.map, base.roughnessMap, 1, A.det, true);
     m.userData.aa.aaShell.value = sp.len * (baby ? sp.babyLen || 1.5 : 1);
@@ -11278,5 +11402,5 @@ const Animals = (() => {
     return rig;
   }
 
-  return { ids, build, get ready() { return loadAll(); }, useModels };
+  return { ids, build, get ready() { return loadAll(); }, useModels, setSky };   // (round 16: setSky, the lift's sky light)
 })();

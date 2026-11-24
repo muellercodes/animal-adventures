@@ -419,6 +419,46 @@ function climbStep(b, dt, c) {
   }
 }
 
+// round 16 (the realism lift): a soft dark patch on the ground right under each animal, where the body hides the sky:
+// it sets the animal on the ground (the sun's shadow is offset to the side, and far from the camera there is none).
+// A child of the rig's root, so it comes and goes with the animal; on the ground under a jump or a low flight it fades
+// with the height, and it is hidden in the water, up a tree or on a perch. Not under the monarch or its caterpillar.
+let blobGeo = null, blobMat = null;
+function contactBlob(b) {
+  if (b.blob !== undefined) return b.blob;
+  if (b.sp === 'butterfly') return (b.blob = null);
+  if (!blobGeo) {
+    const N = 64, d = new Uint8Array(N * N * 4);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const u = (x + 0.5) / N * 2 - 1, v = (y + 0.5) / N * 2 - 1, q = Math.min(1, Math.hypot(u, v)), a = Math.pow(1 - q, 1.6) * (1 - q * q);
+      d[(y * N + x) * 4 + 3] = Math.round(a * 255);
+    }
+    const t = new THREE.DataTexture(d, N, N, THREE.RGBAFormat); t.magFilter = THREE.LinearFilter; t.minFilter = THREE.LinearFilter; t.needsUpdate = true;
+    blobGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+    blobMat = new THREE.MeshBasicMaterial({ color: 0x000000, map: t, transparent: true, opacity: 0.5, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  }
+  const m = new THREE.Mesh(blobGeo, blobMat);
+  m.name = 'contact'; m.renderOrder = 1; m.matrixAutoUpdate = true;
+  b.rig.root.add(m);
+  return (b.blob = m);
+}
+function poseBlob(b) {
+  const m = contactBlob(b); if (!m) return;
+  const md = b.mode, rig = b.rig, k = b.k || 1;
+  let h = 0;
+  if (md === 'air' || md === 'fly') {
+    const w = G.world, p = b.pos;
+    if (b.room) h = 99;
+    else { const g = w.groundAt ? w.groundAt(p.x, p.z, p.y) : w.H(p.x, p.z); h = g < -100 || (w.def.water && g < WATER - 0.05) ? 99 : p.y - g; }
+  } else if (md !== 'ground' && md !== 'sleep') h = 99;
+  const fade = 1 - clamp(h / Math.max(0.15, b.m.height * 1.2), 0, 1);
+  m.visible = fade > 0.02;
+  if (!m.visible) return;
+  // (the root is scaled by k and tipped by the slope; the patch sits under the body, about its own footprint)
+  m.position.set(0, -h / k + 0.004 / k, 0);
+  m.scale.set(rig.radius * 2.6 * fade, 1, rig.length * 0.62 * fade);
+}
+
 function poseBody(b, dt, animate) {
   const r = b.rig.root, rig = b.rig, H = G.world.H;
   r.position.copy(b.pos); r.rotation.y = b.yaw;
@@ -447,6 +487,7 @@ function poseBody(b, dt, animate) {
   if (b.mode === 'dive') b.pitch = clamp(b.pitch, lo, hi);
   b.wasClimb = b.mode === 'climb';
   r.rotation.x = b.pitch;
+  poseBlob(b);   // (round 16)
   if (!animate) return;
   // (round 14: a diver's speed is its speed through the water, up and down too)
   const st = b.st; st.t = G.t; st.speed = (b.mode === 'dive' ? Math.hypot(b.speed, b.vy) : b.speed) / b.k; st.mode = b.mode === 'perch' ? 'ground' : b.mode; st.vy = b.vy; st.eat = b.eat; st.turn = b.turn; st.idle = b.idle;
