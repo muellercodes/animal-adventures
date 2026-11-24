@@ -6517,7 +6517,8 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     s.shell.len = 0.009 * k;
     // a kitten: big paws, a big head
     s.baby = Object.assign({}, s.baby, { head: 1.55, ear: 1.15, leg: [0.72, 1.3], tail: 0.6 });
-    s.modelSpec = { baby: { eye: 1.04, fluff: 0, leg: [0.72, 1.04], body: [1.1, 1.1, 0.76] } };
+    // (round 16b: muzzle: a kitten's shorter than the new sculpt's long jaw)
+    s.modelSpec = { baby: { eye: 1.04, fluff: 0, leg: [0.72, 1.04], body: [1.1, 1.1, 0.76], muzzle: 0.8 } };
     const A = s.anim;
     Object.assign(A, {
       // a heavy walk, a short charge
@@ -7486,6 +7487,8 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       tb: [['tail1', 'rump', 0.205, -0.19], ['tail2', 'tail1', 0.175, -0.251], ['tail3', 'tail2', 0.118, -0.311]],
       tail: [[0.207, -0.18, 0.013], [0.188, -0.232, 0.0115], [0.149, -0.282, 0.0102], [0.106, -0.321, 0.0093], [0.074, -0.349, 0.0124], [0.057, -0.37, 0.0114]],
       length: 0.665, iris: 0xB8822E, nose: 0x9C6252, shell: 0.03,
+      // round 16b: the sculpt's muzzle is longer now; a cub's is shorter (the winged lion's cub too)
+      modelBaby: { muzzle: 0.78 },
       anim: (A) => ({
         tailIdle: [-0.5, -0.15, 0.3], tailRun: [0.2, 0.1, 0.1], tailFlick: 0.2,
         sit: Object.assign({}, A.sit, { tail: [0.6, 0.3, 0.2], tailYaw: [0.3, 0.4, 0.4], wrap: [0.6, 1.0, 1.4], wrapY: [0.0, 0.0, 0.0] }),
@@ -7517,6 +7520,8 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       tb: [['tail1', 'rump', 0.205, -0.19], ['tail2', 'tail1', 0.185, -0.28], ['tail3', 'tail2', 0.15, -0.36]],
       tail: [[0.207, -0.18, 0.0145], [0.193, -0.245, 0.0128], [0.167, -0.32, 0.0116], [0.13, -0.395, 0.0104], [0.106, -0.443, 0.0082]],
       length: 0.74, iris: 0xD49A30, nose: 0xC08474, shell: 0.012,
+      // round 16b: a cub's muzzle shorter than the new sculpt's
+      modelBaby: { muzzle: 0.8 },
       anim: (A) => ({
         tailIdle: [-0.45, 0.05, 0.45], tailRun: [0.15, 0.0, 0.1],
         // swimming low in the water, the head held up, paddling with all four legs

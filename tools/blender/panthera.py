@@ -122,7 +122,9 @@ def setup(C):
         d = smin(d, ellipsoid(L, V(*ck[0]), V(*ck[1])), 0.012)
         # brows: a ridge over each eye, the stop between them
         b = T['BROW']
-        d = smin(d, round_cone(L, V(0.007, b, 0.06), V(0.021, b - 0.0015, 0.062), 0.0045, 0.004), 0.006)
+        if b is not None:
+            # (round 16b: None for a species that sculpts its own brow in HEAD_X)
+            d = smin(d, round_cone(L, V(0.007, b, 0.06), V(0.021, b - 0.0015, 0.062), 0.0045, 0.004), 0.006)
         # whisker pads and chin, the nose leather on top
         ns = C.NOSE_S
         d = smin(d, ellipsoid(L, V(T.get('PAD_X', 0.0105), -0.0165, MS(0.084)), V(*T['PADS'])), 0.005)
@@ -131,6 +133,10 @@ def setup(C):
             # a broad flat bridge down the top of the muzzle
             w = T['BRIDGE']
             d = smin(d, round_cone(L, V(0.0, 0.009 - w, 0.064), V(0.0, -0.001 - w, ns - 0.006), w, w * 0.85), 0.008)
+        if T.get('HEAD_X'):
+            # round 16b: the species' own head parts (the lion's and the tiger's skulls: brow, cheekbones, jaw), before
+            # the nose leather and the mouth lines are cut in; off for every other big cat
+            d = T['HEAD_X'](C, L, d)
         NL = L - V(0.0, -0.0052, ns - 0.0024)
         NL[:, 0] = NL[:, 0] / (1.0 + 70.0 * np.clip(NL[:, 1], -0.005, 0.005))
         d = smin(d, ellipsoid(NL, V(0.0, 0.0, 0.0), V(*T['NOSE'])), 0.003)
@@ -251,8 +257,10 @@ def face(C, R):
     chin = sstep(-0.025, -0.029, y) * sstep(0.055, 0.07, sv)
     # pale marks round the eyes: a patch under each eye, a spot over it
     E = C.HF.loc(C.EYE.c[None, :])[0]
-    under = sstep(0.0065, 0.003, np.linalg.norm((L - (E + V(0.001, -0.0085, 0.001))) / V(1.25, 0.65, 1.0), axis=1))
-    over = sstep(0.0055, 0.0025, np.linalg.norm((L - (E + V(-0.002, 0.0085, -0.002))) / V(1.0, 0.7, 1.0), axis=1))
+    # (round 16b: EYE_UNDER and EYE_OVER move the marks onto the skin of a species whose cheeks and brow stand out
+    # further than the eye; the defaults are the old places, inside the head on the lion's new skull)
+    under = sstep(0.0065, 0.003, np.linalg.norm((L - (E + V(*T.get('EYE_UNDER', (0.001, -0.0085, 0.001))))) / V(1.25, 0.65, 1.0), axis=1))
+    over = sstep(0.0055, 0.0025, np.linalg.norm((L - (E + V(*T.get('EYE_OVER', (-0.002, 0.0085, -0.002))))) / V(1.0, 0.7, 1.0), axis=1))
     pale = np.clip(np.maximum.reduce([pads, chin, under * T['EYE_PALE'][0], over * T['EYE_PALE'][1]]), 0, 1)
     # whisker spots: rows of small dark dots on the pads
     g, _ = worley(L / V(0.0026, 0.0026, 0.0026), 91)
