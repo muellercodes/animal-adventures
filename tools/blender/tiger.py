@@ -202,14 +202,14 @@ def stripes(R, Pm, N, P):
     # middle and longer out to the sides (they were all on the crown, like a zebra's), a black rim over each white
     # eyebrow spot, lines back over the crown, a line back from the outer corner of each eye, and three bold stripes
     # running down and back across the white cheek into the ruff
-    fh = _bands((s + 0.003 * hw) / 0.0062, xh, 91, 0.34, 0.25, (0.0, 0.004), (0.009, 0.017))
-    fh = fh * sstep(E[1] + 0.009, E[1] + 0.013, u) * sstep(0.028, 0.036, s) * sstep(0.064, 0.058, s) * hd
+    fh = _bands((s + 0.003 * hw) / 0.0062, xh, 91, 0.44, 0.25, (0.0, 0.004), (0.01, 0.018))
+    fh = fh * sstep(E[1] + 0.008, E[1] + 0.012, u) * sstep(0.028, 0.036, s) * sstep(0.064, 0.058, s) * hd
     fh = fh * (1 - sstep(0.75, 1.0, _brow_spot(L, E)))
     sp = np.linalg.norm((L - (E + V(0.001, 0.0115, 0.0065))) / V(1.0, 0.72, 1.0), axis=1)
     rim = sstep(0.0082, 0.009, sp) * sstep(0.0108, 0.0098, sp) * sstep(E[1] + 0.013, E[1] + 0.016, u) * sstep(E[0] - 0.009, E[0] - 0.005, xh) * hd
     cr = _bands((xh + 0.002 * hw) / 0.0075 + 0.5, s, 97, 0.17, 0.25, (-0.012, 0.0), (0.016, 0.026))
     cr = cr * sstep(0.014, 0.02, u) * hd * sstep(0.004, 0.008, xh) * (1 - R['ear'])
-    ch = _bands((u + 0.75 * (s - 0.05) + 0.003 * w1) / 0.0088, s, 95, 0.26, 0.32, (0.008, 0.02), (0.046, 0.056))
+    ch = _bands((u + 0.75 * (s - 0.05) + 0.003 * w1) / 0.0088, s, 95, 0.3, 0.32, (0.008, 0.02), (0.046, 0.056))
     ch = ch * hd * sstep(0.019, 0.026, xh) * sstep(0.002, -0.004, u) * sstep(-0.038, -0.03, u)
     el = sstep(0.0016, 0.0007, np.abs(u - E[1] + 0.002 - 0.35 * (s - E[2]))) * sstep(E[2] - 0.004, E[2] - 0.009, s) * sstep(E[2] - 0.022, E[2] - 0.016, s)
     el = el * sstep(E[0], E[0] + 0.004, xh) * hd
