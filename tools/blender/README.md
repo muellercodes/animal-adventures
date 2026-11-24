@@ -763,9 +763,9 @@ about 214 KB in the page plus 36 KB of icons (about 47 KB in the page), about 26
 
 Winged lion (round 13, `VOXEL=0.0092 TRIS=4600 TEX=768`, about 6 minutes on the shared machine): 7.6k triangles plus 224
 in whisker cards (about 10k in the game with the 88 wing blades, 2.1k triangles, and the eyes); 768 maps (color WebP 70,
-normal 56), 256 cub map, fur and whisker textures, 512 x 256 feather atlas and its down atlas: 74 KB mesh and cards + 28
-+ 21 + 5 + 7 + 5 + 15 + 2 + 6 KB, 166 KB of files, about 222 KB in the page plus about 48 KB of icons (36 KB of PNG).
-Winged lioness (same settings): 8.3k triangles plus 224; 75 KB + 28 + 18 + 5 + 5 + 5 + 15 + 2 + 6 KB, 164 KB of files,
+normal 56), 256 cub map, fur and whisker textures, 512 x 256 feather atlas and its down atlas: 74 KB mesh and cards + 29
++ 24 + 5 + 7 + 5 + 15 + 1 + 6 KB, 172 KB of files (round 16b, the lion's new head and mane), about 222 KB in the page plus about 48 KB of icons (36 KB of PNG).
+Winged lioness (same settings): 8.2k triangles plus 224; 74 KB + 27 + 17 + 5 + 5 + 5 + 15 + 1 + 6 KB, 160 KB of files,
 about 218 KB in the page plus a 19 KB icon (her cub uses the winged lion cub's icon).
 
 Zebra (round 15, `VOXEL=0.0035 TRIS=6500 WEIGHTS=transfer TEX=1024`, about 12 minutes on the shared machine, 8 of them
@@ -975,9 +975,15 @@ shoulder):
   pulled up toward the gum in its baby offsets, so only the tips show.
 - A plain tawny coat, short (fur shells at 55% of the cat's lengths), faint darker spots, a pale muzzle and chin with
   dark whisker spots, a dark tip to the tail. Kittens: bold dark spots. Whisker cards as the cat's.
-- Budget (`VOXEL=0.0085 TRIS=4800 TEX=768`): 6.9k triangles plus 192 in whisker cards; 768 maps (color WebP 72, normal
-  58), 384 kitten map, fur and whisker textures: 65 KB mesh + 26 + 14 + 9 + 5 + 6 KB, about 173 KB in the page plus about
-  27 KB of icons.
+- Round 16b: the lion's head frame (`PT.DropFrame`) and skull (cheekbones, the heavy brow, a low flat crown, a long deep
+  square muzzle, a bigger nose); the upper lips hang in deep flanges over the roots of the sabers, the chin flange is
+  deeper and squarer with a long deep jaw behind it, and the sabers are a little longer so they reach well below it; no
+  tear lines (on the new brow they read as a frown); a heavier neck, thicker forelegs and a bigger hump over the
+  shoulders; the spots a little smaller and clearer, a darker line down the back. The game shortens a kitten's muzzle
+  (`modelSpec.baby.muzzle` 0.8).
+- Budget (`VOXEL=0.0085 TRIS=4800 TEX=768`): 6.7k triangles plus 192 in whisker cards; 768 maps (color WebP 72, normal
+  58), 384 kitten map, fur and whisker textures: 65 KB mesh + 26 + 15 + 9 + 5 + 6 KB, 130 KB of files (round 16b), about
+  174 KB in the page plus about 36 KB of icons.
 
 Fruit bat (`VOXEL=0.002 TRIS=6500 TEX=768`, normal map WebP 64): 6.5k triangles (7.2k in the game with the eyes, 15.6k
 at detail 2 with 4 fur shell layers); 768 color and normal maps (the membranes get a smaller share of them,
@@ -1072,6 +1078,18 @@ short charge, asleep flat out.
   and `cub` for `baby_coat()`.
 - Shared tools options (off for every other species): `finish_baby` (texture.py, passed on by bigcat.py) folds less of
   the sculpt's occlusion into a baby's color map.
+- Round 16b switches in `panthera.py` (off for the leopard and the griffin, whose renders stay the same): `HEAD_X` (the
+  species' own head parts, added before the nose leather and the mouth lines are cut), `BROW` None (no stock brow, for a
+  species that sculpts its own in `HEAD_X`), `EYE_UNDER` and `EYE_OVER` (where the pale marks under and over the eye sit,
+  as offsets from the eye; the old places lie inside the head once the cheekbones and the brow stand out past the eye).
+- Round 16b heads (the lion, the lioness, the tiger and, on its own file, the saber-toothed cat): the old ones read as a
+  capybara's dome (the frame pitched 15 degrees and the muzzle dropped 0.38 put the nose 10 cm below the eye and only 15
+  cm in front of it). Now the head frame is pitched 10 degrees and the muzzle dropped 0.15, the crown is flatter, the
+  skull widest at the cheekbones just behind and under the eyes (`HEAD_X`), a heavy brow ridge over each eye that the eye
+  sits forward under, and a long, square muzzle (loft exponents about 3) with a broad flat bridge (`BRIDGE`), bigger
+  whisker pads and a bigger nose leather. The pale marks under the eyes and the faces' paint follow the head frame.
+  Quick previews without Blender (marching cubes over the head's box and a flat render of the sculpt with its paint, a
+  few seconds each) were enough to shape them; check at the game camera after export, the fur shells soften the forms.
 
 The lion (`lion.py`, KS 4.2: about 2.05 m from the nose to the rump, 1.05 m at the shoulder, a 1 m tail with its tuft):
 - The mane is part of the sculpt, so it keeps its outline far away: a ruff framing the face, sideburns over the
@@ -1082,14 +1100,23 @@ The lion (`lion.py`, KS 4.2: about 2.05 m from the nose to the rump, 1.05 m at t
   back and on the chest, in streaks, with longer coat strokes (`lenk`). The ruff rides on the head bone
   (`fix_weights`), so the face does not pull out of it when the lion eats; the game's fallback has a mane loft too,
   which also gives the sculpted mane its skin weights.
+- Round 16b: the mane no longer reaches the cheeks or the crown: it starts behind the cheekbones and, on top, between the
+  ears (`_face_cut`), the ruff is narrower, it hangs in locks (`_locks`: a noise stretched along the hair, down and back,
+  folded at its middle so the locks are round with sharp partings) and its edge over the shoulders and under the chest is
+  ragged (a low noise added to the field there; the shoulder part ends a little further forward so the tongues stay
+  inside the neck's box). Paint: gold ruff to about 7 cm behind the face, darkening behind in streaks along the locks, the
+  thin rear edge lighter and running out into the coat in tongues (`extra`); a ruddier bridge and a dark edged nose
+  (`face_x`, `nose_edge`, also the lioness's), a darker back (`BACK_K` 0.7). The cub's nose is pink, and the game shortens
+  its muzzle (`modelBaby.muzzle` 0.78 in `SPEC.lion`, also the winged lion's cub).
 - Cubs have no mane: their baby offsets pull every mane vertex in onto the body under it (`body0()`, the lion without
   the mane), their color map paints the coat that would be there (`coat()` without the mane hook), and they take less
   of the sculpt's occlusion (`finish_baby`), or the mane's locks and the crease under it showed as a gray cape.
   The mane's fur shells stay a little longer on a cub's neck (the fur length per vertex is shared). Faint spots on the
   legs and belly, a small dark tail tip, a bigger head in the game (`baby.head` 1.75 for the three).
-- Budget (`VOXEL=0.0092 TRIS=5000 TEX=768`): 6.9k triangles plus 224 in whisker cards; 768 maps (color WebP 70, normal
-  56), 256 cub map, fur and whisker textures: 72 KB mesh and cards + 28 + 18 + 5 + 7 + 5 KB, 138 KB of files, about 185
-  KB in the page plus about 33 KB of icons. About 12 minutes for the whole run on the shared machine.
+- Budget (`VOXEL=0.0092 TRIS=5000 TEX=768`): 6.8k triangles plus 224 in whisker cards; 768 maps (color WebP 70, normal
+  56), 256 cub map, fur and whisker textures: 73 KB mesh and cards + 29 + 23 + 5 + 7 + 5 KB, 146 KB of files (round 16b;
+  138 KB before, the mane's locks are in the normal map), about 195 KB in the page plus about 33 KB of icons. About 12
+  minutes for the whole run on the shared machine.
 
 The Bengal tiger (`tiger.py`, KS 4.0: about 1.95 m from the nose to the rump, 1 m at the shoulder, the house cat's tail
 made thicker, about 1.05 m):
@@ -1107,10 +1134,16 @@ made thicker, about 1.05 m):
   round the eyes (`NO_EYERING`: the house cat's ring made goggles).
 - Cubs wear the grown-up's coat (no cub color map: the stripes would cost the page as much again); their fluff is the
   longer fur shells, and the game gives them the big head and paws.
+- Round 16b: the head as the lion's (broader, a shorter muzzle), the ruff moved down to the jaw and grown out of the cheek
+  (in `HEAD_X`, blended wider than the `RUFF` hook) in locks; a bigger nose; the white of the cheeks reaching up under the
+  eyes, a big white spot over each eye on the skin (`_brow_spot`, `EYE_OVER`), and the face's own stripes: bars across
+  the forehead from just over the brows, short in the middle and longer out to the sides, three bold stripes down and
+  back across each white cheek into the ruff, a line back from the eye; a richer orange, deeper along the back and paler
+  toward the belly. The game shortens a cub's muzzle (`modelBaby.muzzle` 0.8).
 - It swims: low in the water (`floatDepth` 0.23 times k), the head and the top of the back out, paddling.
-- Budget (`VOXEL=0.0088 TRIS=4300 TEX=768`): 6.6k triangles plus 224 in whisker cards; 768 maps (color WebP 52: the
-  stripes are most of the bytes, normal 50), fur and whisker textures: 64 KB mesh and cards + 52 + 13 + 5 + 5 KB, 143 KB
-  of files, about 191 KB in the page plus about 31 KB of icons.
+- Budget (`VOXEL=0.0088 TRIS=4300 TEX=768`): 6.5k triangles plus 224 in whisker cards; 768 maps (color WebP 52: the
+  stripes are most of the bytes, normal 50), fur and whisker textures: 64 KB mesh and cards + 53 + 14 + 6 + 5 KB, 145 KB
+  of files (round 16b), about 193 KB in the page plus about 31 KB of icons.
 
 The African leopard (`leopard.py`, KS 2.7: about 1.3 m from the nose to the rump, 0.65 m at the shoulder, a 0.95 m tail
 on four bones):
@@ -1350,14 +1383,13 @@ VOXEL=0.0065 TRIS=4000 TEX=768 WEIGHTS=transfer BLENDER_PY=... python3 tools/ble
 
 The lioness (`lionf.py`): lion.py's tables (`import lion`, so she follows the lion) without the mane hooks, made at the
 lion's size (the game scales a lioness to 0.88). Her neck is the plain big cat neck about 7% slimmer, her throat,
-shoulder blades, forelegs (`FORE_K`, `FLEG_X`), chest and front paws lighter. Her head is the lion's in a finer frame
-(`_FineFrame`: the lion's head frame with the muzzle dropped, every part placed in it 10% narrower over the skull and
-the cheeks, 5% over the muzzle, and 5% lower), so the eyes, pads, nose, mouth, whiskers and paint masks all follow and
-the face reads long; her ears stand free of the mane. The coat: the lion's, a little sandier and more even along the
+shoulder blades, forelegs (`FORE_K`, `FLEG_X`), chest and front paws lighter. Her head (round 16b) is her own skull in the lion's
+head frame: narrower and lighter than his, a flatter crown, smaller cheekbones, the same long square muzzle and heavy
+brow (it was the lion's head narrowed, `_FineFrame`, which kept his dome); her ears stand free and a little bigger. The coat: the lion's, a little sandier and more even along the
 back, a paler throat and chest (`pattern`), faint spots low on the belly and the legs, black ear backs, the black tuft.
 Her cub is a plain lion cub: the cat's round little body (nothing to pull in, so no lumpy neck), the lion cub's coat and
 its lighter occlusion (`finish_baby`). Budget: 7.4k triangles plus 224 in whisker cards; 768 maps (color WebP 70,
-normal 56), 256 cub map, fur and whisker textures: 72 KB mesh and cards + 27 + 15 + 5 + 5 + 6 KB, 128 KB of files,
+normal 56), 256 cub map, fur and whisker textures: 71 KB mesh and cards + 26 + 13 + 5 + 4 + 5 KB, 128 KB of files,
 about 171 KB in the page plus a 16 KB icon (the cub uses the lion cub's icon). About 7 minutes on the shared machine.
 
 The Holstein bull (`cowm.py`): cow.py runs in its module (`exec`, so every cow function looks up the bull's tables and
