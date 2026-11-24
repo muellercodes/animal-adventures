@@ -592,6 +592,18 @@ def paint(P, N, c):
     return np.clip(col, 0, 1).astype(F), np.clip(rough, 0.12, 0.9).astype(F)
 
 
+# ---------- the calf's own shape (round 16b) ----------
+def baby_offset(P, N, c):
+    """a narwhal calf's head is small and round: the top of the head in front of the blowhole slopes down to a lower,
+    rounder melon (with the grown-up's tall dome scaled down it read as a sperm whale calf's square head)"""
+    Q = mirror(P)
+    y, z = Q[:, 1], Q[:, 2]
+    out = np.zeros((len(P), 3), F)
+    out[:, 1] = -0.1 * sstep(1.42, 1.92, z) * sstep(0.45, 0.82, y)
+    out[:, 2] = -0.035 * sstep(1.78, 1.98, z) * sstep(0.32, 0.62, y)
+    return out.astype(F)
+
+
 # ---------- the calf's colors (its own color map) ----------
 KB = {'slate': hexc(0x56616C), 'slateDk': hexc(0x47515B), 'belly': hexc(0x7C8792), 'lid': hexc(0x3A424A)}
 BABY_SIZE = 256

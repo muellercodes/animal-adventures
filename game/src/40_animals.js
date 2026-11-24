@@ -6549,8 +6549,8 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     fingers: [[-8, 82, 0.12], [2, 86, 0.27], [36, 89, 0.22], [68, 92, 0.2]],
     // (round 16b: folded, the fingers shrink toward the wrist in the wing plane, as a real bat's finger joints fold the
     // long phalanges back, so the folded hand ends by the elbow and does not stick out past the rump as a blade;
-    // hanging asleep they shrink less, so the wings still wrap the body)
-    fscl: { fold: 0.56, hang: 0.8 },
+    // hanging asleep they shrink less and fan out a little (hang: their folded yaws then), so the wings wrap the body)
+    fscl: { fold: 0.56, hang: 0.85, hangYaw: [58, 64, 70, 76] },
     fold: { hum: 80, elb: -165, wri: 168 },
     // the arm wing's own bones (f4 to f9, like a bird's tertials and secondaries) along the humerus and the forearm:
     // pointing back in flight, they turn back along the arm as it folds, so the membrane folds flat with it
@@ -6572,7 +6572,8 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     // the arm wing's bones shrink across the wing as it folds (its membrane gathers in, as a real one pleats)
     W.wing.shrink = true;
     for (let i = BAT.fingers.length; i < W.wing.fb.length; i++) W.wing.fb[i].sc = 0.25;
-    W.wing.fscl = Object.assign({ n: BAT.fingers.length }, BAT.fscl);   // round 16b
+    // round 16b: the fingers' turn when hanging, relative to the hand (as fb[i].d)
+    W.wing.fscl = Object.assign({ n: BAT.fingers.length, hd: BAT.fingers.map((f, i) => (BAT.fscl.hangYaw[i] - (BAT.fold.hum + BAT.fold.elb + BAT.fold.wri) - f[0]) * DEG) }, BAT.fscl);
     const [sx, sy, sz] = BAT.sh, el = sx + BAT.arm[0], wr = el + BAT.arm[1];
     // the procedural body's membranes: flat lofts on the forearm and the hand (the sculpted model has real ones)
     const fT = (i, s) => { const f = BAT.fingers[i], a = f[0] * DEG; return [wr + Math.cos(a) * f[2] * s, sy, sz - Math.sin(a) * f[2] * s]; };
@@ -8539,8 +8540,8 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       },
       // the calf: rounder and shorter, flippers and flukes a little smaller
       // (round 16b: its head small and round, as a real calf's: it was bigger with a blunter melon, on a body shortened
-      // more, and read as a sperm whale calf's square head)
-      baby: { head: 0.97, muzzle: 1.0, eye: 1.12, neck: [0.9, 1.0], body: [1.03, 1.03, 0.88], tail: 0.9, roles: { tusk: 'horn' }, noDrop: true },
+      // more, and read as a sperm whale calf's square head; the sculpted model's baby offsets lower its forehead too)
+      baby: { head: 1.02, muzzle: 1.0, eye: 1.12, neck: [0.9, 1.0], body: [1.03, 1.03, 0.88], tail: 0.9, roles: { tusk: 'horn' }, noDrop: true },
     };
   };
 
@@ -9487,6 +9488,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       if (W.fscl) {
         const fs = lerp(1, HG && hangK > 0 ? lerp(W.fscl.fold, W.fscl.hang, hangK) : W.fscl.fold, f);
         for (let i = 0; i < W.fscl.n; i++) { w.fs[i].scale.x = w.fs[i].scale.z = fs; if (mir) mir.fs[i].scale.x = mir.fs[i].scale.z = fs; }
+        if (HG && hangK > 0) for (let i = 0; i < W.fscl.n; i++) w.fs[i].quaternion.setFromAxisAngle(AY, lerp(W.fb[i].d, W.fscl.hd[i], hangK) * k2);
       }
       w.sh.position.set(shP0.x + fpo[0] * f, shP0.y + fpo[1] * f, shP0.z + fpo[2] * f);
       if (mir) {
