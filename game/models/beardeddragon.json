@@ -3,23 +3,23 @@
  "id": "beardeddragon",
  "data": "beardeddragon.bin",
  "enc": "deflate",
- "raw": 84645,
+ "raw": 82431,
  "maps": {
   "color": "beardeddragon-color.webp",
   "normal": "beardeddragon-normal.webp",
   "babyColor": "beardeddragon-color-baby.webp"
  },
- "nv": 3035,
- "ntri": 3485,
- "nbv": 3035,
- "nbt": 3485,
+ "nv": 2965,
+ "ntri": 3361,
+ "nbv": 2965,
+ "nbt": 3361,
  "bbox": [
-  -0.096014,
-  0.000762,
-  -0.33169,
-  0.096014,
-  0.054441,
-  0.161857
+  -0.09535,
+  0.00057,
+  -0.307267,
+  0.09535,
+  0.055604,
+  0.161659
  ],
  "bones": [
   "hips",
@@ -50,27 +50,27 @@
  ],
  "eye": {
   "p": [
-   0.015,
-   0.0416,
-   0.1415
+   0.013,
+   0.0418,
+   0.1405
   ],
-  "r": 0.0037,
+  "r": 0.0042,
   "dir": [
-   0.9326,
-   0.2838,
-   0.223
+   0.9228,
+   0.3009,
+   0.2407
   ],
   "lid": [
-   0.595,
-   -0.703,
+   0.643,
+   -0.69,
    0.25
   ],
-  "lidCol": 5453599,
-  "iris": 11039790,
+  "lidCol": 6177061,
+  "iris": 12618298,
   "irisR": 0.92,
-  "pupilR": 0.46,
+  "pupilR": 0.4,
   "rim": 2759182,
-  "babyIris": 11040814
+  "babyIris": 12091962
  },
  "mouth": [
   0.0,

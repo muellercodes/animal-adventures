@@ -12,7 +12,7 @@ import lizkit as LK
 M = LK.load('komodo')
 KS = 5.6
 
-M.BOUNDS = (V(-0.1, -0.001, -0.289), V(0.1, 0.097, 0.222))
+M.BOUNDS = (V(-0.1, -0.001, -0.289), V(0.1, 0.097, 0.224))
 _rows = [
     (-0.285, 0.0240, 0.0225, 0.0210, 0.0009, 2.0, 2.0),
     (-0.270, 0.0270, 0.0240, 0.0205, 0.0023, 2.0, 2.0),
@@ -30,40 +30,43 @@ _rows = [
     (0.115, 0.0785, 0.0620, 0.0410, 0.0210, 2.2, 2.1),
     (0.135, 0.0775, 0.0625, 0.0450, 0.0192, 2.2, 2.1),
     (0.155, 0.0780, 0.0630, 0.0480, 0.0196, 2.3, 2.1),
-    (0.170, 0.0782, 0.0635, 0.0496, 0.0186, 2.4, 2.2),
-    (0.185, 0.0768, 0.0636, 0.0510, 0.0160, 2.5, 2.2),
-    (0.197, 0.0738, 0.0632, 0.0526, 0.0140, 2.5, 2.2),
-    (0.207, 0.0708, 0.0626, 0.0540, 0.0122, 2.4, 2.2),
-    (0.213, 0.0682, 0.0620, 0.0552, 0.0098, 2.3, 2.1),
-    (0.2175, 0.0652, 0.0614, 0.0566, 0.0060, 2.1, 2.0),
+    (0.170, 0.0782, 0.0635, 0.0494, 0.0188, 2.9, 2.2),
+    (0.185, 0.0768, 0.0636, 0.0508, 0.0156, 3.0, 2.2),
+    (0.197, 0.0742, 0.0632, 0.0522, 0.0130, 3.0, 2.2),
+    (0.207, 0.0714, 0.0626, 0.0536, 0.0110, 2.8, 2.2),
+    (0.214, 0.0688, 0.0620, 0.0550, 0.0088, 2.5, 2.1),
+    (0.2195, 0.0656, 0.0614, 0.0564, 0.0052, 2.1, 2.0),
 ]
+# round 16b: a longer, narrower snout with a flat top and steep sides (a high top exponent); the old head was a
+# rounded lump
 M.BODY = _rows
 M.TAIL_TIP = V(0, 0.0225, -0.289)
 M.Z_HEAD, M.Z_TAIL = 0.164, -0.062
 M.UV_Z = [-0.17]
-M.HEAD_BOX = (V(-0.04, 0.03, 0.15), V(0.04, 0.095, 0.222))
+M.HEAD_BOX = (V(-0.04, 0.03, 0.15), V(0.04, 0.095, 0.224))
 M.LEG_BOX = (V(-0.1, -0.002, -0.08), V(0.1, 0.085, 0.135))
 M.FOOT_BOX = (V(-0.1, -0.002, -0.08), V(0.1, 0.018, 0.145))
 
-M.EYE_R, M.EYE_DIR = 0.0021, V(0.94, 0.22, 0.26)
-M.LID_W, M.LID_H, M.LID_OFF = 0.0019, 0.0014, -0.0001
-M.LIDS = (0.0012, 0.0009, 0.0003)
+# round 16b: a bigger eye (it was a dot) under a brow ridge
+M.EYE_R, M.EYE_DIR = 0.0026, V(0.93, 0.2, 0.3)
+M.LID_W, M.LID_H, M.LID_OFF = 0.0024, 0.0017, -0.0001
+M.LIDS = (0.0013, 0.001, 0.0003)
 M.setup()
-M.EYE_C = M.seat_eye(0.0712, 0.1885, 0.0003)
-M.NOSTRIL = V(0.0074, 0.0690, 0.2102)
+M.EYE_C = M.seat_eye(0.0708, 0.1875, 0.0004)
+M.NOSTRIL = V(0.0068, 0.0690, 0.2125)
 M.NOSTRIL_R = (V(0.0009, 0.0007, 0.0014), V(0.0007, 0.0004, 0.0013))
 M.EAR = V(0.0190, 0.0668, 0.1660)
-M.EAR_R = V(0.0012, 0.0024, 0.0016)
-M.MOUTH = V(0.0, 0.0600, 0.2150)
-M.MOUTH_LINE = [V(0.0, 0.0596, 0.2190), V(0.0074, 0.0600, 0.2140), V(0.0146, 0.0610, 0.1950), V(0.0186, 0.0626, 0.1720)]
+M.EAR_R = V(0.0015, 0.0028, 0.0019)
+M.MOUTH = V(0.0, 0.0600, 0.2170)
+M.MOUTH_LINE = [V(0.0, 0.0596, 0.2208), V(0.0066, 0.0600, 0.2160), V(0.0128, 0.0608, 0.1960), V(0.0182, 0.0626, 0.1700)]
 M.MOUTH_R = [0.0006, 0.0006, 0.00055, 0.0003]
-M.MOUTH_DEPTH = 0.0005
-M.SNOUT = (V(0.0, 0.0618, 0.2125), V(0.0098, 0.0052, 0.0060), 0.004)
+M.MOUTH_DEPTH = 0.0007
+M.SNOUT = (V(0.0, 0.0614, 0.2135), V(0.0072, 0.0044, 0.0068), 0.004)
 M.HEAD_BLOBS = [
     (V(0.0170, 0.0600, 0.1640), V(0.0075, 0.0082, 0.0120), 0.005),     # jaw muscles
-    (V(0.0115, 0.0738, 0.1880), V(0.0040, 0.0013, 0.0080), 0.005),     # brow over the eye
+    (V(0.0112, 0.0752, 0.1870), V(0.0046, 0.0019, 0.0090), 0.004),     # brow over the eye (round 16b: heavier)
 ]
-M.MANDIBLE = (V(0.0168, 0.0540, 0.170), V(0.0060, 0.0582, 0.2140), 0.0068, 0.0040, 0.004)
+M.MANDIBLE = (V(0.0168, 0.0540, 0.170), V(0.0054, 0.0582, 0.2160), 0.0068, 0.0036, 0.004)
 M.BLOBS = [
     (V(0.024, 0.0570, 0.094), V(0.0150, 0.0150, 0.0170), 0.009),       # shoulder girdle
     (V(0.022, 0.0550, -0.040), V(0.0160, 0.0160, 0.0190), 0.009),      # pelvic girdle
@@ -100,7 +103,9 @@ def folds(Q, d):
     x, y, z = Q[:, 0], Q[:, 1], Q[:, 2]
     zf = (z - 0.106 + 0.003 * np.sin(y * 260)) / 0.0105
     fold = np.exp(-((zf - np.round(zf)) / 0.2) ** 2) * sstep(0.1, 0.114, z) * sstep(0.162, 0.148, z) * sstep(0.012, 0.018, x) * sstep(0.074, 0.062, y)
-    return d - 0.00045 * fold
+    # round 16b: the folds deeper (they did not show), and the loose skin hanging under the throat in a soft dewlap
+    gul = np.exp(-(((z - 0.142) / 0.016) ** 2 + (x / 0.012) ** 2)) * sstep(0.052, 0.046, y)
+    return d - 0.0008 * fold - 0.0018 * gul
 
 
 M.body_extra = folds
@@ -112,8 +117,9 @@ M.PATCHES = [
     (V(0.044, -0.001, 0.096), V(0.090, 0.016, 0.142), 0.0003),      # front foot
     (V(0.050, -0.001, -0.068), V(0.100, 0.017, -0.010), 0.0003),    # hind foot
 ]
-M.SC = dict(body=0.0016, leg=0.0013, head=0.0019, ring=0.0025, belly=0.0021, lip=0.0028)
-M.GRAN_H = 0.2
+# round 16b: coarser beaded scales (they blurred into a rocky crust at the map's resolution)
+M.SC = dict(body=0.0021, leg=0.0016, head=0.0022, ring=0.0028, belly=0.0024, lip=0.003)
+M.GRAN_H = 0.24
 M.TAIL_KEEL = 0.07
 M.UV_HEAD = 1.5
 M.KEEP_FLOOR = 0.3
@@ -130,7 +136,7 @@ M.LEG_BLEND = 0.004
 K = {
     'base': M.hexc(0x5A5040), 'lt': M.hexc(0x766A56), 'dk': M.hexc(0x3A3329), 'tan': M.hexc(0x8C7A56), 'red': M.hexc(0x6E4A34),
     'head': M.hexc(0x6A6456), 'belly': M.hexc(0x7C7462), 'claw': M.hexc(0x2E2A24), 'clawTip': M.hexc(0x8E8678), 'ball': M.hexc(0x141010),
-    'lip': M.hexc(0x857C68),
+    'lip': M.hexc(0x857C68), 'lipLt': M.hexc(0xA49A84),
 }
 
 
@@ -155,8 +161,10 @@ def paint(P, N, c):
     # the neck folds: darker in the creases
     zf = (z - 0.106 + 0.003 * np.sin(y * 260)) / 0.0105
     crease = np.exp(-((zf - np.round(zf)) / 0.16) ** 2) * sstep(0.1, 0.114, z) * sstep(0.162, 0.148, z) * sstep(0.012, 0.018, x) * sstep(0.074, 0.062, y)
-    col = M.mix(col, K['dk'], crease * 0.4)
-    col = col * (0.7 + 0.3 * sstep(0.0, 0.22, E))[:, None]
+    col = M.mix(col, K['dk'], crease * 0.5)
+    # round 16b: the lip scales paler, so the long jaw line shows; the grooves between the head's scales lighter
+    col = M.mix(col, K['lipLt'], R['lip'] * 0.45)
+    col = col * (0.7 + 0.08 * R['head'] + (0.3 - 0.08 * R['head']) * sstep(0.0, 0.22, E))[:, None]
     col *= (0.96 + 0.08 * fbm(Pm * 70, 2, 63))[:, None]
     cc = M.mix(M.tile(K['claw'], n), K['clawTip'], sstep(0.004, 0.0004, y) * 0.5)
     col = M.mix(col, cc, R['claw'])
@@ -166,7 +174,8 @@ def paint(P, N, c):
     return np.clip(col, 0, 1).astype(F), np.clip(rough, 0.2, 0.95).astype(F)
 
 
-KB = {'yel': M.hexc(0xD2A83A), 'yelLt': M.hexc(0xE4C25A), 'black': M.hexc(0x1E1B16), 'pink': M.hexc(0xB07446), 'belly': M.hexc(0xD8C690)}
+# round 16b: the hatchling's bands softer (they read too bold): a dull ochre on a dark brown-gray, more speckled
+KB = {'yel': M.hexc(0xB89448), 'yelLt': M.hexc(0xC8A85E), 'black': M.hexc(0x342E26), 'pink': M.hexc(0x9C7050), 'belly': M.hexc(0xCCBC90)}
 M.BABY_MAP = (256, 58)
 
 
@@ -181,12 +190,12 @@ def paint_baby(P, N, c):
     n1 = fbm(C * 60, 2, 65) - 0.5
     # bands: about eleven from the neck to the tail tip, a little wavy; the legs spotted
     zb = (z + 0.29) / 0.042
-    band = sstep(0.2, 0.08, np.abs(zb - np.floor(zb) - 0.5) - 0.17 + n1 * 0.25) * sstep(0.15, 0.13, z) * (1 - R['leg'])
+    band = sstep(0.2, 0.08, np.abs(zb - np.floor(zb) - 0.5) - 0.12 + n1 * 0.35) * sstep(0.15, 0.13, z) * (1 - R['leg'])
     spots = sstep(0.0028, 0.0018, M.cells(C, 0.007, 66)[0]) * R['leg']
     yel = np.clip(band + spots, 0, 1)
     col = M.mix(M.tile(KB['black'], n), M.mix(M.tile(KB['yel'], n), KB['yelLt'], 0.4 * j), yel * sstep(-0.7, -0.2, Nm[:, 1] - 0.0))
-    col = M.mix(col, KB['yel'], (j > 0.8) * 0.7 * (1 - yel))
-    col = M.mix(col, KB['black'], (j < 0.22) * 0.75 * yel)
+    col = M.mix(col, KB['yel'], (j > 0.72) * 0.6 * (1 - yel))
+    col = M.mix(col, KB['black'], (j < 0.3) * 0.65 * yel)
     # the head and neck: orange-pink with dark marks
     hm = sstep(0.11, 0.135, z)
     col = M.mix(col, M.mix(M.tile(KB['pink'], n), KB['black'], sstep(0.5, 0.7, fbm(Pm * 50, 2, 67)) * 0.75), hm * 0.75)
@@ -201,7 +210,7 @@ def paint_baby(P, N, c):
 M.paint = paint
 M.paint_baby = paint_baby
 M.MAP_QUALITY = (50, 30)
-M.EYE_META = dict(iris=0x8A6A30, irisR=0.92, pupilR=0.4, rim=0x2A1E10, babyIris=0x9A7A36)
+M.EYE_META = dict(iris=0xA27A3A, irisR=0.92, pupilR=0.38, rim=0x2A1E10, babyIris=0xA88440)   # round 16b: brighter
 M.TINT = dict(tint=[1.0, 1.0, 1.0], babyTint=[1.0, 1.0, 1.0], rim=[0.04, 0.035, 0.03], flat=0x5A5040)
 M.COLLAR = {'at': ['neck', 'head', 0.25], 'lift': 0.3, 'maxR': 0.05}
 M.PREVIEW = {

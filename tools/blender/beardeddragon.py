@@ -11,15 +11,21 @@ import lizkit as LK
 M = LK.load('beardeddragon')
 KS = 1.0
 
-M.BOUNDS = (V(-0.106, -0.001, -0.336), V(0.106, 0.064, 0.168))
+M.BOUNDS = (V(-0.106, -0.001, -0.314), V(0.106, 0.064, 0.168))
+# round 16b: the tail a tenth shorter and thicker at its base (it read as a monitor's whip tail): the rows behind
+# z = -0.087 are pulled in toward it (_tail_z) and widened near the base
+def _tail_z(z):
+    return -0.087 + (z + 0.087) * 0.9
+
+
 M.BODY = [
-    (-0.331, 0.0094, 0.0082, 0.0070, 0.0009, 2.2, 2.2),
-    (-0.318, 0.0108, 0.0088, 0.0066, 0.0019, 2.2, 2.2),
-    (-0.290, 0.0140, 0.0106, 0.0068, 0.0034, 2.3, 2.2),
-    (-0.250, 0.0184, 0.0136, 0.0080, 0.0052, 2.3, 2.2),
-    (-0.200, 0.0240, 0.0176, 0.0102, 0.0078, 2.3, 2.2),
-    (-0.150, 0.0298, 0.0218, 0.0128, 0.0110, 2.3, 2.2),
-    (-0.112, 0.0350, 0.0250, 0.0144, 0.0152, 2.3, 2.1),
+    (_tail_z(-0.331), 0.0094, 0.0082, 0.0070, 0.0009, 2.2, 2.2),
+    (_tail_z(-0.318), 0.0108, 0.0088, 0.0066, 0.0019, 2.2, 2.2),
+    (_tail_z(-0.290), 0.0140, 0.0106, 0.0068, 0.0034, 2.3, 2.2),
+    (_tail_z(-0.250), 0.0186, 0.0137, 0.0080, 0.0055, 2.3, 2.2),
+    (_tail_z(-0.200), 0.0244, 0.0178, 0.0102, 0.0086, 2.3, 2.2),
+    (_tail_z(-0.150), 0.0304, 0.0221, 0.0128, 0.0124, 2.3, 2.2),
+    (_tail_z(-0.112), 0.0354, 0.0252, 0.0144, 0.0168, 2.3, 2.1),
     (-0.087, 0.0398, 0.0272, 0.0150, 0.0215, 2.3, 2.1),
     (-0.066, 0.0446, 0.0286, 0.0148, 0.0305, 2.4, 2.1),
     (-0.042, 0.0490, 0.0296, 0.0140, 0.0385, 2.5, 2.2),
@@ -30,37 +36,42 @@ M.BODY = [
     (0.080, 0.0490, 0.0324, 0.0178, 0.0228, 2.3, 2.1),
     (0.096, 0.0500, 0.0332, 0.0190, 0.0262, 2.4, 2.1),
     (0.110, 0.0512, 0.0340, 0.0204, 0.0290, 2.5, 2.2),
-    (0.124, 0.0506, 0.0350, 0.0222, 0.0262, 2.5, 2.2),
-    (0.139, 0.0478, 0.0356, 0.0244, 0.0220, 2.4, 2.2),
-    (0.146, 0.0462, 0.0354, 0.0254, 0.0198, 2.4, 2.2),
-    (0.152, 0.0442, 0.0348, 0.0266, 0.0168, 2.4, 2.2),
-    (0.157, 0.0420, 0.0340, 0.0278, 0.0132, 2.3, 2.1),
-    (0.1605, 0.0398, 0.0334, 0.0290, 0.0084, 2.1, 2.0),
+    (0.124, 0.0504, 0.0350, 0.0222, 0.0248, 2.5, 2.2),
+    (0.139, 0.0470, 0.0354, 0.0244, 0.0188, 2.4, 2.2),
+    (0.146, 0.0450, 0.0352, 0.0254, 0.0160, 2.4, 2.2),
+    (0.152, 0.0428, 0.0346, 0.0266, 0.0133, 2.4, 2.2),
+    (0.157, 0.0405, 0.0340, 0.0278, 0.0104, 2.3, 2.1),
+    (0.1605, 0.0384, 0.0334, 0.0290, 0.0066, 2.1, 2.0),
 ]
-M.TAIL_TIP = V(0, 0.009, -0.336)
+# round 16b: the head made a broad triangle seen from above (straight sides tapering from the spiky jaw corners to a
+# blunt snout; the old snout stayed wide to the tip, a loaf), the snout top sloping down to it
+M.TAIL_TIP = V(0, 0.009, _tail_z(-0.336))
 M.Z_HEAD, M.Z_TAIL = 0.104, -0.082
 M.UV_Z = [-0.2]
 M.HEAD_BOX = (V(-0.04, 0.008, 0.082), V(0.04, 0.066, 0.18))
 M.LEG_BOX = (V(-0.1, -0.002, -0.092), V(0.1, 0.052, 0.1))
 M.FOOT_BOX = (V(-0.108, -0.002, -0.088), V(0.108, 0.014, 0.112))
 
-M.EYE_C, M.EYE_R, M.EYE_DIR = V(0.0150, 0.0416, 0.1415), 0.0037, V(0.92, 0.28, 0.22)
-M.LID_W, M.LID_H, M.LID_OFF = 0.0031, 0.0024, -0.0002
+# round 16b: a bigger eye with a wider opening under a heavier brow (the old one was lost in the head)
+M.EYE_R, M.EYE_DIR = 0.0042, V(0.92, 0.3, 0.24)
+M.LID_W, M.LID_H, M.LID_OFF = 0.0036, 0.0028, -0.0001
+M.setup()
+M.EYE_C = M.seat_eye(0.0418, 0.1405, 0.0006)
 M.LIDS = (0.0017, 0.0012, 0.0004)
 M.NOSTRIL = V(0.0066, 0.0378, 0.1555)
 M.NOSTRIL_R = (V(0.0013, 0.0011, 0.0016), V(0.0008, 0.0006, 0.0009))
 M.EAR = V(0.0222, 0.0372, 0.1145)
 M.EAR_R = V(0.0015, 0.0021, 0.0015)
 M.MOUTH = V(0.0, 0.0312, 0.159)
-M.MOUTH_LINE = [V(0.0, 0.0312, 0.1625), V(0.0068, 0.0313, 0.1595), V(0.0152, 0.0320, 0.1430), V(0.0205, 0.0332, 0.1240)]
+M.MOUTH_LINE = [V(0.0, 0.0312, 0.1625), V(0.0060, 0.0313, 0.1595), V(0.0140, 0.0320, 0.1430), V(0.0198, 0.0332, 0.1240)]
 M.MOUTH_R = [0.0005, 0.0005, 0.00045, 0.0002]
-M.SNOUT = (V(0.0, 0.0336, 0.1550), V(0.0100, 0.0058, 0.0060), 0.003)
+M.SNOUT = (V(0.0, 0.0332, 0.1550), V(0.0082, 0.0056, 0.0060), 0.003)
 M.HEAD_BLOBS = [
     (V(0.0195, 0.0372, 0.1165), V(0.0078, 0.0092, 0.0105), 0.004),     # jaw muscles at the wide back corners
     (V(0.0165, 0.0300, 0.1240), V(0.0060, 0.0050, 0.0090), 0.004),     # angle of the jaw
-    (V(0.0128, 0.0462, 0.1405), V(0.0050, 0.0018, 0.0085), 0.003),     # brow ridge over the eye
+    (V(0.0132, 0.0466, 0.1400), V(0.0052, 0.0019, 0.0090), 0.0035),    # brow ridge over the eye (round 16b: longer)
 ]
-M.MANDIBLE = (V(0.0172, 0.0262, 0.121), V(0.0068, 0.0290, 0.1585), 0.0048, 0.0032, 0.003)
+M.MANDIBLE = (V(0.0172, 0.0262, 0.121), V(0.0058, 0.0290, 0.1585), 0.0048, 0.0030, 0.003)
 M.BLOBS = [
     (V(0.017, 0.0315, 0.064), V(0.0105, 0.0095, 0.012), 0.006),        # shoulder girdle
     (V(0.016, 0.0300, -0.058), V(0.0120, 0.0100, 0.0135), 0.006),      # pelvic girdle
@@ -98,8 +109,9 @@ def _spikes():
     # the flank fringe: a row along the widest line from the armpit to the groin, a row of smaller ones above it
     for i, z in enumerate(np.arange(0.05, -0.058, -0.0082)):
         b = LK_surf(z, -0.06, -0.0016)
-        L = 0.0088 + 0.0026 * rnd(i, 1)
-        out.append((b, b + V(L, -0.0016, -0.0030), 0.0026, 0.0005))
+        # round 16b: longer and thicker, so the fringe reads at game distance and survives the decimation
+        L = 0.0105 + 0.003 * rnd(i, 1)
+        out.append((b, b + V(L, -0.0018, -0.0034), 0.003, 0.0006))
         if i % 2 == 0:
             b = LK_surf(z - 0.004, 0.42, -0.0014)
             out.append((b, b + V(0.0045, 0.0020, -0.0018), 0.0019, 0.0004))
@@ -117,19 +129,20 @@ def _spikes():
             b = V(xr, float(yb), zz)
             out.append((b, b + V(0.0008, 0.0026 * k, -0.0012), 0.00155, 0.0003))
     # the beard: spines along the lower jaw edge and in rows across the throat (longest at the edges)
-    for i, t in enumerate(np.linspace(0.0, 1.0, 7)):
+    # round 16b: the spines along the jaw edge stick out sideways and down, so the beard shows from the side
+    for i, t in enumerate(np.linspace(0.0, 1.0, 8)):
         z = 0.1505 - t * 0.0345
-        x = 0.0075 + t * 0.0112
-        b = V(x, 0.0238 - t * 0.003, z)
-        out.append((b, b + V(0.0034 + 0.0018 * t, -0.0046, -0.0010), 0.0018, 0.0003))
+        x = 0.0072 + t * 0.0118
+        b = V(x, 0.0242 - t * 0.003, z)
+        out.append((b, b + V(0.0042 + 0.003 * t, -0.0052, -0.0012), 0.0021, 0.00035))
     for j, z in enumerate((0.114, 0.104, 0.094, 0.085)):
         hw = 0.0175 - 0.002 * j
         for x in np.arange(0.004, hw + 0.001, 0.0042):
             edge = x / hw
             yb = 0.0215 - 0.0088 * np.sqrt(max(0.0, 1 - (x / 0.0205) ** 2)) * np.sqrt(max(0.0, 1 - ((z - 0.1015) / 0.0225) ** 2)) + 0.0008
-            L = 0.0028 + 0.0036 * edge ** 2
+            L = 0.0034 + 0.0044 * edge ** 2
             b = V(float(x), float(yb), z)
-            out.append((b, b + V(0.0012 + L * 0.6 * edge, -L, -0.0010), 0.0016, 0.0003))
+            out.append((b, b + V(0.0014 + L * 0.7 * edge, -L, -0.0010), 0.0018, 0.0003))
     # the head: tufts around the ear and behind the jaw angle, a row along the back of the skull, over the brow
     for (x, y, z), (dx, dy, dz), r in (
             ((0.0262, 0.0330, 0.1180), (0.0068, -0.0026, -0.0028), 0.0022),
@@ -144,7 +157,8 @@ def _spikes():
             ((0.0165, 0.0485, 0.1300), (0.0018, 0.0026, -0.0010), 0.0012),
             ((0.0185, 0.0472, 0.1350), (0.0022, 0.0022, -0.0006), 0.0011)):
         b = V(x, y, z)
-        out.append((b, b + V(dx, dy, dz) * 1.3, r * 1.1, 0.0004))
+        # round 16b: the spikes round the sides of the head longer (they were lost at game distance)
+        out.append((b, b + V(dx, dy, dz) * 1.65, r * 1.25, 0.00045))
     # tufts on the sides of the neck
     for (x, y, z), (dx, dy, dz) in (((0.0225, 0.0360, 0.090), (0.0050, 0.0004, -0.0024)), ((0.0228, 0.0325, 0.082), (0.0048, -0.0016, -0.0024)),
                                     ((0.0215, 0.0400, 0.084), (0.0040, 0.0024, -0.0030)), ((0.0222, 0.0290, 0.093), (0.0040, -0.0030, -0.0012))):
@@ -250,9 +264,11 @@ def paint(P, N, c):
     n2 = fbm(Pm * 40, 2, 42)
     col = M.mix(M.tile(K['tan'], n), K['tanLt'], 0.18 * j + 0.3 * sstep(0.2, -0.5, Nm[:, 1]))
     # an orange wash over the head, the forelegs and the front of the body
-    col = M.mix(col, K['orange'], (0.55 * R['head'] + 0.25 * sstep(0.0, 0.08, z) + 0.2 * n2) * (1 - R['belly']))
+    # round 16b: a softer orange wash (the head was a solid orange loaf) and fainter markings (wild-type tan with faint
+    # bands and blotches)
+    col = M.mix(col, K['orange'], (0.32 * R['head'] + 0.22 * sstep(0.0, 0.08, z) + 0.2 * n2) * (1 - R['belly']))
     back, band, lg, st = _pattern(C, R, Pm)
-    col = M.mix(col, K['dark'], back * 0.95 + band * 0.7 + lg)
+    col = M.mix(col, K['dark'], back * 0.6 + band * 0.45 + lg * 0.7)
     # dark and pale speckles (single scales)
     col = M.mix(col, K['darker'], (j < 0.04) * 0.45 * (1 - R['belly']))
     col = M.mix(col, K['stripe'], st * 0.7)
@@ -309,7 +325,7 @@ def paint_baby(P, N, c):
 M.paint = paint
 M.paint_baby = paint_baby
 M.MAP_QUALITY = (50, 32)
-M.EYE_META = dict(iris=0xA8742E, irisR=0.92, pupilR=0.46, rim=0x2A1A0E, babyIris=0xA8782E)
+M.EYE_META = dict(iris=0xC08A3A, irisR=0.92, pupilR=0.4, rim=0x2A1A0E, babyIris=0xB8823A)   # round 16b: brighter, smaller pupil
 M.TINT = dict(tint=[1.0, 1.0, 1.0], babyTint=[1.0, 1.0, 1.0], rim=[0.06, 0.04, 0.02], flat=0xC49A62)
 M.PREVIEW = {
     'side': ((0.78, 0.12, -0.07), (0, 0.03, -0.07), 30),
