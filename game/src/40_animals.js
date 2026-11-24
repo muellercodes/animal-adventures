@@ -6545,11 +6545,16 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
   const BAT = {
     sh: [0.026, 0.112, 0.052], arm: [0.11, 0.17, 0.012],
     // fingers from the wrist: [yaw in flight (deg, 0 straight out, 90 straight back), yaw folded (deg), length]
-    fingers: [[-8, 62, 0.12], [2, 66, 0.27], [36, 70, 0.22], [68, 74, 0.2]],
+    // (round 16b: folded they lie back along the forearm, toward the elbow, not fanned out below it)
+    fingers: [[-8, 82, 0.12], [2, 86, 0.27], [36, 89, 0.22], [68, 92, 0.2]],
+    // (round 16b: folded, the fingers shrink toward the wrist in the wing plane, as a real bat's finger joints fold the
+    // long phalanges back, so the folded hand ends by the elbow and does not stick out past the rump as a blade;
+    // hanging asleep they shrink less, so the wings still wrap the body)
+    fscl: { fold: 0.56, hang: 0.8 },
     fold: { hum: 80, elb: -165, wri: 168 },
     // the arm wing's own bones (f4 to f9, like a bird's tertials and secondaries) along the humerus and the forearm:
     // pointing back in flight, they turn back along the arm as it folds, so the membrane folds flat with it
-    plag: [{ parent: 'wingL', n: 2, at: [0.4, 0.9], spread: [95, 92], fold: [70, 62] }, { parent: 'wforeL', n: 4, at: [0.15, 0.9], spread: [90, 80], fold: [56, 44] }],
+    plag: [{ parent: 'wingL', n: 2, at: [0.4, 0.9], spread: [95, 92], fold: [40, 40] }, { parent: 'wforeL', n: 4, at: [0.15, 0.9], spread: [90, 80], fold: [40, 50] }],
   };
   SPEC.bat = () => {
     const xL = 0.032;
@@ -6566,7 +6571,8 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     });
     // the arm wing's bones shrink across the wing as it folds (its membrane gathers in, as a real one pleats)
     W.wing.shrink = true;
-    for (let i = BAT.fingers.length; i < W.wing.fb.length; i++) W.wing.fb[i].sc = 0.35;
+    for (let i = BAT.fingers.length; i < W.wing.fb.length; i++) W.wing.fb[i].sc = 0.25;
+    W.wing.fscl = Object.assign({ n: BAT.fingers.length }, BAT.fscl);   // round 16b
     const [sx, sy, sz] = BAT.sh, el = sx + BAT.arm[0], wr = el + BAT.arm[1];
     // the procedural body's membranes: flat lofts on the forearm and the hand (the sculpted model has real ones)
     const fT = (i, s) => { const f = BAT.fingers[i], a = f[0] * DEG; return [wr + Math.cos(a) * f[2] * s, sy, sz - Math.sin(a) * f[2] * s]; };
@@ -8531,8 +8537,10 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
         rate: 0.33, hover: 0.32, bend: [0.05, 0.08, 0.1, 0.1, 0.06], neckBend: [0.06, 0.08], bank: 0.16,
         swimHead: [0.035, 0.07, 0.05],
       },
-      // the calf: rounder and shorter, a bigger head with a blunter melon, flippers and flukes a little smaller
-      baby: { head: 1.08, muzzle: 0.88, eye: 1.15, neck: [0.85, 1.03], body: [1.03, 1.03, 0.8], tail: 0.88, roles: { tusk: 'horn' }, noDrop: true },
+      // the calf: rounder and shorter, flippers and flukes a little smaller
+      // (round 16b: its head small and round, as a real calf's: it was bigger with a blunter melon, on a body shortened
+      // more, and read as a sperm whale calf's square head)
+      baby: { head: 0.97, muzzle: 1.0, eye: 1.12, neck: [0.9, 1.0], body: [1.03, 1.03, 0.88], tail: 0.9, roles: { tusk: 'horn' }, noDrop: true },
     };
   };
 
@@ -9475,6 +9483,11 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       for (let i = 0; i < w.fs.length; i++) w.fs[i].quaternion.setFromAxisAngle(AY, W.fb[i].d * k2);
       // (round 10, the bat: a folding membrane's bones shrink across the wing as it folds, fb[i].sc)
       if (W.shrink) for (let i = 0; i < w.fs.length; i++) if (W.fb[i].sc != null) { w.fs[i].scale.z = lerp(1, W.fb[i].sc, k2); if (mir) mir.fs[i].scale.z = w.fs[i].scale.z; }
+      // (round 16b, the bat only: fscl, the first n finger bones shrink in the wing plane as the wing folds)
+      if (W.fscl) {
+        const fs = lerp(1, HG && hangK > 0 ? lerp(W.fscl.fold, W.fscl.hang, hangK) : W.fscl.fold, f);
+        for (let i = 0; i < W.fscl.n; i++) { w.fs[i].scale.x = w.fs[i].scale.z = fs; if (mir) mir.fs[i].scale.x = mir.fs[i].scale.z = fs; }
+      }
       w.sh.position.set(shP0.x + fpo[0] * f, shP0.y + fpo[1] * f, shP0.z + fpo[2] * f);
       if (mir) {
         mir.sh.position.set(-w.sh.position.x, w.sh.position.y, w.sh.position.z);

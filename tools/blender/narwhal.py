@@ -536,34 +536,28 @@ _FQ = ([0.0, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 1.0], [0.1, 0.23
 
 
 def _mottle(Pr, R):
-    """dark marbling and spots at the real point Pr (so the two sides differ): (amount 0..1, darkness 0..1). The back
-    is dark with pale marbling showing through, the flanks pale with dark blotches and spots, the belly nearly clear"""
+    """dark speckles at the real point Pr (so the two sides differ): (amount 0..1, darkness 0..1).
+    round 16b: fine ragged speckles, not big blotches (they read as a Holstein's): at three sizes (spots of about 1 to
+    6 cm), densest and biggest on the back and the head, where they run together into a dark mottling with the pale
+    ground showing through in flecks, fewer and smaller down the flanks, only a scatter on the pale belly"""
     D = _density(R)
-    Q = Pr * V(1.0, 1.0, 0.7)                      # the blotches a little longer along the body
-    warp = np.stack([fbm(Q * 2.3 + 5.7 * i, 2, 40 + i) for i in range(3)], 1) - 0.5
-    cov = np.interp(D, [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.1], [0.0, 0.05, 0.17, 0.36, 0.56, 0.72, 0.78])
-    t = np.interp(1 - cov, *_FQ).astype(F)
-    nb = fbm(Q * 14.0 + warp * 1.2, 3, 44)
-    big = sstep(t - 0.025, t + 0.025, nb) * (cov > 0.002)
-    # spots: round-ish, ragged, most on the flanks, a few on the belly
-    sp = np.zeros(len(Pr), F)
-    flank = sstep(0.0, 0.25, D) * sstep(0.95, 0.6, D)
-    for k, (size, rk, pres) in enumerate(((0.06, 0.36, 0.7), (0.03, 0.36, 0.65))):
-        f1, f2, cp = _cells(Q + warp * size * 0.9, size, 50 + k * 7)
-        rnd = _cell_rnd(cp, 61 + k)
-        rnd2 = _cell_rnd(cp, 71 + k)
-        rad = size * rk * (0.5 + 0.9 * rnd)
-        on = (rnd2 < pres * (0.06 + 0.94 * flank)).astype(F)
-        f1w = f1 + size * 0.25 * (fbm(Q * (2.5 / size), 2, 80 + k) - 0.5)
-        sp = np.maximum(sp, sstep(rad * 1.2, rad * 0.8, f1w) * on)
-    amt = np.maximum(big, sp * 0.92)
-    # small pale spots and streaks in the dark of the back (the ground showing through)
-    f1, f2, cp = _cells(Q + warp * 0.04, 0.045, 57)
-    hr = 0.045 * 0.3 * (0.5 + 0.8 * _cell_rnd(cp, 58))
-    holes = sstep(hr * 1.2, hr * 0.8, f1 + 0.01 * (fbm(Q * 60, 2, 59) - 0.5)) * (_cell_rnd(cp, 56) < 0.6) * sstep(0.55, 0.85, D)
-    amt = amt * (1 - 0.85 * holes)
-    # the darkness of each blotch: a slow noise, darker up the back
-    tone = 0.15 + 0.6 * fbm(Q * 3.5, 2, 90) + 0.3 * sstep(0.5, 1.0, D)
+    Q = Pr * V(1.0, 1.0, 0.8)                      # the speckles a little longer along the body
+    warp = np.stack([fbm(Q * 3.0 + 4.1 * i, 2, 140 + i) for i in range(3)], 1) - 0.5
+    pres = np.interp(D, [0.0, 0.15, 0.4, 0.7, 1.0, 1.1], [0.02, 0.06, 0.38, 0.72, 0.93, 0.97]).astype(F)
+    grow = 0.75 + 0.5 * sstep(0.55, 1.0, D)
+    amt = np.zeros(len(Pr), F)
+    for k, (size, r0, r1) in enumerate(((0.075, 0.2, 0.4), (0.048, 0.18, 0.38), (0.03, 0.16, 0.34))):
+        sd = 150 + 10 * k
+        f1, f2, cp = _cells(Q + warp * size * 0.7, size, sd)
+        rnd, rnd2 = _cell_rnd(cp, sd + 1), _cell_rnd(cp, sd + 2)
+        rad = size * (r0 + (r1 - r0) * rnd) * grow
+        edge = f1 + size * 0.24 * (fbm(Q * (3.0 / size), 2, sd + 3) - 0.5)
+        spot = sstep(rad * 1.12, rad * 0.86, edge) * (rnd2 < pres * (1.0 - 0.15 * k))
+        amt = np.maximum(amt, spot * (0.8 + 0.2 * rnd))
+    # on the back the speckles run together: a dark wash under them, broken by pale flecks
+    wash = sstep(0.62, 0.95, D) * sstep(0.44, 0.6, fbm(Q * 16.0 + warp * 2.0, 3, 175))
+    amt = np.maximum(amt, 0.75 * wash)
+    tone = 0.25 + 0.45 * fbm(Q * 4.0, 2, 90) + 0.3 * sstep(0.5, 1.0, D)
     return np.clip(amt, 0, 1), np.clip(tone, 0, 1)
 
 
@@ -591,7 +585,7 @@ def paint(P, N, c):
     col = mix(col, K['dark'], fin * 0.35 * sstep(-0.6, 0.4, up))
     col = mix(col, K['black'], np.maximum(R['fkEdge'], R['flEdge']) * 0.85)
     # the mouth line and the lower lip darker, the lids dark
-    col = mix(col, K['lip'], R['lip'] * 0.3)
+    col = mix(col, K['lip'], R['lip'] * 0.15)   # (round 16b: fainter, the mouth is a small line, not a painted grin)
     col = mix(col, K['lid'], R['lid'] * 0.55)
     col = mix(col, K['ball'], R['ball'])
     rough = 0.34 + 0.06 * fbm(Pm * 5, 2, 9) - 0.2 * R['ball']
