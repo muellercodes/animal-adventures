@@ -25,7 +25,9 @@ _TB = {'tail1': V(0, 0.205, -0.19), 'tail2': V(0, 0.175, -0.251), 'tail3': V(0, 
 T = dict(
     MS=MSK,
     # the head pitched down a little more than the house cat's (the face nearly upright, the muzzle forward and down)
-    HF=CV.Frame(V(0.0, 0.292, 0.178), V(0.0, -0.28, 1.0), V(0.0, 1.0, 0.0)), DROP=(0.38, 0.05),
+    # round 16b: the head carried more level and the muzzle dropped less (the steep drop put the nose far below the
+    # eyes and the face read as a capybara's dome)
+    HF=CV.Frame(V(0.0, 0.292, 0.178), V(0.0, -0.17, 1.0), V(0.0, 1.0, 0.0)), DROP=(0.15, 0.055),
     BOUNDS=(V(-0.12, 0.0, -0.4), V(0.12, 0.375, 0.31)),
     # a deep chest, the belly tucked up behind it, the back nearly level, the withers a little higher than the hips
     TRUNK=[
@@ -50,22 +52,24 @@ T = dict(
     ],
     THROAT=[((0.0, 0.186, 0.148), (0.04, 0.042, 0.034), 0.02), ((0.0, 0.2, 0.11), (0.05, 0.052, 0.042), 0.025)],
     # a long, broad, square muzzle, the profile nearly straight from the forehead to the nose
+    # round 16b: a flatter crown, the skull widest at the cheekbones behind the eyes, then a long boxy muzzle (deep,
+    # square in section) that narrows only a little to the nose
     HEAD=[
-        (-0.006, 0.015, 0.0, -0.02, 0.019, 2.2, 2.0),
-        (0.008, 0.024, -0.002, -0.03, 0.03, 2.5, 2.0),
-        (0.024, 0.0255, -0.004, -0.035, 0.0335, 2.6, 2.0),
-        (0.04, 0.025, -0.007, -0.037, 0.0335, 2.7, 2.1),
-        (0.054, 0.0225, -0.009, -0.038, 0.031, 2.8, 2.2),
-        (MS(0.066), 0.0185, -0.011, -0.0365, 0.0285, 2.9, 2.4),
-        (MS(0.077), 0.0138, -0.012, -0.034, 0.0255, 3.0, 2.5),
-        (MS(0.087), 0.0086, -0.013, -0.0305, 0.0215, 2.8, 2.4),
-        (MS(0.094), 0.0035, -0.013, -0.026, 0.0165, 2.4, 2.2),
+        (-0.006, 0.014, 0.0, -0.02, 0.019, 2.2, 2.0),
+        (0.008, 0.0215, -0.003, -0.031, 0.03, 2.5, 2.0),
+        (0.024, 0.023, -0.006, -0.037, 0.035, 2.6, 2.1),
+        (0.04, 0.0218, -0.009, -0.0395, 0.036, 2.7, 2.2),
+        (0.054, 0.0185, -0.011, -0.04, 0.0325, 2.8, 2.4),
+        (MS(0.066), 0.0145, -0.012, -0.0395, 0.027, 3.0, 2.6),
+        (MS(0.077), 0.0115, -0.013, -0.038, 0.0245, 3.2, 2.8),
+        (MS(0.087), 0.0085, -0.013, -0.0355, 0.0215, 3.0, 2.6),
+        (MS(0.094), 0.0042, -0.013, -0.03, 0.015, 2.5, 2.2),
     ],
-    CHEEK=((0.022, -0.018, 0.042), (0.0105, 0.013, 0.019)), PAD_X=0.0102, BROW=0.0165, PADS=(0.0135, 0.0122, 0.015), CHIN=(0.0098, 0.007, 0.012),
-    NOSE=(0.0098, 0.0064, 0.0045), BRIDGE=None,
+    CHEEK=((0.024, -0.016, 0.04), (0.009, 0.011, 0.017)), PAD_X=0.0112, BROW=None, PADS=(0.0142, 0.0124, 0.015), CHIN=(0.0098, 0.007, 0.012),
+    NOSE=(0.0115, 0.0072, 0.005), BRIDGE=0.0095,
     TAIL=_TAIL, TB=_TB, TAIL_TD=0.025,
     EYE_AT=(0.0635, 0.005, 0.0158), EYE_R=0.0074, LID_W=0.0068, LID_H=0.0049, SLANT=0.1, SINK=0.45, MOUTH_AT=(MS(0.086), -0.028),
-    EAR_B=V(0.028, 0.298, 0.186), EAR_A=[0.5, 0.86, -0.1], EAR_N=[0.45, -0.05, 0.9], EAR_L=0.023, EAR_W=0.018,
+    EAR_B=V(0.031, 0.296, 0.187), EAR_A=[0.6, 0.79, -0.1], EAR_N=[0.45, -0.05, 0.9], EAR_L=0.023, EAR_W=0.018,
     BOX=dict(neck=((-0.125, 0.07, 0.0), (0.125, 0.375, 0.27)), head=((-0.07, 0.185, 0.14), (0.07, 0.35, 0.31)),
              eyes=((-0.042, 0.27, 0.21), (0.042, 0.32, 0.27)), ear=((-0.07, 0.28, 0.165), (0.07, 0.34, 0.22)),
              fleg=((-0.095, -0.005, 0.02), (0.095, 0.27, 0.18)), hleg=((-0.09, -0.005, -0.25), (0.09, 0.27, -0.03)),
@@ -85,14 +89,25 @@ T = dict(
     FUR={'len': 0.02, 'n': 5, 'lean': 1.1, 'tile': 0.0011, 'babyLen': 1.3, 'babyLean': 0.55, 'shade': 0.6, 'quality': 74},
     FUR_K=0.42,
     COL=dict(ground=hexc(0xB4884E), warm=hexc(0xBC9058), back=hexc(0x9A7444), cream=hexc(0xD6C29C), white=hexc(0xE8DEC8),
-             dark=hexc(0x2A1E16), ear=hexc(0x2C221A), earIn=hexc(0xC8B094), nose=hexc(0x6A4038), noseDark=hexc(0x221816),
+             dark=hexc(0x2A1E16), ear=hexc(0x2C221A), earIn=hexc(0xC8B094), nose=hexc(0xA0645A), noseDark=hexc(0x221816),
              lips=hexc(0x221812), lid=hexc(0x1C140E), pad=hexc(0x3A2A24)),
-    BACK_K=0.5, STROKE=0.2, EYE_PALE=(0.85, 0.6), WSPOTS=0.75, NOSE_MOTTLE=0.6, WHISKER=0.06,
+    BACK_K=0.7, STROKE=0.2, EYE_PALE=(0.85, 0.6), EYE_UNDER=(0.005, -0.0078, 0.006), EYE_OVER=(0.002, 0.0095, 0.007), WSPOTS=0.75, NOSE_MOTTLE=0.3, WHISKER=0.06,
     KITTEN=dict(c=V(0.0, 0.196, -0.035), r=(0.07, 0.066, 0.165), rb=0.088, e=2.1, maxd=0.028),
     EYE_META={'iris': 0xB8822E, 'rim': 0x5A3A12, 'pupilR': 0.36, 'babyIris': 0x8496A8, 'babyLidCol': 0x6A5642},
     META={'flat': 0xA8844E, 'rim': [0.18, 0.13, 0.08]},
     MAP_QUALITY=(70, 56), BABY_TEX=256,
 )
+
+
+def head_x(C_, L, d):
+    """round 16b: the lion's skull: wide cheekbones under and behind the eyes (the face is widest there), a heavy brow
+    ridge over each eye that the eye sits forward under, the flat forehead between them"""
+    d = smin(d, ellipsoid(L, V(0.03, -0.006, 0.04), V(0.009, 0.008, 0.018)), 0.012)
+    d = smin(d, round_cone(L, V(0.005, 0.0145, 0.062), V(0.022, 0.0118, 0.058), 0.0055, 0.0045), 0.009)
+    return d
+
+
+T['HEAD_X'] = head_x
 C = PT.load(ID, T)
 PT.setup(C)
 _neck0, _flow0, _lenk0, _baby_offset0, _keep0, _uvr0, _uvw0 = C.neck, C.flow, C._lenk, C.baby_offset, C.keep, C.uv_regions, C.uv_weight
@@ -106,17 +121,37 @@ _MANE = [(0.205, 0.075, 0.064, 0.07, 0.064, 2.0, 2.0), (0.228, 0.125, 0.07, 0.07
 def _face_cut(L):
     """how far in front of the mane's front edge (the face stays clear: the mane starts behind the eyes, further back
     on top, further forward under the chin)"""
-    return L[:, 2] - (0.047 - 0.55 * L[:, 1])
+    # round 16b: behind the cheekbones and the brow (the mane covered the cheeks up to the eyes and swallowed the face)
+    # and on top it starts between the ears (the forehead is short haired up to the crown)
+    return L[:, 2] - (0.028 - 0.45 * L[:, 1] - 1.2 * np.maximum(L[:, 1], 0.0))
+
+
+# round 16b: the way the mane's hair hangs (down and back), for the locks
+_AX = nrm(V(0.0, -0.75, -0.55))
+_AZ = np.cross(_AX, V(1.0, 0.0, 0.0)).astype(F)
+
+
+def _locks(Q, amt, k_along, k_across, seed):
+    """round 16b: locks of hair hanging down and back: rounded clumps with sharp partings between them (a noise
+    stretched along the hair, folded at its middle)"""
+    S = np.stack([(Q @ _AX) * k_along, Q[:, 0] * k_across, (Q @ _AZ) * k_across], 1)
+    return amt * np.abs(2.0 * fbm(S, 3, seed) - 1.0)
 
 
 def mane0(Q):
     """the mane's volume (mirrored points), before the locks"""
     L = C.HF.loc(Q)
-    d = ellipsoid(Q, V(0.0, 0.261, 0.17), V(0.08, 0.054, 0.05))           # the ruff framing the face
+    # round 16b: a narrower ruff (a round ball twice as wide as the face read as a cape), set back behind the face
+    d = ellipsoid(Q, V(0.0, 0.262, 0.166), V(0.068, 0.053, 0.048))         # the ruff framing the face
     d = smin(d, sweep(Q, _MANE), 0.03)                                     # the heavy coat down the neck
-    d = smin(d, ellipsoid(Q, V(0.0, 0.23, 0.07), V(0.058, 0.04, 0.06)), 0.03)   # over the shoulders
+    # (round 16b: over the shoulders it ends a little further forward, so its ragged edge stays inside the neck's box)
+    d = smin(d, ellipsoid(Q, V(0.0, 0.23, 0.08), V(0.058, 0.04, 0.054)), 0.03)   # over the shoulders
     d = smin(d, ellipsoid(Q, V(0.0, 0.165, 0.135), V(0.042, 0.062, 0.042)), 0.03)  # the chest fringe
-    d = smin(d, ellipsoid(L, V(0.031, -0.012, 0.04), V(0.018, 0.026, 0.022)), 0.015)    # the sideburns over the cheeks
+    d = smin(d, ellipsoid(L, V(0.034, -0.014, 0.026), V(0.016, 0.026, 0.02)), 0.015)    # the sideburns behind the cheeks
+    # round 16b: a ragged edge (tongues of hair of uneven length) over the shoulders and under the chest, not a cape line
+    rag = fbm(Q * V(36.0, 26.0, 10.0), 2, 37) - 0.5
+    rag2 = fbm(Q * V(36.0, 10.0, 36.0), 2, 38) - 0.5
+    d = d + 0.03 * rag * sstep(0.12, 0.05, Q[:, 2]) + 0.022 * rag2 * sstep(0.17, 0.12, Q[:, 1])
     d = smax(d, _face_cut(L), 0.012)
     # the ears stand free in a hollow of the mane
     return smax(d, -(C.ear(Q) - 0.005), 0.006)
@@ -124,7 +159,9 @@ def mane0(Q):
 
 def mane(P):
     Q = mirror(P)
-    return mane0(Q) - PT.locks(Q, 0.0032, k=(60.0, 22.0, 45.0), seed=31) - PT.locks(Q, 0.0012, k=(140.0, 50.0, 110.0), seed=32)
+    # round 16b: locks (clumps with partings) instead of a smooth noise
+    return (mane0(Q) - _locks(Q, 0.0045, 22.0, 85.0, 31) - _locks(Q, 0.0016, 50.0, 190.0, 33)
+            - PT.locks(Q, 0.001, k=(140.0, 50.0, 110.0), seed=32))
 
 
 def neck(P):
@@ -151,12 +188,17 @@ def mane_mask(P):
 _mcache = {}
 
 
-def _mm(P):
+def _mth(P):
+    """how far the mane stands out over the body under it (round 16b: kept for the paint's ragged edge)"""
     key = (len(P), float(P[:7].sum()))
     if key not in _mcache:
         _mcache.clear()
-        _mcache[key] = mane_mask(P)
+        _mcache[key] = body0(P)
     return _mcache[key]
+
+
+def _mm(P):
+    return sstep(0.0008, 0.0035, _mth(P))
 
 
 def flow(P, N=None):
@@ -197,20 +239,52 @@ def fur_x(C_, P, N, c, ln):
 
 
 T['FUR_X'] = fur_x
-MK = dict(gold=hexc(0xA67A44), mid=hexc(0x76502E), dark=hexc(0x33241A), tuft=hexc(0x221812))
+# round 16b: a lighter, warmer tawny ruff round the face
+MK = dict(gold=hexc(0xB48448), mid=hexc(0x7E5530), dark=hexc(0x36261A), tuft=hexc(0x221812))
+
+
+def _hair_noise(Q, k_along, k_across, seed):
+    """round 16b: a noise stretched along the hair (down and back), for streaks and tongues"""
+    return fbm(np.stack([(Q @ _AX) * k_along, Q[:, 0] * k_across, (Q @ _AZ) * k_across], 1), 3, seed)
+
+
+def nose_edge(C_, R):
+    """round 16b: the outer band of the nose leather (a lion's nose is dark edged, pink to black with age)"""
+    L, ns = R['L'], C_.NOSE_S
+    NL = L - V(0.0, -0.0052, ns - 0.0024)
+    NL[:, 0] = NL[:, 0] / (1.0 + 70.0 * np.clip(NL[:, 1], -0.005, 0.005))
+    e = ellipsoid(NL, V(0.0, 0.0, 0.0), V(*C_.T['NOSE']) + V(0.0006, 0.0005, 0.0))
+    return R["nose"] * sstep(-0.0014, -0.0004, e)
+
+
+def face_x(C_, R, col):
+    """round 16b: the dark edge of the nose and a ruddier bridge down the top of the muzzle (so the long muzzle reads)"""
+    L = R['L']
+    br = sstep(0.009, 0.004, np.abs(L[:, 0])) * sstep(0.064, 0.072, L[:, 2]) * sstep(C_.NOSE_S - 0.004, C_.NOSE_S - 0.009, L[:, 2])
+    br = br * sstep(0.2, 0.6, R['Nm'][:, 1] * C_.HF.u[1] + R['Nm'][:, 2] * C_.HF.u[2]) * R['head'] * (1 - R['nose'])
+    col = mix(col, hexc(0x9A6A3E), br * 0.4)
+    return mix(col, C_.T['COL']['noseDark'], nose_edge(C_, R) * 0.85)
 
 
 def extra(C_, R, P, N, col):
     """the mane: tawny gold round the face, darkening to brown and then nearly black at the back and on the chest, in
     streaks"""
-    mm = _mm(P)
+    col = face_x(C_, R, col)
+    th = _mth(P)
     Q = R['Pm']
-    back = sstep(0.0, -0.07, _face_cut(R['L']))
+    # round 16b: the gold ruff reaches further back before it darkens, the streaks follow the locks, and the thin edge of
+    # the mane over the shoulders and under the chest runs out into the coat in tongues of hair (it was a cape line)
+    back = sstep(0.01, -0.075, _face_cut(R['L']))
     low = sstep(0.2, 0.15, Q[:, 1]) * sstep(0.1, 0.13, Q[:, 2])
-    streak = fbm(Q * V(90.0, 30.0, 70.0), 3, 41)
-    dk = np.clip(0.15 + back * 0.7 + low * 0.6 + (streak - 0.5) * 0.8, 0, 1)
+    streak = _hair_noise(Q, 18.0, 75.0, 41)
+    tongue = _hair_noise(Q, 7.0, 55.0, 43)
+    dk = np.clip(0.05 + back * 0.68 + low * 0.55 + (streak - 0.5) * 1.1, 0, 1)
+    rear = sstep(0.13, 0.08, Q[:, 2])
+    edge = sstep(0.014, 0.004, th + 0.012 * (tongue - 0.5)) * rear
+    dk = dk * (1 - 0.45 * edge)
     mcol = mix(mix(np.tile(MK['gold'], (len(P), 1)), MK['mid'], sstep(0.0, 0.5, dk)), MK['dark'], sstep(0.45, 1.0, dk))
-    return mix(col, mcol, mm * (1 - R['ear']))
+    k = sstep(0.0008, 0.0035, th) * (1 - rear * sstep(0.004, 0.0, th - 0.0015 + 0.01 * (tongue - 0.5)))
+    return mix(col, mcol, np.clip(k, 0, 1) * (1 - R['ear']))
 
 
 def tail_tip(C_, R, col):
@@ -244,7 +318,8 @@ def cub(C_, R, P, N, col, keep, c):
     sp = sstep(0.36, 0.22, f1) * np.clip(leg * 0.55 + belly * 0.5 + flank * 0.22, 0, 0.6)
     out = mix(out, hexc(0x5A4430), sp * (1 - keep))
     out = mix(out, hexc(0x3A2A1C), R['tail'] * sstep(0.88, 0.94, R['tt']) * 0.8)
-    return out
+    # round 16b: a cub's nose is pink (the grown-up's darkens with age)
+    return mix(out, hexc(0xB87A6E), R['nose'] * 0.85)
 
 
 T['cub'] = cub

@@ -23,7 +23,9 @@ _TAIL = [(0.207, -0.185, 0.0145), (0.203, -0.205, 0.0138), (0.193, -0.245, 0.012
 _TB = {'tail1': V(0, 0.205, -0.19), 'tail2': V(0, 0.185, -0.28), 'tail3': V(0, 0.15, -0.36)}
 T = dict(
     MS=MSK,
-    HF=CV.Frame(V(0.0, 0.292, 0.178), V(0.0, -0.24, 1.0), V(0.0, 1.0, 0.0)), DROP=(0.3, 0.05),
+    # round 16b: the head carried more level and the muzzle dropped less (the lion's fix: the nose sat far below the
+    # eyes on a round dome)
+    HF=CV.Frame(V(0.0, 0.292, 0.178), V(0.0, -0.17, 1.0), V(0.0, 1.0, 0.0)), DROP=(0.15, 0.055),
     BOUNDS=(V(-0.1, 0.0, -0.47), V(0.1, 0.36, 0.3)),
     # long and low, a deep chest, the loose belly skin hanging between the hind legs
     TRUNK=[
@@ -47,20 +49,21 @@ T = dict(
         (0.29, 0.188, 0.024, 0.026, 0.026, 2.0, 2.0),
     ],
     THROAT=[((0.0, 0.186, 0.148), (0.04, 0.042, 0.034), 0.02), ((0.0, 0.2, 0.11), (0.05, 0.052, 0.042), 0.025)],
-    # a round broad head, a broad muzzle shorter than the lion's
+    # round 16b: a broad skull, widest at the cheekbones, a flatter crown and a broad, deep muzzle (shorter than the
+    # lion's) that narrows only a little to the big nose
     HEAD=[
-        (-0.006, 0.015, 0.0, -0.02, 0.02, 2.2, 2.0),
-        (0.008, 0.025, -0.002, -0.03, 0.031, 2.5, 2.0),
-        (0.024, 0.027, -0.004, -0.035, 0.035, 2.6, 2.0),
-        (0.04, 0.0262, -0.007, -0.037, 0.0352, 2.6, 2.1),
-        (0.054, 0.0228, -0.009, -0.0375, 0.0335, 2.7, 2.2),
-        (MS(0.066), 0.0182, -0.011, -0.0355, 0.03, 2.8, 2.4),
-        (MS(0.077), 0.0128, -0.012, -0.0335, 0.0268, 2.9, 2.5),
-        (MS(0.087), 0.0072, -0.013, -0.03, 0.022, 2.7, 2.4),
-        (MS(0.094), 0.0022, -0.013, -0.0255, 0.0168, 2.4, 2.2),
+        (-0.006, 0.014, 0.0, -0.02, 0.02, 2.2, 2.0),
+        (0.008, 0.022, -0.003, -0.031, 0.031, 2.5, 2.0),
+        (0.024, 0.0235, -0.006, -0.037, 0.036, 2.6, 2.1),
+        (0.04, 0.0222, -0.009, -0.0395, 0.0368, 2.7, 2.2),
+        (0.054, 0.0188, -0.011, -0.04, 0.034, 2.8, 2.4),
+        (MS(0.066), 0.0148, -0.012, -0.039, 0.0288, 3.0, 2.6),
+        (MS(0.077), 0.0116, -0.013, -0.0375, 0.0262, 3.1, 2.7),
+        (MS(0.087), 0.0084, -0.013, -0.035, 0.0228, 2.9, 2.5),
+        (MS(0.094), 0.0042, -0.013, -0.0295, 0.0168, 2.5, 2.2),
     ],
-    CHEEK=((0.025, -0.018, 0.042), (0.013, 0.015, 0.02)), PAD_X=0.0102, BROW=0.0165, PADS=(0.0135, 0.012, 0.0145), CHIN=(0.01, 0.0068, 0.0115),
-    NOSE=(0.0088, 0.0058, 0.0042), BRIDGE=None,
+    CHEEK=((0.025, -0.016, 0.04), (0.0095, 0.0115, 0.017)), PAD_X=0.0116, BROW=None, PADS=(0.0146, 0.0124, 0.0148), CHIN=(0.01, 0.0068, 0.0115),
+    NOSE=(0.0114, 0.0072, 0.005), BRIDGE=0.0098,
     TAIL=_TAIL, TB=_TB, TAIL_TD=0.026,
     EYE_AT=(0.0625, 0.0052, 0.016), EYE_R=0.0076, LID_W=0.007, LID_H=0.005, SLANT=0.12, SINK=0.45, MOUTH_AT=(MS(0.086), -0.028),
     EAR_B=V(0.03, 0.296, 0.186), EAR_A=[0.6, 0.78, -0.1], EAR_N=[0.45, -0.05, 0.9], EAR_L=0.02, EAR_W=0.016,
@@ -81,10 +84,11 @@ T = dict(
     PAW_PATCHES=[(V(0.012, -0.001, 0.074), V(0.07, 0.026, 0.132), 0.0004), (V(0.014, -0.001, -0.186), V(0.07, 0.026, -0.124), 0.0004)],
     FUR={'len': 0.012, 'n': 4, 'lean': 1.3, 'tile': 0.0011, 'babyLen': 1.5, 'babyLean': 0.55, 'shade': 0.64, 'quality': 74},
     FUR_K=0.5,
-    COL=dict(ground=hexc(0xB8622A), warm=hexc(0xC06C30), back=hexc(0xA4541E), cream=hexc(0xE2D6C0), white=hexc(0xECE6DA),
+    # round 16b: a richer orange, deeper along the back and paling toward the belly (it was one flat orange)
+    COL=dict(ground=hexc(0xC2621E), warm=hexc(0xD8944E), back=hexc(0xA24A14), cream=hexc(0xE6D6BA), white=hexc(0xECE6DA),
              dark=hexc(0x1C1612), ear=hexc(0x1A1410), earIn=hexc(0xE2D8CA), nose=hexc(0xC08474), noseDark=hexc(0x4A2E28),
              lips=hexc(0x1C1410), lid=hexc(0x18120E), pad=hexc(0x3A2A24)),
-    BACK_K=0.45, STROKE=0.12, EYE_PALE=(0.55, 1.0), WSPOTS=0.9, NOSE_MOTTLE=0.15, WHISKER=0.065, EAR_SPOT=True, NO_EYERING=1,
+    BACK_K=0.6, STROKE=0.12, EYE_PALE=(0.9, 1.0), EYE_UNDER=(0.0125, -0.0085, 0.006), EYE_OVER=(0.002, 0.0105, 0.0065), WSPOTS=0.9, NOSE_MOTTLE=0.15, WHISKER=0.065, EAR_SPOT=True, NO_EYERING=1,
     KITTEN=dict(c=V(0.0, 0.194, -0.035), r=(0.064, 0.058, 0.17), rb=0.082, e=2.1, maxd=0.022),
     EYE_META={'iris': 0xD49A30, 'rim': 0x5A3A10, 'pupilR': 0.34, 'babyIris': 0x8496A8, 'babyLidCol': 0x5A4636},
     META={'flat': 0xB0662C, 'rim': [0.2, 0.12, 0.06]},
@@ -92,19 +96,33 @@ T = dict(
 )
 
 
+# round 16b: the cheek ruff's center and reach (head frame), bigger and flaring further out than before
+_RUFF_C, _RUFF_R = V(0.036, -0.023, 0.031), V(0.0165, 0.022, 0.02)
+
+
 def ruff(C_, L):
     """the ruff: long fur flaring out and back over the cheeks from below the ears to the angle of the jaw"""
-    d = ellipsoid(L, V(0.035, -0.02, 0.031), V(0.014, 0.02, 0.017))
-    return d - PT.locks(L, 0.002, k=(70.0, 40.0, 90.0), seed=61)
+    d = ellipsoid(L, _RUFF_C, _RUFF_R)
+    # round 16b: in locks combed out and back (rounded clumps with partings), not a smooth lump
+    S = np.stack([L[:, 2] * 40.0, L[:, 1] * 120.0, L[:, 0] * 60.0], 1)
+    return d - 0.0028 * np.abs(2.0 * fbm(S, 3, 61) - 1.0) - PT.locks(L, 0.0008, k=(140.0, 90.0, 140.0), seed=62)
 
 
-T['RUFF'] = ruff
+def head_x(C_, L, d):
+    """round 16b: the tiger's skull: wide cheekbones, a heavy brow over each eye"""
+    d = smin(d, ellipsoid(L, V(0.031, -0.007, 0.04), V(0.0095, 0.0085, 0.018)), 0.012)
+    d = smin(d, round_cone(L, V(0.005, 0.0148, 0.062), V(0.022, 0.012, 0.058), 0.0055, 0.0045), 0.009)
+    # the ruff, blended in wider than the RUFF hook does, so it grows out of the cheek
+    return smin(d, ruff(C_, L), 0.014)
+
+
+T['RUFF'], T['HEAD_X'] = None, head_x
 C = PT.load(ID, T)
 PT.setup(C)
 
 
 def _ruffm(L):
-    return sstep(0.004, -0.002, ellipsoid(L, V(0.035, -0.02, 0.031), V(0.016, 0.022, 0.019)))
+    return sstep(0.004, -0.002, ellipsoid(L, _RUFF_C, _RUFF_R + V(0.002, 0.002, 0.002)))
 
 
 def fur_x(C_, P, N, c, ln):
@@ -179,16 +197,23 @@ def stripes(R, Pm, N, P):
     s, u = L[:, 2], L[:, 1]
     xh = np.abs(L[:, 0])
     hw = fbm(L * 400.0, 2, 93) - 0.5
-    fh = _bands((s + 0.004 * hw) / 0.0085, xh, 91, 0.3, 0.25, (-0.004, 0.002), (0.01, 0.019))
-    fh = fh * sstep(0.012, 0.017, u) * sstep(0.014, 0.024, s) * sstep(0.058, 0.05, s) * hd
-    cr = _bands((xh + 0.002 * hw) / 0.0075 + 0.5, s, 97, 0.17, 0.25, (-0.012, 0.0), (0.02, 0.03))
-    cr = cr * sstep(0.014, 0.02, u) * hd * sstep(0.004, 0.008, xh) * (1 - R['ear'])
-    ch = _bands((u + 0.6 * (s - 0.04) + 0.004 * w1) / 0.0075, s, 95, 0.17, 0.3, (0.005, 0.02), (0.045, 0.058))
-    ch = ch * hd * sstep(0.022, 0.03, xh) * sstep(0.004, -0.004, u) * sstep(-0.035, -0.028, u)
     E = C.HF.loc(C.EYE.c[None, :])[0]
-    el = sstep(0.0016, 0.0007, np.abs(u - E[1] + 0.002 - 0.35 * (s - E[2]))) * sstep(E[2] - 0.004, E[2] - 0.009, s) * sstep(E[2] - 0.02, E[2] - 0.015, s)
+    # round 16b: the tiger's own face: bars across the forehead from just over the brows up to the crown, short in the
+    # middle and longer out to the sides (they were all on the crown, like a zebra's), a black rim over each white
+    # eyebrow spot, lines back over the crown, a line back from the outer corner of each eye, and three bold stripes
+    # running down and back across the white cheek into the ruff
+    fh = _bands((s + 0.003 * hw) / 0.0062, xh, 91, 0.44, 0.25, (0.0, 0.004), (0.01, 0.018))
+    fh = fh * sstep(E[1] + 0.008, E[1] + 0.012, u) * sstep(0.028, 0.036, s) * sstep(0.064, 0.058, s) * hd
+    fh = fh * (1 - sstep(0.75, 1.0, _brow_spot(L, E)))
+    sp = np.linalg.norm((L - (E + V(0.001, 0.0115, 0.0065))) / V(1.0, 0.72, 1.0), axis=1)
+    rim = sstep(0.0082, 0.009, sp) * sstep(0.0108, 0.0098, sp) * sstep(E[1] + 0.013, E[1] + 0.016, u) * sstep(E[0] - 0.009, E[0] - 0.005, xh) * hd
+    cr = _bands((xh + 0.002 * hw) / 0.0075 + 0.5, s, 97, 0.17, 0.25, (-0.012, 0.0), (0.016, 0.026))
+    cr = cr * sstep(0.014, 0.02, u) * hd * sstep(0.004, 0.008, xh) * (1 - R['ear'])
+    ch = _bands((u + 0.75 * (s - 0.05) + 0.003 * w1) / 0.0088, s, 95, 0.3, 0.32, (0.008, 0.02), (0.046, 0.056))
+    ch = ch * hd * sstep(0.019, 0.026, xh) * sstep(0.002, -0.004, u) * sstep(-0.038, -0.03, u)
+    el = sstep(0.0016, 0.0007, np.abs(u - E[1] + 0.002 - 0.35 * (s - E[2]))) * sstep(E[2] - 0.004, E[2] - 0.009, s) * sstep(E[2] - 0.022, E[2] - 0.016, s)
     el = el * sstep(E[0], E[0] + 0.004, xh) * hd
-    m = np.maximum.reduce([fl * body, neck, thb, lgb, rings, tip, fh, cr * 0.9, ch * 0.9, el * 0.85])
+    m = np.maximum.reduce([fl * body, neck, thb, lgb, rings, tip, fh, rim * 0.85, cr * 0.9, ch * 0.95, el * 0.85])
     return np.clip(m * sstep(0.25, 0.45, fbm(Pm * 160, 2, 65) + 0.2), 0, 1)
 
 
@@ -196,6 +221,11 @@ def PT_rings(tt, w1):
     g = tt * C.TAIL_LEN / (0.026 - 0.008 * tt) + 0.3 * w1
     a = np.abs(g - np.round(g))
     return sstep(0.2, 0.1, a)
+
+
+def _brow_spot(L, E):
+    """round 16b: the big white spot over each eye"""
+    return sstep(0.0078, 0.0042, np.linalg.norm((L - (E + V(0.001, 0.0115, 0.0065))) / V(1.0, 0.72, 1.0), axis=1))
 
 
 def white(R, Pm, N):
@@ -207,9 +237,10 @@ def white(R, Pm, N):
     belly = sstep(-0.3, -0.6, up) * (1 - hd) * (1 - R['tail'] * 0.6)
     inner = sstep(-0.25, -0.6, R['Nm'][:, 0]) * sstep(0.15, 0.08, Pm[:, 1]) * (1 - R['tail'])
     throat = sstep(-0.1, -0.5, N[:, 1] - 0.5 * N[:, 2]) * sstep(0.1, 0.14, Pm[:, 2]) * (1 - hd)
-    cheek = _ruffm(L) * hd + sstep(-0.02, -0.026, L[:, 1]) * sstep(0.03, 0.045, L[:, 2]) * hd * sstep(0.018, 0.026, np.abs(L[:, 0]))
+    # (round 16b: the white of the cheeks reaches up under the eye, and the spots over the eyes are bigger)
+    cheek = _ruffm(L) * hd + sstep(-0.008, -0.014, L[:, 1] - 0.25 * (L[:, 2] - 0.05)) * sstep(0.022, 0.036, L[:, 2]) * hd * sstep(0.017, 0.024, np.abs(L[:, 0]))
     E = C.HF.loc(C.EYE.c[None, :])[0]
-    spot = sstep(0.0062, 0.003, np.linalg.norm((L - (E + V(-0.002, 0.0098, -0.003))) / V(1.0, 0.7, 1.0), axis=1)) * hd
+    spot = _brow_spot(L, E) * hd
     tail_under = R['tail'] * sstep(-0.1, -0.6, N[:, 1]) * sstep(0.85, 0.7, R['tt'])
     return np.clip(np.maximum.reduce([belly, inner * 0.9, throat * 0.85, cheek * 0.9, spot, tail_under * 0.7]), 0, 1)
 
