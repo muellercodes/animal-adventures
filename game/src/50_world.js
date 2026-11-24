@@ -65,12 +65,14 @@ const World = (() => {
      landmarks: what each 256 m region away from the middle may hold
      ambient: wild animals that show up around you out in the wilds */
   /* ---------- round 10: the zoos (their layout is in 49_plan ZOOS) ---------- */
-  const PEN_NAMES = { giraffe: 'Giraffes', rhino: 'Rhinos', croc: 'Crocodiles', polar: 'Polar bears', leopard: 'Snow leopards', aviary: 'Birds', otter: 'Otters',
+  const PEN_NAMES = { giraffe: 'Giraffes and zebras', rhino: 'Rhinos', croc: 'Crocodiles', polar: 'Polar bears', leopard: 'Snow leopards', aviary: 'Birds', otter: 'Otters',
     deer: 'Deer', moose: 'Moose', bats: 'Fruit bats', fox: 'Foxes', goats: 'Goats', pigs: 'Pigs', bunnies: 'Bunnies', hens: 'Chickens',
     brachio: 'Brachiosaurus', trex: 'T. rex', saber: 'Saber-toothed cats',
     // round 11: Safari Park, and the petting zoo's cows
     lions: 'Lions', tigers: 'Tigers', cheetahs: 'Cheetahs', camels: 'Camels', leopards: 'Leopards', ocelots: 'Ocelots', komodo: 'Komodo dragons', pandas: 'Giant pandas',
-    reptiles: 'Lizards', cows: 'Cows' };
+    reptiles: 'Lizards', cows: 'Cows',
+    // round 15: the zebras' pen in Safari Park (in the City Zoo they share the giraffes' paddock)
+    zebras: 'Zebras' };
   const SIDE_ROT = { n: 0, s: Math.PI, e: Math.PI / 2, w: -Math.PI / 2 };
   function buildZoo(w, Z) {
     const H = w.H, hw = Z.hw, hd = Z.hd, at = (lx, lz) => [Z.x + lx, Z.z + lz];
@@ -750,7 +752,7 @@ const World = (() => {
     },
     // round 11: the Savanna: rolling golden grassland with flat-topped acacias, termite mounds, granite kopjes and a
     // watering hole, and to the west a desert of sand dunes with a palm oasis. Lions, cheetahs, leopards, giraffes,
-    // rhinos and camels live here.
+    // rhinos and camels live here (and since round 15, zebras).
     savanna(seed) {
       const n1 = makeNoise(seed), n2 = makeNoise(seed + 1), n3 = makeNoise(seed + 2), n4 = makeNoise(seed + 3), n5 = makeNoise(seed + 4);
       const c = { gold: P(0x86703a), straw: P(0x9a8452), olive: P(0x58582c), green: P(0x4a5a26), red: P(0x7a4628), sand: P(0xc2a272), sandDk: P(0xa08458),
@@ -777,7 +779,7 @@ const World = (() => {
       const nearOasis = (x, z) => Math.hypot(x - OASIS.x, z - OASIS.z) < OASIS.r + 12;
       const open = (x, z) => Math.hypot(x - 6, z - 6) > 10 && !nearHole(x, z) && kop(x, z) < 0.35;
       return {
-        name: 'Savanna', blurb: 'Golden grass, acacia trees, a watering hole and desert dunes. Lions, cheetahs, giraffes and camels live here.', spawn: [6, 6],
+        name: 'Savanna', blurb: 'Golden grass, acacia trees, a watering hole and desert dunes. Lions, cheetahs, giraffes, zebras and camels live here.', spawn: [6, 6],
         H, fog: [70, 300], water: { color: 0x6a7a52, deep: 0x2e3a24 }, people: 0, dryGrass: true,
         grassH: [0.3, 0.65], grassTint: [0.1, 0.15, 0.62, 0.95],
         // golden grass on the plains, sand in the desert, bare red earth, granite on the kopjes, mud by the water
@@ -837,8 +839,13 @@ const World = (() => {
           ]),
           // round 13: a pride of winged lions on the far kopje
           ...SP7([{ sp: 'wingedlion', n: 2, kids: 1, home: [KOPJES[2][0], KOPJES[2][1]], range: 40 }]),
+          // round 15: a herd of zebras with foals grazing near the giraffes, and a few more down at the watering hole
+          ...SP7([
+            { sp: 'zebra', n: 6, kids: 2, home: [6, 62], range: 40 },
+            { sp: 'zebra', n: 4, kids: 1, home: [HOLE.x - 4, HOLE.z + HOLE.r + 7], range: 14 },
+          ]),
         ],
-        ambient: [{ sp: 'giraffe', w: 2 }, { sp: 'rhino', w: 1 }, ...SP7([{ sp: 'lion', w: 1, kids: 1 }, { sp: 'cheetah', w: 1 }])],
+        ambient: [{ sp: 'giraffe', w: 2 }, { sp: 'rhino', w: 1 }, ...SP7([{ sp: 'lion', w: 1, kids: 1 }, { sp: 'cheetah', w: 1 }, { sp: 'zebra', w: 2, kids: 1 }])],
         foods: { grass: 4, seeds: 3, bugs: 3, meat: 2, twigs: 2, berries: 1, watermelon: 1, dates: 1, hay: 1 },
         walk: [],
       };

@@ -17,7 +17,10 @@ const ZOO_LINES = {
   leopards: ['The leopard is up in the tree!', 'Look at its spots!'], ocelots: ['It looks like a little leopard!', 'So pretty!'],
   komodo: ['That lizard is huge!', 'Look at its tongue!'], pandas: ['The pandas are eating bamboo!', 'Aww, a baby panda!'],
   reptiles: ['The chameleon changed color!', 'Look at the iguana!', 'I see a gecko!'], cows: ['Moo!', 'Look at the little calf!'],
+  // round 15: zebras (in Safari Park, and with the giraffes in the City Zoo)
+  zebras: ['Look at the zebras!', 'Aww, a baby zebra!', 'No two zebras have the same stripes!'],
 };
+ZOO_LINES.giraffe.push('Look at the zebra stripes!');   // round 15
 const Zoos = {
   t: 0,
   max: { cityzoo: 7, petting: 4, dino: 6, safari: 7 },

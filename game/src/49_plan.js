@@ -299,10 +299,11 @@ const Plan = (() => {
      fence style, the animals in it, extras). Pools are bowls of water inside pens. 50_world builds them, 66_zoo walks the
      visitors along the paths. Local x/z are offsets from the zoo's middle. */
   const ZOOS = [
-    { id: 'cityzoo', name: 'City Zoo', d: 'Giraffes, rhinos, polar bears, crocodiles and more', x: 375, z: -312, hw: 78, hd: 62, gate: 'e', wall: 'wire',
+    { id: 'cityzoo', name: 'City Zoo', d: 'Giraffes, zebras, rhinos, polar bears, crocodiles and more', x: 375, z: -312, hw: 78, hd: 62, gate: 'e', wall: 'wire',
       paths: [[-48, -36, 48, -36, 4], [-48, 36, 48, 36, 4], [-48, -36, -48, 36, 4], [48, -36, 48, 36, 4], [48, 0, 100, 0, 5], [-76, 0, -48, 0, 3.5]],
       pens: [
-        { id: 'giraffe', x: -22, z: 0, hw: 22, hd: 30, gate: 's', style: 'rail', sp: [['giraffe', 3, 1]], trees: 6 },
+        // (round 15: zebras share the giraffes' big paddock, as in a real zoo's African plains exhibit)
+        { id: 'giraffe', x: -22, z: 0, hw: 22, hd: 30, gate: 's', style: 'rail', sp: [['giraffe', 3, 1], ['zebra', 3, 1]], trees: 6 },
         { id: 'rhino', x: 24, z: -15, hw: 20, hd: 14, gate: 's', style: 'rail', sp: [['rhino', 2, 1]], mud: true },
         { id: 'croc', x: 24, z: 17, hw: 20, hd: 13, gate: 'n', style: 'rail', sp: [['crocodile', 3, 0]], pool: { x: 24, z: 17, r: 8, depth: -1.8 } },
         { id: 'polar', x: -54, z: -50, hw: 18, hd: 9, gate: 'n', style: 'wire', sp: [['polarbear', 2, 1]], pool: { x: -60, z: -51, r: 5.5, depth: -2 }, rocks: 4 },
@@ -338,7 +339,7 @@ const Plan = (() => {
       props: 'dino' },
     // round 11: Safari Park, south of Maple Town: lions, tigers, cheetahs and camels in big pens, and a row of smaller
     // ones for the leopards, ocelots, Komodo dragons, pandas and lizards
-    { id: 'safari', name: 'Safari Park', d: 'Lions, tigers, cheetahs, camels, pandas and lizards', x: 175, z: 262, hw: 110, hd: 80, gate: 's', wall: 'wire',
+    { id: 'safari', name: 'Safari Park', d: 'Lions, tigers, cheetahs, camels, zebras, pandas and lizards', x: 175, z: 262, hw: 110, hd: 80, gate: 's', wall: 'wire',
       paths: [[0, -86, 0, 80, 6], [-106, -26, 106, -26, 4], [-106, 26, 106, 26, 4]],
       pens: [
         { id: 'lions', x: -56, z: -53, hw: 46, hd: 21, gate: 'n', style: 'wire', sp: [['lion', 3, 2]], rocks: 7, acacia: 2 },
@@ -350,9 +351,11 @@ const Plan = (() => {
         { id: 'komodo', x: -22, z: 54, hw: 15, hd: 22, gate: 's', style: 'rail', sp: [['komodo', 1, 1]], pool: { x: -22, z: 66, r: 5, depth: -1.4 }, rocks: 3 },
         { id: 'pandas', x: 26, z: 54, hw: 18, hd: 22, gate: 's', style: 'wire', sp: [['panda', 2, 1]], bamboo: 3 },
         { id: 'reptiles', x: 66, z: 54, hw: 16, hd: 22, gate: 's', style: 'wire', sp: [['gecko', 2, 0], ['beardeddragon', 2, 0], ['iguana', 2, 0], ['chameleon', 2, 0]], rocks: 4, trees: 1 },
+        // round 15: a herd of zebras with a foal, at the east end of the row of smaller pens
+        { id: 'zebras', x: 96, z: 54, hw: 11, hd: 22, gate: 's', style: 'rail', sp: [['zebra', 3, 1]], acacia: 1 },
       ],
       route: [[0, -88], [0, -26], [-40, -26, 'lions'], [-80, -26, 'cheetahs'], [-40, -26], [40, -26, 'tigers'], [80, -26, 'camels'], [40, -26], [0, -26], [0, 26],
-        [-22, 26, 'komodo'], [-56, 26, 'ocelots'], [-88, 26, 'leopards'], [-56, 26], [26, 26, 'pandas'], [66, 26, 'reptiles'], [30, 26], [0, 26], [0, -88]],
+        [-22, 26, 'komodo'], [-56, 26, 'ocelots'], [-88, 26, 'leopards'], [-56, 26], [26, 26, 'pandas'], [66, 26, 'reptiles'], [96, 26, 'zebras'], [30, 26], [0, 26], [0, -88]],
       props: 'city' },
   ];
   for (const Z of ZOOS) {
