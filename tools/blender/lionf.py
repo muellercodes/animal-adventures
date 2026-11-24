@@ -129,12 +129,13 @@ def cub(C_, R, P, N, col, keep, c):
     sp = sstep(0.36, 0.22, f1) * np.clip(leg * 0.55 + belly * 0.5 + flank * 0.22, 0, 0.6)
     out = mix(out, hexc(0x5A4430), sp * (1 - keep))
     out = mix(out, hexc(0x3A2A1C), R['tail'] * sstep(0.88, 0.94, R['tt']) * 0.8)
-    return out
+    # round 16b: a cub's nose is pink
+    return mix(out, hexc(0xB87A6E), R['nose'] * 0.85)
 
 
 def extra(C_, R, P, N, col):
     # round 16b: the lion's dark edged nose
-    return mix(col, C_.T['COL']['noseDark'], LN.nose_edge(C_, R) * 0.85)
+    return LN.face_x(C_, R, col)
 
 
 T['FUR_X'], T['tail_tip'], T['pattern'], T['cub'], T['extra'] = fur_x, tail_tip, pattern, cub, extra
