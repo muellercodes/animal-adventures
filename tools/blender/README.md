@@ -775,6 +775,12 @@ about 56 KB of icons (42 KB of PNG: the male with his tusk, framed by `SPEC.narw
 of code, about 244 KB in all. Texture memory: about 10 MB with mipmaps on a computer, about 2.8 MB on a phone (the color and normal maps
 capped at 512).
 
+Manatee (round 15, `VOXEL=0.005 TRIS=4600 WEIGHTS=transfer TEX=1024`, about 5 minutes on the shared machine): 7.0k
+triangles (about 8.2k in the game with the 570 triangles of lip bristles and the eyes); 1024 color map (WebP 70; a dark,
+even skin compresses to 5 KB), 1024 normal map with the wrinkles (WebP 58), 256 calf color map: 44 KB mesh + 5 + 33 +
+1 KB, 85 KB of files, about 114 KB in the page plus about 46 KB of icons (34 KB of PNG). Texture memory: about 11 MB
+with mipmaps on a computer, about 3 MB on a phone (the color and normal maps capped at 512).
+
 ## More cats and a hamster (round 7: `cat.py` as a template, `coat.py`, `hamster.py`)
 
 Five more cats (`blackcat`, `orangecat`, `calico`, `siamese`, `whitecat`) and a Syrian hamster. The tabby got its fixes
@@ -1555,3 +1561,41 @@ VOXEL=0.007 TRIS=4300 WEIGHTS=transfer TEX=768 BLENDER_PY=... python3 tools/blen
   male is framed on the whole length with the tusk (`SPEC.narwhal.icon`, read by `animalIcon` through
   `rig.iconFrame()`; every other animal is framed as before).
 - Budget: see the Budget section.
+
+## Round 15: the manatee (`manatee.py`)
+
+An Amazonian manatee, a grown-up: 2.63 m from the lip pads to the edge of the paddle, 0.9 m deep and 0.84 m wide, the
+belly on y = 0. Made from `narwhal.py` (one loft, flippers on their own frames, a flat tail plate, weights all from the
+sculpt's own parts); the steps are the narwhal's.
+
+```bash
+python3 tools/blender/export_rig.py manatee
+VOXEL=0.005 TRIS=4600 WEIGHTS=transfer TEX=1024 BLENDER_PY=... python3 tools/blender/make.py manatee sculpt export
+```
+
+- Shape: one loft (`BODY`) from the tail stock to the head, thickest at the chest, the top line falling smoothly over
+  the head to the top of the snout, ending in a small rounded front (`_front_keys()`) inside the muzzle. The muzzle is
+  a big ellipsoid blended on (`MUZ_C`, `MUZ_R`), with the two pads of the split upper lip in front and under it
+  (`PAD_C`, `PAD_R`, mirrored: the cleft comes from the mirror at x = 0) and the short lower lip tucked in under them
+  (`LOW_C`). A first try with the loft ending in a quick dome in front of a smaller muzzle printed a forehead ledge;
+  the loft has to fall smoothly into the muzzle. The mouth is a groove between the pads and the lower lip; two
+  crescent nostrils with closed flaps on top of the front of the snout (`NOSE`); tiny eyes (9.5 mm) in a puckered lid
+  ring; a pinhole ear. Long flippers with no nails (`flipper()`, swept back and down). The paddle (`fluke()`) is a
+  round spoon: its outline along x (`FK_ZL`, `FK_ZT`) meets at the tip and is flat across x = 0, so the mirror makes
+  no notch; its thickness runs on from the tail stock and thins to a rounded rim.
+- Weights (`fix_weights`): the narwhal's chain along z, plus the lip pads and the lower front of the muzzle on the
+  `snout` bone (the game works the lips with it when eating).
+- Skin (`detail()`): two nets of fine creases (`_wrinkles`: Worley cell edges, stretched along the body so most run
+  round it), deeper folds round the neck and the flipper roots, follicle pits on the lip pads, sparse hair pits, a few
+  shallow scars. All of it is in the normal map; the color map is nearly even.
+- Paint: dark slate gray (the game's light shows it much paler than the map: the first pass at 0x4D5154 read
+  mid gray), darker along the back with a faint green film of algae, the muzzle browner, the lip pads dark; the white
+  to pink chest and belly patch is a noise cut inside a soft oval under the chest (`_regions`: `patch`), so its edge
+  is ragged with gray islands in it. A first pass cut from a box of smoothsteps read as a pasted rectangle. The calf
+  (`paint_baby`) is paler gray with the patch faint.
+- No collar (`meta()` has no collar place). The lip bristles are not sculpted: the game adds them as a rigid piece on
+  the snout bone (`manateeBristles()` in 40_animals.js, both sides in one geometry, roots on the pad ellipsoids where
+  they stand out of the muzzle), so they must follow `PAD_C`, `PAD_R`, `MUZ_C` and `MUZ_R` here if those change.
+- In the game: `SPEC.manatee` and `animManatee` (the narwhal's `animWhale` with the manatee's own steps on top: the lip
+  twitching and working, the flippers sweeping in to the mouth when eating, no snap, the head tipped up at the
+  surface, asleep low in the water rising slowly to breathe).
