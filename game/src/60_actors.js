@@ -454,6 +454,7 @@ function poseBody(b, dt, animate) {
   // (round 14: a diver's speed is its speed through the water, up and down too)
   const st = b.st; st.t = G.t; st.speed = (b.mode === 'dive' ? Math.hypot(b.speed, b.vy) : b.speed) / b.k; st.mode = b.mode === 'perch' ? 'ground' : b.mode; st.vy = b.vy; st.eat = b.eat; st.turn = b.turn; st.idle = b.idle;
   st.sick = b.sick; st.happy = b.happy; st.swimSleep = b.mode === 'sleep' && b.sp === 'otter';
+  if (SPECIES[b.sp].slide) st.slide = b.mode === 'ground' && b.speed > b.m.walk * 1.5 && onSnow(b);   // round 16: a penguin's belly slide
   // round 11: a chameleon slowly takes on the color of what it is on: the ground under it, or bark when it is up a
   // tree. Indoors it keeps its own colors.
   if (rig.setTint) {
@@ -469,6 +470,15 @@ function poseBody(b, dt, animate) {
   rig.update(dt, st);
 }
 const tintCol = new THREE.Color();
+// round 16: on snow or ice: the snowy worlds (the Snowy Mountains, the Arctic Ocean), sea ice, a snowy zoo pen (a
+// penguin slides on its belly there when it runs)
+function onSnow(b) {
+  const w = G.world;
+  if (!w || b.room) return false;
+  if (w.id === 'snow' || w.id === 'arctic') return true;
+  if (w.iceAt && w.iceAt(b.pos.x, b.pos.z)) return true;
+  return w.id === 'land' && !!Plan.snowyAt && Plan.snowyAt(b.pos.x, b.pos.z);
+}
 
 /* ---------- the player's animal ---------- */
 const Player = {
@@ -539,7 +549,7 @@ const Player = {
     if (b.mode === 'fly') want = sp.flySpeed * mag * boost * (ill ? 0.75 : 1);
     else if (b.mode === 'swim' || b.mode === 'dive') want = (sp.swimSpeed || 1.5) * (0.6 + 0.4 * b.k) * mag * (tired ? 0.6 : ill ? 0.8 : 1) * boost;
     else if (b.mode === 'air') want = b.speed;
-    else { want = mag <= 0.6 ? walkS * (mag / 0.6) : lerp(walkS, runS, (mag - 0.6) / 0.4); if (inp.walk) want = Math.min(want, walkS); if (dash) want = Math.max(want, runS) * boost; }
+    else { want = mag <= 0.6 ? walkS * (mag / 0.6) : lerp(walkS, runS, (mag - 0.6) / 0.4); if (inp.walk) want = Math.min(want, walkS); if (dash) want = Math.max(want, runS) * boost; if (sp.slide && want > walkS * 1.5 && onSnow(b)) want *= 2.2; }   // (round 16: a penguin on its belly goes faster)
     // (round 14: a hungry diver can still come up)
     const c = { dx: inp.mx, dz: inp.mz, want, jump: inp.jump && !(tired && b.mode === 'air'), up: inp.up && (!tired || b.mode === 'dive'), down: inp.down || (tired && b.mode === 'fly'), climbV: inp.iy, around: -inp.ix, letGo: inp.letGo, climb: inp.climb, fast: dash };
     if (b.mode === 'climb' || b.mode === 'perch') { if (inp.jump && b.mode === 'perch') c.letGo = true; }

@@ -327,6 +327,15 @@ const World = (() => {
           ...SP7([{ sp: 'butterfly', n: 5, home: [-20, -60], range: 30 }]),
           // round 11: cows in their pasture
           ...SP7([{ sp: 'cow', n: 3, kids: 1, pen: COWPEN }]),
+          // round 16: peafowl roaming the paths of the City Zoo and Safari Park, as they do in real zoos, and by the farm
+          ...SP7((() => {
+            const C = Plan.ZOOS.find((Z) => Z.id === 'cityzoo'), F = Plan.ZOOS.find((Z) => Z.id === 'safari');
+            return [
+              ...(C ? [{ sp: 'peafowl', n: 3, kids: 1, home: [C.x - 48, C.z + 10], range: 14 }, { sp: 'peafowl', n: 2, home: [C.x + 10, C.z + 36], range: 12 }] : []),
+              ...(F ? [{ sp: 'peafowl', n: 3, home: [F.x - 20, F.z - 26], range: 18 }] : []),
+              { sp: 'peafowl', n: 3, kids: 2, home: [BARN.x - 14, BARN.z - 14], range: 16 },
+            ];
+          })()),
           // round 10: the zoo animals in their pens
           ...ZOO_ANIMALS(),
         ],
@@ -848,8 +857,13 @@ const World = (() => {
             { sp: 'zebra', n: 6, kids: 2, home: [6, 62], range: 40 },
             { sp: 'zebra', n: 4, kids: 1, home: [HOLE.x - 4, HOLE.z + HOLE.r + 7], range: 14 },
           ]),
+          // round 16: ostriches in groups on the open grass, a family with chicks and a few more near the watering hole
+          ...SP7([
+            { sp: 'ostrich', n: 5, kids: 3, home: [70, 70], range: 45 },
+            { sp: 'ostrich', n: 3, home: [HOLE.x + 28, HOLE.z + 24], range: 25 },
+          ]),
         ],
-        ambient: [{ sp: 'giraffe', w: 2 }, { sp: 'rhino', w: 1 }, ...SP7([{ sp: 'lion', w: 1, kids: 1 }, { sp: 'cheetah', w: 1 }, { sp: 'zebra', w: 2, kids: 1 }])],
+        ambient: [{ sp: 'giraffe', w: 2 }, { sp: 'rhino', w: 1 }, ...SP7([{ sp: 'lion', w: 1, kids: 1 }, { sp: 'cheetah', w: 1 }, { sp: 'zebra', w: 2, kids: 1 }, { sp: 'ostrich', w: 1, kids: 1 }])],
         foods: { grass: 4, seeds: 3, bugs: 3, meat: 2, twigs: 2, berries: 1, watermelon: 1, dates: 1, hay: 1 },
         walk: [],
       };
@@ -1027,8 +1041,10 @@ const World = (() => {
           // polar bears on the island, out on the fast ice and on the pack; narwhal pods with calves in the open water
           ...SP7([{ sp: 'polarbear', n: 2, kids: 1, home: [10, -10], range: 35 }, { sp: 'polarbear', n: 2, kids: 2, home: [110, -20], range: 70, ice: true }, { sp: 'polarbear', n: 1, home: [190, 40], range: 90, ice: true }]),
           ...SP7([{ sp: 'narwhal', n: 4, kids: 2, home: [-90, 100], range: 60, water: true, depth: [2, 20] }, { sp: 'narwhal', n: 3, kids: 1, home: [-170, -10], range: 70, water: true, depth: [2, 30] }]),
+          // round 16: a puffin colony on the island's west bluffs (pufflings among them), and more out on the water below
+          ...SP7([{ sp: 'puffin', n: 8, kids: 2, home: [-30, -10], range: 12 }, { sp: 'puffin', n: 5, home: [-64, -8], range: 16, water: true }]),
         ],
-        ambient: [...SP7([{ sp: 'polarbear', w: 2, ice: true }, { sp: 'narwhal', w: 3, water: true, kids: 1 }])],
+        ambient: [...SP7([{ sp: 'polarbear', w: 2, ice: true }, { sp: 'narwhal', w: 3, water: true, kids: 1 }, { sp: 'puffin', w: 2, water: true }])],
         foods: { fish: 5, smallfish: 4, squid: 3, berries: 1, meat: 1 },
         walk: [],
         // (for tests: the shapes behind the world)

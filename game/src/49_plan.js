@@ -530,5 +530,7 @@ const Plan = (() => {
     return null;
   }
 
-  return { placeName, placeKey, PI, TOWN, CITY, TOWNS, ROADS, PLACES, BUS, SPOTS, ZOOS, zooAt, zooGate, zooPathD, RW, ST_W, TY, CY, init, H, busy, reserved, paint, grass, streetD, inCity, inPark, roadAt, roadY, roadNear, rectD, inR };
+  // round 16: is (x, z) on snow in a zoo (the penguins' pen)?
+  const snowyAt = (x, z) => { const Z = zooAt(x, z); return !!Z && snowyPen(Z, x, z) > 0.5; };
+  return { placeName, placeKey, PI, TOWN, CITY, TOWNS, ROADS, PLACES, BUS, SPOTS, ZOOS, zooAt, zooGate, zooPathD, snowyAt, RW, ST_W, TY, CY, init, H, busy, reserved, paint, grass, streetD, inCity, inPark, roadAt, roadY, roadNear, rectD, inR };
 })();

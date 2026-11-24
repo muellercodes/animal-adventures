@@ -1,0 +1,163 @@
+{
+ "v": 2,
+ "id": "puffin",
+ "data": "puffin.bin",
+ "enc": "deflate",
+ "raw": 79050,
+ "maps": {
+  "color": "puffin-color.webp",
+  "normal": "puffin-normal.webp",
+  "babyColor": "puffin-babycolor.webp",
+  "fur": "puffin-fur.webp",
+  "babyNormal": "puffin-babynrm.webp",
+  "feather": "puffin-feather.webp",
+  "featherNormal": "puffin-feathernrm.webp",
+  "babyFeather": "puffin-babyfeather.webp"
+ },
+ "nv": 2264,
+ "ntri": 2987,
+ "nbv": 2264,
+ "nbt": 2987,
+ "bbox": [
+  -0.159209,
+  -0.00022,
+  -0.128764,
+  0.159209,
+  0.185022,
+  0.149602
+ ],
+ "bones": [
+  "hips",
+  "tail",
+  "neck",
+  "head",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "wingL",
+  "wingR",
+  "wforeL",
+  "wforeR",
+  "whandL",
+  "whandR",
+  "f0L",
+  "f0R",
+  "f1L",
+  "f1R",
+  "f2L",
+  "f2R",
+  "f3L",
+  "f3R",
+  "f4L",
+  "f4R",
+  "f5L",
+  "f5R",
+  "f6L",
+  "f6R",
+  "f7L",
+  "f7R",
+  "f8L",
+  "f8R",
+  "f9L",
+  "f9R",
+  "f10L",
+  "f10R",
+  "f11L",
+  "f11R",
+  "f12L",
+  "f12R",
+  "f13L",
+  "f13R",
+  "f14L",
+  "f14R",
+  "f15L",
+  "f15R",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.0192,
+   0.1625,
+   0.0955
+  ],
+  "r": 0.0041,
+  "dir": [
+   0.9176,
+   0.1529,
+   0.367
+  ],
+  "lid": [
+   0.8,
+   -0.8,
+   0.12
+  ],
+  "iris": 1971728,
+  "irisR": 0.9,
+  "pupilR": 0.5,
+  "rim": 657414,
+  "lidCol": 1710878,
+  "babyLidCol": 3814964
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "head",
+   0.4
+  ],
+  "babyAt": 0.4,
+  "hug": true,
+  "babyK": 1.6,
+  "lift": 0.35
+ },
+ "mouth": [
+  0.0,
+  0.1455,
+  0.149
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.1,
+  0.1,
+  0.1
+ ],
+ "flat": 2763824,
+ "fur": {
+  "len": 0.016,
+  "n": 6,
+  "lean": 0.3,
+  "tile": 0.0014,
+  "babyLen": 1.0,
+  "babyLean": 0.3,
+  "shade": 0.88,
+  "babyOnly": true,
+  "uvm": 0.2616
+ },
+ "bdelta": 0.141209,
+ "belly": [
+  0.0,
+  0.0521,
+  0
+ ],
+ "srgb": [
+  "babyColor",
+  "feather",
+  "babyFeather"
+ ],
+ "feathers": {
+  "cols": 8
+ }
+}

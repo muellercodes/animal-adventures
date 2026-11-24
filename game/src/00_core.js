@@ -239,6 +239,20 @@ SHOP.push('zebra');
 // The American flamingo wades in shallow water (no swim: it walks in up to its belly) and flies.
 SPECIES.flamingo = { name: 'Flamingo', many: 'Flamingos', eats: ['smallfish', 'waterplants', 'worm', 'seeds'], fav: 'smallfish', fly: true, flySpeed: 11, price: 900, egg: 0xF3F0EA, outdoor: true, baby: 'Flamingo chick' };
 SHOP.push('flamingo');
+// The emperor penguin swims and dives (dive) but is not aquatic: it walks on land, and a bought one can go anywhere. It
+// comes up with no puff of mist (blow: false), and slides on its belly on snow and ice (slide). Wild ones live only in
+// the City Zoo's penguin pen (real ones live in Antarctica, which the game does not have).
+SPECIES.penguin = { name: 'Emperor penguin', many: 'Emperor penguins', eats: ['fish', 'smallfish', 'squid'], fav: 'fish', swim: true, dive: true, swimSpeed: 3.6, slide: true, blow: false, price: 1200, egg: 0xF1EEE4, outdoor: true, baby: 'Penguin chick' };
+SHOP.push('penguin');
+// The Atlantic puffin flies, swims and dives (dive, not aquatic, no puff of mist when it comes up).
+SPECIES.puffin = { name: 'Atlantic puffin', many: 'Atlantic puffins', eats: ['smallfish', 'fish', 'squid'], fav: 'smallfish', fly: true, swim: true, dive: true, swimSpeed: 2.4, flySpeed: 12, blow: false, price: 400, egg: 0xF4F1EA, eggSpeck: [0.62, 0.55, 0.48], outdoor: true, baby: 'Puffling' };
+SHOP.push('puffin');
+// The common ostrich cannot fly; it runs very fast (a little under the cheetah) and lives in groups in the Savanna.
+SPECIES.ostrich = { name: 'Ostrich', many: 'Ostriches', eats: ['grass', 'seeds', 'berries', 'bugs', 'lettuce'], fav: 'grass', price: 1500, egg: 0xF2EAD2, outdoor: true, noJump: true, baby: 'Ostrich chick' };
+SHOP.push('ostrich');
+// The Indian peafowl: a boy is a peacock, a girl a peahen (SEX_LOOK). It walks a lot and flies only short hops.
+SPECIES.peafowl = { name: 'Peacock', many: 'Peacocks', eats: ['seeds', 'bugs', 'berries', 'corn', 'grass'], fav: 'seeds', fly: true, flySpeed: 7, price: 800, egg: 0xEADCC2, outdoor: true, baby: 'Peachick' };
+SHOP.push('peafowl');
 // round 16: big and water birds (end)
 const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow', 'snow', 'savanna', 'arctic'];
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];
@@ -288,8 +302,11 @@ const SEX_LOOK = {
   narwhal: { base: 'm', f: { horns: 0, size: 0.86 } },
   // round 15: zebra (a stallion is a little bigger than a mare; otherwise they look alike)
   zebra: { base: 'm', f: { size: 0.94 } },
-  // round 16: a girl flamingo is smaller than a boy
+  // round 16: a girl flamingo is smaller than a boy; an ostrich hen is gray-brown (her own colors) and a little smaller;
+  // a peahen has her own colors, a small crest and no train (the train bones are the species' horn bones)
   flamingo: { base: 'm', f: { size: 0.88 } },
+  ostrich: { base: 'm', f: { model: true, size: 0.9 } },
+  peafowl: { base: 'm', m: { name: 'Peacock' }, f: { name: 'Peahen', model: true, horns: 0, size: 0.9 } },
 };
 const sexLook = (id, sex) => (SEX_LOOK[id] && SEX_LOOK[id][sex]) || null;
 const sexOf = (id) => (S.sex && (S.sex[id] === 'm' || S.sex[id] === 'f') ? S.sex[id] : (SEX_LOOK[id] && SEX_LOOK[id].base) || 'f');
