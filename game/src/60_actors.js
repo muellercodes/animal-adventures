@@ -551,8 +551,8 @@ const Player = {
     // eating: stop, turn to the food, lower the head
     if (b.eat > 0) {
       // an eagle grabbing a fish keeps flying, then climbs away with it; everyone else stops to eat
-      // (round 16: a hoverer stays put at the flower, at the height of the bloom, and drinks)
-      if (b.mode === 'fly' && sp.hover) { c.want = 0; c.dx = 0; c.dz = 0; if (this.eatFood) c.hoverY = this.eatFood.y + 0.03 - m.height * 0.55; }
+      // (round 16: a hoverer stays put at the flower, its bill at the height of the bloom, and drinks)
+      if (b.mode === 'fly' && sp.hover) { c.want = 0; c.dx = 0; c.dz = 0; if (this.eatFood) c.hoverY = this.eatFood.y + 0.1 - m.eye; }   // (a bloom is about 10 cm tall)
       else if (b.mode === 'fly') { c.want = sp.flySpeed * 0.35; c.dx = Math.sin(b.yaw); c.dz = Math.cos(b.yaw); if (b.eat >= 0.52) c.up = true; }
       else { c.want = 0; c.dx = 0; c.dz = 0; if (b.mode === 'dive') c.up = c.down = false; }
       if (this.eatFood && !this.eatFood.gone) c.face = Math.atan2(this.eatFood.x - b.pos.x, this.eatFood.z - b.pos.z);

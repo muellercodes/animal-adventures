@@ -5187,7 +5187,7 @@ const Animals = (() => {
     const xL = 0.0105;
     const wo = Object.assign({ s: 0.25, prim: 0.95, wid: 1.2, tip: 0.35, flap: { amp: 70, rate: 13, upFold: 0.45, twist: 10, glide: 4 } }, o.wing);
     const wing = (atlas) => stdWing({
-      s: wo.s * k, sh: P3([0.013, 0.056, 0.016]), prim: wo.prim, wid: wo.wid, tip: wo.tip, primTipWid: wo.primTipWid, secTip: wo.secTip, atlas,
+      s: wo.s * k, sh: P3([0.013, 0.056, 0.016]), prim: wo.prim, wid: wo.wid, tip: wo.tip, primTipWid: wo.primTipWid, secTip: wo.secTip, primSpread: wo.primSpread, atlas,
       folded: Object.assign({ roll: atlas ? -54 : -50, yaw: 3, pitch: -8 }, wo.folded), foldedPos: sc(wo.foldedPos || (atlas ? [0.003, 0.0, -0.002] : [0.002, 0.0, -0.002])),
       featherFold: wo.featherFold || { tert: [112, 104], sec: [106, 92], prim: [97, 90] },
       flap: wo.flap, cells: Object.assign({ prim: 0, sec: 1, gcov: 2, lcov: 3, tert: 4, pcov: 3, mcov: 3 }, wo.cells),
@@ -5363,7 +5363,7 @@ const Animals = (() => {
       gape: [0.0016, 0.0708, 0.0478], mouth: [0, 0.0701, 0.0776],
       eye: { r: 0.0029 * 0.62, iris: 0x120C08 },
       // long narrow pointed wings, nearly all hand: the hover's wingbeat is anim.hover
-      wing: { s: 0.2, prim: 1.25, wid: 1.05, tip: 0.3, primTipWid: 0.95, flap: { amp: 62, rate: 22, upFold: 0.1, twist: 26, glide: 2 }, folded: { roll: -56, yaw: 2, pitch: -6 } },
+      wing: { s: 0.2, prim: 1.25, wid: 1.05, tip: 0.3, primTipWid: 0.95, primSpread: [34, 4], flap: { amp: 62, rate: 22, upFold: 0.1, twist: 26, glide: 2 }, folded: { roll: -56, yaw: 2, pitch: -6 } },
       // the girl's rounded tail with white tips; the boy's (his own sculpt's json says look: 'm') forked
       tail: (md, P3, k) => (md && md.look === 'm'
         ? tailFan('tail', P3([0, 0.051, -0.036]), 10, 0.042 * k, 0.0115 * k, 26, -4, 5, { dx: 0.009 * k, dy: 0.002 * k, dz: 0, roll: 20, taper: -0.45, curl: 0.03 })
