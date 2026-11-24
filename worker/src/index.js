@@ -158,7 +158,7 @@ const SPECIES = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny', 
   // round 15
   'zebra', 'manatee',
   // round 16: birds
-  'cardinal', 'bluejay', 'hummingbird', 'toucan', 'snowyowl'];
+  'cardinal', 'bluejay', 'hummingbird', 'toucan', 'snowyowl', 'flamingo', 'peafowl', 'ostrich', 'penguin', 'puffin'];
 const MODES = ['ground', 'air', 'swim', 'fly', 'climb', 'perch', 'sleep',
   'dive'];   // round 14: under the water (an animal that can dive)
 const MAX_IN_WORLD = 60;
