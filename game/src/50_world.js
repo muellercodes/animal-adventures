@@ -72,7 +72,9 @@ const World = (() => {
     lions: 'Lions', tigers: 'Tigers', cheetahs: 'Cheetahs', camels: 'Camels', leopards: 'Leopards', ocelots: 'Ocelots', komodo: 'Komodo dragons', pandas: 'Giant pandas',
     reptiles: 'Lizards', cows: 'Cows',
     // round 15: the zebras' pen in Safari Park (in the City Zoo they share the giraffes' paddock)
-    zebras: 'Zebras' };
+    zebras: 'Zebras',
+    // round 16: the City Zoo's flamingos and penguins
+    flamingos: 'Flamingos', penguins: 'Penguins' };
   const SIDE_ROT = { n: 0, s: Math.PI, e: Math.PI / 2, w: -Math.PI / 2 };
   function buildZoo(w, Z) {
     const H = w.H, hw = Z.hw, hd = Z.hd, at = (lx, lz) => [Z.x + lx, Z.z + lz];
@@ -108,7 +110,7 @@ const World = (() => {
       if (p.acacia) w.scatter({ type: 'acacia', variants: [0, 1, 2], n: p.acacia, tries: p.acacia * 12, free, sample: inPen(6), test: dry, gap: 12, scale: [0.9, 1.15] });
       if (p.bamboo) w.scatter({ type: 'bamboo', variants: [0, 1], n: p.bamboo, tries: p.bamboo * 12, free, sample: inPen(3), test: dry, gap: 5, scale: [0.9, 1.1] });
       if (p.palms) w.scatter({ type: 'datepalm', variants: [0, 1], n: p.palms, tries: p.palms * 12, free, sample: inPen(4), test: dry, gap: 8, scale: [0.9, 1.1] });
-      if (p.rocks) w.scatter({ type: p.id === 'polar' ? 'snowrock' : 'rock', variants: [0, 1, 2], n: p.rocks, free, sample: inPen(2), test: dry, gap: 3, scale: [1.2, 2.4] });
+      if (p.rocks) w.scatter({ type: p.id === 'polar' || p.snowy ? 'snowrock' : 'rock', variants: [0, 1, 2], n: p.rocks, free, sample: inPen(2), test: dry, gap: 3, scale: [1.2, 2.4] });
       if (p.jungle) {
         w.scatter({ type: 'palm', variants: [0, 1], n: p.jungle, free, sample: inPen(5), test: dry, gap: 9, scale: [1.1, 1.5] });
         w.scatter({ type: 'bigleaf', n: Math.round(p.jungle * 0.8), free, sample: inPen(3), test: dry, gap: 4, scale: [1.2, 1.8] });
@@ -462,6 +464,8 @@ const World = (() => {
           { sp: 'raccoon', n: 2, home: [20, 50], range: 40 },
           // round 7: crocodiles in the swamp water
           ...SP7([{ sp: 'crocodile', n: 3, kids: 1, home: [30, -30], range: 45, water: true }]),
+          // round 16: a flock of flamingos wading in the shallows round the pools (wade: they keep to shallow water)
+          ...SP7([{ sp: 'flamingo', n: 8, kids: 2, home: [-50, -60], range: 30, wade: true }]),
         ],
         ambient: [{ sp: 'frog', w: 4 }, { sp: 'turtle', w: 3, water: true }, { sp: 'snake', w: 2 }, { sp: 'duck', w: 2, water: true, kids: 3 }, { sp: 'otter', w: 1, water: true }, { sp: 'raccoon', w: 1 }],
         foods: { worm: 4, grass: 2, berries: 1, acorn: 1, smallfish: 4, fish: 3, bugs: 4, mushroom: 2, twigs: 1 },

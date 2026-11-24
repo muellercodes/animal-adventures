@@ -8944,6 +8944,23 @@ const Animals = (() => {
     // ground the folded arms step in turn, the bat walks on its wrists and feet)
     const HG = P.hang || null, CR = P.crawl || null, qCr = new THREE.Quaternion();
     let hangK = 0;
+    // round 16 (flamingo): oneLeg { rest, foot, flex }: asleep, and resting after standing still rest seconds, it
+    // stands on one leg with the other folded up under the belly (foot: [height, forward] in leg heights; flex: the
+    // folded tarsus); eatSweep [amp, rate]: the neck sweeps the upside-down bill from side to side while it feeds.
+    // Both off for every other bird.
+    const OL = P.oneLeg || null, ES = P.eatSweep || null;
+    const olSide = R.rnd < 0.5 ? 0 : 1;
+    S.rest = 0;
+    // round 16 (penguin, puffin): dive { pitch, elev, legs, rate, amp, fold, flat }: under the water (mode 'dive') the
+    // body lies level (pitch: how far it tips forward from its standing pose), the wings beat (rate, amp: times the
+    // wing's own flap), the neck reaches forward (elev: segment elevations) and the legs trail behind (legs: [dy, dz in
+    // leg heights from the hip joint, toe curl, kick]); flat: it floats lying level at the surface too (a penguin).
+    // slide { pitch, drop, fold, rate, legs }: a penguin's belly slide on snow and ice (st.slide), lying on its belly
+    // (drop: a share of the hip height), flippers out, pushing with its feet. runWings (ostrich): the wings held half
+    // out, not beating, when it runs. All off for every other bird.
+    const DV = P.dive || null, SL = P.slide || null, RWG = P.runWings || 0;
+    S.dive = 0; S.slide = 0;
+    let diveN = null;
     let legH = 0.1;
     const side = (s) => (W ? { sh: B['wing' + s], el: B['wfore' + s], wr: B['whand' + s], fs: W.fb.map((f) => B[f.name.slice(0, -1) + s]) } : null);
     const shP0 = W ? B.wingL.userData.p0 : null, fpo = W && W.foldedPos ? W.foldedPos : [0, 0, 0];
@@ -8976,6 +8993,7 @@ const Animals = (() => {
       };
       flyN = poseFromElev(P.flyElev, P.flyPitch || 0); swimN = poseFromElev(P.swimElev, sp0 + (P.swimPitch || 0)); standN = poseFromElev(P.standElev, sp0);
       if (GS && GS.elev) { const g = poseFromElev(GS.elev, sp0); standN = standN.map((v, i) => lerp(v, g[i], gk)); }
+      if (DV) diveN = poseFromElev(DV.elev, sp0 + DV.pitch);   // round 16
     };
     refresh();
     R.hooks.push(refresh);
@@ -9025,6 +9043,8 @@ const Animals = (() => {
       spring(S, 'air', mode === 'air' ? 1 : 0, 9, dt);
       spring(S, 'swim', mode === 'swim' || (sleeping && st.swimSleep) ? 1 : 0, 4, dt);
       spring(S, 'move', spdIn > 0.04 ? 1 : 0, 5, dt);
+      if (DV) spring(S, 'dive', mode === 'dive' ? 1 : 0, 4, dt);   // round 16
+      if (SL) spring(S, 'slide', st.slide && mode === 'ground' ? 1 : 0, 5, dt);
       S.rw = damp(S.rw, sstep(P.walk, P.run, spd), 3, dt);
       spring(S, 'eat', eatEnvelope(st.eat || 0), 8, dt);
       S.lean = damp(S.lean, clamp((st.turn || 0) * Math.max(spd, 0.5), -4, 4), 4, dt);
@@ -9037,27 +9057,37 @@ const Animals = (() => {
       S.climb = damp(S.climb, mode === 'fly' ? sat(vy / 2) : 0, 3, dt);
       // wings: spread when flying, half open and flapping during a jump for flightless use
       const flutter = hap * (P.canFly ? 0.22 : 0.3) * sstep(0.2, 0.8, Math.sin(it * 3.1)) * (1 - S.move);
-      const wantFold = mode === 'fly' ? 0 : mode === 'air' ? 1 - (P.jumpFlap || 0) : 1 - flutter;
+      let wantFold = mode === 'fly' ? 0 : mode === 'air' ? 1 - (P.jumpFlap || 0) : 1 - flutter;
+      if (DV) wantFold = lerp(wantFold, DV.fold || 0, S.dive);   // round 16
+      if (SL) wantFold = lerp(wantFold, SL.fold, S.slide);
+      if (RWG) wantFold = lerp(wantFold, 1 - RWG, S.rw * S.move * (1 - S.air));
       spring(S, 'fold', wantFold, mode === 'fly' ? 6 : 4, dt);
-      const fly = S.fly, swim = S.swim * (1 - fly), air = Math.max(S.air, fly), ground = (1 - air) * (1 - swim);
+      const fly = S.fly, swim = S.swim * (1 - fly), air = Math.max(S.air, fly);
+      // (round 16: a diver under the water is not on the ground; lay: lying level, under the water or floating flat)
+      const ground = (1 - air) * (1 - swim) * (DV ? 1 - S.dive : 1), lay = DV ? Math.max(S.dive, DV.flat ? swim : 0) : 0, sld = SL ? S.slide : 0;
       const idle = st.idle || 0, still = 1 - S.move, sn = sneezeCurve(S.snT);
       const grab = GR ? S.eat * fly : 0, eatN = GR ? S.eat * (1 - grab) : S.eat;
+      if (OL) S.rest = damp(S.rest, idle > OL.rest && ground > 0.5 && S.eat < 0.1 && S.move < 0.1 ? 1 : 0, 1.5, dt);   // round 16
 
       // ----- gait phase -----
       const L = P.stride * clamp(Math.pow(Math.max(spd, 0.2) / P.walk, 0.5), 0.6, P.strideMax || 1.8);
       S.ph += Math.min(spd / L, P.maxRate || 12) * dt * (1 - air);
       S.sph += (1.3 + Math.min(spd, 2) * 0.6) * dt;
       const duty = lerp(P.duty[0], P.duty[1], S.rw), ph = S.ph, w2 = TAU * ph;
-      const gaitOn = S.move * ground;
+      const gaitOn = S.move * ground * (1 - sld);
 
       // ----- flapping -----
       let flapAmt = (1 - S.glide * (SO ? 1 : 0.92)) * (1 - S.fold);
       if (GR) flapAmt *= 1 - grab;
-      const rate = (P.wing && W.flap.rate) || 5;
+      if (RWG) flapAmt *= 1 - S.rw * S.move * (1 - S.air);   // round 16: held out, not beating
+      let rate = (P.wing && W.flap.rate) || 5;
+      if (DV) rate *= lerp(1, DV.rate || 1, S.dive);   // round 16
+      if (SL) rate *= lerp(1, SL.rate || 1, sld);
       S.fph += TAU * rate * (1 + S.climb * 0.25 - S.glide * 0.3) * (1 + hap * (1 - fly) * 1.2) * dt;
       const fphase = S.fph;
       S.flap = damp(S.flap, flapAmt, 6, dt);
-      const amp = W ? W.flap.amp * DEG * (1 + S.climb * 0.15) : 0;
+      let amp = W ? W.flap.amp * DEG * (1 + S.climb * 0.15) : 0;
+      if (DV) amp *= lerp(1, DV.amp || 1, S.dive);   // round 16
       const droop = (sick * 0.16 + sl * 0.04) * (1 - fly);
       let flapRoll = W ? amp * Math.cos(fphase) * S.flap + S.glide * (1 - S.fold) * (W.flap.glide || 6) * DEG - droop : 0;
       if (GR && W) flapRoll += grab * GR.wings * DEG;
@@ -9074,8 +9104,9 @@ const Animals = (() => {
       // happy: little bounces on the spot; sleeping: sit down on the belly (on land)
       const bounce = hap * still * ground * Math.abs(Math.sin(it * 7.5)) * legH * 0.22;
       let drop = swim * ((P.swimDrop || 0) - R.ageDrop) + S.eat * ground * (P.eatDrop || 0) + sick * legH * 0.08 * ground + bounce;
+      if (SL) drop += SL.drop * hip0.y * sld;   // round 16: on its belly
       drop = lerp(drop, Math.max(0, R.belly.y - 0.004) * (P.sitDrop == null ? 1 : P.sitDrop), sl * (1 - swim));
-      const pitch = lerp(sp0, P.flyPitch == null ? 0 : P.flyPitch, fly) + S.eat * ((P.eatPitch || 0) * ground + (P.swimEatPitch || 0.1) * swim) + gaitOn * S.rw * (P.runPitch || 0.08) + swim * (P.swimPitch || 0) + sick * 0.12 * (1 - fly) - sl * sp0 * (P.sleepLevel || 0) + sn * 0.1 + (GR ? grab * GR.pitch : 0);
+      const pitch = lerp(sp0, P.flyPitch == null ? 0 : P.flyPitch, fly) + S.eat * ((P.eatPitch || 0) * ground + (P.swimEatPitch || 0.1) * swim) + gaitOn * S.rw * (P.runPitch || 0.08) + swim * (P.swimPitch || 0) + sick * 0.12 * (1 - fly) - sl * sp0 * (P.sleepLevel || 0) + sn * 0.1 + (GR ? grab * GR.pitch : 0) + (DV ? DV.pitch * lay : 0) + (SL ? SL.pitch * sld : 0);
       hips.position.set(hip0.x, hip0.y + bob + br + flyBob - drop, hip0.z);
       hips.rotation.set(pitch, yaw, roll);
       if (HG) {
@@ -9112,8 +9143,16 @@ const Animals = (() => {
         const swY = -drop + legH * (P.paddleY || 0.35) + Math.sin(sa) * legH * 0.08, swZ = lg.Pp.z + Math.cos(sa) * legH * (P.paddleZ || 0.3);
         tx = lerp(tx, lg.Pp.x + sd * legH * 0.08, swim); ty = lerp(ty, swY, swim); tz = lerp(tz, swZ, swim);
         flx = lerp(flx, 0.5 + Math.sin(sa) * 0.3, swim); tqq = lerp(tqq, pw ? 0.3 : 1.6, swim);
+        // round 16 (flamingo): on one leg, the other folded up under the belly
+        if (OL) {
+          const k = Math.max(sl, S.rest) * (1 - swim) * (1 - air);
+          if (k > 0.001) {
+            if (lg.idx === olSide) { tx = lerp(tx, lg.Pp.x * 0.25, k); }
+            else { ty = lerp(ty, lg.Pp.y + legH * OL.foot[0], k); tz = lerp(tz, lg.Pp.z + legH * OL.foot[1], k); tx = lerp(tx, lg.Pp.x * 0.7, k); flx = lerp(flx, OL.flex, k); tqq = lerp(tqq, 1.4, k); }
+          }
+        }
         // sitting asleep: tarsus folded flat under the body
-        if (sl > 0.001 && swim < 0.999) {
+        if (sl > 0.001 && swim < 0.999 && !OL) {
           const k = sl * (1 - swim);
           ty = lerp(ty, lg.Pp.y, k); tz = lerp(tz, lg.Pp.z + legH * 0.22, k); tx = lerp(tx, lg.Pp.x * 1.05, k);
           flx = lerp(flx, -1.35, k); tqq = lerp(tqq, -0.05, k);
@@ -9135,6 +9174,16 @@ const Animals = (() => {
           tx = lerp(tx, lg.Pp.x * 0.8, air); ty = lerp(ty, lerp(jy, fy, fk), air); tz = lerp(tz, lerp(jz, fz, fk), air);
           flx = lerp(flx, lerp(1.2, P.flyFlex || 1.5, fk), air); tqq = lerp(tqq, lerp(1.0, fq, fk), air);
         }
+        // round 16: lying level under the water or on its belly in a slide: the legs trail behind and kick
+        if (DV || SL) {
+          const lk = Math.max(lay, sld) * (1 - air);
+          if (lk > 0.001) {
+            const LG = sld > lay ? SL.legs : DV.legs, kick = Math.sin(S.sph * PI + lg.idx * PI) * (LG[3] || 0) * sat(spd);
+            rootPos(lg.bs[0], root, _v2);
+            tx = lerp(tx, lg.Pp.x * 0.9, lk); ty = lerp(ty, _v2.y + legH * (LG[0] + kick), lk); tz = lerp(tz, _v2.z + legH * LG[1], lk);
+            flx = lerp(flx, 0.2, lk); tqq = lerp(tqq, LG[2], lk);
+          }
+        }
         solveLeg(lg, root, tx, ty, tz, flx, tqq);
       }
 
@@ -9152,11 +9201,14 @@ const Animals = (() => {
         const dyn = d * S.lookP + d * (P.walkNeck || 0.04) * gaitOn * Math.sin(2 * w2) + (P.peck ? peck * (last ? 0.6 : 0.2) : 0);
         const eg = eatPG ? eatPG[i] : d * eatG, ew = eatPW ? eatPW[i] : d * eatW;
         let px = lerp(eg, ew, swim) * eatN + (flyN[i] * fly + swimN[i] * swim) * poseW + standN[i] * (1 - fly) * (1 - swim) * (1 - S.eat) + dyn;
+        // round 16: level under the water (or floating flat, or on its belly in a slide): the neck reaches forward
+        if (DV) px += (diveN[i] - standN[i] * (1 - fly) * (1 - swim) * (1 - S.eat) - lerp(eg, ew, swim) * eatN * 0.7) * S.dive + (DV.flat ? diveN[i] * swim : 0) + (SL ? (diveN[i] - standN[i] * (1 - S.eat)) * sld : 0);
         if (GR) px += grab * GR.neck[i];
         if (!last) sum += dyn;
         else px -= (sum + gaitPitch) * (1 - S.eat) * (1 - fly);
         px += sick * 0.3 * d + sn * (last ? 0.7 : 0.3) + (last ? Math.sin(it * 9) * 0.06 * hap : 0);
         let py = (S.look + S.lean * 0.05) * (P.lookDist ? P.lookDist[i] : d);
+        if (ES) py += ES[0] * Math.sin(t * ES[1] * TAU) * eatN * (1 - swim) * (i === 0 ? 1 : 0.2);   // round 16
         if (sl > 0.001) { px = lerp(px, tuck[i][0], sl); py = lerp(py, tuck[i][1] * sleepSide, sl); }
         neck[i].rotation.set(px, py, last ? Math.sin(it * 2.6) * 0.25 * hap : 0);
       }
@@ -10363,6 +10415,8 @@ const Animals = (() => {
   COLLAR.griffin = { at: ['neck2', 'head', 0.3], r: 0.9 };
   // ===== round 13: winged lion =====
   COLLAR.wingedlion = COLLAR.cat;
+  // ===== round 16: big and water birds =====
+  COLLAR.flamingo = { at: ['neck', 'neck2', 0.35] };
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)
@@ -11212,6 +11266,148 @@ const Animals = (() => {
   }
   ANIM.manatee = animManatee;
   // round 15: manatee (end of the animator)
+
+  // ===== round 16: big and water birds (flamingo, peafowl, ostrich, penguin, puffin) =====
+  // round 16: the American flamingo, about 1.4 m tall (a girl 0.88 of that): vivid pink-orange, black flight feathers
+  // that show when it flies, long pink legs, a long S neck, a thick bent pink bill with a black tip. It rests and sleeps
+  // standing on one leg (anim.oneLeg), feeds with its head upside down in the water sweeping the bill from side to side
+  // (eatElev, anim.eatSweep) and flies with its neck and legs stretched out. The chick: gray down, a straight dark bill.
+  SPEC.flamingo = () => {
+    const xL = 0.062;
+    const K = { pink: hex(0xEC6450), deep: hex(0xD8432F), pale: hex(0xF08C78), black: hex(0x171515), leg: hex(0xE0626E), bill: hex(0xEFD2C8) };
+    const wing = (atlas, folded, pos) => stdWing({
+      s: 1.5, sh: [0.075, 0.96, 0.1], prim: 1.0, wid: 1.0, tip: 0.45, atlas,
+      folded, foldedPos: pos,
+      featherFold: { tert: [116, 106], sec: [106, 91], prim: [97, 88] },
+      flap: { amp: 48, rate: 3.0, upFold: 0.3, twist: 10, glide: 3 },
+      cells: atlas ? { prim: 0, sec: 1, gcov: 2, lcov: 3, tert: 4, pcov: 3 } : { prim: 0, sec: 1, gcov: 2, lcov: 2, tert: 2, pcov: 2 },
+    });
+    const W = wing(false, { roll: -16, yaw: 2, pitch: 2 }, [0, 0, -0.03]);
+    const WA = wing(true, { roll: -24, yaw: 4, pitch: 1 }, [-0.03, -0.02, -0.04]);
+    const toes = [{ a: -26, len: 0.075, r: 0.0055 }, { a: 0, len: 0.088, r: 0.006 }, { a: 26, len: 0.072, r: 0.0055 }, { a: 180, len: 0.012, r: 0.003, back: true, lift: 0.01 }];
+    const foot = [xL, 0.02, 0.02];
+    return {
+      size: { length: 0.8, height: 1.4, radius: 0.16, eyeHeight: 1.36 },
+      tex: [256, 256], rough: 0.85,
+      detail: { kind: 'feather', tile: 0.04, amt: 0.1, bump: 0.25 },
+      shell: { parts: ['body', 'head'], len: 0.008, n: 3, babyOnly: true, babyLen: 1, lean: 0.2 },
+      bones: [
+        ['hips', null, 0, 0.86, 0.0],
+        ['tail', 'hips', 0, 0.9, -0.24],
+        ['neck', 'hips', 0, 0.93, 0.21],
+        ['neck2', 'neck', 0, 1.09, 0.34],
+        ['neck3', 'neck2', 0, 1.25, 0.27],
+        ['neck4', 'neck3', 0, 1.36, 0.17],
+        ['head', 'neck4', 0, 1.38, 0.21],
+        ['thighL', 'hips', xL - 0.012, 0.83, -0.02, 1],
+        ['shinL', 'thighL', xL, 0.75, 0.06, 1],
+        ['hmetaL', 'shinL', xL, 0.39, -0.03, 1],
+        ['hpawL', 'hmetaL', xL, 0.02, 0.02, 1],
+        ...W.bones,
+      ],
+      fur: [
+        { name: 'body', bones: ['tail', 'hips', 'neck', 'neck2', 'neck3', 'neck4', 'head'], blend: 0.04, segs: 14, cap0: 3, capLen0: 0.8, keys: [
+          [0, 0.92, -0.32, 0.02, 0.015, 0.015],
+          [0, 0.91, -0.25, 0.07, 0.05, 0.06],
+          [0, 0.88, -0.12, 0.11, 0.09, 0.11],
+          [0, 0.86, 0.02, 0.12, 0.1, 0.12],
+          [0, 0.88, 0.14, 0.1, 0.09, 0.11],
+          [0, 0.93, 0.22, 0.05, 0.05, 0.06],
+          [0, 1.02, 0.3, 0.032, 0.032, 0.032],
+          [0, 1.1, 0.33, 0.026, 0.026, 0.026],
+          [0, 1.2, 0.3, 0.022, 0.022, 0.022],
+          [0, 1.3, 0.22, 0.02, 0.02, 0.02],
+          [0, 1.36, 0.18, 0.022, 0.022, 0.022],
+        ] },
+        { name: 'head', bones: ['head'], segs: 12, cap0: 3, cap1: 2, capLen1: 0.6, dtile: 0.35, keys: [
+          [0, 1.39, 0.16, 0.022, 0.022, 0.022],
+          [0, 1.4, 0.19, 0.027, 0.028, 0.026],
+          [0, 1.395, 0.22, 0.022, 0.023, 0.02],
+          [0, 1.38, 0.245, 0.014, 0.016, 0.014],
+        ] },
+        { name: 'leg', mirror: true, bones: ['shinL', 'hmetaL', 'hpawL'], blend: 0.01, segs: 8, cap0: 2, cap1: 2, dkind: 'scale', dtile: 0.35, keys: [
+          [xL, 0.75, 0.05, 0.03, 0.03, 0.03],
+          [xL, 0.66, 0.035, 0.011, 0.011, 0.011],
+          [xL, 0.4, -0.028, 0.009, 0.01, 0.01],
+          [xL, 0.37, -0.026, 0.009, 0.009, 0.009],
+          [xL, 0.2, -0.004, 0.0068, 0.0068, 0.0068],
+          [xL, 0.03, 0.018, 0.007, 0.007, 0.007],
+        ] },
+        { name: 'wcov', mirror: true, bones: ['wingL', 'wforeL', 'whandL'], blend: 0.02, segs: 8, cap0: 2, cap1: 2, keys: [
+          [0.075, 0.96, 0.1, 0.022, 0.012, 0.012],
+          [0.2, 0.96, 0.096, 0.024, 0.011, 0.011],
+          [0.35, 0.96, 0.092, 0.018, 0.008, 0.008],
+          [0.46, 0.96, 0.09, 0.01, 0.005, 0.005],
+        ] },
+      ],
+      paint(P, C) {
+        const fine = noise(P.x * 300, P.y * 300, P.z * 300);
+        switch (P.part) {
+          case 'body': case 'wcov': cset(C, K.pink); cmix(C, K.pale, sstep(0.95, 1.2, P.y) * 0.5); cmix(C, K.deep, sstep(0.3, 0.8, P.ny) * sstep(0.2, -0.1, P.z) * 0.4); break;
+          case 'head': cset(C, K.pale); cmix(C, K.pink, 0.4); break;
+          case 'leg': cset(C, K.leg); C.ro = 0.55; break;
+        }
+        if (P.part !== 'leg') { cmul(C, 0.94 + 0.1 * fine); C.ro = 0.86; }
+      },
+      feathers: (rest, md) => ({
+        tex: [256, 128], rough: 0.85,
+        list: md ? [
+          ...WA.feathers,
+          ...tailFan('tail', [0, 0.925, -0.3], 7, 0.11, 0.04, 16, 4, 5, { dx: 0.02, dz: 0.01, taper: 0.25, curl: 0.04 }),
+        ] : [
+          ...W.feathers,
+          ...tailFan('tail', [0, 0.92, -0.3], 7, 0.12, 0.045, 20, 4, 3, { dx: 0.03, dz: 0.01, taper: 0.25, curl: 0.05 }),
+        ],
+        paint(u, t, C) {
+          const k = Math.floor(u * FNC), s = fract(u * FNC);
+          if (k === 0 || k === 1) vane(s, t, C, K.black, hex(0x2A2624), hex(0x3A3432));
+          else vane(s, t, C, K.pink, K.deep, K.pale);
+        },
+        babyPaint: downFeather(hex(0x9A9692), hex(0xB8B4AE)),
+      }),
+      accent: [
+        { kind: 'loft', bone: 'head', segs: 10, cap1: 2, capLen1: 0.5, col: 0xEFD2C8, babyCol: 0x3A3634, keys: [
+          [0, 1.39, 0.235, 0.014, 0.016, 0.018, 2.4],
+          [0, 1.385, 0.28, 0.012, 0.012, 0.015, 2.5],
+          [0, 1.36, 0.31, 0.01, 0.01, 0.012, 2.5],
+          [0, 1.33, 0.325, 0.008, 0.008, 0.008, 2.4],
+          [0, 1.31, 0.33, 0.005, 0.005, 0.005, 2.2],
+        ] },
+        ...babyC(birdToes(foot, toes, 0xD8737C, 'hpawL'), 0x6A6462),
+        ...babyC([birdWeb(foot, toes, 0xCF6A72, 'hpawL')], 0x5E5856),
+      ],
+      accentRough: 0.45,
+      // the sculpted flamingo: the folded wing's blades tucked under the sculpted wing; asleep the neck laid back over
+      // the body with the head on the back
+      modelSpec: {
+        anim: { wing: WA.wing },
+        baby: { muzzle: 0.5, fluff: 0, wing: 0.05, eye: 1.0, neck: [0.5, 1.5] },
+      },
+      eyes: [{ bone: 'head', p: [0.02, 1.405, 0.205], r: 0.0058, dir: [0.9, 0.2, 0.3], iris: 0xE8D86A, irisR: 0.8, pupilR: 0.35, babyIris: 0x1E140E }],
+      mouth: [0, 1.31, 0.33],
+      anim: {
+        type: 'bird', walk: 1.0, run: 3.0, stride: 0.5, strideMax: 1.5, duty: [0.62, 0.45], lift: 0.08, flex: 1.0,
+        bob: 0.01, waddle: 0.015, yawSway: 0.02,
+        neck: ['neck', 'neck2', 'neck3', 'neck4', 'head'], neckDist: [0.3, 0.26, 0.2, 0.14, 0.1], eatPitch: 0.3, eatDrop: 0.04, eatMax: 3.0, peck: 0, eatY: 0.0,
+        eatElev: [-70, -92, -100, -100, -135], drinkElev: [-70, -92, -100, -100, -135],
+        flyElev: [10, 6, 4, 2, -14], flyPitch: 0.04, floatDepth: 0,
+        tail: 'tail', tailWag: 0.1, wing: W.wing, canFly: true, flyLegs: [-0.1, -0.98, 0.3], flyFlex: 1.5, jumpFlap: 0.6,
+        lookAmp: 0.5, lookDist: [0.25, 0.25, 0.2, 0.15, 0.15],
+        sleepNeck: [[-0.39, -0.09], [-0.56, -0.08], [-0.93, -0.11], [-0.88, -0.12], [-0.96, -0.13]], sitDrop: 0,
+        // round 16: rests and sleeps standing on one leg (the other folded up under the belly), sweeps its upside-down
+        // bill from side to side as it feeds
+        oneLeg: { rest: 6, foot: [0.62, 0.2], flex: -2.2 }, eatSweep: [0.35, 1.6],
+      },
+      baby: { head: 1.5, muzzle: 0.55, eye: 1.1, neck: [0.5, 1.4], body: [1.12, 1.15, 0.9], leg: [0.75, 1.5], tail: 0.35, wing: 0.4, fluff: 0.012 },
+      // chick: soft gray down, a straight dark bill, thick gray legs
+      babyPaint(P, C) {
+        if (P.part === 'leg') { cset(C, hex(0x6A6462)); return; }
+        downPaint(C, P, hex(0x9C9894), 0.1);
+        cmix(C, hex(0xC4C0BA), sstep(-0.3, -0.8, P.ny) * 0.5);
+        C.ro = 0.95;
+      },
+    };
+  };
 
   // opts.sex ('m' or 'f', round 12): a boy or a girl, with that one's own sculpt and horns where SEX_LOOK says so
   function build(id, opts) {

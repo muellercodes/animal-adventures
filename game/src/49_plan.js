@@ -314,9 +314,13 @@ const Plan = (() => {
         { id: 'moose', x: -18, z: 50, hw: 14, hd: 9, gate: 's', style: 'rail', sp: [['moose', 1, 0]] },
         { id: 'bats', x: 14, z: 50, hw: 14, hd: 9, gate: 's', style: 'wire', sp: [['bat', 4, 0]], trees: 2 },
         { id: 'fox', x: 44, z: 50, hw: 12, hd: 9, gate: 's', style: 'wire', sp: [['fox', 2, 0], ['raccoon', 1, 0]], trees: 1 },
+        // round 16: by the east path, a flock of flamingos wading in a shallow pool, and penguins on snow and ice with a
+        // cold pool deep enough to dive in (snowy: the pen's ground is snow, its rocks snowy)
+        { id: 'flamingos', x: 65, z: 22, hw: 11, hd: 12, gate: 'w', style: 'rail', sp: [['flamingo', 6, 1]], pool: { x: 66, z: 23, r: 6.5, depth: -0.42 } },
+        { id: 'penguins', x: 65, z: -22, hw: 11, hd: 12, gate: 'w', style: 'wire', sp: [['penguin', 6, 1]], pool: { x: 67, z: -24, r: 6, depth: -2.4 }, rocks: 5, snowy: true },
       ],
-      route: [[92, 0], [48, 0], [48, -36], [44, -36, 'otter'], [24, -36, 'rhino'], [14, -36, 'aviary'], [-16, -36, 'leopard'], [-24, -36, 'giraffe'], [-46, -36, 'polar'],
-        [-48, -36], [-48, 0], [-48, 36], [-46, 36, 'deer'], [-18, 36, 'moose'], [14, 36, 'bats'], [24, 36, 'croc'], [44, 36, 'fox'], [48, 36], [48, 0], [92, 0]],
+      route: [[92, 0], [48, 0], [48, -22, 'penguins'], [48, -36], [44, -36, 'otter'], [24, -36, 'rhino'], [14, -36, 'aviary'], [-16, -36, 'leopard'], [-24, -36, 'giraffe'], [-46, -36, 'polar'],
+        [-48, -36], [-48, 0], [-48, 36], [-46, 36, 'deer'], [-18, 36, 'moose'], [14, 36, 'bats'], [24, 36, 'croc'], [44, 36, 'fox'], [48, 36], [48, 22, 'flamingos'], [48, 0], [92, 0]],
       props: 'city' },
     { id: 'petting', name: 'Petting zoo', d: 'Goats, pigs, bunnies, chickens and hamsters to meet', x: 135, z: 104, hw: 26, hd: 18, gate: 's', wall: 'picket',
       paths: [[0, -26, 0, 16, 3], [-24, 1, 24, 1, 3]],
@@ -468,12 +472,20 @@ const Plan = (() => {
     // zoo paths: packed gravel (a paler, sandier color in Dino Park)
     const Z = zooAt(x, z, 30);
     if (Z) { const pd = zooPathD(Z, x, z); if (pd < 0.8) { const t = 0.88 * (1 - sm((pd + 0.6) / 1.4)), g = Z.id === 'dino' ? c.sand || c.gravel : c.gravel; o.r += (g.r - o.r) * t; o.g += (g.g - o.g) * t; o.b += (g.b - o.b) * t; } }
+    // round 16: a snowy pen (the penguins'): packed snow, a little blue in the hollows
+    const sp = Z && snowyPen(Z, x, z);
+    if (sp) { const t = 0.92 * sp, n = Math.sin(x * 1.7 + Math.sin(z * 0.9) * 2) * Math.sin(z * 1.3 - x * 0.4) * 0.04; o.r += (0.62 + n - o.r) * t; o.g += (0.68 + n - o.g) * t; o.b += (0.76 + n - o.b) * t; }
+  }
+  // round 16: how far inside a snowy zoo pen (x, z) is, 0 outside .. 1 a meter in
+  function snowyPen(Z, x, z) {
+    for (const p of Z.pens) if (p.snowy) { const e = Math.min(p.hw - Math.abs(x - p.wx), p.hd - Math.abs(z - p.wz)); if (e > -0.3) return sm((e + 0.3) / 1.3); }
+    return 0;
   }
   // grass: none on streets, roads and city ground (the park keeps its lawn)
   function grass(x, z) {
     if (inCity(x, z, 1) && !inPark(x, z, -1)) return 0;
     const Z = zooAt(x, z, 30);
-    const zp = Z ? sm((zooPathD(Z, x, z) + 0.2) / 1.0) : 1;
+    const zp = Z ? sm((zooPathD(Z, x, z) + 0.2) / 1.0) * (1 - snowyPen(Z, x, z)) : 1;   // (round 16: no grass on snow)
     return sm((streetD(x, z) - RW / 2 - 0.4) / 1.2) * zp;
   }
 

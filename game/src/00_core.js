@@ -235,6 +235,11 @@ SHOP.push('manatee');
 // round 15: manatee (end)
 // round 15: zebra
 SHOP.push('zebra');
+// round 16: big and water birds (flamingo, peafowl, ostrich, penguin, puffin)
+// The American flamingo wades in shallow water (no swim: it walks in up to its belly) and flies.
+SPECIES.flamingo = { name: 'Flamingo', many: 'Flamingos', eats: ['smallfish', 'waterplants', 'worm', 'seeds'], fav: 'smallfish', fly: true, flySpeed: 11, price: 900, egg: 0xF3F0EA, outdoor: true, baby: 'Flamingo chick' };
+SHOP.push('flamingo');
+// round 16: big and water birds (end)
 const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow', 'snow', 'savanna', 'arctic'];
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];
 const SKIN = ['#F3D3B8', '#E6B691', '#C98E66', '#9A6544', '#6B4430'];
@@ -283,6 +288,8 @@ const SEX_LOOK = {
   narwhal: { base: 'm', f: { horns: 0, size: 0.86 } },
   // round 15: zebra (a stallion is a little bigger than a mare; otherwise they look alike)
   zebra: { base: 'm', f: { size: 0.94 } },
+  // round 16: a girl flamingo is smaller than a boy
+  flamingo: { base: 'm', f: { size: 0.88 } },
 };
 const sexLook = (id, sex) => (SEX_LOOK[id] && SEX_LOOK[id][sex]) || null;
 const sexOf = (id) => (S.sex && (S.sex[id] === 'm' || S.sex[id] === 'f') ? S.sex[id] : (SEX_LOOK[id] && SEX_LOOK[id].base) || 'f');

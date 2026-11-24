@@ -7,6 +7,7 @@ const canEat = (sp, type) => type === 'candy' || SPECIES[sp].eats.includes(type)
 const FOOD_OK = {};
 const foodOK = (type) => { if (FOOD_OK[type] === undefined) { try { Env.food(type); FOOD_OK[type] = true; } catch (e) { FOOD_OK[type] = false; } } return FOOD_OK[type]; };
 const UPRIGHT = { duck: 1, swan: 1, chicken: 1, owl: 1, parrot: 1, eagle: 1, chickadee: 1, cockatiel: 1 };
+for (const sp of ['flamingo', 'peafowl', 'ostrich', 'penguin', 'puffin']) UPRIGHT[sp] = 1;   // round 16
 const FEAR = { chicken: 3, duck: 4.5, swan: 3, frog: 2.5, lizard: 3, snake: 2, bunny: 5, squirrel: 4.5, turtle: 1.5, fox: 6, owl: 5, deer: 10, parrot: 4, moose: 0,
   horse: 6, pig: 3, goat: 4, otter: 4, hedgehog: 2, raccoon: 4, weasel: 4, dog: 1.5, cat: 4,
   // round 7
@@ -19,7 +20,9 @@ const FEAR = { chicken: 3, duck: 4.5, swan: 3, frog: 2.5, lizard: 3, snake: 2, b
   // round 13: they stand their ground, but fly off if something much bigger comes at them fast
   griffin: 4, wingedlion: 3,
   // round 15: zebras are wary and quick to bolt
-  zebra: 6 };
+  zebra: 6,
+  // round 16: flamingos and puffins take off at once, an ostrich runs, penguins waddle off
+  flamingo: 6, peafowl: 4, ostrich: 5, penguin: 2, puffin: 4 };
 // extra bump circles along a long body: [how far ahead of the body's middle, as a part of its length; radius, as a part
 // of its radius]. A brachiosaurus's middle is at its shoulders: the trunk runs back from there to its hips and tail
 // (its neck is high up, so fences pass under it)
@@ -711,9 +714,10 @@ const Wild = {
       if (spec.pen) { pt = w.penPoint(spec.pen, 1); extra = { pen: spec.pen, home: { x: spec.pen.x, z: spec.pen.z }, range: Math.min(spec.pen.hw, spec.pen.hd) }; }
       else {
         // (round 14: ice: lives out on the sea ice, like a polar bear on the floes)
-        pt = aq ? this.seaPoint(w, spec.home[0], spec.home[1], 0, spec.range) : (spec.ice && w.icePoint ? w.icePoint(spec.home[0], spec.home[1], 0, spec.range) : null) || (spec.water && sp.swim ? w.ringPoint(spec.home[0], spec.home[1], 0, spec.range, true) : null) || w.ringPoint(spec.home[0], spec.home[1], 0, spec.range, false);
+        pt = aq ? this.seaPoint(w, spec.home[0], spec.home[1], 0, spec.range) : (spec.ice && w.icePoint ? w.icePoint(spec.home[0], spec.home[1], 0, spec.range) : null) || (spec.water && sp.swim ? w.ringPoint(spec.home[0], spec.home[1], 0, spec.range, true) : null) || (spec.wade ? this.wadePoint(w, spec.home[0], spec.home[1], 0, spec.range) : null) || w.ringPoint(spec.home[0], spec.home[1], 0, spec.range, false);
         extra = { home: { x: spec.home[0], z: spec.home[1] }, range: spec.range, water: !!spec.water || aq };
         if (spec.ice) extra.ice = true;
+        if (spec.wade) extra.wade = true;   // round 16
       }
       if (!pt) continue;
       extra.own = own; extra.amb = !!spec.amb;
@@ -729,6 +733,16 @@ const Wild = {
     }
   },
   remove(b) { G.scene.remove(b.rig.root); const i = this.list.indexOf(b); if (i >= 0) this.list.splice(i, 1); },
+  // round 16: a spot in shallow water (3 to 55 cm deep) inside a ring, for wading birds (flamingos: wade in a
+  // wildlife group); null if there is none
+  wadePoint(w, cx, cz, r0, r1) {
+    if (!w.def.water) return null;
+    for (let k = 0; k < 80; k++) {
+      const a = Math.random() * TAU, d = r0 + (r1 - r0) * Math.sqrt(Math.random()), x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d, h = w.H(x, z);
+      if (h > WATER - 0.55 && h < WATER - 0.03) return { x, z, h };
+    }
+    return null;
+  },
   // round 14: a spot in deep water (deeper than 1.2 m if there is one) inside a ring
   seaPoint(w, cx, cz, r0, r1) {
     let first = null;
@@ -823,6 +837,7 @@ const Wild = {
     if (b.pen) return w.penPoint(b.pen, 0.7 + b.m.radius);
     // (round 14: a polar bear out on the ice mostly walks about on the floes)
     if (b.ice && w.icePoint && !sp.aquatic && Math.random() < 0.7) { const q = w.icePoint(b.home.x, b.home.z, 0, b.range); if (q) return q; }
+    if (b.wade && Math.random() < 0.7) { const q = this.wadePoint(w, b.home.x, b.home.z, 0, b.range); if (q) return q; }   // round 16: wading birds
     const water = (b.water && sp.swim && Math.random() < 0.75) || !!sp.aquatic;   // (round 14: sea animals keep to the water)
     if (canDive(b)) b.depthF = Math.random() * 0.8;   // round 14: and a diver picks a depth to swim at
     return w.ringPoint(b.home.x, b.home.z, 0, b.range, water) || w.ringPoint(b.pos.x, b.pos.z, 1, 8, water);
