@@ -564,7 +564,7 @@ const Animals = (() => {
   //   sun's plastic-looking shine on fur;
   // - a little more light on the side that faces the sun's half of the sky, so the shaded side is not flat.
   // How much of each, by the coat (detail kind): x sky reflection, y sun shine, z wrap.
-  const LIFT_KIND = { fur: [0.75, 0.45, 0.4], feather: [0.85, 0.7, 0.25], scale: [1.1, 1.0, 0.12], skin: [1.0, 0.85, 0.25] };
+  const LIFT_KIND = { fur: [0.45, 0.45, 0.25], feather: [0.7, 0.7, 0.15], scale: [1.1, 1.0, 0.05], skin: [1.0, 0.85, 0.15] };
   const LIFT_SKIP = { butterfly: 1, caterpillar: 1 };   // (the monarch, its caterpillar and its chrysalis keep their look)
   const LIFT = {
     aaSkyZ: { value: new THREE.Vector3(0.6, 0.69, 0.8) }, aaSkyH: { value: new THREE.Vector3(0.9, 0.98, 1.05) },
@@ -606,8 +606,11 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
 #ifdef AA_LIFT
 {
   vec3 aaNw = inverseTransformDirection(geometry.normal, viewMatrix);
-  irradiance *= 1.0 + 0.22 * dot(aaNw, normalize(vec3(aaSunD.x, 0.25, aaSunD.z))) * step(0.0, aaSunD.y);
-  radiance += aaSkyRad(inverseTransformDirection(reflect(-geometry.viewDir, geometry.normal), viewMatrix), material.roughness) * aaLiftK.x;
+  irradiance *= 1.0 + 0.3 * dot(aaNw, normalize(vec3(aaSunD.x, 0.25, aaSunD.z))) * step(0.0, aaSunD.y);
+  radiance += aaSkyRad(inverseTransformDirection(reflect(-geometry.viewDir, geometry.normal), viewMatrix), material.roughness) * aaLiftK.x * (1.0 - 0.5 * material.roughness);
+  // (the sky's light then lights the coat as image light does: what the surface reflects is taken off its diffuse
+  // light, so the sheen does not wash the colors out)
+  iblIrradiance += irradiance; irradiance = vec3(0.0);
 }
 #endif`;
   // adds the lift to a MeshStandardMaterial shader (inert without the define)
@@ -8704,7 +8707,11 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       // (round 11, P.rock: the body sways slowly back and forth over its planted feet, like a leaf in the wind: a
       // chameleon; off for every other species)
       const rock = P.rock ? P.rock * Math.sin(it * (P.rockRate || 2.2) + R.rnd * 7) * (0.4 + 0.6 * S.move) * (1 - sl) * ground : 0;
-      hips.position.set(hip0.x, hip0.y + bob + breathe * 0.5 - drop, hip0.z + rock);
+      // round 16 (the realism lift): standing still, the body now and then shifts its weight a little from side to
+      // side over its planted feet (a slow sway that settles for a few seconds at a time)
+      const wsh = still * ground * (1 - sl) * (1 - S.eat) * (1 - sit) * (1 - 0.6 * sick) * lookTarget(it + 23, R.rnd, 6.5, 1);
+      hips.position.set(hip0.x + wsh * 0.007 * A.spec.size.length, hip0.y + bob + breathe * 0.5 - drop, hip0.z + rock);
+      roll += wsh * 0.025;
       // ball curl rolls the whole body forward
       const sp1 = SL.spine || null;
       const sleepRoll = (SL.roll || 0) * sleepSide * sl * (1 - swim);
@@ -10046,7 +10053,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
   float aaM = max(1.0 - smoothstep(0.0, 0.06, abs(aaUp - aaEU)), 1.0 - smoothstep(0.0, 0.045, abs(aaUp - aaEL)));
   diffuseColor.rgb = mix(diffuseColor.rgb, aaLid, aaLidF) * (1.0 - 0.55 * aaM);
 #ifdef AA_LIFT
-  float aaSh = 1.0 - 0.5 * smoothstep(0.3, 0.0, aaEU - aaUp) * (1.0 - aaLidF);
+  float aaSh = 1.0 - 0.4 * smoothstep(0.26, 0.0, aaEU - aaUp) * (1.0 - aaLidF);
   diffuseColor.rgb *= aaSh;
 #endif`)
       .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n  roughnessFactor = mix(roughnessFactor, 0.75, aaLidF);')
@@ -10074,7 +10081,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     if (A.lift) {
       liftMat(m, 'skin');
       m.userData.aa.aaLiftK.value.set(0, 1, 0);
-      m.userData.aa.aaIris = { value: new THREE.Vector2(e.irisDepth == null ? 0.16 : e.irisDepth, Math.cos((e.irisR || 0.8) * 0.5 * PI)) };
+      m.userData.aa.aaIris = { value: new THREE.Vector2(e.irisDepth == null ? 0.09 : e.irisDepth, Math.cos((e.irisR || 0.8) * 0.5 * PI)) };
     }
     return m;
   }
@@ -10121,7 +10128,9 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     const meshes = [];
     for (const g of A.geos) {
       const m = new THREE.SkinnedMesh(g.geo, g.mat);
-      m.castShadow = true; m.receiveShadow = false;
+      // (round 16: with the lift the animal also takes shadows, its own and the world's: the body shades its legs and
+      // belly, and an animal under a tree is in the tree's shade)
+      m.castShadow = true; m.receiveShadow = !!A.lift;
       root.add(m);
       m.bind(skel);
       if (m.morphTargetInfluences) m.morphTargetInfluences[0] = 0;
@@ -10135,7 +10144,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       const m = new THREE.Mesh(eyeGeo, eyeMat);
       m.scale.setScalar(e.r);
       eyeBasis(e.dir, m.quaternion);
-      m.castShadow = true; m.receiveShadow = false;
+      m.castShadow = true; m.receiveShadow = !!A.lift;
       piv.add(m);
       piv.userData.r = e.r;
       // eyelashes (sculpted models): a group in the eye's frame, its inner mesh turns down with the upper lid
@@ -10154,7 +10163,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     for (const x of A.extras) {
       const m = new THREE.Mesh(x.geo, x.mat);
       if (x.at) m.position.fromArray(x.at).sub(A.rest[x.bone]); else m.position.copy(A.rest[x.bone]).negate();
-      m.castShadow = true; m.receiveShadow = false;
+      m.castShadow = true; m.receiveShadow = !!A.lift;
       bones[x.bone].add(m);
       if (x.name) extras[x.name] = m;
       extraList.push(m);
@@ -10397,7 +10406,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       const want = l === lv && !!shellGeo(A, lv) && !(sp && sp.babyOnly && R.age >= 0.4);
       if (want && !R.shellM[lv]) {
         const m = new THREE.SkinnedMesh(shellGeo(A, lv), shellMat(A, R.age < 0.4));
-        m.castShadow = false; m.receiveShadow = false;
+        m.castShadow = false; m.receiveShadow = !!A.lift;   // (round 16)
         R.root.add(m);
         m.bind(R.skel, R.meshes[0].bindMatrix);
         if (m.morphTargetInfluences) m.morphTargetInfluences[0] = 1 - R.age;
