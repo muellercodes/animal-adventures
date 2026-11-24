@@ -791,8 +791,8 @@ with mipmaps on a computer, about 3 MB on a phone (the color and normal maps cap
 Round 16 small and tree birds (`TRIS=6000 TEX=768`, a few minutes each on the shared machine; the same maps as the
 chickadee: 768 color and normal maps, 384 or 512 baby maps, 384 fur map, 512 x 256 feather atlas): cardinal
 (`VOXEL=0.0008`) 6.0k body triangles, 159 KB of files (about 212 KB in the page), the girl's coat (`cardinalf`) 39 KB;
-blue jay (`VOXEL=0.001`) 6.0k, 162 KB (216 KB); hummingbird (`VOXEL=0.00031`) 5.9k, 149 KB (199 KB), the boy's coat
-(`hummingbirdm`) 40 KB; toucan (`VOXEL=0.0018`) 6.0k, 170 KB (227 KB); snowy owl (`VOXEL=0.0022`) 6.0k, 182 KB (243 KB),
+blue jay (`VOXEL=0.001`) 6.0k, 162 KB (216 KB); hummingbird (`VOXEL=0.00031`) 5.9k, 167 KB (222 KB), the boy's coat
+(`hummingbirdm`) 42 KB; toucan (`VOXEL=0.0018`) 6.0k, 170 KB (227 KB); snowy owl (`VOXEL=0.0022`) 6.0k, 182 KB (243 KB),
 the boy's coat (`snowyowlm`) 41 KB. Texture memory with mipmaps: about 10 to 11.4 MB each on a computer and 6.7 to 8 MB
 on a phone (2.8 MB more for a boy's or girl's own coat, only when one is on screen), the same as the chickadee.
 

@@ -102,6 +102,8 @@ def _base(Pm, Nm, R, pl, n):
     col = mix(col, K['ear'], ear * hd * 0.7)
     spot = sstep(0.0018, 0.0011, np.linalg.norm(Pm - (ec + V(0.001, 0.0016, -0.0036)), axis=1))
     col = mix(col, K['white'], spot * hd)
+    # the wing arm green above and dusky gray under (no white underwing)
+    col = mix(col, mix(_greens(Pm, Nm, pl, n), hexc(0x4A4C48), sstep(0.2, -0.4, Nm[:, 1])), R['arm'])
     mid = sstep(0.0008, 0.003, np.abs(x))
     col = mix(col, col * 0.82, sstep(0.45 * cfa, 1.3 * cfa, -pl['a']) * 0.5 * pl['cov'] * mid)
     return col, thr
