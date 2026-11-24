@@ -42,16 +42,19 @@ def hframe(Q):
     return np.stack([D[:, 0], D @ HU, D @ HA], 1)
 
 
-EYE_C = hp(0.45, 0.0, 0.3)
-EYE_R = 0.045
-EYE_DIR = nrm([0.55, 0.15, 0.82])
-LID_W, LID_H, LID_OFF = 0.044, 0.03, 0.0
-MOUTH = hp(1.45, -0.4)
+# round 16b: a bigger eye set forward-facing into the side of a narrow skull roof (the old one sat on the top corner of
+# a wide flat head, like a hippo's)
+EYE_R = 0.056
+EYE_DIR = nrm([0.7, 0.14, 0.7])
+LID_W, LID_H, LID_OFF = 0.056, 0.04, 0.002
+EYE_S, EYE_U = 0.47, -0.055
+MOUTH = hp(1.47, -0.42)
 
 
-# the lip line (head frame u) along s: rising a little toward the front
+# round 16b: the lip line (head frame u) along s: the corner of the mouth below the back of the eye, the upper tooth
+# row bulging down a little in the middle (as a T. rex's does), rising to the front
 def lip_u(s):
-    return np.interp(s, [0.15, 0.4, 0.9, 1.5], [-0.44, -0.42, -0.39, -0.36]).astype(F)
+    return np.interp(s, [0.2, 0.32, 0.7, 1.0, 1.25, 1.45, 1.55], [-0.43, -0.47, -0.485, -0.47, -0.44, -0.405, -0.385]).astype(F)
 
 
 BODY = [
@@ -76,17 +79,36 @@ NECK = [
     (3.86, 3.1, 0.3, 0.42, 0.34, 2.0, 2.0),
 ]
 # head, in the head frame: s, top, yw, bottom (u), half width, exponents
+# round 16b: re-sculpted. Wide only at the back (the cheeks and the jaw joints, low down), the skull roof narrow
+# above them (a low top exponent: the sides slope in), so the eyes sit on the sloping sides and look forward; in
+# front of the eyes the skull narrows fast into a tall, narrow snout with flat sides and a blunt deep tip
 HEAD = [
-    (-0.08, 0.06, -0.3, -0.62, 0.34, 2.3, 2.0),
-    (0.1, 0.14, -0.3, -0.8, 0.44, 2.5, 2.1),
-    (0.3, 0.16, -0.3, -0.82, 0.44, 2.6, 2.2),
-    (0.5, 0.11, -0.32, -0.76, 0.34, 2.6, 2.3),
-    (0.75, 0.05, -0.33, -0.68, 0.26, 2.7, 2.3),
-    (1.0, 0.0, -0.33, -0.62, 0.22, 2.7, 2.3),
-    (1.25, -0.05, -0.33, -0.57, 0.2, 2.7, 2.3),
-    (1.42, -0.1, -0.33, -0.52, 0.17, 2.5, 2.2),
-    (1.52, -0.17, -0.34, -0.46, 0.1, 2.2, 2.0),
+    (-0.1, 0.02, -0.38, -0.6, 0.3, 1.8, 2.0),
+    (0.05, 0.11, -0.42, -0.78, 0.42, 1.75, 2.0),
+    (0.22, 0.15, -0.43, -0.85, 0.45, 1.85, 2.1),
+    (0.4, 0.135, -0.42, -0.81, 0.37, 2.05, 2.2),
+    (0.58, 0.09, -0.38, -0.73, 0.255, 2.2, 2.3),
+    (0.8, 0.035, -0.35, -0.69, 0.195, 2.3, 2.5),
+    (1.05, -0.025, -0.35, -0.65, 0.178, 2.5, 2.5),
+    (1.28, -0.07, -0.36, -0.625, 0.168, 2.5, 2.5),
+    (1.44, -0.1, -0.37, -0.6, 0.152, 2.4, 2.4),
+    (1.51, -0.125, -0.38, -0.575, 0.128, 2.3, 2.3),
+    (1.575, -0.18, -0.39, -0.52, 0.07, 2.0, 2.0),
 ]
+
+
+def _seat(s, u, r, out=0.35):
+    """round 16b: the eye's center for a ball of radius r whose surface stands out of the head loft's side at (s, u)
+    by out times r (bisection along x in the head frame)"""
+    a, b = 0.0, 0.6
+    for _ in range(40):
+        m = 0.5 * (a + b)
+        d = float(loft(np.array([[m, u, s]], F), HEAD)[0])
+        a, b = (m, b) if d < 0 else (a, m)
+    return hp(s, u, a - r * (1 - out))
+
+
+EYE_C = _seat(EYE_S, EYE_U, EYE_R)
 
 
 def body(P):
@@ -108,23 +130,38 @@ def head(P):
     L = hframe(Q)
     x, u, s = L[:, 0], L[:, 1], L[:, 2]
     d = loft(L, HEAD)
-    # the jaw muscles bulging behind the eyes, the angle of the lower jaw
-    d = smin(d, ellipsoid(L, V(0.36, -0.3, 0.15), V(0.12, 0.22, 0.2)), 0.1)
-    # brow bosses over and behind the eyes, small hornlets in front of them
-    d = smin(d, ellipsoid(L, V(0.28, 0.11, 0.36), V(0.08, 0.06, 0.1)), 0.05)
-    d = smin(d, ellipsoid(L, V(0.2, 0.06, 0.64), V(0.05, 0.035, 0.08)), 0.06)
+    # round 16b: the skull's landmarks (head frame x, u, s)
+    # the jaw muscles bulging out of the big opening behind the eye (the lateral temporal fenestra), with a shallow
+    # groove round the opening's rim, and the deep angle of the lower jaw below and behind them
+    d = smin(d, ellipsoid(L, V(0.3, -0.17, 0.2), V(0.1, 0.16, 0.15)), 0.16)
+    d = smin(d, ellipsoid(L, V(0.3, -0.6, 0.12), V(0.12, 0.2, 0.2)), 0.14)
+    # the postorbital boss: a rough knob over the back of the eye, and the lacrimal hornlet in front of and above it,
+    # low on the corners of the skull roof
+    d = smin(d, ellipsoid(L, V(0.235, 0.035, 0.41), V(0.07, 0.04, 0.085)), 0.1)
+    d = smin(d, ellipsoid(L, V(0.17, 0.06, 0.6), V(0.042, 0.032, 0.065)), 0.07)
+    # a brow shelf joining them over the eye, so the eye sits under a ridge, and running on forward along the top edge
+    # of the snout (the edge between the skull roof and the flat side of the face)
+    d = smin(d, round_cone(L, V(0.255, 0.02, 0.42), V(0.18, 0.045, 0.6), 0.035, 0.028), 0.07)
+    d = smin(d, round_cone(L, V(0.165, 0.035, 0.62), V(0.125, -0.07, 1.2), 0.014, 0.008), 0.07)
+    # the antorbital opening: a long shallow hollow on the side of the snout in front of the eye
+    ao = ((s - 0.78) / 0.2) ** 2 + ((u + 0.17) / 0.1) ** 2
+    d = d + 0.03 * np.exp(-ao * 1.4) * sstep(0.1, 0.16, np.abs(x)) * sstep(-0.36, -0.3, u)
     # the rugose snout: low bumps along the top
-    lump = (fbm(Q * 5.0, 2, 61) - 0.5) * sstep(0.5, 0.7, s) * sstep(1.52, 1.35, s) * sstep(-0.25, -0.05, u)
-    d = d - 0.025 * lump
-    # nostrils near the front of the snout
-    d = smax(d, -ellipsoid(L, V(0.1, -0.14, 1.4), V(0.03, 0.022, 0.05)), 0.015)
-    # closed lips: a groove along the lip line, the lower lip set in a little under the upper one
+    lump = (fbm(Q * 5.0, 2, 61) - 0.5) * sstep(0.55, 0.75, s) * sstep(1.52, 1.35, s) * sstep(-0.22, -0.08, u)
+    d = d - 0.018 * lump
+    # nostrils at the top front corners of the snout
+    d = smax(d, -ellipsoid(L, V(0.115, -0.14, 1.43), V(0.016, 0.012, 0.038)), 0.01)
+    # closed lips: a groove along the lip line, the lower lip set in a little under the upper one, the lips a little
+    # fleshy (a soft swelling above and below the groove)
     lu = lip_u(s)
-    lip = np.exp(-((u - lu) / 0.012) ** 2) * sstep(0.12, 0.22, s)
-    low = sstep(lu + 0.004, lu - 0.03, u) * sstep(0.2, 0.3, s) * sstep(0.1, 0.16, np.abs(x))
-    d = d + 0.014 * lip + 0.01 * low
+    lip = np.exp(-((u - lu) / 0.011) ** 2) * sstep(0.22, 0.32, s)
+    low = sstep(lu + 0.004, lu - 0.03, u) * sstep(0.3, 0.4, s) * sstep(1.6, 1.45, s)
+    d = d + 0.013 * lip + 0.01 * low
     # the eye: lid mound, opening, ball
     ca, li, ba, br = eye_parts(P)
+    # round 16b: the eye opening is carved only just in front of the eye (the open cut along the gaze notched the brow
+    # and the hornlet in front of the forward-looking eye)
+    ca = smax(ca, (Q - EYE_C) @ EYE_DIR - (EYE_R + 0.05), 0.01)
     d = smin(d, li, 0.02)
     d = smin(d, br, 0.03)
     d = smax(d, -ca, 0.008)
@@ -134,7 +171,9 @@ def head(P):
 
 
 # the tips of the upper teeth showing below the lip (s along the jaw, visible length)
-TEETH = [(0.42, 0.028), (0.54, 0.034), (0.66, 0.04), (0.78, 0.045), (0.9, 0.048), (1.02, 0.045), (1.13, 0.04), (1.24, 0.036), (1.34, 0.03), (1.43, 0.026)]
+# round 16b: lipped (as current science has it): the lips cover the teeth but for the tips of a few, uneven ones
+# (a long straight row of even teeth read as a crocodile toy)
+TEETH = [(0.66, 0.008), (0.79, 0.018), (0.84, 0.006), (1.02, 0.024), (1.2, 0.015), (1.27, 0.009), (1.44, 0.014)]
 
 
 def teeth(P):
@@ -143,16 +182,17 @@ def teeth(P):
     out = np.full(len(P), 1.0, F)
     for s0, ln in TEETH:
         hw = float(np.interp(s0, [h[0] for h in HEAD], [h[4] for h in HEAD]))
-        x0 = hw * 0.93
+        x0 = hw * 0.92
         u0 = float(lip_u(np.array([s0], F))[0])
-        out = np.minimum(out, round_cone(L, V(x0 - 0.01, u0 + 0.02, s0), V(x0 - 0.004, u0 - ln, s0 + 0.004), 0.022, 0.003))
+        out = np.minimum(out, round_cone(L, V(x0 - 0.012, u0 + 0.02, s0 + 0.004), V(x0 - 0.006, u0 - ln, s0 - 0.004), 0.017, 0.003))
     return out
 
 
 def eye_parts(P):
     Q = _mirror(P)
-    return U.eye_parts(Q, EYE_C, EYE_R, EYE_DIR, LID_W, LID_H, LID_OFF, mound=(0.022, 0.02, 0.008),
-                       brow=((-0.07, 0.05, -0.04), (0.03, 0.06, -0.03), 0.03, 0.022))
+    # round 16b: a fuller lid ring for the bigger eye
+    return U.eye_parts(Q, EYE_C, EYE_R, EYE_DIR, LID_W, LID_H, LID_OFF, mound=(0.026, 0.024, 0.01),
+                       brow=((-0.075, 0.058, -0.045), (0.035, 0.066, -0.035), 0.032, 0.024))
 
 
 def leg(P):
@@ -193,7 +233,8 @@ def arm(P):
 
 HEAD_BOX = (V(-0.55, 3.2, 2.75), V(0.55, 4.6, 4.62))
 EYE_BOX = (EYE_C * V(-1, 1, 1) - V(0.12, 0.12, 0.12), EYE_C + V(0.12, 0.12, 0.12))
-NECK_BOX = (V(-0.8, 2.7, 1.4), V(0.8, 4.6, 3.6))
+# round 16b: the box reaches past the neck's blend into the head (it cut it off in a seam across the cheek)
+NECK_BOX = (V(-0.8, 2.7, 1.4), V(0.8, 4.6, 4.1))
 LEG_BOX = (V(-1.15, -0.1, -0.75), V(1.15, 3.75, 1.0))
 FOOT_BOX = (V(-1.15, -0.1, -0.5), V(1.15, 0.7, 1.15))
 ARM_BOX = (V(-0.75, 2.0, 1.45), V(0.75, 3.05, 2.4))
@@ -377,9 +418,11 @@ def fix_weights(W, wpos, names, G, weld):
 
 # ---------- skin paint (sRGB 0..1), fine detail (meters), the hatchling's down ----------
 hx = U.hexc
+# round 16b: stronger countershading (a dark olive-brown back, warm brown flanks, a pale cream belly and throat); the
+# old colors all came out one gray-beige in the game's light
 K = {
-    'skin': hx(0x786950), 'top': hx(0x5A5340), 'dk': hx(0x463E30), 'belly': hx(0xB6A788), 'lt': hx(0x968569), 'claw': hx(0x2E2A24),
-    'clawHi': hx(0x5E554A), 'lip': hx(0x6A5C48), 'tooth': hx(0xE4DCC6), 'ball': hx(0x120C08), 'lid': hx(0x4E4436), 'mask': hx(0x4C4232),
+    'skin': hx(0x6E5E44), 'top': hx(0x39352A), 'dk': hx(0x2E2A22), 'belly': hx(0xC9BA98), 'lt': hx(0x8C7A5A), 'claw': hx(0x2A2620),
+    'clawHi': hx(0x5E554A), 'lip': hx(0x8A7A60), 'tooth': hx(0xE4DCC6), 'ball': hx(0x120C08), 'lid': hx(0x3E3628), 'mask': hx(0x2E2A22),
     'babyA': hx(0x8C7E68), 'babyB': hx(0x584D3E), 'babyBelly': hx(0xC6B89E), 'babyLeg': hx(0x76685A),
 }
 
@@ -432,17 +475,26 @@ def paint(P, N, c, baby=False):
         col = U.mix(col, K['babyLeg'], R['foot'] * 0.6)
         col *= (0.94 + 0.1 * n3)[:, None]
     else:
+        # round 16b: countershaded: dark down the back (by the normal and a little by height), warm brown flanks, a
+        # pale belly, throat and underside of the jaw, the change soft over the flanks
         col = np.tile(K['skin'], (len(P), 1))
-        col = U.mix(col, K['top'], R['top'] * 0.6)
-        col = U.mix(col, K['belly'], R['belly'] * 0.75)
+        dors = np.clip(sstep(-0.15, 0.75, N[:, 1]) * 0.85 + 0.25 * sstep(3.2, 4.1, y) * sstep(-0.4, 0.2, N[:, 1]), 0, 1)
+        col = U.mix(col, K['top'], dors * (0.85 - 0.25 * R['leg']))
+        under = sstep(-0.15, -0.7, N[:, 1]) * (1 - R['leg']) * (1 - R['foot'])
+        col = U.mix(col, K['belly'], np.maximum(R['belly'], under * 0.85) * 0.85)
         # faint darker bands across the back and the tail, soft mottling, a darker mask round the eye
-        band = sstep(0.6, 0.85, np.sin(2 * np.pi * (z + 0.3 * fbm(Pm * 0.7, 2, 21)) / 1.3) * 0.5 + 0.5) * sstep(0.0, 0.6, N[:, 1]) * sstep(2.6, 1.8, z)
-        col = U.mix(col, K['dk'], band * 0.35)
+        band = sstep(0.6, 0.85, np.sin(2 * np.pi * (z + 0.3 * fbm(Pm * 0.7, 2, 21)) / 1.3) * 0.5 + 0.5) * sstep(-0.3, 0.4, N[:, 1]) * sstep(2.6, 1.8, z)
+        col = U.mix(col, K['dk'], band * 0.4 * (1 - under))
         col = U.mix(col, K['dk'], sstep(0.55, 0.75, n1) * sstep(-0.3, 0.4, N[:, 1]) * 0.3)
-        col = U.mix(col, K['mask'], sstep(0.28, 0.12, R['eyeD']) * 0.45)
-        col = U.mix(col, K['lt'], R['leg'] * 0.2)
-        col = U.mix(col, K['dk'], R['foot'] * 0.3)
-        col *= (0.92 + 0.1 * n3 - 0.1 * (1 - peb) - 0.06 * (1 - plate) * R['top'] - 0.05 * wr)[:, None]
+        col = U.mix(col, K['lt'], sstep(0.6, 0.78, fbm(Pm * 1.7, 2, 24)) * sstep(0.3, -0.2, N[:, 1]) * (1 - under) * 0.3)
+        col = U.mix(col, K['mask'], sstep(0.24, 0.1, R['eyeD']) * 0.3)
+        # paler, finer skin on the lids round the eye, so the eye shows against the dark head
+        col = U.mix(col, K['lt'], sstep(EYE_R + 0.045, EYE_R + 0.02, R['eyeD']) * (1 - R['ball']) * 0.45)
+        col = U.mix(col, K['lt'], R['leg'] * 0.15)
+        col = U.mix(col, K['dk'], R['foot'] * 0.35)
+        # each pebble a shade of its own, the grooves between them darker
+        pj = vnoise(Pm / 0.03 * 0.9, 25)
+        col *= (0.9 + 0.12 * n3 + 0.08 * (pj - 0.5) - 0.14 * (1 - peb) - 0.07 * (1 - plate) * R['top'] - 0.05 * wr)[:, None]
     col = U.mix(col, K['lid'], R['lid'] * 0.7)
     col = U.mix(col, K['lip'], R['lips'] * 0.5)
     cc = U.mix(np.tile(K['claw'], (len(P), 1)), K['clawHi'], sstep(0.4, 0.8, vnoise(Pm * V(60, 8, 60), 15)) * 0.4)
@@ -464,12 +516,13 @@ def detail(P, N, c):
     skin = (1 - R['claw']) * (1 - R['ball']) * (1 - R['tooth'])
     peb, plate, wr = _hide(Pm)
     h = np.zeros(len(P), F)
-    h += 0.003 * peb * skin * (1 - 0.5 * R['head'])
-    h += 0.004 * plate * R['top'] * (1 - R['head']) * skin
+    # round 16b: deeper pebbles (they hardly showed in the game's normal map)
+    h += 0.0045 * peb * skin * (1 - 0.5 * R['head'])
+    h += 0.005 * plate * R['top'] * (1 - R['head']) * skin
     h -= 0.003 * wr * skin
     # rugose head: small knobs over the snout, the brows and the cheeks
     g1, g2 = worley(Pm / 0.018, 57)
-    h += 0.0025 * sstep(0.0, 0.2, g2 - g1) * R['head'] * (1 - R['lips']) * skin
+    h += 0.003 * sstep(0.0, 0.2, g2 - g1) * R['head'] * (1 - R['lips']) * skin
     # rings round the shins and the toes, crowded over the ankle
     yr = np.abs(np.sin(np.pi * (y / 0.05 + 0.6 * fbm(Pm * 4, 2, 55))))
     h -= 0.004 * np.exp(-(yr / 0.25) ** 2) * R['leg'] * skin
@@ -527,7 +580,7 @@ def meta(st):
     up, dn = (LID_OFF + LID_H) / r, (LID_OFF - LID_H) / r
     return {
         'eye': {'p': [round(float(v), 5) for v in EYE_C], 'r': round(r, 5), 'dir': [round(float(v), 4) for v in EYE_DIR], 'lid': [round(up, 3), round(dn, 3), 0.3],
-                'iris': 0xB8862A, 'irisR': 0.92, 'pupilR': 0.42, 'rim': 0x2A1A0A, 'lidCol': st['lidCol'], 'babyIris': 0x7A5A2A},
+                'iris': 0xD09A30, 'irisR': 0.92, 'pupilR': 0.3, 'rim': 0x2A1A0A, 'lidCol': st['lidCol'], 'babyIris': 0x7A5A2A},
         'collar': {'at': ['neck', 'neck2', 0.5], 'r': 1.2},
         'mouth': [round(float(v), 4) for v in MOUTH],
         # lying down: it rests on the keel under its hips
