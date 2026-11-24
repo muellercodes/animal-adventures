@@ -235,6 +235,23 @@ SHOP.push('manatee');
 // round 15: manatee (end)
 // round 15: zebra
 SHOP.push('zebra');
+// round 16: small and tree birds (a northern cardinal, a blue jay, a ruby-throated hummingbird, a toco toucan and a
+// snowy owl). hover: the hummingbird can hang still in the air, fly backwards and drink nectar while hovering (only it
+// has the flag; see moveBody and Player in 60_actors and anim.hover in 40_animals). camNear: tiny, so the camera
+// comes closer.
+Object.assign(SPECIES, {
+  cardinal: { name: 'Cardinal', many: 'Cardinals', eats: ['seeds', 'berries', 'bugs', 'corn'], fav: 'seeds', fly: true, flySpeed: 9, hop: true, hopV: 1.7, price: 220, egg: 0xE4E2D6, baby: 'Cardinal chick' },
+  bluejay: { name: 'Blue jay', many: 'Blue jays', eats: ['acorn', 'seeds', 'berries', 'bugs', 'corn'], fav: 'acorn', fly: true, flySpeed: 10, hop: true, hopV: 1.9, price: 260, egg: 0xC4D0BA, baby: 'Blue jay chick' },
+  hummingbird: { name: 'Hummingbird', many: 'Hummingbirds', eats: ['nectar', 'bugs'], fav: 'nectar', fly: true, hover: true, flySpeed: 7, price: 160, egg: 0xFBFAF6, camNear: 0.8, baby: 'Hummingbird chick' },
+  toucan: { name: 'Toucan', many: 'Toucans', eats: ['banana', 'berries', 'apple', 'watermelon', 'bugs'], fav: 'banana', fly: true, flySpeed: 9, hop: true, hopV: 2.2, price: 900, egg: 0xF6F3EC, baby: 'Toucan chick' },
+  // (a snowy owl hunts by day as well as at night: it sees well in the dark but is not one of the night animals)
+  snowyowl: { name: 'Snowy owl', many: 'Snowy owls', eats: ['meat', 'smallfish', 'fish'], fav: 'meat', fly: true, nightEyes: true, flySpeed: 9, hunter: true, outdoor: true, price: 700, egg: 0xF4F2EA, baby: 'Snowy owlet' },
+});
+SPECIES.cardinal.eggSpeck = [0.62, 0.5, 0.42];   // gray-brown speckles
+SPECIES.bluejay.eggSpeck = [0.55, 0.42, 0.3];    // brown spots
+for (const id of ['hummingbird', 'cardinal', 'bluejay', 'snowyowl', 'toucan']) { let i = SHOP.length; while (i > 0 && SPECIES[SHOP[i - 1]].price > SPECIES[id].price) i--; SHOP.splice(i, 0, id); }
+SMALL_PREY.push('cardinal', 'bluejay', 'hummingbird');
+// round 16: small and tree birds (end)
 const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow', 'snow', 'savanna', 'arctic'];
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];
 const SKIN = ['#F3D3B8', '#E6B691', '#C98E66', '#9A6544', '#6B4430'];
@@ -283,6 +300,12 @@ const SEX_LOOK = {
   narwhal: { base: 'm', f: { horns: 0, size: 0.86 } },
   // round 15: zebra (a stallion is a little bigger than a mare; otherwise they look alike)
   zebra: { base: 'm', f: { size: 0.94 } },
+  // round 16: a girl cardinal is tan-brown with red tinges (her own colors on the same sculpt); a boy hummingbird has
+  // the ruby throat and the forked tail (the girl is the species' own sculpt)
+  cardinal: { base: 'm', f: { model: true, size: 0.96 } },
+  hummingbird: { base: 'f', m: { model: true, size: 0.92 } },
+  // round 16: a girl snowy owl is barred dark brown and bigger; a boy nearly pure white (his own colors on her sculpt)
+  snowyowl: { base: 'f', m: { model: true, size: 0.88 } }, toucan: { base: 'm', f: { size: 0.92 } },
 };
 const sexLook = (id, sex) => (SEX_LOOK[id] && SEX_LOOK[id][sex]) || null;
 const sexOf = (id) => (S.sex && (S.sex[id] === 'm' || S.sex[id] === 'f') ? S.sex[id] : (SEX_LOOK[id] && SEX_LOOK[id].base) || 'f');

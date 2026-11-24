@@ -1,0 +1,70 @@
+{
+ "v": 2,
+ "id": "cardinalf",
+ "base": "cardinal",
+ "maps": {
+  "color": "cardinalf-color.webp",
+  "feather": "cardinalf-feather.webp",
+  "featherNormal": "cardinalf-feathernrm.webp"
+ },
+ "srgb": [
+  "feather"
+ ],
+ "eye": {
+  "p": [
+   0.01632,
+   0.12112,
+   0.07328
+  ],
+  "r": 0.00368,
+  "dir": [
+   0.9091,
+   0.101,
+   0.4041
+  ],
+  "lid": [
+   0.84,
+   -0.84,
+   0.1
+  ],
+  "iris": 2233356,
+  "irisR": 0.95,
+  "pupilR": 0.5,
+  "rim": 1182216,
+  "lidCol": 4866108,
+  "babyLidCol": 4078650
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "head",
+   0.3
+  ],
+  "w": 0.8,
+  "babyAt": 0.35,
+  "hug": true,
+  "babyK": 1.6,
+  "lift": 0.35
+ },
+ "mouth": [
+  0.0,
+  0.1118,
+  0.0915
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.1,
+  0.1,
+  0.1
+ ],
+ "flat": 9729626
+}

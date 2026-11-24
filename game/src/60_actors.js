@@ -20,6 +20,9 @@ const FEAR = { chicken: 3, duck: 4.5, swan: 3, frog: 2.5, lizard: 3, snake: 2, b
   griffin: 4, wingedlion: 3,
   // round 15: zebras are wary and quick to bolt
   zebra: 6 };
+// round 16: small and tree birds stand upright and fly off when something comes at them
+Object.assign(UPRIGHT, { cardinal: 1, bluejay: 1, hummingbird: 1, toucan: 1, snowyowl: 1 });
+Object.assign(FEAR, { cardinal: 3, bluejay: 3.5, hummingbird: 2.5, toucan: 4, snowyowl: 5 });
 // extra bump circles along a long body: [how far ahead of the body's middle, as a part of its length; radius, as a part
 // of its radius]. A brachiosaurus's middle is at its shoulders: the trunk runs back from there to its hips and tail
 // (its neck is high up, so fences pass under it)
@@ -200,10 +203,14 @@ function moveBody(b, dt, c) {
   let want = c.want || 0, yawRate = 0;
   // round 14: an animal that lives in the water, stranded on land or ice, only flops along slowly
   if (aqua && b.mode === 'ground') want = Math.min(want, 0.2 + 0.15 * b.k);
-  const tgt = c.face !== undefined ? c.face : (c.dx || c.dz) ? Math.atan2(c.dx, c.dz) : null;
+  let tgt = c.face !== undefined ? c.face : (c.dx || c.dz) ? Math.atan2(c.dx, c.dz) : null;
+  // round 16: a hoverer (sp.hover, the hummingbird) steered to behind itself flies backwards instead of turning round,
+  // and turns on the spot quickly
+  const hov = !!sp.hover && b.mode === 'fly';
+  if (hov && tgt !== null && c.face === undefined && Math.abs(angDiff(b.yaw, tgt)) > 2.1) { tgt += Math.PI; want = -want * 0.55; }
   if (tgt !== null) {
     const diff = angDiff(b.yaw, tgt);
-    const tr = b.mode === 'fly' ? 2.6 : m.length < 0.7 ? 10 : m.length < 1.5 ? 7 : 4;
+    const tr = hov ? 7 : b.mode === 'fly' ? 2.6 : m.length < 0.7 ? 10 : m.length < 1.5 ? 7 : 4;
     const step = clamp(diff, -tr * dt, tr * dt);
     b.yaw += step; yawRate = dt > 0 ? step / dt : 0;
     if (b.mode !== 'fly' && b.mode !== 'air') want *= Math.pow(clamp(Math.cos(diff) * 1.3, 0, 1), 1.5);
@@ -366,7 +373,8 @@ function moveBody(b, dt, c) {
       break;
     }
     case 'fly': {
-      const tv = c.up ? 3.4 : c.down ? -4.5 : want > 0.5 ? -0.45 : -1.3;
+      // (round 16: a hoverer hangs still in the air unless it is told to go up or down; c.hoverY: hold that height)
+      const tv = hov ? (c.up ? 2.4 : c.down ? -2.6 : c.hoverY !== undefined ? clamp((c.hoverY - p.y) * 3, -1.2, 1.2) : 0) : c.up ? 3.4 : c.down ? -4.5 : want > 0.5 ? -0.45 : -1.3;
       b.vy = damp(b.vy, tv, 3, dt); p.y += b.vy * dt;
       const ceil = hasGround ? Math.max(h, WATER) + 40 : 40;
       if (p.y > ceil) { p.y = ceil; if (b.vy > 0) b.vy = 0; }
@@ -424,7 +432,7 @@ function poseBody(b, dt, animate) {
   r.position.copy(b.pos); r.rotation.y = b.yaw;
   let pt = 0;
   if (b.mode === 'climb') pt = -Math.PI / 2;
-  else if (b.mode === 'fly' && b.sp !== 'owl') pt = -clamp(b.vy * 0.08, -0.3, 0.3);
+  else if (b.mode === 'fly' && b.sp !== 'owl' && b.sp !== 'snowyowl') pt = -clamp(b.vy * 0.08, -0.3, 0.3);   // (round 16: the snowy owl flies like the owl)
   else if (b.mode === 'ground' && !UPRIGHT[b.sp]) {
     const d = Math.max(0.12, b.m.length * 0.35), fx = Math.sin(b.yaw) * d, fz = Math.cos(b.yaw) * d;
     // (round 14: on sea ice, the slope of the ice, not of the sea floor under it)
@@ -543,7 +551,9 @@ const Player = {
     // eating: stop, turn to the food, lower the head
     if (b.eat > 0) {
       // an eagle grabbing a fish keeps flying, then climbs away with it; everyone else stops to eat
-      if (b.mode === 'fly') { c.want = sp.flySpeed * 0.35; c.dx = Math.sin(b.yaw); c.dz = Math.cos(b.yaw); if (b.eat >= 0.52) c.up = true; }
+      // (round 16: a hoverer stays put at the flower, at the height of the bloom, and drinks)
+      if (b.mode === 'fly' && sp.hover) { c.want = 0; c.dx = 0; c.dz = 0; if (this.eatFood) c.hoverY = this.eatFood.y + 0.03 - m.height * 0.55; }
+      else if (b.mode === 'fly') { c.want = sp.flySpeed * 0.35; c.dx = Math.sin(b.yaw); c.dz = Math.cos(b.yaw); if (b.eat >= 0.52) c.up = true; }
       else { c.want = 0; c.dx = 0; c.dz = 0; if (b.mode === 'dive') c.up = c.down = false; }
       if (this.eatFood && !this.eatFood.gone) c.face = Math.atan2(this.eatFood.x - b.pos.x, this.eatFood.z - b.pos.z);
       b.eat += dt / this.eatDur;
@@ -554,7 +564,7 @@ const Player = {
       if (this.eatQueue > 0) {
         this.eatQueue -= dt;
         if (b.mode === 'ground' || b.mode === 'swim' || b.mode === 'dive') { this.eatQueue = 0; this.tryEat(); }
-        else if (b.mode === 'fly' && sp.grab && this.reachable()) { this.eatQueue = 0; this.tryEat(); }
+        else if (b.mode === 'fly' && (sp.grab || sp.hover) && this.reachable()) { this.eatQueue = 0; this.tryEat(); }
         else if (b.mode === 'air') { c.want = 0; }
       }
     }
@@ -588,7 +598,7 @@ const Player = {
   // nearest food this animal can eat that is within reach of its mouth
   reachable() {
     const b = this.b; if (!b || b.eat > 0 || b.mode === 'climb' || b.mode === 'sleep') return null;
-    if (b.mode === 'fly' && b.pos.y - Math.max(G.world.H(b.pos.x, b.pos.z), WATER) > 0.6) return null;
+    if (b.mode === 'fly' && b.pos.y - Math.max(G.world.H(b.pos.x, b.pos.z), WATER) > (SPECIES[b.sp].hover ? 1.2 : 0.6)) return null;
     const m = b.m, fx = Math.sin(b.yaw), fz = Math.cos(b.yaw);
     const mx = b.pos.x + fx * m.length * 0.42, mz = b.pos.z + fz * m.length * 0.42;
     const reach = 0.28 + m.radius * 0.9 + m.length * 0.15;
@@ -614,7 +624,7 @@ const Player = {
   },
   tryEat() {
     const b = this.b, f = this.reachable();
-    if (b.mode === 'air' || (b.mode === 'fly' && !(SPECIES[b.sp].grab && f)) || b.mode === 'climb' || b.mode === 'sleep') return;
+    if (b.mode === 'air' || (b.mode === 'fly' && !((SPECIES[b.sp].grab || SPECIES[b.sp].hover) && f)) || b.mode === 'climb' || b.mode === 'sleep') return;
     this.eatFood = f; this.ate = false; if (b.mode !== 'fly') b.speed = 0;
     this.eatDur = f ? 1.1 : 0.7;
     b.eat = 0.001;
@@ -931,7 +941,7 @@ const Wild = {
             // a fruit bat spends the day hanging under a branch (with no tree near, it stays awake)
             else if (sleepy && b.sp === 'bat') { const t = this.roostTree(b); if (t) { b.state = 'roost'; b.target = t; b.ra = Math.random() * TAU; b.timer = 25; b.hangAt = null; } else b.timer = 3; }
             else if (sleepy && b.mode !== 'fly') { b.timer = 8 + Math.random() * 12; if (b.mode === 'ground' || b.mode === 'swim') b.mode = b.mode === 'swim' && b.sp !== 'otter' ? 'swim' : 'sleep'; }
-            else if ((b.sp === 'butterfly' || b.sp === 'bat') && canFlyNow(b) && r < 0.75) {
+            else if ((b.sp === 'butterfly' || b.sp === 'bat' || sp.hover) && canFlyNow(b) && r < 0.75) {   // (round 16: hoverers too)
               // a butterfly flutters from flower to flower and a bat flies about at night: short flights near where it is
               const bat = b.sp === 'bat';
               b.target = b.pen ? this.pickTarget(b) : G.world.ringPoint(b.pos.x, b.pos.z, bat ? 5 : 2, bat ? 25 : 9, false) || this.pickTarget(b);
@@ -948,7 +958,7 @@ const Wild = {
               else b.timer = 2 + Math.random() * 4;
             }
           }
-          if (b.mode === 'fly') { c.want = 0; c.down = true; }
+          if (b.mode === 'fly') { c.want = 0; c.down = !(sp.hover && b.timer > 0.8); }   // (round 16: a hoverer hangs a moment first)
           break;
         case 'wander': {
           const t = b.target, dx = t.x - b.pos.x, dz = t.z - b.pos.z, d = Math.hypot(dx, dz);
@@ -1352,6 +1362,7 @@ const Folk = {
 // pets that live in a cage or tank at home, like real ones do
 const CAGED = { lizard: 'terrarium', snake: 'terrarium', frog: 'terrarium', turtle: 'terrarium', parrot: 'birdCage', bunny: 'hutch', hedgehog: 'hutch',
   chickadee: 'birdCage', cockatiel: 'birdCage' };   // round 7
+for (const sp of ['cardinal', 'bluejay', 'hummingbird', 'toucan']) CAGED[sp] = 'birdCage';   // round 16: the small birds and the toucan
 CAGED.butterfly = 'terrarium';   // round 10: a caterpillar (and then its butterfly) lives in a glass tank
 for (const sp of ['gecko', 'beardeddragon', 'iguana', 'chameleon']) CAGED[sp] = 'terrarium';   // round 11: the small lizards
 const CAGE_WORDS = { terrarium: 'a glass tank', birdCage: 'a big bird cage', hutch: 'a cozy pen' };

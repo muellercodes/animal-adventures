@@ -323,6 +323,11 @@ const World = (() => {
             { sp: 'eagle', n: 1, home: [LAKE.x, LAKE.z], range: 40 }]),
           // round 10: butterflies by the farm's flowers
           ...SP7([{ sp: 'butterfly', n: 5, home: [-20, -60], range: 30 }]),
+          // round 16: cardinals in the orchard, round the Maple Town green and in the city park, blue jays by the farm,
+          // hummingbirds at the farm's flowers and in the town's gardens
+          ...SP7([{ sp: 'cardinal', n: 2, home: [22, -76], range: 24 }, { sp: 'cardinal', n: 3, kids: 1, home: [226, -26], range: 30 },
+            { sp: 'cardinal', n: 2, home: [Plan.CITY.x + 45, Plan.CITY.z - 15], range: 26 }, { sp: 'bluejay', n: 3, home: [-30, -40], range: 30 },
+            { sp: 'hummingbird', n: 3, home: [-20, -60], range: 22 }, { sp: 'hummingbird', n: 2, home: [226, -10], range: 24 }]),
           // round 11: cows in their pasture
           ...SP7([{ sp: 'cow', n: 3, kids: 1, pen: COWPEN }]),
           // round 10: the zoo animals in their pens
@@ -407,6 +412,8 @@ const World = (() => {
           ...SP7([{ sp: 'bat', n: 4, home: [-20, 40], range: 40 }]),
           // round 11: pandas in the bamboo grove
           ...SP7([{ sp: 'panda', n: 2, kids: 1, home: [70, -40], range: 22 }]),
+          // round 16: cardinals and blue jays in the woods (the jays where the oaks drop their acorns)
+          ...SP7([{ sp: 'cardinal', n: 3, kids: 1, home: [10, 0], range: 40 }, { sp: 'bluejay', n: 4, kids: 1, home: [20, 30], range: 50 }]),
         ],
         ambient: [{ sp: 'squirrel', w: 3 }, { sp: 'deer', w: 2, kids: 1 }, { sp: 'fox', w: 2 }, { sp: 'owl', w: 2 }, { sp: 'bunny', w: 2 }, { sp: 'raccoon', w: 1 }, { sp: 'hedgehog', w: 1 }, { sp: 'moose', w: 1 }, { sp: 'otter', w: 1, water: true }],
         foods: { pinecone: 4, acorn: 2, berries: 3, worm: 3, grass: 1, smallfish: 2, fish: 2, mushroom: 4, bugs: 3, twigs: 3, seeds: 1, bamboo: 1 },
@@ -537,6 +544,8 @@ const World = (() => {
           // river, and two in the lagoon (they keep to deep water, divers' code in 60_actors)
           ...SP7([{ sp: 'manatee', n: 1, kids: 1, home: [xc(75), 75], range: 45, water: true }, { sp: 'manatee', n: 1, home: [xc(-170), -170], range: 45, water: true },
             { sp: 'manatee', n: 2, home: [LAG.x, LAG.z], range: 12, water: true }]),
+          // round 16: toco toucans in the trees by the spawn and out by the lagoon (they hop about and swoop between trees)
+          ...SP7([{ sp: 'toucan', n: 4, kids: 1, home: [-15, 15], range: 45 }, { sp: 'toucan', n: 3, home: [LAG.x + 15, LAG.z - 15], range: 30 }]),
         ],
         ambient: [{ sp: 'parrot', w: 4 }, { sp: 'lizard', w: 3 }, { sp: 'frog', w: 2 }, { sp: 'snake', w: 2 }, { sp: 'turtle', w: 1, water: true }, { sp: 'otter', w: 1, water: true }],
         foods: { berries: 4, apple: 3, worm: 3, grass: 1, smallfish: 2, fish: 2, banana: 4, bugs: 3, twigs: 2, watermelon: 1, mushroom: 1, meat: 1, lettuce: 1, waterplants: 2 },   // (round 15: manatee: water plants in the river and the lagoon)
@@ -604,6 +613,8 @@ const World = (() => {
           ...SP7([{ sp: 'giraffe', n: 3, kids: 1, home: [-10, 95], range: 40 }, { sp: 'butterfly', n: 8, home: [10, 30], range: 45 }]),
           // round 11: a pair of unicorns and their foal graze out in the flowers (and fly off if you come at them fast)
           ...SP7([{ sp: 'unicorn', n: 2, kids: 1, home: [70, 55], range: 30 }]),
+          // round 16: hummingbirds over the flowers, cardinals by the big tree
+          ...SP7([{ sp: 'hummingbird', n: 6, kids: 1, home: [10, 30], range: 40 }, { sp: 'cardinal', n: 2, home: [GIANT[0], GIANT[1]], range: 28 }]),
         ],
         ambient: [{ sp: 'bunny', w: 3, kids: 2 }, { sp: 'deer', w: 2, kids: 1 }, { sp: 'fox', w: 1 }, { sp: 'goat', w: 1 }, { sp: 'hedgehog', w: 1 }, { sp: 'squirrel', w: 1 }, { sp: 'swan', w: 1, water: true }, { sp: 'duck', w: 1, water: true, kids: 3 }],
         foods: { grass: 4, berries: 3, apple: 2, acorn: 2, worm: 2, smallfish: 2, pumpkin: AUTUMN ? 1 : 0, seeds: 3, bugs: 3, corn: 2, watermelon: 2, lettuce: 1, hay: 2, twigs: 1, nectar: 3 },
@@ -744,6 +755,8 @@ const World = (() => {
           ...SP7([{ sp: 'eagle', n: 1, home: [0, 90], range: 50 }, { sp: 'polarbear', n: 3, kids: 1, home: [10, 80], range: 45 }, { sp: 'polarbear', n: 3, kids: 2, home: [-40, 190], range: 80 }, { sp: 'snowleopard', n: 2, kids: 1, home: [-20, -120], range: 50 }, { sp: 'smilodon', n: 2, home: [90, -60], range: 45 }]),
           // round 13: a pair of griffins and their chick-cub keep to the high rocks up in the mountains
           ...SP7([{ sp: 'griffin', n: 2, kids: 1, home: [70, -115], range: 35 }]),
+          // round 16: snowy owls out on the open snow and down by the shore
+          ...SP7([{ sp: 'snowyowl', n: 2, home: [-50, 40], range: 45 }, { sp: 'snowyowl', n: 2, kids: 1, home: [30, 70], range: 40 }]),
         ],
         ambient: [{ sp: 'fox', w: 2 }, { sp: 'owl', w: 1 }, { sp: 'moose', w: 1 }, ...SP7([{ sp: 'polarbear', w: 2 }, { sp: 'snowleopard', w: 1 }])],
         foods: { fish: 4, smallfish: 3, berries: 2, pinecone: 3, twigs: 2, seeds: 1, meat: 1 },
@@ -1023,6 +1036,8 @@ const World = (() => {
           // polar bears on the island, out on the fast ice and on the pack; narwhal pods with calves in the open water
           ...SP7([{ sp: 'polarbear', n: 2, kids: 1, home: [10, -10], range: 35 }, { sp: 'polarbear', n: 2, kids: 2, home: [110, -20], range: 70, ice: true }, { sp: 'polarbear', n: 1, home: [190, 40], range: 90, ice: true }]),
           ...SP7([{ sp: 'narwhal', n: 4, kids: 2, home: [-90, 100], range: 60, water: true, depth: [2, 20] }, { sp: 'narwhal', n: 3, kids: 1, home: [-170, -10], range: 70, water: true, depth: [2, 30] }]),
+          // round 16: a pair of snowy owls on the island
+          ...SP7([{ sp: 'snowyowl', n: 2, home: [-5, 5], range: 25 }]),
         ],
         ambient: [...SP7([{ sp: 'polarbear', w: 2, ice: true }, { sp: 'narwhal', w: 3, water: true, kids: 1 }])],
         foods: { fish: 5, smallfish: 4, squid: 3, berries: 1, meat: 1 },

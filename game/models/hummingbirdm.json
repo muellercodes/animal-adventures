@@ -1,0 +1,71 @@
+{
+ "v": 2,
+ "id": "hummingbirdm",
+ "base": "hummingbird",
+ "maps": {
+  "color": "hummingbirdm-color.webp",
+  "feather": "hummingbirdm-feather.webp",
+  "featherNormal": "hummingbirdm-feathernrm.webp"
+ },
+ "srgb": [
+  "feather"
+ ],
+ "eye": {
+  "p": [
+   0.00632,
+   0.04086,
+   0.0284
+  ],
+  "r": 0.00161,
+  "dir": [
+   0.9091,
+   0.101,
+   0.4041
+  ],
+  "lid": [
+   0.84,
+   -0.84,
+   0.1
+  ],
+  "iris": 1182728,
+  "irisR": 0.95,
+  "pupilR": 0.5,
+  "rim": 657414,
+  "lidCol": 2763306,
+  "babyLidCol": 4078650
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "head",
+   0.3
+  ],
+  "w": 0.8,
+  "babyAt": 0.35,
+  "hug": true,
+  "babyK": 1.6,
+  "lift": 0.35
+ },
+ "mouth": [
+  0.0,
+  0.0374,
+  0.0481
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.1,
+  0.1,
+  0.1
+ ],
+ "flat": 5143116,
+ "look": "m"
+}

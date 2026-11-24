@@ -281,6 +281,60 @@ const Sound = (() => {
       case 'manatee': { const c = [[0, 2900, 3700, 0.13], [0.2, 3500, 2700, 0.16], [0.52, 3100, 4000, 0.1], [0.68, 3900, 3300, 0.18]]; const n = k > 1 ? 3 : 4;
         for (let i = 0; i < n; i++) { const [dt, f, f2, d] = c[i]; T({ t: t + dt * (k > 1 ? 0.8 : 1), f: f * (k > 1 ? 1.25 : 1), f2: f2 * (k > 1 ? 1.25 : 1), dur: d, a: 0.02, type: 'sine', vib: 22, vibAmt: 120, vol: vol * 0.32 }); T({ t: t + dt * (k > 1 ? 0.8 : 1), f: f * 2.01 * (k > 1 ? 1.25 : 1), f2: f2 * 2.01 * (k > 1 ? 1.25 : 1), dur: d * 0.8, a: 0.02, type: 'triangle', vol: vol * 0.05 }); }
         break; }
+      // round 16: small and tree birds
+      // cardinal: loud clear whistles, "cheer cheer cheer" (falling) or "birdie birdie birdie" (two-part, rising), and
+      // now and then just the sharp metallic chip (a chick's: thin begging peeps)
+      case 'cardinal': {
+        if (k > 1) { for (let i = 0; i < 3; i++) T({ t: t + i * 0.16, f: 5200, f2: 5600, dur: 0.07, a: 0.01, vol: vol * 0.3 }); break; }
+        const r = Math.random();
+        if (r < 0.2) { T({ t, f: 7400, f2: 4200, dur: 0.025, a: 0.002, type: 'triangle', vol: vol * 0.45 }); T({ t: t + 0.003, f: 9800, f2: 6000, dur: 0.018, a: 0.002, vol: vol * 0.15 }); break; }
+        const birdie = r < 0.6, n = 3 + (Math.random() < 0.5 ? 1 : 0);
+        for (let i = 0; i < n; i++) {
+          const t0 = t + i * (birdie ? 0.36 : 0.42);
+          if (birdie) { T({ t: t0, f: 2300, f2: 3700, dur: 0.12, a: 0.01, vol: vol * 0.5 }); T({ t: t0 + 0.14, f: 3700, f2: 2600, dur: 0.15, a: 0.01, vol: vol * 0.5 }); }
+          else T({ t: t0, f: 3900, f2: 2100, dur: 0.3, a: 0.015, vol: vol * 0.55 });
+        }
+        break;
+      }
+      // blue jay: the loud harsh "jay! jay!" (a rough, nasal scream that drops), or the squeaky "queedle" (a wobbling
+      // two-tone whistle, like a rusty pump handle)
+      case 'bluejay': {
+        if (k > 1) { for (let i = 0; i < 3; i++) T({ t: t + i * 0.18, f: 3400, f2: 3000, dur: 0.1, type: 'sawtooth', bp: 3200, q: 3, vol: vol * 0.3 }); break; }
+        if (Math.random() < 0.3) { for (let i = 0; i < 2; i++) { const t0 = t + i * 0.34; T({ t: t0, f: 1600, f2: 2400, dur: 0.08, a: 0.01, type: 'triangle', vol: vol * 0.45 }); T({ t: t0 + 0.09, f: 2400, f2: 1500, dur: 0.12, a: 0.01, type: 'triangle', vib: 40, vibAmt: 120, vol: vol * 0.45 }); } break; }
+        const n = 2 + (Math.random() < 0.5 ? 1 : 0);
+        for (let i = 0; i < n; i++) {
+          const t0 = t + i * 0.32;
+          T({ t: t0, f: 2600, f2: 1900, dur: 0.24, a: 0.01, type: 'sawtooth', bp: 2400, q: 1.6, vib: 70, vibAmt: 180, vol: vol * 0.55 });
+          T({ t: t0, f: 1300, f2: 950, dur: 0.22, type: 'square', bp: 1500, q: 2, vol: vol * 0.25 });
+          noise({ t: t0, f: 3000, q: 1.2, dur: 0.2, vol: vol * 0.25, pan });
+        }
+        break;
+      }
+      // ruby-throated hummingbird: a hum of wings and a few high, squeaky chips
+      case 'hummingbird': {
+        T({ t, f: 92, f2: 98, dur: 0.6, a: 0.08, type: 'sawtooth', lp: 380, vol: vol * 0.5 });
+        for (let i = 0; i < 4; i++) T({ t: t + 0.12 + i * (0.09 + Math.random() * 0.05), f: 6400 * (k > 1 ? 1.1 : 1), f2: 7600 * (k > 1 ? 1.1 : 1), dur: 0.035, a: 0.003, type: 'triangle', vol: vol * 0.32 });
+        break;
+      }
+      // toco toucan: deep, rough, croaking grunts, like a big frog (a chick's: higher, wheezy squeaks)
+      case 'toucan': {
+        const n = 3 + (Math.random() < 0.5 ? 1 : 0);
+        for (let i = 0; i < n; i++) {
+          const t0 = t + i * 0.3, f = (210 - i * 8) * k;
+          T({ t: t0, f, f2: f * 0.8, dur: 0.17, a: 0.01, type: 'sawtooth', bp: 640 * k, q: 1.4, vib: 34, vibAmt: f * 0.18, vol: vol * 0.85 });
+          noise({ t: t0, f: 900 * k, q: 1.0, dur: 0.12, vol: vol * 0.22, pan });
+        }
+        break;
+      }
+      // snowy owl: one or two deep, booming hoots (now and then the harsh barking alarm, "krek-krek"); an owlet's thin
+      // rising whistle-hiss
+      case 'snowyowl': {
+        if (k > 1) { noise({ t, f: 3800, f2: 5200, q: 2, dur: 0.5, vol: vol * 0.3, pan }); T({ t, f: 2400, f2: 3000, dur: 0.45, a: 0.05, vol: vol * 0.15 }); break; }
+        if (Math.random() < 0.3) { for (let i = 0; i < 3; i++) { const t0 = t + i * 0.2; T({ t: t0, f: 900, f2: 650, dur: 0.09, a: 0.005, type: 'sawtooth', bp: 1400, q: 1.5, vol: vol * 0.6 }); noise({ t: t0, f: 1800, q: 1, dur: 0.08, vol: vol * 0.3, pan }); } break; }
+        T({ t, f: 300, f2: 285, dur: 0.75, a: 0.09, type: 'triangle', lp: 900, vol: vol * 0.9 });
+        if (Math.random() < 0.6) T({ t: t + 1.05, f: 295, f2: 278, dur: 0.6, a: 0.08, type: 'triangle', lp: 900, vol: vol * 0.8 });
+        break;
+      }
     }
   }
 
@@ -326,6 +380,9 @@ const Sound = (() => {
       if (stepAcc >= 1) { stepAcc = 0; step(s.inside ? 'floor' : 'grass', vol); }
     } else if (b.mode === 'swim' && b.speed > 0.2) {
       stepAcc += dt * 1.4; if (stepAcc >= 1) { stepAcc = 0; noise({ f: 900, q: 0.8, dur: 0.18, vol: vol * 0.5 }); }
+    } else if (b.mode === 'fly' && SPECIES[b.sp].hover) {
+      // (round 16: a hummingbird's wings hum all the time it flies)
+      flapT -= dt; if (flapT <= 0) { flapT = 0.12; tone({ f: 94 + Math.random() * 8, dur: 0.16, a: 0.04, type: 'sawtooth', lp: 420, vol: 0.05 }); }
     } else if (b.mode === 'fly' && b.vy > 0.5) {
       flapT -= dt; if (flapT <= 0) { flapT = 0.28; noise({ f: 500, f2: 260, q: 0.7, dur: 0.16, vol: 0.12 }); }
     }

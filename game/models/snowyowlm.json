@@ -1,0 +1,72 @@
+{
+ "v": 2,
+ "id": "snowyowlm",
+ "base": "snowyowl",
+ "maps": {
+  "color": "snowyowlm-color.webp",
+  "feather": "snowyowlm-feather.webp",
+  "featherNormal": "snowyowlm-feathernrm.webp"
+ },
+ "srgb": [
+  "feather"
+ ],
+ "eye": {
+  "p": [
+   0.03528,
+   0.51968,
+   0.05656
+  ],
+  "r": 0.01624,
+  "dir": [
+   0.2333,
+   0.0292,
+   0.972
+  ],
+  "lid": [
+   0.84,
+   -0.84,
+   0.1
+  ],
+  "iris": 16044064,
+  "irisR": 0.9,
+  "pupilR": 0.42,
+  "rim": 1709064,
+  "lidCol": 13618114,
+  "babyLidCol": 4867652
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "head",
+   0.15
+  ],
+  "w": 0.6,
+  "r": 0.55,
+  "maxR": 0.1,
+  "babyMaxR": 0.3,
+  "hug": true,
+  "babyK": 1.6,
+  "lift": 0.35
+ },
+ "mouth": [
+  0.0,
+  0.4844,
+  0.0778
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.1,
+  0.1,
+  0.1
+ ],
+ "flat": 15789800
+}
