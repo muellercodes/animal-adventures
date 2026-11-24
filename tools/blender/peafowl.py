@@ -128,9 +128,10 @@ def eye_parts(P):
 # ---------- legs ----------
 def drum(P):
     Q = mirror(P)
-    th = round_cone(Q, V(0.05, 0.51, -0.01), SHIN + V(0, -0.01, -0.006), 0.058, 0.044)
-    sh = round_cone(Q, SHIN + V(0, -0.03, -0.01), HMETA + V(0, 0.03, 0.0), 0.038, 0.014)
-    return smin(th, sh, 0.03)
+    # (slim: the feathered thighs only just show below the belly; thicker ones read as drumsticks in the game)
+    th = round_cone(Q, V(0.05, 0.51, -0.01), SHIN + V(0, -0.01, -0.006), 0.05, 0.032)
+    sh = round_cone(Q, SHIN + V(0, -0.03, -0.01), HMETA + V(0, 0.03, 0.0), 0.026, 0.0125)
+    return smin(th, sh, 0.022)
 
 
 def tarsus(P):
@@ -560,7 +561,9 @@ def _baby_cells():
     return [F_('down', dn)] * 8
 
 
-FEATHER_ATLAS = {'size': (1024, 512), 'out': (1024, 512), 'cells': _cells, 'baby': _baby_cells, 'quality': (66, 62, 58),
+# (saved at 512 x 256 as the other birds' atlases: at 1024 x 512 the eyespots were sharper close up, but the atlas and
+# its normal map cost a phone about 4 MB more)
+FEATHER_ATLAS = {'size': (1024, 512), 'out': (512, 256), 'cells': _cells, 'baby': _baby_cells, 'quality': (66, 62, 58),
                  'alpha_quality': 55}
 
 

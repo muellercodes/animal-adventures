@@ -11807,19 +11807,22 @@ const Animals = (() => {
     // the train: 25 rays (bones, the centre one and 12 each side) spread a little behind, sloping down to the ground,
     // each with a column of eyespot feathers (the eyes at the tips, staggered from one ray to the next). The display
     // fans the rays out round a half circle (extend), so the feathers of neighbouring rays fill it between them.
-    const TR = { y: 0.52, z: -0.27, spread: 1.1, fan: 7.1, slope: -19, n: 12 };
+    // (roof: the middle rays slope less than the outer ones, so the train at rest is a low ridge of feathers with its
+    // outer edges on the ground, not a flat sheet: from the side it reads as a mass, not a line)
+    const TR = { y: 0.52, z: -0.27, spread: 1.1, fan: 7.1, slope: -19, roof: 0.45, n: 12 };
+    const trainSlope = (k) => TR.slope + TR.roof * (TR.n - Math.abs(k));
     const trainName = (k) => (k ? 'tr' + Math.abs(k) + (k > 0 ? 'L' : 'R') : 'trainC');
     const trainBones = [['trainC', 'hips', 0, TR.y, TR.z]];
     for (let k = 1; k <= TR.n; k++) trainBones.push(['tr' + k + 'L', 'hips', 0.003 * k, TR.y, TR.z, 1]);
     const trainBlades = () => {
-      const out = [], th = TR.slope * DEG;
+      const out = [];
       for (let k = 0; k <= TR.n; k++) {
-        const yaw = k * TR.spread, a = yaw * DEG, tips = k % 2 ? [0.54, 0.78, 1.02, 1.26, 1.5] : [0.42, 0.66, 0.9, 1.14, 1.38, 1.6];
+        const th = trainSlope(k) * DEG, yaw = k * TR.spread, a = yaw * DEG, tips = k % 2 ? [0.54, 0.78, 1.02, 1.26, 1.5] : [0.42, 0.66, 0.9, 1.14, 1.38, 1.6];
         tips.forEach((tip, j) => {
           // (the shorter feathers near the body lie over the longer ones: up the train, in front of the raised fan)
           const len = 0.36 + 0.04 * j, s = tip - len;
           out.push({ bone: trainName(k), mirror: k > 0, base: [0.003 * k + Math.sin(a) * Math.cos(th) * s, TR.y + Math.sin(th) * s + (6 - j) * 0.003 + (k % 2) * 0.0015, TR.z - Math.cos(a) * Math.cos(th) * s],
-            yaw: (90 + yaw) * DEG, pitch: TR.slope * DEG, roll: 0, len, wid: 0.17, curl: 0.02, cell: fcell(5) });
+            yaw: (90 + yaw) * DEG, pitch: th, roll: 0, len, wid: 0.17, curl: 0.02, cell: fcell(5) });
         });
       }
       return out;
@@ -11831,7 +11834,7 @@ const Animals = (() => {
     // the crest: a little fan of bare shafts with tufted tips, standing up from the crown and leaning back a little
     const crestFan = (hen) => [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => {
       const u = i / 4 - 1, hx = 0.5 * u, hz = 0.25, d = Math.atan2(hx, hz), p = Math.atan2(1, Math.hypot(hx, hz));
-      return { bone: 'crest', base: [u * 0.008, 0.908, 0.288], yaw: 90 * DEG + d, pitch: p, roll: 0, len: hen ? 0.05 : 0.068, wid: 0.018, curl: 0.0, cell: fcell(6) };
+      return { bone: 'crest', base: [u * 0.008, 0.904, 0.288], yaw: 90 * DEG + d, pitch: p, roll: 0, len: hen ? 0.026 : 0.034, wid: 0.018, curl: 0.0, cell: fcell(6) };
     });
     return {
       size: { length: 1.1, height: 1.05, radius: 0.18, eyeHeight: 1.0 },
@@ -11938,14 +11941,15 @@ const Animals = (() => {
       anim: {
         type: 'bird', walk: 0.9, run: 3.5, stride: 0.34, strideMax: 1.8, duty: [0.6, 0.42], lift: 0.05, flex: 1.2,
         bob: 0.01, waddle: 0.03, yawSway: 0.03, headBob: 0.8,
-        neck: ['neck', 'neck2', 'neck3', 'head'], neckDist: [0.35, 0.3, 0.22, 0.13], eatPitch: 0.45, eatMax: 2.4, peck: 0.2, peckRate: 2.2, eatElev: [-35, -70, -85, -85], eatY: 0.025,
+        // (standElev: the neck carried in a gentle S, its base leaning forward, the head held level)
+        neck: ['neck', 'neck2', 'neck3', 'head'], neckDist: [0.35, 0.3, 0.22, 0.13], standElev: [44, 80, 72, -8], eatPitch: 0.45, eatMax: 2.4, peck: 0.2, peckRate: 2.2, eatElev: [-35, -70, -85, -85], eatY: 0.025,
         flyElev: [10, 4, 0, -10], flyPitch: 0.05,
         tail: 'tail', tailWag: 0.12, wing: W.wing, canFly: true, flyLegs: [-0.2, -0.8, 1.6], flyFlex: 1.2, jumpFlap: 0.7, runPitch: 0.12,
         lookPeriod: 2.0, lookRate: 6, lookAmp: 0.9,
         sleepNeck: [[0.9, 2.6], [0.3, 0.3], [0.2, 0.1], [0.3, 0.1]], sitDrop: 0.85,
         crest: 'crest', crestHappy: 0.15, crestFly: -0.2, crestSleep: 0.5,
       },
-      baby: { head: 1.5, muzzle: 0.6, eye: 1.1, neck: [0.6, 1.25], body: [1.12, 1.15, 0.92], leg: [0.8, 1.25], tail: 0.25, wing: 0.4, fluff: 0.01, ear: 0.4,
+      baby: { head: 1.6, muzzle: 0.6, eye: 1.1, neck: [0.45, 1.4], body: [1.12, 1.15, 0.92], leg: [0.8, 1.25], tail: 0.25, wing: 0.4, fluff: 0.01, ear: 0.4,
         roles: Object.assign({ crest: 'ear' }, trainRoles) },
       // chick: tan down, paler below, darker on the back
       babyPaint(P, C) {
@@ -11960,12 +11964,12 @@ const Animals = (() => {
       // tail lifts under it. A peahen (no train) and a chick (the train bones are horn bones, scaled away) skip it.
       extend(R, A) {
         if (A.mid === 'peafowlf') return null;
-        const B = R.bones, tail = B.tail, q = new THREE.Quaternion(), q2 = new THREE.Quaternion();
+        const B = R.bones, tail = B.tail, hips = B.hips, q = new THREE.Quaternion(), q2 = new THREE.Quaternion(), qc = new THREE.Quaternion(), X = new THREE.Vector3(1, 0, 0);
         const rays = [];
         for (let k = -TR.n; k <= TR.n; k++) {
           const b = B[trainName(k)];
           if (!b) continue;
-          const a = k * TR.spread * DEG, th = TR.slope * DEG, phi = k * TR.fan * DEG;
+          const a = k * TR.spread * DEG, th = trainSlope(k) * DEG, phi = k * TR.fan * DEG;
           const rest = new THREE.Vector3(Math.sin(a) * Math.cos(th), Math.sin(th), -Math.cos(a) * Math.cos(th));
           const disp = new THREE.Vector3(Math.sin(phi), Math.cos(phi), -0.3 + 0.38 * Math.abs(Math.sin(phi))).normalize();
           rays.push({ b, q: new THREE.Quaternion().setFromUnitVectors(rest, disp), disp });
@@ -11976,10 +11980,12 @@ const Animals = (() => {
           idleT = (st.idle || 0) > 3 && st.mode === 'ground' ? idleT + dt : 0;
           if (idleT > nextT) { hold = 5 + Math.random() * 4; idleT = 0; nextT = 20 + Math.random() * 40; }
           hold = Math.max(0, hold - dt);
-          k = damp(k, hold > 0 && st.mode === 'ground' && (st.speed || 0) < 1.2 ? 1 : 0, hold > 0 ? 2.4 : 1.8, dt);
+          k = damp(k, hold > 0 && st.mode === 'ground' && (st.speed || 0) < 1.2 && !((st.eat || 0) > 0.1) ? 1 : 0, hold > 0 ? 2.4 : 1.8, dt);
           const t = st.t || 0, shiver = sstep(0.85, 1, k);
+          // (at rest the train keeps trailing on the ground when the body tips forward to eat or run)
+          qc.setFromAxisAngle(X, -hips.rotation.x * (1 - k));
           for (const r of rays) {
-            q.identity().slerp(r.q, k);
+            q.identity().slerp(r.q, k).premultiply(qc);
             if (shiver > 0.01) { q2.setFromAxisAngle(r.disp, Math.sin(t * 31 + r.disp.x * 4) * 0.03 * shiver); q.premultiply(q2); }
             r.b.quaternion.copy(q);
           }
