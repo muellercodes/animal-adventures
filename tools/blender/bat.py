@@ -1,7 +1,7 @@
 # A fruit bat (a flying fox, round 10), sculpted as a signed distance field around the game's bat skeleton
 # (tools/blender/work/bat-rig.json). Units are meters in game rig space (x left, y up, z forward, ground at y = 0).
 # Built in its flight pose, wings spread: about 30 cm from nose to rump, 1.15 m across the wings. A fox-like head with
-# a pointed muzzle, a black nose, big dark eyes and small pointed ears; a golden ruff over the neck and shoulders on a
+# a long pointed muzzle, a black nose, dark eyes set in under a brow and pointed ears (round 16b); a golden ruff over the neck and shoulders on a
 # dark brown body; short hind legs with hooked claws. Each wing is the arm (humerus, forearm, a thumb with a claw at
 # the wrist) and four long fingers (the 2nd to the 5th) with the thin leathery membrane between them, the arm, the
 # body and the leg. The membranes are skinned to the arm, finger, body and leg bones (fix_weights), so they stretch
@@ -13,7 +13,7 @@ import carnivore as CV
 from carnivore import local, local_n, mirror, mix, hexc
 
 ID = 'bat'
-BOUNDS = (V(-0.6, 0.0, -0.19), V(0.6, 0.175, 0.19))
+BOUNDS = (V(-0.6, 0.0, -0.19), V(0.6, 0.18, 0.19))
 BAKE_DIST = (0.0012, 0.004, 0.01)
 DISSOLVE_DEGENERATE = True
 TAIL_RINGS = 0
@@ -34,18 +34,22 @@ ANKLE = V(0.052, 0.022, -0.092)
 FOOT = V(0.052, 0.0, -0.08)
 # head frame: from the back of the skull forward and a little down along the muzzle (s), up across it (u)
 HF = CV.Frame(V(0.0, 0.124, 0.088), V(0.0, -0.13, 1.0), V(0.0, 1.0, 0.0))
-EYE = CV.Eye(HF.pt(0.042, 0.005, 0.0152), 0.0068, V(0.72, 0.22, 0.66), lid_w=0.0062, lid_h=0.0057, off=0.0004, slant=0.08,
-             mound=(0.0013, 0.0012, 0.0006), sink=0.1)
-NOSE_S = 0.077
-MOUTH = HF.pt(0.07, -0.009)
-EAR_B = HF.pt(0.006, 0.018, 0.0135)
-EAR_A = nrm([0.32, 0.9, -0.28])
-EAR_N = nrm([0.5, 0.0, 0.86])
+# round 16b: a flying fox's face, not a ball with eyes stuck on: the eyes smaller (5.3 mm, they were 6.8) and set into
+# the skull under a brow ridge (BROW), at the stop between the cranium and a longer, pointed muzzle (the nose 9 mm
+# further out); bigger pointed ears standing up and out at the back corners of the head
+EYE = CV.Eye(HF.pt(0.033, 0.0055, 0.0136), 0.0053, V(0.66, 0.2, 0.72), lid_w=0.0052, lid_h=0.0041, off=0.0004, slant=0.1,
+             mound=(0.0011, 0.001, 0.0005), sink=0.3)
+BROW = (HF.pt(0.031, 0.0108, 0.0118), V(0.0062, 0.0028, 0.0085))
+NOSE_S = 0.086
+MOUTH = HF.pt(NOSE_S - 0.008, -0.009)
+EAR_B = HF.pt(0.0, 0.0165, 0.0125)
+EAR_A = nrm([0.42, 0.86, -0.22])
+EAR_N = nrm([0.55, 0.0, 0.84])
 EAR_N = nrm(EAR_N - EAR_A * np.dot(EAR_N, EAR_A))
-EAR_L, EAR_W = 0.017, 0.0074
+EAR_L, EAR_W = 0.026, 0.0095
 PATCHES = [
-    (V(0.0, 0.104, 0.118), V(0.026, 0.142, 0.18), 0.0003),       # eye, nose, lips
-    (V(0.004, 0.132, 0.08), V(0.032, 0.166, 0.112), 0.0003),     # ear
+    (V(0.0, 0.1, 0.108), V(0.026, 0.142, 0.186), 0.0003),       # eye, nose, lips
+    (V(0.004, 0.13, 0.074), V(0.036, 0.172, 0.104), 0.0003),     # ear
     (V(0.034, -0.0005, -0.102), V(0.072, 0.024, -0.05), 0.00035),  # foot and claws
     (V(0.29, 0.1, 0.04), V(0.336, 0.124, 0.09), 0.0004),         # wrist and thumb
 ]
@@ -62,15 +66,17 @@ TRUNK = [
     (0.09, 0.13, 0.112, 0.091, 0.021, 2.0, 2.0),
 ]
 # head: along the head frame (s), top, height of widest, bottom, half width, exponents above, below
+# (round 16b: a narrower, lower cranium and a long tapering muzzle with a straight top line, a fox's)
 HEAD = [
-    (-0.006, 0.019, 0.0, -0.019, 0.02, 2.0, 2.0),
-    (0.008, 0.024, 0.001, -0.022, 0.025, 2.2, 2.0),
-    (0.022, 0.023, 0.0, -0.022, 0.025, 2.2, 2.0),
-    (0.036, 0.017, -0.002, -0.019, 0.019, 2.1, 2.0),
-    (0.047, 0.0125, -0.004, -0.016, 0.0142, 2.0, 2.0),
-    (0.058, 0.0092, -0.005, -0.0135, 0.0112, 2.0, 2.0),
-    (0.068, 0.0065, -0.0055, -0.0108, 0.0088, 2.0, 2.0),
-    (0.075, 0.004, -0.0055, -0.0082, 0.0066, 2.0, 2.0),
+    (-0.008, 0.017, 0.0, -0.017, 0.0175, 2.0, 2.0),
+    (0.004, 0.021, 0.0, -0.02, 0.0205, 2.1, 2.0),
+    (0.017, 0.0205, -0.001, -0.02, 0.0205, 2.1, 2.0),
+    (0.029, 0.0165, -0.002, -0.0175, 0.0172, 2.0, 2.0),
+    (0.041, 0.0128, -0.0035, -0.0152, 0.0132, 2.0, 2.0),
+    (0.053, 0.0098, -0.0045, -0.013, 0.0103, 2.0, 2.0),
+    (0.065, 0.0076, -0.0052, -0.0112, 0.0083, 2.0, 2.0),
+    (0.076, 0.0055, -0.0056, -0.0092, 0.0065, 2.0, 2.0),
+    (0.084, 0.0036, -0.0058, -0.0074, 0.005, 2.0, 2.0),
 ]
 
 
@@ -89,11 +95,14 @@ def head(P):
     Q = mirror(P)
     L = HF.loc(Q)
     d = loft(L, HEAD)
-    # the rounded crown and the cheeks under the eyes
-    d = smin(d, ellipsoid(L, V(0.0, 0.012, 0.012), V(0.02, 0.014, 0.018)), 0.01)
-    d = smin(d, ellipsoid(L, V(0.0125, -0.008, 0.036), V(0.007, 0.008, 0.012)), 0.006)
-    # the lower jaw under the muzzle, the chin
-    d = smin(d, ellipsoid(L, V(0.0, -0.0118, 0.053), V(0.009, 0.0048, 0.02)), 0.004)
+    # the crown and the cheeks under the eyes (round 16b: a lower crown, the cheek bones under the eye)
+    d = smin(d, ellipsoid(L, V(0.0, 0.01, 0.01), V(0.0175, 0.0125, 0.017)), 0.01)
+    d = smin(d, ellipsoid(L, V(0.0118, -0.0065, 0.032), V(0.0062, 0.0065, 0.013)), 0.006)
+    # the brow ridge over each eye
+    Bc, Br = BROW
+    d = smin(d, ellipsoid(Q, Bc, Br), 0.004)
+    # the lower jaw under the muzzle, the chin (round 16b: longer, with the muzzle)
+    d = smin(d, ellipsoid(L, V(0.0, -0.0115, NOSE_S - 0.028), V(0.0085, 0.0046, 0.027)), 0.004)
     # the nose: a black, slightly upturned pad, the nostrils as short tubes at its sides
     d = smin(d, ellipsoid(L, V(0.0, -0.0012, NOSE_S - 0.0015), V(0.0058, 0.0042, 0.003)), 0.002)
     for sg in (1.0,):
@@ -106,8 +115,8 @@ def head(P):
     d = smax(d, -(cleft + 0.00005), 0.0004)
     # the mouth line along each side of the muzzle
     M = L * V(1, 2.5, 1)
-    m = round_cone(M, V(0.0, -0.0088 * 2.5, NOSE_S - 0.006), V(0.0066, -0.0094 * 2.5, 0.062), 0.0005, 0.0005)
-    m = smin(m, round_cone(M, V(0.0066, -0.0094 * 2.5, 0.062), V(0.0102, -0.0088 * 2.5, 0.046), 0.0005, 0.0004), 0.0008)
+    m = round_cone(M, V(0.0, -0.0088 * 2.5, NOSE_S - 0.006), V(0.0068, -0.0094 * 2.5, NOSE_S - 0.019), 0.0005, 0.0005)
+    m = smin(m, round_cone(M, V(0.0068, -0.0094 * 2.5, NOSE_S - 0.019), V(0.0104, -0.0086 * 2.5, NOSE_S - 0.037), 0.0005, 0.0004), 0.0008)
     d = smax(d, -(m + 0.0002) / 2.5, 0.0005)
     return d
 
@@ -119,8 +128,8 @@ def eye_parts(P):
 def ear(P):
     """small, pointed and nearly bare, standing up at the back of the head, the opening forward and out"""
     Q = mirror(P)
-    return CV.ear(Q, EAR_B, EAR_A, EAR_N, EAR_L, EAR_W, 'point', th0=0.0017, th1=0.0009, cup=0.6, tipin=0.0,
-                  base_r=(0.005, 0.004, 0.004))
+    return CV.ear(Q, EAR_B, EAR_A, EAR_N, EAR_L, EAR_W, 'point', th0=0.0016, th1=0.0008, cup=0.65, tipin=0.0,
+                  base_r=(0.0052, 0.0042, 0.0042))
 
 
 def ear_coords(Q):
@@ -189,9 +198,11 @@ def _outline():
     pts.append(_scallop(t[1], t[2], 0.17)[1:])
     pts.append(_scallop(t[2], t[3], 0.15)[1:])
     # the arm wing: a long, gently hollow trailing edge from the 5th finger to the flank by the hip
-    att = np.array([0.06, -0.15], F)
-    pts.append(_bez(t[3], (t[3] + att) * 0.5 + np.array([0.0, 0.018], F), att, 24)[1:])
-    pts.append(np.array([[0.035, -0.135], [0.018, -0.11]], F))
+    # (round 16b: it meets the flank at the hip; it ran on behind the rump, and that part stayed out there as a flat
+    # point when the wing folded)
+    att = np.array([0.052, -0.1], F)
+    pts.append(_bez(t[3], (t[3] + att) * 0.5 + np.array([0.0, 0.016], F), att, 24)[1:])
+    pts.append(np.array([[0.036, -0.095], [0.022, -0.088]], F))
     return np.concatenate(pts, 0)
 
 
@@ -275,12 +286,12 @@ def parts(P):
 def shape(P):
     d = trunk(P)
     h = local(P, (-0.05, 0.085, 0.06), (0.05, 0.16, 0.19), head)
-    ca, li, ba = local_n(P, (-0.032, 0.112, 0.118), (0.032, 0.142, 0.148), eye_parts, 3)
+    ca, li, ba = local_n(P, (-0.032, 0.108, 0.106), (0.032, 0.142, 0.142), eye_parts, 3)
     h = smin(h, li, 0.0012)
     h = smax(h, -ca, 0.0005)
     h = smin(h, ba, 0.0002)
     d = smin(d, h, 0.012)
-    d = smin(d, local(P, (-0.04, 0.125, 0.07), (0.04, 0.17, 0.115), ear), 0.0025)
+    d = smin(d, local(P, (-0.045, 0.125, 0.066), (0.045, 0.175, 0.112), ear), 0.0025)
     w = local(P, (-0.36, YM - 0.016, 0.02), (0.36, YM + 0.016, 0.1), arm)
     w = smin(w, local(P, (-0.6, YM - 0.006, -0.12), (0.6, YM + 0.006, 0.085), fingers), 0.003)
     w = smin(w, local(P, *WING_BOX, membrane), 0.0025)
@@ -298,7 +309,7 @@ def grid(h):
     from sdf import axis_steps
     lo, hi = BOUNDS
     xs = axis_steps(0.0, hi[0], [(0.004, 0.032, h * 0.6)], h)
-    ys = axis_steps(lo[1], hi[1], [(YM - 0.012, YM + 0.012, min(h * 0.25, 0.0005)), (0.125, 0.17, h * 0.7)], h)
+    ys = axis_steps(lo[1], hi[1], [(YM - 0.012, YM + 0.012, min(h * 0.25, 0.0005)), (0.125, 0.178, h * 0.7)], h)
     zs = axis_steps(lo[2], hi[2], [(-0.1, -0.055, h * 0.6), (0.075, 0.185, h * 0.6)], h)
     return xs, ys, zs
 
@@ -327,7 +338,7 @@ def keep(P):
     e = sstep(0.014, 0.007, np.linalg.norm(Pm - EYE.c, axis=1)) * 0.85
     L = HF.loc(Pm)
     hd = sstep(-0.004, 0.012, L[:, 2]) * sstep(0.085, 0.095, Pm[:, 1]) * sstep(0.04, 0.03, Pm[:, 0]) * 0.62
-    m = sstep(0.07, 0.08, L[:, 2]) * sstep(0.04, 0.03, Pm[:, 0]) * 0.75
+    m = sstep(NOSE_S - 0.008, NOSE_S + 0.002, L[:, 2]) * sstep(0.04, 0.03, Pm[:, 0]) * 0.75
     a, c, n = ear_coords(Pm)
     er = sstep(-0.002, 0.0, a) * sstep(0.01, 0.007, np.abs(c)) * sstep(0.004, 0.0025, np.abs(n)) * 0.7
     ft = sstep(0.016, 0.006, Pm[:, 1]) * 0.6
@@ -551,7 +562,7 @@ def _regions(P, N, c):
     r['lid'] = sstep(EYE.r + 0.0035, EYE.r + 0.0018, de) * (1 - r['ball'])
     r['head'] = sstep(-0.008, 0.006, L[:, 2]) * sstep(0.002, 0.0, c['head'] - c['trunk'] + 0.004) * sstep(0.09, 0.1, y)
     r['nose'] = sstep(0.0008, 0.0, ellipsoid(L, V(0.0, -0.0012, NOSE_S - 0.0015), V(0.0064, 0.0048, 0.0036))) * sstep(NOSE_S - 0.005, NOSE_S - 0.0025, L[:, 2])
-    r['muzzle'] = sstep(0.052, 0.072, L[:, 2]) * r['head']
+    r['muzzle'] = sstep(NOSE_S - 0.032, NOSE_S - 0.012, L[:, 2]) * r['head']
     a, cc, n = ear_coords(Pm)
     r['ea'] = a
     r['ear'] = sstep(0.0008, 0.0002, c['ear']) * sstep(-0.001, 0.003, a)
@@ -687,7 +698,8 @@ def meta(st):
     p, r, d, lid = EYE.meta()
     return {
         # big dark brown eyes with a large pupil
-        'eye': {'p': p, 'r': r, 'dir': d, 'lid': lid, 'iris': 0x2A1608, 'irisR': 0.95, 'pupilR': 0.55, 'rim': 0x0A0604, 'lidCol': 0x1E1612,
+        # (round 16b: a warmer brown iris, so the eye does not read as a black bead)
+        'eye': {'p': p, 'r': r, 'dir': d, 'lid': lid, 'iris': 0x45260F, 'irisR': 0.95, 'pupilR': 0.5, 'rim': 0x0A0604, 'lidCol': 0x1E1612,
                 'babyLidCol': 0x3A3430},
         # a band round the neck in the ruff, just behind the head
         'collar': {'at': ['neck', 'head', 0.55], 'w': 0.6, 'r': 0.6, 'lift': 0.25},

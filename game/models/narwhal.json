@@ -3,7 +3,7 @@
  "id": "narwhal",
  "data": "narwhal.bin",
  "enc": "deflate",
- "raw": 64602,
+ "raw": 70992,
  "maps": {
   "color": "narwhal-color.webp",
   "normal": "narwhal-normal.webp",
@@ -55,7 +55,7 @@
   "pupil": "h",
   "pupilR": 0.42,
   "rim": 657414,
-  "lidCol": 7040366,
+  "lidCol": 7895674,
   "babyLidCol": 5068384
  },
  "mouth": [
@@ -84,5 +84,6 @@
   0.0,
   0.0323,
   -0.35000000000000003
- ]
+ ],
+ "bdelta": 0.087773
 }

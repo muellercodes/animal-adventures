@@ -4,8 +4,8 @@
 # giraffe: a trunk loft with the hump on it, a neck sweep, the head as a loft in its own frame, leg sweeps.
 # Shape: a deep chest with the chest pad, a tucked-up waist, one round hump over the middle of the back, the rump
 # sloping to a short tail with a tuft; a long neck dipping down from the shoulders and curving up to the head; a narrow
-# head with a rounded skull, heavy brows over big hooded eyes, small round ears, a long muzzle with slit nostrils, a
-# split upper lip and a droopy lower lip; long thin legs with knobby knees (with calluses) and hocks, wide flat padded
+# head with a rounded skull, heavy brows over big hooded eyes, small round ears, a long Roman-nosed muzzle with slit
+# nostrils, a deeply split upper lip and a droopy lower lip (round 16b); long thin legs with knobby knees (with calluses) and hocks, wide flat padded
 # feet with two toes and small nails. Long hair on the hump, the shoulders and the throat; the tail tuft.
 # Paint: sandy tan, browner over the hump, the neck and the shoulders, cream below, gray-brown lips, dark calluses and
 # soles. The calf: woolly and pale (its own color map and fur shells on babies only), a tiny hump (baby offsets).
@@ -47,11 +47,13 @@ EYE_R = 0.022
 EYE_DIR = nrm([0.86, 0.18, 0.47])
 LID_W, LID_H, LID_OFF = 0.023, 0.0145, -0.004
 MOUTH = hp(0.5, -0.115)
-EAR_B = hp(-0.015, 0.0, 0.06)
-EAR_A = nrm([0.45, 0.75, -0.48])
-EAR_N = nrm([0.55, 0.1, 0.83])
+# (round 16b: small round ears set back and held back a little; the slit nostrils on the top of the muzzle)
+EAR_B = hp(-0.02, 0.0, 0.062)
+EAR_A = nrm([0.5, 0.62, -0.6])
+EAR_N = nrm([0.6, 0.1, 0.8])
 EAR_N = nrm(EAR_N - EAR_A * np.dot(EAR_N, EAR_A))
-EAR_L, EAR_W = 0.085, 0.036
+EAR_L, EAR_W = 0.072, 0.033
+NOSE_C = V(0.028, -0.006, 0.535)
 HUMP = (V(0.0, 1.9, -0.2), V(0.25, 0.32, 0.56))
 
 # trunk: z, top, yw, bottom, half width, exponents (the hump is its own part on top)
@@ -76,16 +78,19 @@ NECK = [
     (2.0, 1.41, 0.09, 0.09, 0.075, 2.0, 2.0),
 ]
 # head, in the head frame: s, top, yw, bottom (the jaw), half width, exponents
+# (round 16b: a dromedary's long face, not a llama's: the forehead high between the brows, a shallow dip in front of
+# the eyes, then the convex (Roman) arch of the nose down to a long, narrow muzzle; a deep lean jaw; no ball on the end)
 HEAD = [
     (-0.05, 0.0, -0.06, -0.12, 0.06, 2.2, 2.0),
-    (0.02, 0.035, -0.05, -0.15, 0.078, 2.3, 2.1),
-    (0.12, 0.04, -0.05, -0.18, 0.085, 2.4, 2.2),
-    (0.22, 0.03, -0.055, -0.17, 0.068, 2.4, 2.2),
-    (0.32, 0.02, -0.06, -0.15, 0.056, 2.4, 2.2),
-    (0.42, 0.012, -0.065, -0.14, 0.054, 2.4, 2.2),
-    (0.5, 0.004, -0.07, -0.135, 0.058, 2.5, 2.3),
-    (0.55, -0.02, -0.075, -0.12, 0.052, 2.4, 2.2),
-    (0.575, -0.045, -0.08, -0.105, 0.035, 2.2, 2.0),
+    (0.02, 0.038, -0.05, -0.155, 0.078, 2.3, 2.1),
+    (0.12, 0.046, -0.05, -0.185, 0.084, 2.4, 2.2),
+    (0.2, 0.031, -0.055, -0.176, 0.066, 2.4, 2.2),
+    (0.29, 0.042, -0.058, -0.16, 0.054, 2.4, 2.2),
+    (0.38, 0.037, -0.062, -0.148, 0.049, 2.4, 2.2),
+    (0.46, 0.02, -0.066, -0.142, 0.048, 2.4, 2.2),
+    (0.52, 0.0, -0.07, -0.135, 0.045, 2.4, 2.2),
+    (0.555, -0.022, -0.074, -0.122, 0.039, 2.3, 2.1),
+    (0.578, -0.048, -0.08, -0.106, 0.028, 2.2, 2.0),
 ]
 # legs: path (y, z), section (front, back, half width), x of the center
 FORE = [
@@ -163,20 +168,24 @@ def head(P):
     # a rounded skull at the back, the cheeks
     d = smin(d, ellipsoid(L, V(0.0, -0.02, 0.01), V(0.075, 0.07, 0.08)), 0.04)
     d = smin(d, ellipsoid(L, V(0.05, -0.12, 0.18), V(0.035, 0.06, 0.09)), 0.035)
-    # the muzzle: a fleshy upper lip split down the middle, overhanging a droopy lower lip
-    d = smin(d, ellipsoid(L, V(0.03, -0.09, 0.52), V(0.035, 0.045, 0.06)), 0.02)
-    d = d + 0.006 * np.exp(-(x / 0.005) ** 2) * sstep(0.5, 0.56, s) * sstep(-0.04, -0.1, u)
-    d = smin(d, ellipsoid(L, V(0.0, -0.15, 0.47), V(0.038, 0.032, 0.07)), 0.02)
-    mo = np.exp(-((u + 0.128 + 0.02 * sstep(0.48, 0.38, s)) / 0.005) ** 2) * sstep(0.34, 0.42, s) * sstep(0.6, 0.52, s)
+    # the muzzle: a fleshy upper lip split down the middle into two lobes, over a lower lip that hangs a little
+    # (round 16b: smaller lobes with a deeper split, the lower lip part of the jaw, not a lump under it)
+    d = smin(d, ellipsoid(L, V(0.023, -0.098, 0.54), V(0.027, 0.037, 0.046)), 0.015)
+    # (the split: a deep cleft down the front of the upper lip from under the nostrils to its edge)
+    d = d + 0.016 * np.exp(-(x / 0.007) ** 2) * sstep(0.49, 0.56, s) * sstep(0.0, -0.055, u)
+    # (the bridge of the nose narrower above the lips)
+    d = d + 0.008 * sstep(0.42, 0.54, s) * sstep(-0.05, 0.0, u) * sstep(0.02, 0.045, np.abs(x))
+    d = smin(d, ellipsoid(L, V(0.0, -0.142, 0.47), V(0.036, 0.03, 0.078)), 0.03)
+    mo = np.exp(-((u + 0.124 + 0.02 * sstep(0.48, 0.38, s)) / 0.005) ** 2) * sstep(0.34, 0.42, s) * sstep(0.6, 0.52, s)
     d = d + 0.007 * mo
     # the nostrils: slits on top of the muzzle, slanting back and out
-    nos = L - V(0.03, -0.01, 0.53)
+    nos = L - NOSE_C
     ca, sa = np.cos(0.6), np.sin(0.6)
     nos = np.stack([nos[:, 0] * ca - nos[:, 2] * sa, nos[:, 1], nos[:, 0] * sa + nos[:, 2] * ca], 1)
-    d = smax(d, -ellipsoid(nos, V(0, 0, 0), V(0.004, 0.012, 0.022)), 0.004)
+    d = smax(d, -ellipsoid(nos, V(0, 0, 0), V(0.0045, 0.013, 0.029)), 0.004)
     ca_, li, ba, br = eye_parts(P)
     d = smin(d, li, 0.012)
-    d = smin(d, br, 0.014)
+    d = smin(d, br, 0.028)
     d = smax(d, -ca_, 0.004)
     d = smin(d, ba, 0.002)
     return d
@@ -190,8 +199,9 @@ def ears(P):
 def eye_parts(P):
     Q = _mirror(P)
     # heavy brows over hooded eyes
+    # (round 16b: the brow ridge lower and further forward, a shelf overhanging the eye)
     return U.eye_parts(Q, EYE_C, EYE_R, EYE_DIR, LID_W, LID_H, LID_OFF, mound=(0.012, 0.011, 0.006),
-                       brow=((-0.032, 0.026, -0.016), (0.02, 0.028, -0.012), 0.016, 0.011))
+                       brow=((-0.044, 0.028, 0.008), (0.03, 0.031, 0.01), 0.017, 0.012))
 
 
 def foot(Q, c):
@@ -543,6 +553,7 @@ K = {
     'lip': hx(0x6A5848), 'lipDk': hx(0x3E3229), 'callus': hx(0x5A4C40), 'sole': hx(0x3A322C), 'nail': hx(0x2E2824),
     'ball': hx(0x100A06), 'lid': hx(0x5A422E), 'earIn': hx(0xC8AE88),
     'calf': hx(0xBCA078), 'calfDk': hx(0x9E8258),
+    'warm': hx(0xA8743E), 'hairDk': hx(0x5A3A1C),   # round 16b
 }
 
 
@@ -576,7 +587,31 @@ def _regions(P, N, c):
     r['callus'] = np.clip(r['callus'], 0, 1)
     r['belly'] = sstep(-0.35, -0.85, N[:, 1]) * sstep(1.45, 1.25, y)
     r['inner'] = sstep(0.1, -0.5, Nm[:, 0]) * sstep(1.4, 1.1, y) * sstep(0.12, 0.17, Pm[:, 0])
+    # round 16b: longer, shaggier hair over the withers and the shoulders and on the upper legs (arm and thigh), as
+    # well as on the hump and the throat; 'shag' is all of it together
+    ell = lambda c0, rr: np.linalg.norm((Pm - V(*c0)) / V(*rr), axis=1)
+    sh = sstep(1.0, 0.55, ell((0.17, 1.74, 0.38), (0.2, 0.3, 0.32)))
+    ul = np.maximum(sstep(1.0, 0.6, ell((0.21, 1.32, 0.42), (0.14, 0.26, 0.16))), sstep(1.0, 0.6, ell((0.22, 1.42, -0.74), (0.16, 0.3, 0.24))))
+    out = sstep(-0.2, 0.3, Nm[:, 0])
+    r['shoulderHair'] = sh * out
+    r['legHair'] = ul * out * (1 - r['belly'])
+    r['humpTop'] = sstep(0.04, -0.01, c['hump'] - c['trunk']) * sstep(1.92, 2.08, y)
+    r['shag'] = np.clip(np.maximum.reduce([r['humpTop'], r['throat'] * 1.2, r['shoulderHair'], 0.8 * r['legHair']]), 0, 1)
     return r
+
+
+_shc = {}
+
+
+def _shag_strands(P, N, R):
+    """round 16b: long hair strokes on the shaggy parts (cached per point set, paint and detail share them)"""
+    key = (len(P), float(P[:5].sum()))
+    if key not in _shc:
+        fl = lambda Q: flow(Q, np.zeros_like(Q))
+        _shc.clear()
+        _shc[key] = U.strands(P.astype(F), N.astype(F), R['shag'] * 0.95, fl,
+                              cell=0.018, l0=0.035, l1=0.075, wid=0.0036, seed=77)
+    return _shc[key]
 
 
 def paint(P, N, c, baby=False):
@@ -593,17 +628,26 @@ def paint(P, N, c, baby=False):
         # the coat in soft tufts and strands: a little lighter and darker here and there
         col = U.mix(col, K['coatLt'], 0.35 * sstep(0.55, 0.8, fbm(Pm * V(9, 4, 9), 2, 23)))
         col = U.mix(col, K['coatDk'], 0.3 * sstep(0.5, 0.75, vnoise(Pm * V(120, 30, 120), 24)) * sstep(0.95, 1.4, y))
+        # (round 16b: a slightly varied sandy coat: broad warmer and paler patches, a sun-bleached back)
+        n3 = fbm(Pm * V(1.4, 1.8, 1.0), 3, 27)
+        col = U.mix(col, K['warm'], 0.4 * sstep(0.45, 0.7, n3))
+        col = U.mix(col, K['coatLt'], 0.3 * sstep(0.5, 0.3, n3) + 0.2 * sstep(0.55, 0.9, Nm[:, 1]) * sstep(1.7, 1.95, y))
         # browner, longer hair over the hump, the shoulders and the throat; paler below and inside the legs
         col = U.mix(col, K['hair'], 0.55 * R['humpHair'] + 0.45 * R['throat'] + 0.25 * R['tuft'])
+        col = U.mix(col, K['hair'], 0.3 * R['shoulderHair'] + 0.22 * R['legHair'])
         col = U.mix(col, K['coatLt'], 0.45 * R['belly'] + 0.35 * R['inner'])
         col = U.mix(col, K['coatLt'], 0.4 * sstep(0.7, 0.4, y) * sstep(0.1, 0.15, x))
-        col = U.mix(col, K['callus'], R['callus'] * 0.85)
+        # (round 16b: the long hair in strands, dark tips over paler roots)
+        st = _shag_strands(P, N, R)
+        col = U.mix(col, K['hairDk'], 0.55 * st * R['shag'])
+        col = U.mix(col, K['coatLt'], 0.3 * sstep(0.3, 0.05, st) * R['shag'] * sstep(0.4, 0.7, n2))
+        col = U.mix(col, K['callus'], R['callus'] * 0.9)
     # the face: paler round the eyes and on the muzzle, gray-brown lips, dark nostrils
     col = U.mix(col, K['cream'], R['muzzle'] * 0.35)
     col = U.mix(col, K['lip'], R['lips'] * 0.75)
     col = U.mix(col, K['lid'], R['lid'] * 0.8)
     col = U.mix(col, K['earIn'], R['earIn'] * 0.5)
-    nos = hframe(Pm) - V(0.03, -0.01, 0.53)
+    nos = hframe(Pm) - NOSE_C
     ca, sa = np.cos(0.6), np.sin(0.6)
     nd = np.linalg.norm(np.stack([nos[:, 0] * ca - nos[:, 2] * sa, nos[:, 1], nos[:, 0] * sa + nos[:, 2] * ca], 1) / V(0.006, 0.016, 0.026), axis=1)
     col = U.mix(col, K['lipDk'], sstep(1.3, 0.9, nd))
@@ -632,6 +676,8 @@ def detail(P, N, c):
     # long shaggy hair on the hump, the throat and the tail tuft
     hs = vnoise(Pm * V(260, 50, 260), 93)
     h += 0.0025 * (hs - 0.5) * np.maximum.reduce([R['humpHair'], R['throat'], R['tuft']])
+    # (round 16b: the long hair's strands in relief on the hump, the withers, the shoulders, the throat, the upper legs)
+    h += 0.0022 * (_shag_strands(P, N, R) - 0.35) * R['shag']
     # calluses: rough, pitted skin; wrinkles round the knees and the fetlocks; creases across the lower neck
     h += 0.0008 * (fbm(Pm * 220, 2, 94) - 0.5) * R['callus']
     wl = np.abs(np.sin(np.pi * (y / 0.02 + 0.6 * fbm(Pm * 9, 2, 95))))
@@ -690,7 +736,7 @@ def meta(st):
     return {
         'eye': {'p': [round(float(v), 5) for v in EYE_C], 'r': round(r, 5), 'dir': [round(float(v), 4) for v in EYE_DIR], 'lid': [round(up, 3), round(dn, 3), 0.3],
                 'iris': 0x2A1A10, 'irisR': 0.97, 'pupil': 'h', 'pupilR': 0.45, 'rim': 0x0C0705, 'lidCol': st['lidCol'], 'babyLidCol': st['babyLidCol'],
-                'lash': {'n': 18, 'len': 0.024, 'col': 0x1E1612}},
+                'lash': {'n': 24, 'len': 0.034, 'col': 0x1E1612}},   # (round 16b: longer, thicker lashes)
         'collar': {'at': ['neck2', 'neck3', 0.6], 'r': 0.8},
         'mouth': [round(float(v), 4) for v in MOUTH],
         # kneeling: the chest pad comes to the ground
