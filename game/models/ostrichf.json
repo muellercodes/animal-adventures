@@ -1,0 +1,71 @@
+{
+ "v": 2,
+ "id": "ostrichf",
+ "base": "ostrich",
+ "maps": {
+  "color": "ostrichf-color.webp",
+  "feather": "ostrichf-feather.webp",
+  "featherNormal": "ostrichf-feathernrm.webp"
+ },
+ "srgb": [
+  "feather"
+ ],
+ "eye": {
+  "p": [
+   0.0372,
+   2.297,
+   0.487
+  ],
+  "r": 0.0205,
+  "dir": [
+   0.8556,
+   0.1208,
+   0.5033
+  ],
+  "lid": [
+   0.8,
+   -0.8,
+   0.12
+  ],
+  "iris": 5913116,
+  "irisR": 0.86,
+  "pupilR": 0.4,
+  "rim": 1708040,
+  "lidCol": 3812388,
+  "babyLidCol": 6967352,
+  "lashes": true
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "neck2",
+   0.3
+  ],
+  "babyAt": 0.4,
+  "hug": true,
+  "babyK": 1.6,
+  "lift": 0.35
+ },
+ "mouth": [
+  0.0,
+  2.258,
+  0.6
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.1,
+  0.1,
+  0.1
+ ],
+ "flat": 8023134,
+ "look": "hen"
+}
