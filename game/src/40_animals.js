@@ -6953,6 +6953,77 @@ const Animals = (() => {
     return s;
   };
 
+  // ===== round 15: zebra =====
+  // A plains zebra (Burchell's): the horse refitted smaller and stockier, about 1.33 m at the shoulder and 2.3 m from
+  // the nose to the rump. zebraFit maps a horse rig point to the zebra's: an overall scale s, the legs shorter (kL)
+  // between the pasterns and the body (the hooves and the body keep their shape), a little wider (kx) and longer (kz).
+  // On the horse's skeleton and gaits: a short upright striped mane, big round ears, a thin tail with a black tassel,
+  // and the stripes. The sculpted model is tools/blender/zebra.py (the same numbers).
+  ids.push('zebra');
+  const ZEB = { s: 0.87, kL: 0.86, kx: 1.04, kz: 1.03 };
+  const zebY = (y) => y + (ZEB.kL - 1) * DOGI(0.24, 0.34, y) + (1 - ZEB.kL) * DOGI(0.98, 1.18, y);
+  const zebP = (p) => [ZEB.s * ZEB.kx * p[0], ZEB.s * zebY(p[1]), ZEB.s * ZEB.kz * p[2]];
+  // a zebra rig point back to the horse's (for the fallback paint)
+  const zebH = (x, y, z) => {
+    let h = y / ZEB.s;
+    for (let i = 0; i < 4; i++) h -= (zebY(h) - y / ZEB.s) / (1 + (ZEB.kL - 1) * sstep(0.24, 0.34, h) + (1 - ZEB.kL) * sstep(0.98, 1.18, h));
+    return [x / (ZEB.s * ZEB.kx), h, z / (ZEB.s * ZEB.kz)];
+  };
+  // the stripes of the fallback body (horse units): 1 on a black stripe. Vertical on the barrel, bands round the neck,
+  // nearly level over the haunch and rings down the legs
+  const zebStripe = (P) => {
+    const [x, y, z] = zebH(P.x, P.y, P.z), ax = Math.abs(x);
+    const leg = sstep(1.02, 0.88, y);
+    let ph = (0.25 - z) / 0.14;
+    const nk = sstep(0.3, 0.65, z) * sstep(1.2, 1.45, y);
+    ph = lerp(ph, (z * 0.75 + (y - 1.3) * 0.66) / 0.15 - 4.73, nk);
+    ph = lerp(ph, y / 0.1, leg);
+    if (P.part === 'head') ph = Math.atan2(ax, (y - 1.68) * 0.6 + (z - 1.2) * 0.8) * 0.1 / 0.04;
+    ph += (noise(x * 9, y * 9, z * 9) - 0.5) * 0.3;
+    const u = fract(ph), b = leg > 0.5 ? 0.42 : 0.52;
+    let k = sstep(0.05, 0, Math.abs(u - b * 0.5) - b * 0.5);
+    // the dark line along the spine and under the belly
+    k = Math.max(k, sstep(0.03, 0.015, ax) * sstep(0.6, 0.8, P.ny) * sstep(0.45, 0.35, z), sstep(0.05, 0.03, ax) * sstep(-0.6, -0.8, P.ny) * sstep(1.1, 1.0, y));
+    return k;
+  };
+  SPEC.zebra = () => {
+    const s = SPEC.horse(), k = ZEB.s;
+    s.bones = s.bones.map((b) => { const o = b.slice(), p = zebP(b.slice(2, 5)); o[2] = p[0]; o[3] = p[1]; o[4] = p[2]; return o; });
+    // the fallback lofts: an upright mane, big round ears, a thin tail ending in a tassel (horse units), then refitted
+    const fur = s.fur.filter((fp) => fp.name !== 'forelock');
+    for (const fp of fur) {
+      if (fp.name === 'mane') fp.keys = [[0, 1.66, 0.44, 0.02, 0.07, 0.03], [0, 1.8, 0.64, 0.022, 0.11, 0.03], [0, 1.9, 0.82, 0.022, 0.11, 0.03], [0, 1.97, 0.95, 0.02, 0.09, 0.03], [0, 2.0, 1.03, 0.018, 0.06, 0.03]];
+      if (fp.name === 'tail') fp.keys = [[0, 1.5, -0.94, 0.04, 0.045, 0.045], [0, 1.44, -1.01, 0.034, 0.036, 0.036], [0, 1.3, -1.08, 0.028, 0.03, 0.03], [0, 1.12, -1.12, 0.024, 0.026, 0.026], [0, 0.98, -1.13, 0.04, 0.045, 0.045], [0, 0.84, -1.13, 0.055, 0.06, 0.06], [0, 0.72, -1.125, 0.03, 0.032, 0.032]];
+      if (fp.name === 'ear') { const B = fp.keys[0]; fp.keys = fp.keys.map((q, i) => [B[0] + (q[0] - B[0]) * 1.3, B[1] + (q[1] - B[1]) * 1.3, B[2] + (q[2] - B[2]) * 1.3, q[3] * (i === 3 ? 4 : 1.45), q[4] * 1.2, q[5] * 1.2]); }
+      fp.keys = fp.keys.map((q) => { const p = zebP(q); return [p[0], p[1], p[2], q[3] * k * ZEB.kx, q[4] * k, q[5] * k].concat(q.slice(6)); });
+    }
+    s.fur = fur;
+    s.shell = Object.assign({}, s.shell, { parts: ['mane', 'tail'], len: 0.02 });
+    s.accent = s.accent.map((a) => Object.assign({}, a, { c: zebP(a.c), r: a.r * k }));
+    s.eyes = s.eyes.map((e) => Object.assign({}, e, { p: zebP(e.p), r: e.r * k, iris: 0x24140C, lidCol: 0x1C1816 }));
+    s.mouth = zebP(s.mouth);
+    s.size = { length: +(2.3 * k * ZEB.kz).toFixed(3), height: +zebP([0, 2.17, 0])[1].toFixed(3), radius: +(0.5 * k * ZEB.kx).toFixed(3), eyeHeight: +s.eyes[0].p[1].toFixed(3) };
+    const K = { white: hex(0xE8E4DA), black: hex(0x1A1716), muzzle: hex(0x221E1C), hoof: hex(0x2A2624), brown: hex(0x5A3E2A), cream: hex(0xEDE2CC) };
+    s.paint = (P, C) => {
+      cset(C, K.white);
+      if (P.part === 'tail') cmix(C, K.black, P.y < zebP([0, 1.0, 0])[1] ? 1 : zebStripe(P));
+      else if (P.part === 'ear') { const u = P.arc / 0.175; cmix(C, K.black, sstep(0.55, 0.65, u) * sstep(0.85, 0.75, u) + sstep(0.88, 0.95, u)); }
+      else cmix(C, K.black, zebStripe(P));
+      if (P.part === 'head') cmix(C, K.muzzle, sstep(zebP([0, 0, 1.36])[2], zebP([0, 0, 1.41])[2], P.z));
+      if (P.part === 'hleg' || P.part === 'fleg') cmix(C, K.hoof, sstep(0.105 * k, 0.092 * k, P.y));
+      C.ro = 0.66; C.fl = P.part === 'mane' || P.part === 'tail' ? 1 : 0.3;
+    };
+    // a foal's stripes are brown and its white is creamy
+    s.babyPaint = (P, C) => { const d = 1 - (C.r + C.g + C.b) / 3; cmix(C, K.cream, (1 - d) * 0.6); cmix(C, K.brown, sstep(0.5, 0.8, d) * 0.85); C.fl = 1; };
+    // the foal: long legs for its size, a big head, a short body
+    s.baby = { head: 1.35, muzzle: 0.72, eye: 1.12, ear: 0.82, neck: [0.74, 1.12], body: [0.95, 0.9, 0.78], leg: [1.08, 1.02], tail: 0.5 };
+    const A = s.anim;
+    for (const n of ['stride', 'strideMax', 'floatDepth', 'eatDrop']) A[n] *= 0.82;
+    A.lift = A.lift.map((v) => v * 0.82); A.bob = A.bob.map((v) => v * 0.82); A.eatSplay = A.eatSplay.map((v) => v * 0.82);
+    Object.assign(A, { walk: 1.6, trot: 3.3, canter: 5.3, run: 8.2 });
+    return s;
+  };
+
   // ===== round 11: lion =====
   // The lion, the tiger and the leopard on the big-cat scaler (bigCat above; tools/blender/panthera.py with lion.py,
   // tiger.py and leopard.py): the cat's skeleton scaled by k with the species' own tail (bones and the fallback's tail
@@ -10149,6 +10220,8 @@ const Animals = (() => {
   COLLAR.wingcat = COLLAR.cat;
   // ===== round 11: unicorn =====
   COLLAR.unicorn = COLLAR.horse;
+  // ===== round 15: zebra =====
+  COLLAR.zebra = COLLAR.horse;
   // ===== round 11: lion =====
   COLLAR.lion = COLLAR.cat;
   // ===== round 11: tiger =====

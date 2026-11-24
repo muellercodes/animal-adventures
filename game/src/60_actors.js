@@ -17,7 +17,9 @@ const FEAR = { chicken: 3, duck: 4.5, swan: 3, frog: 2.5, lizard: 3, snake: 2, b
   lion: 0, tiger: 0, leopard: 2, cheetah: 4, ocelot: 4, panda: 2, cow: 3, camel: 3, gecko: 3, wingcat: 4, unicorn: 6,
   beardeddragon: 3, iguana: 3, chameleon: 2, komodo: 0,
   // round 13: they stand their ground, but fly off if something much bigger comes at them fast
-  griffin: 4, wingedlion: 3 };
+  griffin: 4, wingedlion: 3,
+  // round 15: zebras are wary and quick to bolt
+  zebra: 6 };
 // extra bump circles along a long body: [how far ahead of the body's middle, as a part of its length; radius, as a part
 // of its radius]. A brachiosaurus's middle is at its shoulders: the trunk runs back from there to its hips and tail
 // (its neck is high up, so fences pass under it)
@@ -615,7 +617,7 @@ const Player = {
 /* ---------- getting sick: a cold, a tummy ache or a hurt paw. Only a vet makes it better ---------- */
 // junk food: eat too much of it in a short time and your tummy hurts
 const JUNK = { hotdog: 1, candy: 1, bread: 0.5 };
-const HOOVES = { horse: 1, deer: 1, goat: 1, moose: 1, pig: 1, rhino: 1 };
+const HOOVES = { horse: 1, deer: 1, goat: 1, moose: 1, pig: 1, rhino: 1, zebra: 1 };   // (round 15: zebra)
 const Sick = {
   sayT: 0,
   limb(sp) { return HOOVES[sp] ? 'leg' : (SPECIES[sp].egg || sp === 'frog') ? 'foot' : 'paw'; },

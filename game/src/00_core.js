@@ -153,6 +153,8 @@ const SPECIES = {
   // round 14: narwhal (dive: it can go under the water; aquatic: it never leaves the water and lives only in a sea world;
   // camNear: it is long and low, so the camera comes a little closer)
   narwhal: { name: 'Narwhal', many: 'Narwhals', eats: ['fish', 'smallfish', 'squid'], fav: 'fish', swim: true, dive: true, aquatic: true, noJump: true, swimSpeed: 4.5, price: 1600, camNear: 0.85, baby: 'Narwhal calf' },
+  // round 15: zebra (a plains zebra; it grazes like a horse)
+  zebra: { name: 'Zebra', many: 'Zebras', eats: ['grass', 'hay', 'apple', 'carrot', 'twigs'], fav: 'grass', outdoor: true, price: 1200, baby: 'Zebra foal' },
 };
 const STARTERS = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny'];
 const SHOP = ['squirrel', 'hedgehog', 'weasel', 'turtle', 'pig', 'cat', 'goat', 'dog', 'fox', 'otter', 'raccoon', 'owl', 'deer', 'parrot', 'horse', 'moose'];
@@ -222,6 +224,8 @@ SHOP.push('camel');
 SHOP.push('gecko');
 // round 14: narwhal
 SHOP.push('narwhal');
+// round 15: zebra
+SHOP.push('zebra');
 const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow', 'snow', 'savanna', 'arctic'];
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];
 const SKIN = ['#F3D3B8', '#E6B691', '#C98E66', '#9A6544', '#6B4430'];
@@ -268,6 +272,8 @@ const SEX_LOOK = {
   wingedlion: { base: 'm', m: { name: 'Winged lion' }, f: { name: 'Winged lioness', model: true, size: 0.88 } },
   // round 14: narwhal (the tusk is the boy's: a girl's tusk bone, the species' horn bone, scales to nothing)
   narwhal: { base: 'm', f: { horns: 0, size: 0.86 } },
+  // round 15: zebra (a stallion is a little bigger than a mare; otherwise they look alike)
+  zebra: { base: 'm', f: { size: 0.94 } },
 };
 const sexLook = (id, sex) => (SEX_LOOK[id] && SEX_LOOK[id][sex]) || null;
 const sexOf = (id) => (S.sex && (S.sex[id] === 'm' || S.sex[id] === 'f') ? S.sex[id] : (SEX_LOOK[id] && SEX_LOOK[id].base) || 'f');

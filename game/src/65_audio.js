@@ -260,6 +260,21 @@ const Sound = (() => {
       case 'wingedlion': call({ sp: 'lion', age: b.age }, opts); break;
       // round 14: narwhal: a train of clicks speeding up into a buzz, then a whistle that rises and falls; a calf's
       // softer, higher squeaks
+      // round 15: zebra: the plains zebra's barking "kwa-ha-ha", not a whinny: a run of harsh yelps, each with a
+      // breathy "ha" drawn in after it, quicker and softer toward the end (a foal's are fewer, higher and thinner)
+      case 'zebra': {
+        const n = k > 1 ? 3 : 5;
+        let tc = t;
+        for (let i = 0; i < n; i++) {
+          const fl = 1 - i * 0.05, v = vol * (1 - i * 0.1);
+          T({ t: tc, f: 520 * k * fl, f2: 740 * k * fl, glide: 0.05, dur: 0.13, a: 0.006, type: 'sawtooth', bp: 1300 * k, q: 1.3, vib: 32, vibAmt: 45, vol: v * 0.95 });
+          T({ t: tc + 0.05, f: 760 * k * fl, f2: 460 * k * fl, dur: 0.1, type: 'square', bp: 2200 * k, q: 2, vol: v * 0.22 });
+          noise({ t: tc + 0.14, f: 1150 * k, q: 0.8, dur: 0.12, vol: v * 0.45, pan });
+          T({ t: tc + 0.14, f: 250 * k, f2: 210 * k, dur: 0.12, type: 'sawtooth', lp: 650, vol: v * 0.5 });
+          tc += 0.3 - i * 0.025;
+        }
+        break;
+      }
       case 'narwhal': if (k > 1) { for (let i = 0; i < 3; i++) T({ t: t + i * 0.17, f: 2500 + i * 180, f2: 3300 + i * 140, dur: 0.1, a: 0.015, type: 'sine', vib: 24, vibAmt: 90, vol: vol * 0.3 }); } else { let tc = t; for (let i = 0; i < 12; i++) { noise({ t: tc, f: 3800, q: 5, dur: 0.012, vol: vol * 0.55, pan }); tc += 0.06 * Math.pow(0.82, i) + 0.012; } T({ t: t + 0.55, f: 1400, f2: 2500, dur: 0.38, a: 0.04, type: 'sine', vib: 9, vibAmt: 70, vol: vol * 0.42 }); T({ t: t + 0.92, f: 2500, f2: 1250, dur: 0.5, a: 0.02, type: 'sine', vib: 7, vibAmt: 55, vol: vol * 0.38 }); } break;
     }
   }

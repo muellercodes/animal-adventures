@@ -768,6 +768,13 @@ normal 56), 256 cub map, fur and whisker textures, 512 x 256 feather atlas and i
 Winged lioness (same settings): 8.3k triangles plus 224; 75 KB + 28 + 18 + 5 + 5 + 5 + 15 + 2 + 6 KB, 164 KB of files,
 about 218 KB in the page plus a 19 KB icon (her cub uses the winged lion cub's icon).
 
+Zebra (round 15, `VOXEL=0.0035 TRIS=6500 WEIGHTS=transfer TEX=1024`, about 12 minutes on the shared machine, 8 of them
+the texture step): 7.2k body triangles plus 684 in the cards (the mane's fringe, the forelock, the tassel); 1024 color
+(WebP 72) and normal (70) maps, 384 foal color map, 512 fur map, two 192 x 256 strand textures (the foal's is brown):
+73 KB mesh and cards + 115 + 39 + 28 + 11 + 15 + 15 KB, 299 KB of files, about 399 KB in the page plus 66 KB of icons
+(the girl uses the boy's). The color map is most of it: the stripes do not compress. Texture memory with mipmaps: about
+13 MB on a computer, about 5.3 MB on a phone (the color and normal maps drawn down to 512).
+
 Narwhal (round 14, `VOXEL=0.007 TRIS=4300 WEIGHTS=transfer TEX=768`, about 4 minutes on the shared machine): 6.6k
 triangles (about 8k in the game with the tusk's 1.3k and the eyes); 1536 x 768 color map (both sides, WebP 66), 768
 normal map (WebP 56), 512 x 256 calf map: 42 KB mesh + 69 + 8 + 2 KB, 124 KB of files, about 166 KB in the page plus
@@ -1555,3 +1562,47 @@ VOXEL=0.007 TRIS=4300 WEIGHTS=transfer TEX=768 BLENDER_PY=... python3 tools/blen
   male is framed on the whole length with the tusk (`SPEC.narwhal.icon`, read by `animalIcon` through
   `rig.iconFrame()`; every other animal is framed as before).
 - Budget: see the Budget section.
+
+## Round 15: the plains zebra (`zebra.py`)
+
+A plains zebra (Burchell's), the horse refitted: about 1.33 m at the shoulder and 2.3 m from the nose to the rump.
+
+```bash
+python3 tools/blender/export_rig.py zebra
+VOXEL=0.0035 TRIS=6500 WEIGHTS=transfer TEX=1024 BLENDER_PY=... python3 tools/blender/make.py zebra sculpt export
+```
+
+- The refit: `fwd()` maps a horse rig point to the zebra's, an overall scale (0.87), the legs shorter (0.86) between
+  the pasterns and the body by two smooth ramps (the dog breeds' `DOGI`, so the hooves and the body keep their shape), a
+  little wider (1.04) and longer (1.03); `inv()` maps back (y through a table). The game's `SPEC.zebra` refits the
+  horse's skeleton, fallback lofts, eyes and gaits with the same numbers (`ZEB`, `zebY` in 40_animals.js); change both
+  together. zebra.py imports horse.py as `H` and replaces what differs in that module, in horse units: the ears (`zear`:
+  bigger, broader, rounded tips), the mane (`zmane`: a short stiff plate swept along the crest, striped like the neck,
+  under longer upright fur shells, with a fringe of cards along its top that hardly flop), the tail (`htail_curve`: a
+  long thin dock to the hocks; the tube's skin weights by height over the three tail bones; a black tassel of cards on
+  its lower half) and `H.shape` (the bigger ear's box). Every pipeline hook takes zebra points, maps them back and calls
+  the horse's code; part distances (the paint masks) stay in horse units, heights and fur lengths are scaled back.
+- The stripes are a phase field (`_phase()`: stripes counted, one black and one white per unit), each region its own:
+  upright on the barrel; bands round the neck (arc length along the neck's middle line) running on down the chest and
+  up into the mane; a fan from the flank fold over the haunch (`HC`, `FAN_R`: the angle round it, so the stripes stand
+  upright over the rear flank, rise back over the haunch toward the tail and lie level at the back of the thigh, closer
+  together toward the flank fold, as a zebra's do), with a small term across the spine that makes the chevron saddle on
+  top of the rump; rings down the legs, closer toward the hooves; rings on the dock. The regions blend their phases
+  (phases matched at a point in each blend; a blend of two phases whose gradients oppose makes a bullseye, so the
+  haunch's phase runs the same way as the barrel's). The face is not blended: its stripes are rays from the face's
+  middle line in each cross section (as far apart as `LAM['face']` over the forehead and the nose, wider down the
+  cheeks) and run across the neck's, so `_stripes()` switches from one set to the other along an uneven line behind
+  the jaw; blended, they made a band of fine gray lines there. Anti-aliasing: the edge width comes from the phase's
+  gradient along the surface (a numeric gradient), about a texel at 1024. Then the dark line along the spine and under
+  the belly, faint brown shadow stripes in the middle of the white ones on the haunch, a black muzzle, dark pasterns, the
+  ears white with a dark band and tip on the back, the mane's top edge dark. Burchell's legs are often paler below the
+  knee; these keep thin rings to the hooves.
+- A quick check while painting: the scratch tool that paints the sculpt's vertices with numpy and splats side, 3/4,
+  top, rear and head views (as the narwhal's) took seconds per try; the head needs the full sculpt's points.
+- The foal: the horse's foal proportions with longer legs (`baby.leg` 1.08), its own color map (`baby_paint`: the same
+  stripes in brown on cream with softer edges, a brown muzzle) and its own strand texture (`babyHair`, brown and cream,
+  written by `export_extra()` and named in `srgb`), longer fluffier fur shells (`babyLen` 2.6).
+- In the game: the horse's gaits and actions with the stride, foot lift and bob scaled to the shorter legs; the girl is
+  the boy at 0.94 (`SEX_LOOK.zebra`); the call is a barking "kwa-ha-ha" (65_audio.js).
+- Budget: see the Budget section.
+
