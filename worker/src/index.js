@@ -154,7 +154,9 @@ const SPECIES = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny', 
   // round 13
   'griffin', 'wingedlion',
   // round 14
-  'narwhal'];
+  'narwhal',
+  // round 15
+  'zebra', 'manatee'];
 const MODES = ['ground', 'air', 'swim', 'fly', 'climb', 'perch', 'sleep',
   'dive'];   // round 14: under the water (an animal that can dive)
 const MAX_IN_WORLD = 60;
