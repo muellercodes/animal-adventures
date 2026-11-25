@@ -807,7 +807,7 @@
       const ag = anemoneGeo(), aim = new THREE.InstancedMesh(ag, absorb(mat('reefAnemone', { std: true, roughness: 0.55, sway: 4, flutter: 0.06 })), ACAP);
       aim.frustumCulled = false; aim.count = 0; aim.name = 'reefAnemones';
       w.out.add(fim, tim, aim);
-      w.disposables.push(geo, tg, ag, fim, tim, aim);
+      w.disposables.push(geo, tg, ag, fim, tim, aim, fim.material, tim.material);   // (the atlases and the anemones' material are shared)
       const cells = new Map();
       const floorAt = (x, z) => H(x, z);
       // a spot for a fish of kind s near (x, z) at (y): within its band over the bottom, never at the surface
