@@ -52,7 +52,8 @@ const FOODS = {
   // round 14: squid in the Arctic Ocean (38_food draws it)
   squid: { name: 'Squid', water: true },
 };
-// swim/fly/hop/climb are what the animal can do; swimSpeed and flySpeed are m/s
+// swim/fly/hop/climb are what the animal can do; swimSpeed and flySpeed are m/s (round 17: swimWild: false, only the
+// player's animal of that kind swims; see the cats after the round 16 birds)
 // egg: hatches from an egg (shell color); outdoor: when adopted it lives in a pen in the yard instead of inside the house
 const SPECIES = {
   duck: { name: 'Duck', many: 'Ducks', eats: ['worm', 'smallfish', 'grass', 'berries', 'bread', 'seeds', 'bugs', 'corn', 'lettuce'], fav: 'smallfish', fly: true, swim: true, swimSpeed: 2.4, flySpeed: 10, egg: 0xdfe8d8, outdoor: true, baby: 'Duckling' },
@@ -122,8 +123,9 @@ const SPECIES = {
   camel: { name: 'Camel', many: 'Camels', eats: ['dates', 'hay', 'grass', 'twigs', 'apple'], fav: 'dates', outdoor: true, price: 1300, baby: 'Camel calf' },
   // round 11: leopard gecko
   gecko: { name: 'Leopard gecko', many: 'Leopard geckos', eats: ['bugs', 'worm'], fav: 'bugs', price: 300, egg: 0xF4F1EA, camNear: 0.8, baby: 'Baby gecko' },
-  // round 11: winged cat
-  wingcat: { name: 'Winged cat', many: 'Winged cats', eats: ['smallfish', 'fish', 'worm', 'bugs', 'petfood'], fav: 'smallfish', fly: true, flySpeed: 10, climb: true, price: 900, baby: 'Winged kitten' },
+  // round 11: winged cat (round 17: Rosemary renamed it the Flying lava, and it is orange now; the id stays wingcat,
+  // which saves, the server's species list and the wild placements use)
+  wingcat: { name: 'Flying lava', many: 'Flying lavas', eats: ['smallfish', 'fish', 'worm', 'bugs', 'petfood'], fav: 'smallfish', fly: true, flySpeed: 10, climb: true, price: 900, baby: 'Flying lava kitten' },
   // round 11: unicorn
   unicorn: { name: 'Unicorn', many: 'Unicorns', eats: ['apple', 'carrot', 'grass', 'hay', 'berries'], fav: 'apple', fly: true, flySpeed: 11, outdoor: true, price: 2000, baby: 'Baby unicorn' },
   // round 11: lion
@@ -178,7 +180,7 @@ SHOP.push('polarbear');
 SHOP.push('snowleopard');
 // round 10: saber-toothed cat
 SHOP.push('smilodon');
-// round 11: winged cat
+// round 11: winged cat (round 17: the Flying lava)
 SHOP.push('wingcat');
 // round 11: unicorn
 SHOP.push('unicorn');
@@ -271,6 +273,12 @@ SHOP.push('ostrich');
 SPECIES.peafowl = { name: 'Peacock', many: 'Peacocks', eats: ['seeds', 'bugs', 'berries', 'corn', 'grass'], fav: 'seeds', fly: true, flySpeed: 7, price: 800, egg: 0xEADCC2, outdoor: true, baby: 'Peachick' };
 SHOP.push('peafowl');
 // round 16: big and water birds (end)
+// round 17: every cat can swim (Rosemary: "want cats to be able to swim"). Real cats do: house cats paddle slowly, big
+// cats swim well (the tiger and the ocelot already did, and keep their own numbers). swimWild: false means only your
+// own animal swims: wild, zoo and tag-along cats of these kinds keep out of deep water and live and move where they did
+// before (60_actors canSwim), so a house cat never wanders into a river by itself.
+for (const [id, v] of Object.entries({ cat: 1.4, blackcat: 1.4, orangecat: 1.4, calico: 1.4, siamese: 1.3, whitecat: 1.2, wingcat: 1.5,
+  lion: 1.9, leopard: 2.0, cheetah: 1.8, snowleopard: 1.9, smilodon: 1.8, wingedlion: 1.9 })) Object.assign(SPECIES[id], { swim: true, swimSpeed: v, swimWild: false });
 const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow', 'snow', 'savanna', 'arctic'];
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];
 const SKIN = ['#F3D3B8', '#E6B691', '#C98E66', '#9A6544', '#6B4430'];

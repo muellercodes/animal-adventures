@@ -7285,9 +7285,10 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     };
   };
 
-  // ===== round 11: winged cat =====
-  // A silver tabby house cat with a pair of feathered wings growing from its shoulders, soft gray to white like a
-  // barn owl's or a dove's. The wings are bird wings (the birds' wing bones and feather blades, stdWing) on the cat's
+  // ===== round 11: winged cat (round 17: the Flying lava) =====
+  // A house cat with a pair of feathered wings growing from its shoulders. Round 17: Rosemary named it the Flying lava
+  // and made it orange: a bright orange tabby with fiery orange wings, red-orange at the feather tips (it was a silver
+  // tabby with soft gray barn owl wings; the id is still wingcat). The wings are bird wings (the birds' wing bones and feather blades, stdWing) on the cat's
   // chest; the legged animator folds them along the back on the ground and beats them in flight (anim.wings). The
   // sculpted model (tools/blender/wingcat.py) brings the feathered wing arm and the feather atlas.
   ids.push('wingcat');
@@ -7302,25 +7303,30 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
   SPEC.wingcat = () => {
     const s = SPEC.cat(), W = wingcatWing(false), WA = wingcatWing(true), tabby = s.paint;
     s.bones.push(...W.bones);
-    // silver mackerel tabby for the procedural body: black stripes on pale silver, a white chin
+    // round 17: the Flying lava (Rosemary's name for it; it was a silver tabby): for the procedural body a bright orange
+    // tabby with deep red-orange stripes and a golden chin (tools/blender/wingcat.py paints the sculpted one)
     s.paint = (P, C) => {
       tabby(P, C);
       const l = lum(C);
-      cset(C, l < 0.3 ? mixc(hex(0x1A1A1C), hex(0x5E5E60), sstep(0.06, 0.3, l)) : mixc(hex(0x9A9A98), hex(0xE8E6E2), sstep(0.34, 0.75, l)));
+      cset(C, l < 0.3 ? mixc(hex(0x701404), hex(0xB0360A), sstep(0.06, 0.3, l)) : mixc(hex(0xD8601A), hex(0xF4BE62), sstep(0.34, 0.75, l)));
     };
+    s.babyPaint = (P, C) => { cmix(C, hex(0xE88A3A), 0.3); C.fl = Math.min(1, C.fl * 1.4 + 0.15); };
     s.eyes[0].iris = 0x8CAE48; s.eyes[0].lid = [0.7, -0.72, 0.2];
     // a mammal: it blinks with the upper lid (spec.feathers alone would make it blink like a bird)
     s.lowerBlink = false;
-    const K = { gray: hex(0xA8ACB0), grayDk: hex(0x80858A), pale: hex(0xDCDEDF), white: hex(0xF2F2F0) };
+    // round 17: fiery orange feathers, red-orange toward the tips, golden at the base (they were barn owl grays)
+    const K = { gray: hex(0xE4641A), grayDk: hex(0xA82A08), pale: hex(0xF09838), white: hex(0xF6BC56) };
     s.feathers = (rest, md) => ({
       tex: [256, 128], rough: 0.8,
+      // round 17: the model's blades are light golden orange underneath (seen from below in flight)
+      under: [0xFFA634, 0.8],
       list: (md ? WA : W).feathers,
       paint(u, t, C) {
         const k = Math.floor(u * FNC), sx = fract(u * FNC);
-        if (k === 0 || k === 1) { vane(sx, t, C, K.pale, K.grayDk, K.white); cmix(C, K.white, (1 - t) * 0.5); }
-        else vane(sx, t, C, K.gray, K.pale, K.grayDk);
+        if (k === 0 || k === 1) { vane(sx, t, C, K.gray, K.grayDk, K.white); cmix(C, K.white, (1 - t) * 0.5); cmix(C, K.grayDk, sstep(0.6, 1.0, t) * 0.6); }
+        else { vane(sx, t, C, K.gray, K.pale, K.grayDk); cmix(C, K.grayDk, sstep(0.7, 1.0, t) * 0.4); }
       },
-      babyPaint: downFeather(hex(0xC8CACB), hex(0xE2E3E3), null),
+      babyPaint: downFeather(hex(0xF0A448), hex(0xF8C870), null),
     });
     // kittens: small fluffy wings
     s.baby.wing = 0.5;

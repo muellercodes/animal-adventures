@@ -1,10 +1,13 @@
-# The winged cat (round 11), sculpted with cat.py as the template: a house cat with a silver mackerel tabby coat (pale
-# silver ground, dense black stripes, a white chin and muzzle, a brick red nose rimmed in black, green eyes) and a pair
-# of feathered wings growing from its shoulders, soft gray to white like a barn owl's or a dove's.
+# The winged cat (round 11), sculpted with cat.py as the template: a house cat with a pair of feathered wings growing
+# from its shoulders. Round 17: it is the "Flying lava" now (Rosemary's wish; the species id stays wingcat): a bright
+# warm orange mackerel tabby with dark red-orange stripes, a golden chin, throat and belly, green eyes, and fiery orange
+# wings, the feathers deep red-orange at the tips and light golden orange at the base and underneath. (It was a silver
+# tabby with soft gray barn owl wings; the sculpt, the mesh and the skeleton are the same.)
 # The wings are the birds' (bird.py): the game's wing bones and feather blades (stdWing in SPEC.wingcat) on the cat's
 # chest, and here the feathered wing arm (bird.wing_arm), sculpted in the rest pose (spread flat, the span along +x
 # from the shoulder pivot) and weighted to the wing bones, plus the feather atlas the blades are cut from.
-# Kittens: the tabby kitten's rounder body (baby offsets), bold fuzzy stripes, blue eyes, small wings of soft down.
+# Kittens: the tabby kitten's rounder body (baby offsets), bold fuzzy stripes, blue eyes, small wings of soft down
+# (round 17: an orange kitten with golden orange down on its wings).
 import os, sys
 import numpy as np
 from sdf import V, F, nrm, smin, smax, sstep, sat, ellipsoid, round_cone, fbm, vnoise, worley
@@ -132,14 +135,16 @@ def fix_weights(W, wpos, names, G, weld):
     return W / np.maximum(W.sum(1, keepdims=True), 1e-9)
 
 
-# ---------- coat: a silver mackerel tabby (the cat's tabby masks with a silver palette) ----------
+# ---------- coat: round 17, the Flying lava: a bright orange mackerel tabby (the cat's tabby masks with a lava palette:
+# warm orange ground, darker along the back, deep red-orange stripes, golden instead of cream on the chin and belly so
+# it stays orange all over). (Round 11's silver tabby was 0x8C8C8A ground and 0x161618 stripes.) ----------
 K = {
-    'ground': hexc(0x8C8C8A), 'warm': hexc(0x989692), 'ticked': hexc(0x58585A), 'stripe': hexc(0x161618), 'stripeHi': hexc(0x343436),
-    'buff': hexc(0xB2B0AA), 'white': hexc(0xD0CEC8), 'nose': hexc(0xB06A62), 'noseRim': hexc(0x241A18), 'earIn': hexc(0xD6AEA4),
-    'pad': hexc(0x2E2626), 'ball': hexc(0x0C0806), 'lid': hexc(0x141212), 'eyePale': hexc(0xE0DED8),
+    'ground': hexc(0xD8601A), 'warm': hexc(0xE67C24), 'ticked': hexc(0xB0420E), 'stripe': hexc(0x5E1004), 'stripeHi': hexc(0x942806),
+    'buff': hexc(0xEE9A38), 'white': hexc(0xF4BE62), 'nose': hexc(0xC8685A), 'noseRim': hexc(0x4A1810), 'earIn': hexc(0xE8A088),
+    'pad': hexc(0x5A2418), 'ball': hexc(0x0C0806), 'lid': hexc(0x3A1206), 'eyePale': hexc(0xF2C68C),
 }
-# the wing's feathers: soft silver gray coverts with fine dark peppering and pale edges, white underneath
-KW = {'gray': hexc(0x868A8E), 'pale': hexc(0xB2B5B8), 'white': hexc(0xD4D6D6), 'dark': hexc(0x4E5256), 'edge': hexc(0xC2C4C6)}
+# the wing's feathers (round 17): fiery orange coverts with ember red flecks and golden edges, golden orange underneath
+KW = {'gray': hexc(0xE0621A), 'pale': hexc(0xEE9634), 'white': hexc(0xF4B850), 'dark': hexc(0x962006), 'edge': hexc(0xF4AE48)}
 
 
 def _regions(P, N, c):
@@ -195,12 +200,15 @@ def _wing_paint(P, N, col, R):
     c = np.tile(KW['gray'], (len(Pq), 1))
     c = mix(c, KW['pale'], sstep(0.1, -0.5, up) * 0.6)
     c = mix(c, KW['white'], sstep(-0.3, -0.8, up) * 0.85)
-    # each covert: a pale fringe at its tip edge, a darker shaft line, fine peppering (barn owl)
-    tip = sstep(0.0012, 0.0002, pl['e']) * pl['cov']
-    c = mix(c, KW['edge'], tip * 0.55)
+    # each covert: (round 17) a deep red-orange band toward its tip with a thin golden fringe at the very edge, a darker
+    # shaft line, fine ember red flecks (round 11's barn owl peppering, in red)
+    band = sstep(0.0032, 0.001, pl['e']) * pl['cov']
+    c = mix(c, KW['dark'], band * 0.45 * sstep(-0.3, 0.2, up))
+    tip = sstep(0.0009, 0.0002, pl['e']) * pl['cov']
+    c = mix(c, KW['edge'], tip * 0.45)
     c = mix(c, KW['dark'], sstep(0.0005, 0.0001, np.abs(pl['b'])) * sstep(-0.004, -0.001, pl['a']) * 0.25 * pl['cov'])
     pep = sstep(0.62, 0.8, vnoise(Qm * 900, 71)) * sstep(-0.2, 0.3, up)
-    c = mix(c, KW['dark'], pep * 0.35)
+    c = mix(c, KW['dark'], pep * 0.3)
     c *= (0.95 + 0.1 * pl['id'])[:, None]
     # the skin under the shoulder fur fades into the feathers
     out = col.copy()
@@ -248,9 +256,10 @@ FUR = dict(FUR, quality=66)
 
 def meta(st):
     m = _cat_meta(st)
-    # green eyes; kittens' are blue
-    m['eye'].update({'iris': 0x8EAE46, 'rim': 0x3A4A18, 'babyLidCol': 0x8A8A88})
-    m.update({'rim': [0.14, 0.14, 0.14], 'flat': 0x8A8A88})
+    # green eyes; kittens' are blue (round 17: the kitten's lids, the rim light and the color shown while the maps load
+    # are orange, as the orange cat's are)
+    m['eye'].update({'iris': 0x8EAE46, 'rim': 0x3A4A18, 'babyLidCol': 0xA85A2C})
+    m.update({'rim': [0.24, 0.11, 0.04], 'flat': 0xD8642A})
     return m
 
 
@@ -263,49 +272,58 @@ _cat_baby_paint = baby_paint
 
 
 def baby_paint(P, N, c, col):
-    """kittens: a soft gray fuzz with bold fuzzy stripes (the tabby kitten's), the wing arm pale and downy"""
+    """kittens: a soft orange fuzz with bold fuzzy stripes (the tabby kitten's), the wing arm golden and downy
+    (round 17: the Flying lava kitten; it was a gray one)"""
     R = _regions(P, N, c)
     Pm = R['Pm']
     M = _tabby(R, Pm, N)
     n2 = fbm(Pm * 140, 3, 12)
-    kit = mix(np.tile(hexc(0x909090), (len(P), 1)), hexc(0xA6A6A2), n2)
+    kit = mix(np.tile(hexc(0xE07A2C), (len(P), 1)), hexc(0xEC9442), n2)
     keep_ = np.clip(R['nose'] + R['ball'] + R['lid'] + R['lip'] + R['phil'] + R['pad'] * R['paw'] + R['ear'] * R['earIn'], 0, 1)
     st_ = M['stripes']
     out = mix(col, kit, 0.35 * (1 - keep_) * (1 - st_) * (1 - M['pale']) * (1 - R['arm']))
-    out = mix(out, hexc(0x1C1C1E), sstep(0.25, 0.75, st_) * 0.55 * (1 - keep_) * (1 - R['arm']))
-    down = mix(np.tile(hexc(0xB0B2B3), (len(P), 1)), hexc(0xCCCDCD), n2)
+    out = mix(out, hexc(0x7A1A06), sstep(0.25, 0.75, st_) * 0.5 * (1 - keep_) * (1 - R['arm']))
+    down = mix(np.tile(hexc(0xEE9A3C), (len(P), 1)), hexc(0xF6BC5E), n2)
     out = mix(out, down, R['arm'] * 0.85)
     return np.clip(out, 0, 1).astype(F)
 
 
 # ---------- the feather atlas for the wing blades (cells in the game's order: prim, sec, gcov, lcov, tert) ----------
 def _cells():
+    # round 17 (the Flying lava): fiery orange feathers, light golden orange toward the base and on the inner vanes,
+    # deepening to red-orange at the tips, faint ember bars on the flight feathers (round 11's were barn owl grays:
+    # gray 0x8A8E92, pale 0xB0B4B7, white 0xDCDDDC, dark 0x585C61)
     F_ = B.FeatherCell
-    gray, pale, white, dark = hexc(0x8A8E92), hexc(0xB0B4B7), hexc(0xDCDDDC), hexc(0x585C61)
+    gray, pale, white, dark = hexc(0xE4641A), hexc(0xF09838), hexc(0xF6BC56), hexc(0x9C2206)
+    red = hexc(0xB8300A)
 
     def prim(s, t, side):
-        # gray outer vane, the inner vane paling to white toward its base, faint darker bars (barn owl), a gray tip
-        c = mix(np.tile(white, (len(s), 1)), gray, sstep(-0.3, 0.4, s) * 0.85)
+        # orange outer vane, the inner vane golden toward its base, faint darker bars, the tip deep red-orange
+        c = mix(np.tile(white, (len(s), 1)), gray, sstep(-0.3, 0.4, s) * 0.85 + sstep(0.3, 0.8, t) * 0.3)
         c = mix(c, pale, sstep(0.6, 0.0, t) * sstep(0.2, -0.6, s) * 0.4)
         bars = sstep(0.55, 0.85, np.sin(t * 2 * np.pi * 5.5 + 0.6 * s) * 0.5 + 0.5) * sstep(0.15, 0.4, t)
-        c = mix(c, dark, bars * 0.22)
-        return mix(c, dark, sstep(0.82, 1.0, t) * 0.35)
+        c = mix(c, dark, bars * 0.18)
+        c = mix(c, red, sstep(0.5, 0.85, t) * 0.6)
+        return mix(c, dark, sstep(0.84, 1.0, t) * 0.5)
 
     def sec(s, t, side):
-        c = mix(np.tile(white, (len(s), 1)), gray, sstep(-0.2, 0.6, s) * 0.55 + sstep(0.3, 0.9, t) * 0.3)
+        c = mix(np.tile(white, (len(s), 1)), gray, sstep(-0.2, 0.6, s) * 0.55 + sstep(0.3, 0.9, t) * 0.4)
         bars = sstep(0.6, 0.85, np.sin(t * 2 * np.pi * 4.5) * 0.5 + 0.5) * sstep(0.2, 0.5, t)
-        return mix(c, dark, bars * 0.15)
+        c = mix(c, dark, bars * 0.12)
+        return mix(c, red, sstep(0.6, 0.95, t) * 0.6)
 
     def cov(s, t, side):
-        c = mix(np.tile(gray, (len(s), 1)), pale, sstep(0.5, 1.0, np.abs(s)) * 0.4 + sstep(0.8, 1.0, t) * 0.45)
-        return mix(c, white, sstep(0.3, 0.0, t) * 0.4)
+        c = mix(np.tile(gray, (len(s), 1)), pale, sstep(0.5, 1.0, np.abs(s)) * 0.4)
+        c = mix(c, red, sstep(0.62, 0.95, t) * 0.5)
+        return mix(c, white, sstep(0.3, 0.0, t) * 0.45)
 
     def tert(s, t, side):
         c = mix(np.tile(gray, (len(s), 1)), pale, sstep(0.4, 1.0, np.abs(s)) * 0.45)
-        return mix(c, white, sstep(0.88, 1.0, t) * 0.5)
+        c = mix(c, red, sstep(0.65, 0.95, t) * 0.5)
+        return mix(c, white, sstep(0.3, 0.0, t) * 0.35)
 
-    sh = hexc(0xA4A7AA)
-    return [F_('flight', prim, w=0.55, outer=0.55, tip=0.42, shaft=hexc(0xE8E8E6)),
+    sh = hexc(0xF2B050)
+    return [F_('flight', prim, w=0.55, outer=0.55, tip=0.42, shaft=hexc(0xF8D488)),
             F_('round', sec, w=0.74, outer=0.8, tip=0.5, shaft=sh),
             F_('round', cov, w=0.8, outer=0.85, tip=0.8, shaft=sh),
             F_('round', cov, w=0.82, outer=0.9, tip=1.0, shaft=sh),
@@ -315,7 +333,8 @@ def _cells():
 
 def _baby_cells():
     F_ = B.FeatherCell
-    g1, g2 = hexc(0xC2C3C4), hexc(0x9A9C9E)
+    # (round 17: golden orange down, deeper orange at the root; it was gray 0xC2C3C4 and 0x9A9C9E)
+    g1, g2 = hexc(0xF4B456), hexc(0xDE7426)
 
     def dn(s, t, side):
         return mix(np.tile(g1, (len(s), 1)), g2, sstep(0.5, 0.0, t) * 0.4)
