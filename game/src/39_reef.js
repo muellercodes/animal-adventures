@@ -333,7 +333,7 @@
   function coralProp(hard, soft, lod, radius = 0) {
     const parts = [{ geometry: merge(hard), material: hardMat(), castShadow: false }];
     if (soft && soft.length) parts.push({ geometry: merge(soft), material: softMat(), castShadow: false });
-    return { parts, radius, lod: { parts: [{ geometry: lodGeo(lod), material: hardMat(), castShadow: false }] }, lodD: 24 };
+    return { parts, radius, lod: { parts: [{ geometry: lodGeo(lod), material: hardMat(), castShadow: false }] }, lodD: 17 };
   }
   // natural reef colors (linear): tans, ochres, olive, soft purples and pinks, a few bright ones
   const COL = {
@@ -413,7 +413,7 @@
   VARIANTS.bommie = 2;
   PROPS.staghorn = (v) => { const r = krng(18500 + v * 47), lod = []; return coralProp(stag(r, 0, 0, 1.2 + v * 0.3, jit(r, v ? COL.ochre : COL.tan), lod).concat(stag(r, 0.7, 0.4, 0.9, jit(r, COL.tan), lod)), null, lod, 0); };
   VARIANTS.staghorn = 2;
-  PROPS.reefbits = (v) => { const r = krng(18550 + v * 29), lod = []; return Object.assign(coralProp(bits(r, 0, 0, 1.8, lod, 8 + v * 2), null, lod, 0), { lodD: 14 }); };
+  PROPS.reefbits = (v) => { const r = krng(18550 + v * 29), lod = []; return Object.assign(coralProp(bits(r, 0, 0, 1.8, lod, 8 + v * 2), null, lod, 0), { lodD: 11 }); };
   VARIANTS.reefbits = 3;
   PROPS.barrelsponge = () => { const r = krng(18600), lod = []; return coralProp([barrel(r, 0, 0, 1.0, L(0xc89078), lod), ...bits(r, 0, 0, 2, lod, 4)], null, lod, 0.4); };
   // a giant clam: two heavy ribbed shells with wavy edges, sitting hinge down in the sand, the bright blue green mantle
