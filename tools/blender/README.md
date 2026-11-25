@@ -1886,3 +1886,70 @@ used only by the peacock's train and crest; the other kinds draw as before.
   City Zoo, the Safari Park and by the farm on the Land.
 - Budget: see the Budget section.
 
+
+## Round 17: six birds refitted from existing birds (`robin.py`, `barnowl.py`, `raven.py`, `roboteagle.py`, `kiwi.py`, `dodo.py`)
+
+All six are `refit.py` species (round 16): the base bird's file runs in a private copy, the new species replaces its
+shapes, paints, weights and feather cells there in the base's units, and the game's spec is made from the base spec
+with the same numbers (`songBird` for the robin, `scaleBird` for the rest). New in `refit.api`: nothing; `DROP`, `YA`
+and `YB` (the leg band) are now used beyond the hummingbird, and the game has the same warp as `dropBird(spec, D, ya,
+yb)` in 40_animals.js (shorter legs for the dodo, longer for the barn owl).
+
+```bash
+python3 tools/blender/export_rig.py robin       # and barnowl, raven, roboteagle, kiwi, dodo
+VOXEL=0.0009 TRIS=6000 TEX=768 BLENDER_PY=... python3 tools/blender/make.py robin sculpt export
+BLENDER_PY=... python3 tools/blender/coat.py robinf
+VOXEL=0.0013 TRIS=6000 TEX=768 BLENDER_PY=... python3 tools/blender/make.py barnowl sculpt export
+VOXEL=0.002 TRIS=6200 TEX=768 BLENDER_PY=... python3 tools/blender/make.py raven sculpt export
+VOXEL=0.0028 TRIS=6400 TEX=768 BLENDER_PY=... python3 tools/blender/make.py roboteagle sculpt export
+VOXEL=0.0016 TRIS=6000 TEX=768 BLENDER_PY=... python3 tools/blender/make.py kiwi sculpt export
+VOXEL=0.003 TRIS=6200 TEX=768 BLENDER_PY=... python3 tools/blender/make.py dodo sculpt export
+```
+
+(Delete the `<id>-color-baby.webp` export.py writes for each; nothing reads it. Delete only these six by name: other
+species ship a `-color-baby.webp` of their own.)
+
+- The American robin: the chickadee at 1.85 (as the cardinal at 1.6), a smaller head and a slimmer body, a slender
+  pointed bill. Paint zones from 3D masks in chickadee units (`_zones()`): the blackish head above a line from the chin
+  under the eye to the nape, the brick-orange breast on the front and the underside, white low on the belly and under
+  the tail, a white throat with fine black streaks, the broken eye ring (`_eyering()`: an arc over the eye and one
+  under it, in the eye's own frame). The girl (`robinf.py`, a coat on his mesh): a gray-brown head, a paler breast, a
+  fainter ring. The fledgling: gray-brown down with a spotted orange-buff breast. In the game the tail is shorter than
+  the chickadee's scaled one (a first pass sticking out 14 cm read as a stick).
+- The barn owl: the great horned owl at 0.64 with the legs 3 cm (owl units) longer (`DROP -0.03` over y 0.012 to 0.13),
+  no ear tufts, a slimmer body and the barn owl's face: `heart(x, y)`, about the signed distance to a heart outline in
+  the face plane (two round lobes over the eyes, a notch on the forehead, a point under the bill), the face cut flat,
+  dished inside the heart, a raised rim along it, a ridge down the middle, smaller eyes set deeper, a smaller bill.
+  `_discs()` is replaced so the paint, the owlet's soft face and its down all follow the heart. The golden-buff
+  upperparts wrap round the flanks (the folded wing hangs at the back, so a flank left white read as a white owl from
+  the side); each feather tip veiled gray with a white dot tipped black.
+- The common raven: the bald eagle at 0.72 with the raven's bill (eagle-style `UPPER`/`LOWER` lofts: long, deep,
+  gently arched, a slight droop, no cere or hook), a bristle tuft over the nostrils, no brow, shaggy throat hackles
+  (a bulge and longer pointed feathers in `_size`/`_fshape`), short feathered thighs over long bare black legs, thinner
+  toes with curved claws. The longer bill needs the head box, bounds and bill patch made longer. Glossy black with a
+  blue-purple sheen where the feathers face up (low roughness, so the lift's sky reflection does the rest); a wedge
+  tail in the game (`taper` 0.34).
+- The robot eagle: the bald eagle itself (KS 1), every feather of its plumage pattern painted as a metal plate:
+  gunmetal with a few brushed steel plates, the silver hood and undertail where the eagle is white, a dark seam inside
+  each plate's visible edge, two rivets at its base, brushed streaks along it; a polished dark bronze bill with a panel
+  line where the cere was, bronze talons, jointed steel legs. Its json says `"metal": 1` (the game's model and feather
+  materials get that metalness and the lift's new `metal` kind: full sky reflection, sun shine, no wrap) and its eye
+  `glow` (the iris lights itself; the lids cover the light). The eaglet: round plates (Worley cells) in steel and
+  silver, no down (`del C.FUR`), 384 baby maps. Its atlas: plates in feather outlines with panel lines and rivets.
+- The brown kiwi: the hen's legs at 0.9, everything else its own: a pear-shaped body highest at the rump, no tail or
+  wings (`del C.FEATHER_ATLAS`; the game's spec has no feather blades and builds no feather mesh), the neck and head
+  moved down and forward (the game's spec moves those bones; `_spine_u` weights the neck along z, not y), a long thin
+  curved bill (a `chain`) with the nostrils at its tip, whisker bristles painted round its base, thick legs. Hair-like
+  feathers: `_fshape` makes every plumage feather narrow, pointed and long, and the paint streaks each one. The girl is
+  the sculpt; a boy is the game's 0.85.
+- The dodo: the hen's skeleton at 1.5 with shorter legs (`DROP 0.04` over y 0.02 to 0.12; the whole body comes down
+  6 cm), its own body (a huge round loft, a full breast, a rump for the tail tuft), a short thick ruffed neck, a big
+  head with bare skin round the eye, the huge bill (lofts with a swollen hook, a ridged base, a long nostril slit),
+  stout legs, and a smaller wing arm on its own small wing bones (`C.SH`.. `C.WT` from the game's `stdWing` at s 0.46).
+  The tail tuft and the few wing feathers are the game's blades (atlas cell 5 is `'curl'`).
+- Budget (`TEX=768`; texture memory with mipmaps once the species is used, desktop / phone): robin 5.97k triangles, 176
+  KB of files (about 234 KB in the page), 9.7 / 6.4 MB, the girl's coat 42 KB (about 56 KB), 4.3 / 2.7 MB more when a
+  girl is on screen; barn owl 5.99k, 190 KB (253 KB), 10.9 / 7.6 MB; raven 6.18k, 164 KB (218 KB), 10.9 / 7.6 MB; robot
+  eagle 6.39k, 251 KB (335 KB: the plates do not compress), 9.0 / 5.7 MB; kiwi 5.99k, 163 KB (218 KB), 9.4 / 6.1 MB;
+  dodo 6.2k, 182 KB (243 KB), 10.9 / 7.6 MB. Icons 14 to 32 KB each. About 3 to 4 minutes of Blender each on the
+  shared machine.

@@ -91,7 +91,7 @@ C._discs = _discs
 K = {
     'gold': hexc(0xC8924A), 'goldHi': hexc(0xD8A862), 'gray': hexc(0xA49E96), 'grayDk': hexc(0x7E7870), 'white': hexc(0xF6F2EA),
     'whiteSh': hexc(0xE0D8CA), 'buff': hexc(0xEED8B4), 'dot': hexc(0x2E241C), 'rim': hexc(0xB07C46), 'rimDk': hexc(0x6A4A2C),
-    'smudge': hexc(0x9A6A46), 'bill': hexc(0xE6DACA), 'billDk': hexc(0xC8B8A4), 'toe': hexc(0xB8A49C), 'talon': hexc(0x2A2420), 'lid': hexc(0x5A4232),
+    'smudge': hexc(0x9A6A46), 'bill': hexc(0xDCC8B4), 'billDk': hexc(0xBCA690), 'toe': hexc(0xB8A49C), 'talon': hexc(0x2A2420), 'lid': hexc(0x5A4232),
 }
 
 
@@ -104,7 +104,7 @@ def paint_with(P, N, c, under_k):
     cfa = np.maximum(pl['c'], 1e-4)
     relb = np.abs(pl['b']) / np.maximum(pl['w'], 1e-6)
     # upperparts: golden buff veiled with soft gray on each feather's tip half, a white dot with a black tip near it
-    back = sstep(0.3, -0.15, Nm[:, 2] - 0.35 * sstep(0.3, 0.8, Nm[:, 1]) + 0.25 * sstep(0.3, 0.12, y)) * np.clip(R['trunk'] + R['arm'] + R['head'], 0, 1)
+    back = sstep(0.55, 0.3, Nm[:, 2] - 0.35 * sstep(0.3, 0.8, Nm[:, 1]) + 0.3 * sstep(0.26, 0.12, y)) * np.clip(R['trunk'] + R['arm'] + R['head'], 0, 1)
     up = mix(np.tile(K['gold'], (n, 1)), K['goldHi'], (fid - 0.4) * 0.5)
     veil = sstep(0.55, 0.15, pl['e'] / np.maximum(0.6 * cfa, 1e-6)) * pl['cov']
     up = mix(up, mix(np.tile(K['gray'], (n, 1)), K['grayDk'], sstep(0.5, 0.8, n1) * 0.4), veil * 0.65 * sstep(0.4, 0.75, fbm(Pm * 50, 2, 21)))

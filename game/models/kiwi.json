@@ -1,0 +1,158 @@
+{
+ "v": 2,
+ "id": "kiwi",
+ "data": "kiwi.bin",
+ "enc": "deflate",
+ "raw": 76593,
+ "maps": {
+  "color": "kiwi-color.webp",
+  "normal": "kiwi-normal.webp",
+  "babyColor": "kiwi-babycolor.webp",
+  "fur": "kiwi-fur.webp",
+  "babyNormal": "kiwi-babynrm.webp"
+ },
+ "nv": 2171,
+ "ntri": 2996,
+ "nbv": 2171,
+ "nbt": 2996,
+ "bbox": [
+  -0.087276,
+  -0.001111,
+  -0.183669,
+  0.087276,
+  0.304213,
+  0.291117
+ ],
+ "bones": [
+  "hips",
+  "tail",
+  "neck",
+  "neck2",
+  "head",
+  "comb",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "wingL",
+  "wingR",
+  "wforeL",
+  "wforeR",
+  "whandL",
+  "whandR",
+  "f0L",
+  "f0R",
+  "f1L",
+  "f1R",
+  "f2L",
+  "f2R",
+  "f3L",
+  "f3R",
+  "f4L",
+  "f4R",
+  "f5L",
+  "f5R",
+  "f6L",
+  "f6R",
+  "f7L",
+  "f7R",
+  "f8L",
+  "f8R",
+  "f9L",
+  "f9R",
+  "f10L",
+  "f10R",
+  "f11L",
+  "f11R",
+  "f12L",
+  "f12R",
+  "f13L",
+  "f13R",
+  "f14L",
+  "f14R",
+  "f15L",
+  "f15R",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.01602,
+   0.24705,
+   0.1584
+  ],
+  "r": 0.00342,
+  "dir": [
+   0.9457,
+   0.1207,
+   0.3018
+  ],
+  "lid": [
+   0.75,
+   -0.75,
+   0.12
+  ],
+  "iris": 1314314,
+  "irisR": 0.9,
+  "pupilR": 0.5,
+  "rim": 657414,
+  "babyIris": 1314314,
+  "lidCol": 3812386,
+  "babyLidCol": 5916214
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "neck2",
+   0.5
+  ],
+  "babyAt": 0.6,
+  "hug": true,
+  "babyK": 1.6,
+  "lift": 0.35
+ },
+ "mouth": [
+  0.0,
+  0.1804,
+  0.2894
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.14,
+  0.1,
+  0.08
+ ],
+ "flat": 6178352,
+ "fur": {
+  "len": 0.027,
+  "n": 6,
+  "lean": 0.35,
+  "tile": 0.00216,
+  "babyLen": 1.0,
+  "babyLean": 0.35,
+  "shade": 0.9,
+  "babyOnly": true,
+  "uvm": 0.4138
+ },
+ "bdelta": 0.036514,
+ "belly": [
+  0.0,
+  0.1083,
+  0
+ ],
+ "srgb": [
+  "babyColor"
+ ]
+}

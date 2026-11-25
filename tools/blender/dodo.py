@@ -199,8 +199,8 @@ C.bone_tips = bone_tips
 
 # ---------- plumage (hen units) ----------
 K = {
-    'gray': hexc(0x767C86), 'grayHi': hexc(0x8A909A), 'grayDk': hexc(0x5A606A), 'pale': hexc(0xB4B6B4), 'head': hexc(0x5C6068),
-    'skin': hexc(0x9A9886), 'skinDk': hexc(0x7A7868), 'bill': hexc(0xCACA92), 'billHi': hexc(0xDCDAA8), 'hook': hexc(0x3A3A30),
+    'gray': hexc(0x5A6270), 'grayHi': hexc(0x6A7280), 'grayDk': hexc(0x464C58), 'pale': hexc(0x9A9EA4), 'head': hexc(0x4A4E58),
+    'skin': hexc(0x6E6C5E), 'skinDk': hexc(0x55534A), 'bill': hexc(0xB4B872), 'billHi': hexc(0xC8CA8A), 'hook': hexc(0x3A3A30),
     'base': hexc(0x1E1E1C), 'nostril': hexc(0x4A4A3A), 'leg': hexc(0xD8B23A), 'legDk': hexc(0xA88424), 'claw': hexc(0x3A3428), 'lid': hexc(0x7A7868),
 }
 
@@ -232,7 +232,7 @@ def paint(P, N, c):
     # the bill: pale yellow-green, the swollen hook dark, the ridged base edged black, the nostril slit
     bl = R['bill']
     bcol = mix(np.tile(K['bill'], (n, 1)), K['billHi'], sstep(0.3, 0.9, Nm[:, 1]) * 0.35)
-    bcol = mix(bcol, K['hook'], sstep(0.232, 0.248, z) * sstep(0.37, 0.38, y + 0.3 * (z - 0.24)) * 0.95)
+    bcol = mix(bcol, K['hook'], sstep(0.222, 0.238, z) * 0.95)
     bcol = mix(bcol, K['base'], sstep(0.0045, 0.0015, np.abs(z - 0.149)) * 0.9)
     bcol = mix(bcol, K['nostril'], sstep(0.0018, 0.0008, length((Pm - C.NOSTRIL) * V(1.4, 1.6, 0.2))))
     col = mix(col, bcol, bl)
@@ -260,7 +260,7 @@ def detail(P, N, c):
     return h
 
 
-KB = {'down': hexc(0x8A8A8C), 'downLt': hexc(0xA4A4A6), 'bill': hexc(0x6A6A5E), 'leg': hexc(0xB8A070), 'claw': hexc(0x5A5244)}
+KB = {'down': hexc(0x6E7076), 'downLt': hexc(0x86888E), 'bill': hexc(0x6A6A5E), 'leg': hexc(0xB8A070), 'claw': hexc(0x5A5244)}
 
 
 def paint_baby(P, N, c):

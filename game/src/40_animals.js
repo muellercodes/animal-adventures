@@ -5827,9 +5827,10 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     s0.feathers = (rest, md) => ({
       tex: [256, 128], rough: 0.85,
       list: [
-        ...W.feathers,
+        // (the tiny wing's few feathers a little longer than the hen's wing at that size, so they show)
+        ...W.feathers.map((f) => Object.assign({}, f, { len: f.len * 1.45, wid: f.wid * 1.15 })),
         // a tuft of curly pale feathers high on the rump
-        ...[0, 1, 2, 3, 4].map((i) => ({ bone: 'tail', mirror: true, base: [0.006 + i * 0.006, 0.32 - i * 0.004, -0.17 + i * 0.006], yaw: (80 + i * 9) * DEG, pitch: (58 - i * 6) * DEG, roll: -60 * DEG, len: 0.09 - i * 0.006, wid: 0.03, arc: md ? -1.6 + i * 0.15 : 0, curl: 0.12, cell: fcell(5) })),
+        ...[0, 1, 2, 3, 4, 5, 6].map((i) => ({ bone: 'tail', mirror: true, base: [0.004 + i * 0.005, 0.33 - i * 0.004, -0.175 + i * 0.005], yaw: (76 + i * 8) * DEG, pitch: (62 - i * 6) * DEG, roll: -60 * DEG, len: 0.13 - i * 0.007, wid: 0.034, arc: md ? -1.1 + i * 0.1 : 0, curl: 0.1, cell: fcell(5) })),
       ],
       paint(u, t, C) { const kk = Math.floor(u * FNC), s2 = fract(u * FNC); if (kk === 5) vane(s2, t, C, K.tuft, hex(0xC8C4B8), hex(0xB0ACA0)); else vane(s2, t, C, kk === 0 ? K.pale : K.gray, K.pale, K.grayDk); },
       babyPaint: downFeather(hex(0x8A8A8A), hex(0xA0A0A0), null),

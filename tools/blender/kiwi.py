@@ -37,10 +37,10 @@ TRUNK = [
     (-0.192, 0.285, 0.262, 0.24, 0.014, 2.0, 2.0),
     (-0.175, 0.31, 0.258, 0.205, 0.05, 2.1, 2.0),
     (-0.145, 0.33, 0.252, 0.172, 0.078, 2.2, 2.1),
-    (-0.1, 0.338, 0.245, 0.148, 0.094, 2.3, 2.2),
-    (-0.045, 0.332, 0.238, 0.136, 0.097, 2.3, 2.3),
-    (0.01, 0.318, 0.236, 0.136, 0.092, 2.3, 2.3),
-    (0.06, 0.298, 0.24, 0.152, 0.078, 2.2, 2.2),
+    (-0.1, 0.338, 0.24, 0.138, 0.094, 2.3, 2.2),
+    (-0.045, 0.332, 0.232, 0.124, 0.097, 2.3, 2.3),
+    (0.01, 0.318, 0.23, 0.124, 0.092, 2.3, 2.3),
+    (0.06, 0.298, 0.236, 0.144, 0.078, 2.2, 2.2),
     (0.095, 0.284, 0.248, 0.182, 0.058, 2.1, 2.1),
     (0.118, 0.276, 0.256, 0.218, 0.036, 2.0, 2.0),
     (0.128, 0.272, 0.258, 0.245, 0.016, 2.0, 2.0),
@@ -54,7 +54,7 @@ def trunk(P):
     Q = mirror(P)
     d = loft(Q, TRUNK)
     d = smin(d, ellipsoid(Q, V(0, 0.255, -0.15), V(0.08, 0.075, 0.05)), 0.03)     # the round rump
-    d = smin(d, ellipsoid(Q, V(0.0, 0.175, -0.04), V(0.075, 0.04, 0.09)), 0.03)    # the full belly over the legs
+    d = smin(d, ellipsoid(Q, V(0.0, 0.165, -0.035), V(0.078, 0.045, 0.095)), 0.03)  # the full belly over the legs
     return d
 
 
@@ -86,15 +86,15 @@ def beak(P):
 def drum(P):
     """the short thick thigh, mostly inside the body"""
     Q = mirror(P)
-    return round_cone(Q, V(0.04, 0.2, 0.012), V(0.044, 0.14, 0.008), 0.032, 0.02)
+    return round_cone(Q, V(0.04, 0.19, 0.012), V(0.044, 0.13, 0.008), 0.034, 0.022)
 
 
 def tarsus(P):
     """the thick scaly tarsus"""
     Q = mirror(P)
-    j = round_cone(Q, V(0.044, 0.14, 0.008), C.HMETA + V(0, -0.002, 0.0), 0.0125, 0.0105)
-    t = B.flat_cone(Q, C.HMETA + V(0, -0.002, 0.0), C.HPAW + V(0, 0.005, -0.002), 0.0088, 0.0078, 0.85, up=(1, 0, 0))
-    pad = ellipsoid(Q, C.HPAW + V(0, -0.0006, 0.002), V(0.0105, 0.0066, 0.012))
+    j = round_cone(Q, V(0.044, 0.13, 0.008), C.HMETA + V(0, -0.002, 0.0), 0.0155, 0.013)
+    t = B.flat_cone(Q, C.HMETA + V(0, -0.002, 0.0), C.HPAW + V(0, 0.005, -0.002), 0.0112, 0.0098, 0.85, up=(1, 0, 0))
+    pad = ellipsoid(Q, C.HPAW + V(0, -0.0006, 0.002), V(0.0125, 0.0075, 0.014))
     return smin(smin(j, t, 0.006), pad, 0.005)
 
 
@@ -160,7 +160,7 @@ C.bone_tips = bone_tips
 # ---------- plumage (hen units): hair-like feathers ----------
 K = {
     'brown': hexc(0x6A4C32), 'brownHi': hexc(0x86664A), 'dark': hexc(0x2E2016), 'gray': hexc(0x7A6A5A), 'head': hexc(0x5E4A3A),
-    'bill': hexc(0xD8C6A6), 'billDk': hexc(0xA8927A), 'nostril': hexc(0x4A3A2E), 'leg': hexc(0xA8988A), 'legDk': hexc(0x7A6C60),
+    'bill': hexc(0xCAB496), 'billDk': hexc(0x9A846C), 'nostril': hexc(0x4A3A2E), 'leg': hexc(0x857668), 'legDk': hexc(0x5E5248),
     'claw': hexc(0xC8B8A0), 'lid': hexc(0x3A2C22),
 }
 
@@ -238,7 +238,7 @@ def detail(P, N, c):
     return h
 
 
-KB = {'down': hexc(0x6E5644), 'downLt': hexc(0x8A7260), 'bill': hexc(0xD0C0A4), 'leg': hexc(0xA89A8C), 'claw': hexc(0xC0B098)}
+KB = {'down': hexc(0x6E5644), 'downLt': hexc(0x8A7260), 'bill': hexc(0xC4B094), 'leg': hexc(0x8A7C6E), 'claw': hexc(0xC0B098)}
 
 
 def paint_baby(P, N, c):
