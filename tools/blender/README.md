@@ -1926,3 +1926,22 @@ across the body:
   with a big head and eyes (`baby` in its spec).
 - The texture regions cut the long body into short pieces (`UV_Z`) so its islands pack into the square maps; the
   antlers and the mane get their own islands.
+- In the game (`40_animals.js`): the legged animator with `anim.serpent` (off for every other species). The body is a
+  chain of bones forward from the hips (`s1` .. `s4`, the chest, `neck1`, `neck2`, the head) and back along the
+  tail; each wave is a curve along the body turned into each bone's bend (the change of the curve's slope from its
+  parent's stretch to its own), the trunk's share before the legs are placed and the neck's and tail's after their
+  usual pose. Walking, the trunk bends in an S between the legs in step with the gait and a wave runs back along the
+  tail; swimming, a sideways wave runs down the whole body with the legs tucked; flying (it has no wings), a slow up
+  and down wave runs from the head to the tail tip (amplitude 5 cm at the head to 42 cm at the tail tip, wavelength
+  3.2 m) with a smaller sideways one, the head kept steady and the legs tucked along the belly (body relative, since
+  the shoulders ride up and down on the wave) and paddling a little; happy, a ripple runs down the body; asleep it
+  curls round on itself (3.6 radians along the body). The whiskers are a tapered tube from each side of the upper lip
+  rebuilt every frame by `spec.extend` (`dragonExtend`): out and a little forward at the lip, then curving back and
+  down, streaming back when it moves or flies, a slow wave running out along them; a baby's are short. The menu
+  picture swings the tail round in an S (`spec.icon`).
+- Budget (`VOXEL=0.007 TRIS=2400 TEX=1024 WEIGHTS=transfer`, about 3 minutes of Blender): 9.2k triangles (plus 240 in
+  the whiskers); 1024 color (WebP 62) and normal (WebP 48) maps, no baby map (the baby has the same colors): 75 KB mesh
+  with the baby's offsets + 59 + 103 KB, 239 KB of files, about 318 KB in the page. Texture memory with mipmaps:
+  about 10.7 MB on a computer, about 2.7 MB on a phone (the maps capped at 512). The maps are only a quarter covered
+  (many small islands on the crest, mane and antlers, and the long body cut into strips); the body still gets about
+  2 mm a texel on a computer.
