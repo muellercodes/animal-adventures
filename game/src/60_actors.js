@@ -1022,8 +1022,11 @@ const Wild = {
             // round 17: a roaming flier (sp.roam: only the Chinese dragon) now and then flies off on a long flight across
             // its home ground (between the Sky Lands' islands, up and down the Jungle river), as the flyaway state does
             else if (sp.roam && canFlyNow(b) && !b.pen && !b.hasKids && r < 0.3) {
-              const q = G.world.ringPoint(b.home.x, b.home.z, b.range * 0.25, b.range, b.water && Math.random() < 0.3);
-              if (q && Math.hypot(q.x - b.pos.x, q.z - b.pos.z) > 15) { b.state = 'flyaway'; b.target = q; b.flyH = 5 + Math.random() * 9; if (b.mode === 'sleep') b.mode = 'ground'; } else b.timer = 2;
+              // (on dry ground unless it lives by the water: the Sky Lands' low island lies under the water line)
+              const wq = b.water && Math.random() < 0.3;
+              let q = null;
+              for (let k = 0; k < 4 && !(q && (wq || q.h > WATER + 0.3)); k++) q = G.world.ringPoint(b.home.x, b.home.z, b.range * 0.25, b.range, wq);
+              if (q && (wq || q.h > WATER + 0.3) && Math.hypot(q.x - b.pos.x, q.z - b.pos.z) > 15) { b.state = 'flyaway'; b.target = q; b.flyH = 5 + Math.random() * 9; if (b.mode === 'sleep') b.mode = 'ground'; } else b.timer = 2;
             }
             else {
               if (b.mode === 'sleep') b.mode = 'ground';

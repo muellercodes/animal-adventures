@@ -679,7 +679,7 @@ const World = (() => {
           // round 13: griffins nest on the highest island, winged lions on another
           ...SP7([{ sp: 'griffin', n: 2, kids: 1, home: [110, -96], range: 9 }, { sp: 'wingedlion', n: 2, kids: 1, home: [-96, 104], range: 12 }]),
           // round 17: Chinese dragons: two that fly from island to island, and a pair with their baby on an island of their own
-          ...SP7([{ sp: 'chinesedragon', n: 2, home: [0, 0], range: 120 }, { sp: 'chinesedragon', n: 2, kids: 1, home: [-62, 32], range: 12 }]),
+          ...SP7([{ sp: 'chinesedragon', n: 2, home: [22, 74], range: 120 }, { sp: 'chinesedragon', n: 2, kids: 1, home: [22, 74], range: 9 }]),
         ],
         ambient: [{ sp: 'parrot', w: 3 }, { sp: 'owl', w: 1 }, { sp: 'swan', w: 1 }],
         foods: { berries: 5, apple: 3, acorn: 1, worm: 1, grass: 2, seeds: 2, bugs: 2, carrot: 1, smallfish: 1 },
