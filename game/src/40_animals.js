@@ -9093,6 +9093,88 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
   };
   // round 15: manatee (end of the spec)
 
+  // ===== round 18: the bottlenose dolphin =====
+  // A common bottlenose dolphin (Tursiops truncatus). The grown-up is 2.7 m from the tip of the beak to the tips of the
+  // flukes, 0.6 m deep: a streamlined spindle, thickest just behind the flippers, the tail stock narrow and keeled; a
+  // rounded melon over a short thick beak with a crease between them, the curved mouth line turning up at its corner
+  // (the "smile"), small eyes just behind and above it, one crescent blowhole on top; a tall curved dorsal fin in the
+  // middle of the back, pointed flippers low on the sides, broad pointed flukes with a notch in the middle. Gray with a
+  // darker cape over the back, a pale belly. A boy is a little bigger than a girl (SEX_LOOK); otherwise they look the
+  // same. The calf (about 1.1 m) is paler, with faint pale fetal fold stripes down its sides. It swims like the narwhal
+  // (animWhale) but quicker, and leaps (animDolphin below, 60_actors Leap). The sculpted model is tools/blender/dolphin.py;
+  // without it this is the loft body below.
+  ids.push('dolphin');
+  const DL = {
+    chest: [0, 0.3, 0.12], hips: [0, 0.31, -0.3], tail1: [0, 0.33, -0.72], tail2: [0, 0.35, -1.06], fluke: [0, 0.36, -1.33],
+    neck: [0, 0.3, 0.5], head: [0, 0.3, 0.7], flipper: [0.2, 0.16, 0.42],
+    eye: [0.152, 0.262, 0.835], mouth: [0, 0.198, 1.1],
+  };
+  SPEC.dolphin = () => {
+    const K = { side: hex(0x6B7178), cape: hex(0x41474E), belly: hex(0xDCDAD4), fin: hex(0x50565D), calf: hex(0x8A9096), calfCape: hex(0x6A7077), calfBelly: hex(0xE2E0DA) };
+    const B = (n) => DL[n];
+    const st = (z, top, yw, bot, w, e) => [0, yw, z, w, top - yw, yw - bot, e || 2.1];
+    const front = [st(0.12, 0.595, 0.305, 0.002, 0.25), st(0.35, 0.575, 0.3, 0.012, 0.24), st(0.55, 0.53, 0.295, 0.035, 0.215), st(0.7, 0.48, 0.29, 0.065, 0.18),
+      st(0.82, 0.42, 0.28, 0.1, 0.145), st(0.92, 0.35, 0.265, 0.13, 0.105), st(1.0, 0.27, 0.235, 0.15, 0.065), st(1.08, 0.235, 0.21, 0.17, 0.042), st(1.13, 0.215, 0.2, 0.185, 0.025)];
+    const back = [st(0.12, 0.595, 0.305, 0.002, 0.25), st(-0.1, 0.593, 0.31, 0.01, 0.245), st(-0.35, 0.58, 0.32, 0.04, 0.2), st(-0.6, 0.555, 0.33, 0.09, 0.155, 2.0),
+      st(-0.85, 0.515, 0.34, 0.16, 0.105, 1.85), st(-1.1, 0.465, 0.35, 0.235, 0.06, 1.7), st(-1.3, 0.415, 0.36, 0.3, 0.035, 1.7), st(-1.4, 0.39, 0.36, 0.33, 0.026, 1.8)];
+    // the flukes: a thin plate along x, its chord between the leading edge zl and the trailing edge zt, pointed tips
+    const fk = [[0.0, -1.33, -1.5, 0.03], [0.06, -1.36, -1.53, 0.027], [0.12, -1.4, -1.55, 0.022], [0.18, -1.46, -1.57, 0.016], [0.24, -1.52, -1.6, 0.011], [0.28, -1.57, -1.625, 0.008], [0.31, -1.62, -1.645, 0.006]];
+    const fluke = fk.map(([x, zl, zt, th]) => [x, 0.36, (zl + zt) / 2, (zl - zt) / 2, th, th, 2.0]);
+    // a flipper: low on the side, out, back and down to a point
+    const flip = [[0.2, 0.17, 0.44, 0.07, 0.028], [0.27, 0.13, 0.38, 0.065, 0.022], [0.33, 0.1, 0.31, 0.05, 0.016], [0.37, 0.085, 0.25, 0.032, 0.011], [0.39, 0.08, 0.21, 0.012, 0.007]].map(([x, y, z, w, th]) => [x, y, z, w, th, th, 2.0]);
+    // the dorsal fin: up from the back, its chord along z, swept back and curving to a point
+    const fin = [[0.56, -0.1, 0.22, 0.03], [0.66, -0.15, 0.15, 0.022], [0.73, -0.21, 0.1, 0.015], [0.79, -0.28, 0.055, 0.01], [0.82, -0.35, 0.02, 0.006]].map(([y, z, w, th]) => [0, y, z, w, th, th, 2.0]);
+    return {
+      size: { length: 2.7, height: 0.6, radius: 0.27, eyeHeight: 0.27, baby: { length: 2.5, height: 0.62, radius: 0.28, eyeHeight: 0.28 } },
+      tex: [256, 512], rough: 0.32,
+      detail: { kind: 'skin', tile: 0.06, amt: 0.05, bump: 0.1, sheen: 0.05 },
+      bones: [
+        ['chest', null, ...B('chest')], ['hips', 'chest', ...B('hips')], ['tail1', 'hips', ...B('tail1')], ['tail2', 'tail1', ...B('tail2')], ['fluke', 'tail2', ...B('fluke')],
+        ['neck', 'chest', ...B('neck')], ['head', 'neck', ...B('head')], ['flipperL', 'chest', ...B('flipper'), 1],
+      ],
+      fur: [
+        { name: 'body', bones: ['chest', 'hips', 'tail1', 'tail2', 'fluke'], blend: 0.1, segs: 18, sub: 3, cap1: 2, keys: back },
+        { name: 'head', bones: ['chest', 'neck', 'head'], blend: 0.08, segs: 18, sub: 3, cap1: 3, capLen1: 0.5, keys: front },
+        { name: 'fluke', bones: ['fluke'], mirror: true, segs: 8, sub: 2, cap1: 2, side: [0, 0, 1], keys: fluke, texScale: 0.5 },
+        { name: 'flipper', bones: ['flipperL'], mirror: true, segs: 8, sub: 2, cap1: 2, side: [0, 0, 1], keys: flip, texScale: 0.4 },
+        { name: 'fin', bones: ['chest'], segs: 8, sub: 2, cap1: 2, side: [0, 0, 1], keys: fin, texScale: 0.4 },
+      ],
+      // (the sculpted model's look in short: gray, a darker cape over the back, a pale belly, darker fins)
+      paint(P, C) {
+        const up = P.ny, fins = P.part === 'fluke' || P.part === 'flipper' || P.part === 'fin';
+        cset(C, K.side);
+        cmix(C, K.cape, sstep(0.25, 0.75, up) * (P.part === 'head' ? 0.7 : 1));
+        cmix(C, K.belly, sstep(-0.25, -0.7, up) * (fins ? 0.15 : 0.95));
+        if (fins) cmix(C, K.fin, 0.6);
+        cmul(C, 0.96 + 0.06 * noise(P.x * 25, P.y * 25, P.z * 25));
+        C.ro = 0.3;
+      },
+      // the calf: paler, with faint pale fetal fold stripes across its sides
+      babyPaint(P, C) {
+        const up = P.ny;
+        cset(C, K.calf);
+        cmix(C, K.calfCape, sstep(0.3, 0.8, up) * 0.8);
+        cmix(C, K.calfBelly, sstep(-0.2, -0.7, up) * 0.9);
+        if (P.part === 'body') cmix(C, K.calfBelly, 0.3 * sstep(0.6, 0.9, Math.cos(P.z * 42)) * sstep(-0.3, 0.1, P.z) * sstep(0.12, -0.25, P.z) * sstep(0.7, 0.2, Math.abs(up)));
+        cmul(C, 0.97 + 0.05 * noise(P.x * 20, P.y * 20, P.z * 20));
+      },
+      accent: [],
+      eyes: [{ bone: 'head', p: B('eye'), r: 0.013, dir: [0.92, 0.1, 0.38], iris: 0x3A2A1E, irisR: 0.95, pupilR: 0.5, rim: 0x101010, lid: [0.75, -0.72, 0.2] }],
+      mouth: B('mouth'),
+      anim: {
+        type: 'dolphin', walk: 0.5, run: 1.0, stride: 1.0, floatDepth: 0.47,
+        spine: ['chest', 'hips', 'tail1', 'tail2', 'fluke'], front: ['neck', 'head'],
+        // quick strokes, most of the beat in the tail stock and the flukes (which lead it a quarter beat)
+        wave: [0.02, 0.05, 0.14, 0.26, 0.46], lag: [0.0, 0.55, 1.15, 1.75, 3.3],
+        rate: 0.36, hover: 0.4, bend: [0.05, 0.08, 0.11, 0.11, 0.07], neckBend: [0.05, 0.07], bank: 0.2,
+        swimHead: [0.03, 0.06, 0.05],
+      },
+      // the calf: the same shape, the head and the flippers a little bigger, the body a little shorter and rounder
+      baby: { head: 1.1, muzzle: 0.9, eye: 1.12, neck: [0.95, 1.02], body: [1.04, 1.04, 0.92], tail: 0.95, noDrop: true },
+    };
+  };
+  // round 18: the bottlenose dolphin (end of the spec)
+
   // ---------- age: baby proportions ----------
   // Every bone gets a baby map g(p) = c1 + M (p - c0): c0 is the adult pivot, c1 the baby pivot, M a 3x3 linear map
   // (row-major array). Child pivots ride on their parent's map so joints stay connected; the whole skeleton drops so the
@@ -12518,6 +12600,36 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
   }
   ANIM.manatee = animManatee;
   // round 15: manatee (end of the animator)
+
+  // ===== round 18: the bottlenose dolphin =====
+  // The dolphin swims like the narwhal (animWhale: quicker strokes, a hover, turning and banking, the tail trailing the
+  // dive, a roll when happy). New: the leap ('air', 60_actors Leap): out of the water the beats stop, the body is held in
+  // a curve along the arc (the head and the flukes a little down from the middle), the flippers tucked; the game pitches
+  // the whole body along the arc (the rig root). Coming back in, the beats start again.
+  function animDolphin(R, A) {
+    const base = animWhale(R, A), B = R.bones, P = A.spec.anim;
+    const sp = P.spine.map((n) => B[n]), neck = B[P.front[0]], head = B[P.front[1]];
+    const fls = [[B.flipperL, 1], [B.flipperR, -1]];
+    const st2 = {}, S = { air: 0 };
+    return function update(dt, st) {
+      dt = clamp(dt || 0, 0, 0.1);
+      const leap = st.mode === 'air';
+      spring(S, 'air', leap ? 1 : 0, leap ? 7 : 4, dt);
+      // (in the air the whale's animator would take it for stranded on the ground: it is told it swims under the water)
+      let s = st;
+      if (leap) { Object.assign(st2, st); st2.mode = 'dive'; st2.vy = 0; s = st2; }
+      base(dt, s);
+      const a = S.air;
+      if (a < 0.001) return;
+      const arch = 0.07;
+      for (let i = 1; i < sp.length; i++) sp[i].rotation.x = sp[i].rotation.x * (1 - 0.8 * a) - a * arch * [0, 0.5, 0.9, 1, 0.7][i];
+      if (neck) neck.rotation.x += a * arch * 0.5;
+      if (head) head.rotation.x += a * arch * 0.4;
+      for (const [f, sd] of fls) if (f) { f.rotation.z = f.rotation.z * (1 - a) + sd * a * 0.12; f.rotation.y = f.rotation.y * (1 - a) + sd * a * 0.2; }
+    };
+  }
+  ANIM.dolphin = animDolphin;
+  // round 18: the bottlenose dolphin (end of the animator)
 
   // ===== round 16: big and water birds (flamingo, peafowl, ostrich, penguin, puffin) =====
   // round 16: the American flamingo, about 1.4 m tall (a girl 0.88 of that): vivid pink-orange, black flight feathers

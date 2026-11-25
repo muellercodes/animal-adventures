@@ -1,0 +1,86 @@
+{
+ "v": 2,
+ "id": "dolphin",
+ "data": "dolphin.bin",
+ "enc": "deflate",
+ "raw": 65166,
+ "maps": {
+  "color": "dolphin-color.webp",
+  "normal": "dolphin-normal.webp",
+  "babyColor": "dolphin-color-baby.webp"
+ },
+ "nv": 2164,
+ "ntri": 3287,
+ "nbv": 2164,
+ "nbt": 3287,
+ "bbox": [
+  -0.395085,
+  0.002994,
+  -1.632999,
+  0.395085,
+  0.831587,
+  1.156114
+ ],
+ "bones": [
+  "chest",
+  "hips",
+  "tail1",
+  "tail2",
+  "fluke",
+  "neck",
+  "head",
+  "flipperL",
+  "flipperR"
+ ],
+ "eye": {
+  "p": [
+   0.1345,
+   0.27,
+   0.852
+  ],
+  "r": 0.0125,
+  "dir": [
+   0.9309,
+   0.0601,
+   0.3603
+  ],
+  "lid": [
+   0.536,
+   -0.616,
+   0.25
+  ],
+  "iris": 3811356,
+  "irisR": 0.96,
+  "pupil": "h",
+  "pupilR": 0.45,
+  "rim": 657414,
+  "lidCol": 5790815,
+  "babyLidCol": 8422277
+ },
+ "mouth": [
+  0.0,
+  0.2,
+  1.13
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.04,
+  0.05,
+  0.06
+ ],
+ "flat": 6975606,
+ "belly": [
+  0.0,
+  0.024,
+  -0.3
+ ]
+}

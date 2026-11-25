@@ -751,13 +751,14 @@ function updateHud() {
   else if (canFlyNow(b) && b.mode === 'air' && !b.room) jl = 'Fly';
   else if (b.mode === 'fly') jl = 'Flap';
   if (h.jl !== jl) { h.jl = jl; $('jumpLabel').textContent = jl; if (jl === 'Up' || h.jlUp) { h.jlUp = jl === 'Up'; $('btnJump').setAttribute('aria-label', jl === 'Up' ? 'Up' : 'Jump'); } }
-  const showJump = under || (!(sp.noJump && !sp.fly) && b.mode !== 'climb' && b.mode !== 'sleep');
+  // (round 18: a dolphin at the surface gets Jump too: it leaps)
+  const showJump = under || (!(sp.noJump && !sp.fly) && b.mode !== 'climb' && b.mode !== 'sleep') || (!!sp.leap && (b.mode === 'swim' || b.mode === 'air') && !b.room);
   if (h.showJump !== showJump) { h.showJump = showJump; $('btnJump').hidden = !showJump; }
   const land = b.mode === 'fly' || deepHere;
   if (h.land !== land) { h.land = land; $('btnLand').hidden = !land; }
   const ll = deepHere ? 'Dive' : 'Land';
   if ((h.ll || 'Land') !== ll) { h.ll = ll; const el = $('btnLand'); el.lastChild.textContent = ll; el.setAttribute('aria-label', ll); }
-  const kd = dv ? (sp.noJump ? 2 : 1) : 0;
+  const kd = dv ? (sp.noJump && !sp.leap ? 2 : 1) : 0;   // (round 18: a dolphin's Space leaps at the surface)
   if (h.keysDive !== kd) { h.keysDive = kd; $('keys').innerHTML = kd ? KEYS_HTML.replace('jump/fly', kd === 2 ? 'up' : 'jump/up').replace('</b> land', '</b> dive') : KEYS_HTML; }
   const ready = !!Player.reachable();
   if (h.ready !== ready) { h.ready = ready; $('btnEat').classList.toggle('ready', ready); }
@@ -1350,7 +1351,7 @@ function start(data) {
     if (resume) Promise.race([pulled, new Promise((res) => setTimeout(res, 4000))]).then(() => { if (R.mode === 'title' && !$('titleWrap').hidden) play(); });
   } else if (resume) play();
   window.claude?.hot?.snapshot?.(() => ({ S: JSON.parse(JSON.stringify(S)), playing: R.mode === 'play' }));
-  if (/test|assets/.test(location.hash)) window.__aa = { SPECIES, manual(on) { manual = on; if (!on) requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); }); }, step(n, dt = 1 / 30, draw = true) { for (let i = 0; i < n; i++) tick(dt, 1, draw && i === n - 1); }, S, G, R, Player, Wild, Folk, Foods, Homes, World, Cam, inp, keys, press, travel, switchAnimal, loadWorld, play, pickStarter, animalIcon, renderer, camera, scene, dayInfo, timeOfDay, findAction, doAction, Sound, setBodyAge, goHome, buyAnimal, Env, Animals, People, THREE, Net, Town, Nav, Traffic, Plan, CityLife, Sick, applySave, Zoos, SEX_LOOK, sexLook, sexOf, setSex, stick, releaseTouches, Dive, Blow, canDive, isAquatic, spawnOf, seaWorld, livesIn, homeWaters, openSheet, closeSheet };
+  if (/test|assets/.test(location.hash)) window.__aa = { SPECIES, manual(on) { manual = on; if (!on) requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); }); }, step(n, dt = 1 / 30, draw = true) { for (let i = 0; i < n; i++) tick(dt, 1, draw && i === n - 1); }, S, G, R, Player, Wild, Folk, Foods, Homes, World, Cam, inp, keys, press, travel, switchAnimal, loadWorld, play, pickStarter, animalIcon, renderer, camera, scene, dayInfo, timeOfDay, findAction, doAction, Sound, setBodyAge, goHome, buyAnimal, Env, Animals, People, THREE, Net, Town, Nav, Traffic, Plan, CityLife, Sick, applySave, Zoos, SEX_LOOK, sexLook, sexOf, setSex, stick, releaseTouches, Dive, Blow, canDive, isAquatic, spawnOf, seaWorld, livesIn, homeWaters, openSheet, closeSheet, Leap, Spray };   // (round 18: Leap, Spray)
   requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); });
 }
 // round 11: the animal models load from files beside the page first (build.mjs); the game starts when they are in

@@ -276,6 +276,21 @@ const Sound = (() => {
         break;
       }
       case 'narwhal': if (k > 1) { for (let i = 0; i < 3; i++) T({ t: t + i * 0.17, f: 2500 + i * 180, f2: 3300 + i * 140, dur: 0.1, a: 0.015, type: 'sine', vib: 24, vibAmt: 90, vol: vol * 0.3 }); } else { let tc = t; for (let i = 0; i < 12; i++) { noise({ t: tc, f: 3800, q: 5, dur: 0.012, vol: vol * 0.55, pan }); tc += 0.06 * Math.pow(0.82, i) + 0.012; } T({ t: t + 0.55, f: 1400, f2: 2500, dur: 0.38, a: 0.04, type: 'sine', vib: 9, vibAmt: 70, vol: vol * 0.42 }); T({ t: t + 0.92, f: 2500, f2: 1250, dur: 0.5, a: 0.02, type: 'sine', vib: 7, vibAmt: 55, vol: vol * 0.38 }); } break;
+      // round 18: dolphin: a fast train of clicks speeding up into a creaky buzz, then whistles that rise and fall (its
+      // own signature whistle, a little different each time), now and then a chirpy burst of squeaks; a calf's whistles
+      // are higher and thinner, with fewer clicks
+      case 'dolphin': {
+        const c = k > 1, f0 = c ? 1.3 : 1;
+        let tc = t;
+        const nc = c ? 7 : 16;
+        for (let i = 0; i < nc; i++) { noise({ t: tc, f: 4200 + Math.random() * 600, q: 6, dur: 0.008, vol: vol * 0.5, pan }); tc += 0.05 * Math.pow(0.86, i) + 0.006; }
+        const w0 = tc + 0.12, up = 0.8 + Math.random() * 0.25;
+        T({ t: w0, f: 3200 * f0, f2: 7600 * f0 * up, dur: 0.32, a: 0.03, type: 'sine', vib: 11, vibAmt: 160, vol: vol * 0.36 });
+        T({ t: w0 + 0.3, f: 7600 * f0 * up, f2: 4200 * f0, dur: 0.28, a: 0.01, type: 'sine', vib: 8, vibAmt: 120, vol: vol * 0.34 });
+        T({ t: w0 + 0.62, f: 4300 * f0, f2: 6400 * f0, dur: 0.22, a: 0.02, type: 'sine', vib: 14, vibAmt: 140, vol: vol * 0.3 });
+        if (!c && Math.random() < 0.45) for (let i = 0; i < 5; i++) T({ t: w0 + 1.0 + i * 0.07, f: 2600 + i * 150, f2: 3400 + i * 120, dur: 0.05, a: 0.005, type: 'sawtooth', bp: 3200, q: 3, vol: vol * 0.16 });
+        break;
+      }
       // round 15: manatee: soft chirps and squeaks, the way a mother and her calf call to each other (short rising and
       // falling whistles with a squeaky edge); a calf's are higher and thinner
       case 'manatee': { const c = [[0, 2900, 3700, 0.13], [0.2, 3500, 2700, 0.16], [0.52, 3100, 4000, 0.1], [0.68, 3900, 3300, 0.18]]; const n = k > 1 ? 3 : 4;
@@ -574,8 +589,22 @@ const Sound = (() => {
       const pan = clamp((dx * -Math.cos(camYaw) + dz * Math.sin(camYaw)) / Math.max(1, d), -0.9, 0.9), v = clamp(0.12 + b.m.height * 0.15, 0.1, 0.35) / (1 + d / 10), t = now();
       // round 15: manatee (blow: false): a quiet breath through the nostrils, a soft huff out and a short draw in
       if (SPECIES[b.sp] && SPECIES[b.sp].blow === false) { noise({ t, f: 900, f2: 500, q: 0.7, dur: 0.32, a: 0.04, vol: v * 0.4, pan }); noise({ t: t + 0.42, f: 1300, f2: 1700, q: 0.8, dur: 0.38, a: 0.12, vol: v * 0.22, pan }); return; }
+      // round 18: a dolphin's quick sharp "pfoosh" (SPECIES puff): out with a burst, a quick draw in
+      if (SPECIES[b.sp] && SPECIES[b.sp].puff) { noise({ t, f: 2400, f2: 900, q: 0.7, dur: 0.24, a: 0.008, vol: v * 1.1, pan }); noise({ t, f: 520, type: 'lowpass', dur: 0.16, a: 0.005, vol: v * 0.5, pan }); noise({ t: t + 0.3, f: 1600, f2: 2400, q: 0.9, dur: 0.16, a: 0.04, vol: v * 0.35, pan }); return; }
       noise({ t, f: 1500, f2: 650, q: 0.6, dur: 0.55, a: 0.03, vol: v, pan });
       noise({ t, f: 420, type: 'lowpass', dur: 0.4, a: 0.02, vol: v * 0.6, pan });
+    },
+    // round 18: a dolphin's leap: a swish of water as it shoots out (inW false), a bigger splash as it dives back in
+    // (inW true), fainter far away
+    leap(b, camPos, camYaw, inW) {
+      if (!ac || !on) return;
+      const dx = b.pos.x - camPos.x, dz = b.pos.z - camPos.z, d = Math.hypot(dx, dz);
+      if (d > 50) return;
+      const pan = clamp((dx * -Math.cos(camYaw) + dz * Math.sin(camYaw)) / Math.max(1, d), -0.9, 0.9), v = clamp(0.18 + b.m.height * 0.3, 0.15, 0.45) / (1 + d / 12), t = now();
+      if (!inW) { noise({ t, f: 2600, f2: 1200, q: 0.6, dur: 0.3, a: 0.02, vol: v * 0.55, pan }); return; }
+      noise({ t, f: 1900, f2: 380, type: 'lowpass', dur: 0.6, a: 0.005, vol: v, pan });
+      noise({ t: t + 0.03, f: 3200, f2: 1400, q: 0.8, dur: 0.35, vol: v * 0.5, pan });
+      tone({ t, f: 140, f2: 60, dur: 0.18, vol: v * 0.6 });
     },
     // a wild animal calling from somewhere in the world
     wildCall(b, camPos, camYaw) {

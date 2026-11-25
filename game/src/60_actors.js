@@ -196,11 +196,13 @@ const Blow = {
     // the blowhole: on top of the head, a little behind the front of the body
     const m = b.m, fx = Math.sin(b.yaw), fz = Math.cos(b.yaw), k = clamp(m.height * 0.8, 0.15, 1.2);
     const x = b.pos.x + fx * m.length * 0.28, z = b.pos.z + fz * m.length * 0.28, y = Math.max(WATER + 0.05, b.pos.y + m.height * 0.85);
+    // (round 18: SPECIES puff: a quicker, smaller puff than the narwhal's, the dolphin's; 1 for the others)
+    const pk = SPECIES[b.sp].puff || 1;
     for (let i = 0; i < 3; i++) {
       let q = this.pool.find((o) => o.t >= o.life);
       if (!q) q = this.pool.reduce((a, o) => (o.t > a.t ? o : a));
       if (q.s.parent !== G.scene) G.scene.add(q.s);
-      Object.assign(q, { t: -i * 0.07, life: 1.3 + i * 0.25, x, y, z, k: k * (1 - i * 0.18), rise: k * (1.3 + i * 0.5), dx: (Math.random() - 0.5) * 0.4 * k, dz: (Math.random() - 0.5) * 0.4 * k });
+      Object.assign(q, { t: -i * 0.07 * pk, life: (1.3 + i * 0.25) * pk, x, y, z, k: k * (1 - i * 0.18), rise: k * (1.3 + i * 0.5) * pk, dx: (Math.random() - 0.5) * 0.4 * k, dz: (Math.random() - 0.5) * 0.4 * k });
     }
   },
   update(dt) {
@@ -215,6 +217,131 @@ const Blow = {
     }
   },
 };
+// round 18: the dolphin's leap (SPECIES leap: only the dolphin). From the surface it shoots up and out of the water in
+// an arc (body mode 'air', the game's gravity) and dives back in nose first with a splash, a little way under before it
+// comes up again. It leaps only where there is deep open water all along the arc and past where it comes down.
+// b.leaping: in the air on a leap (poseBody tips the body along the arc); b.leapDip: seconds of the dip under after it
+// comes back in; b.leapUp: after the dip, your own dolphin comes back up to the surface by itself (Down stops that).
+FEAR.dolphin = 2.5;   // (round 18: it lets swimmers come close, and rides alongside them)
+const Leap = {
+  // deep open water ahead for a leap of length dist
+  room(b, dist) {
+    const w = G.world, fx = Math.sin(b.yaw), fz = Math.cos(b.yaw), deep = WATER - Math.max(1.6, b.m.height * 2.8);
+    for (const k of [0.35, 0.7, 1, 1.4]) {
+      const x = b.pos.x + fx * dist * k, z = b.pos.z + fz * dist * k;
+      if (w.H(x, z) > deep || (w.iceAt && w.iceAt(x, z))) return false;
+    }
+    return true;
+  },
+  // up and out at about the speed it swims (k 0..1: a low porpoising hop up to a big leap); false if there is no room
+  start(b, k) {
+    const sp = SPECIES[b.sp];
+    if (!sp.leap || b.mode !== 'swim' || b.room || b.eat > 0 || !G.world.def.water) return false;
+    const v = Math.max(b.speed, (sp.swimSpeed || 4) * (0.6 + 0.4 * b.k) * 0.8), vy = (5.2 + 2.6 * k) * Math.sqrt(b.k);
+    if (!this.room(b, v * (2 * vy / GRAV))) return false;
+    b.speed = v; b.vy = vy; b.mode = 'air'; b.leaping = true; b.leapDip = 0; b.leapUp = false; b.leapAt = G.t; b.leapSoon = 0;
+    this.splash(b, false);
+    // its calf, its pod and dolphins tagging along with you leap with it, a moment after
+    for (const o of Wild.list) if (o !== b && o.sp === b.sp && o.mode === 'swim' && !(o.leapSoon > 0) && (o.parent === b || o.leader === b || (b.leader && o.leader === b.leader) || (b.player && o.state === 'follow')) && Math.hypot(o.pos.x - b.pos.x, o.pos.z - b.pos.z) < 14) o.leapSoon = 0.15 + Math.random() * 0.5;
+    return true;
+  },
+  // after moving: back in the water from a leap, a splash, then a short dip under (where there is room to dive)
+  // (vy0: how fast it was coming down before it hit the water)
+  after(b, vy0) {
+    if (!b.leaping || b.mode === 'air') return;
+    b.leaping = false;
+    if (b.mode !== 'swim') return;
+    this.splash(b, true);
+    if (Dive.canGo(b)) { b.mode = 'dive'; b.pos.y = WATER - b.m.float - 0.2 * b.k; b.vy = clamp((vy0 || -4) * 0.45, -3.5, -1.2) * Math.sqrt(b.k); b.leapDip = 0.55; b.steerT = 0; }
+  },
+  // the splash: out of the water (a swish, a little spray) or back in (a big splash, more spray), and its sound
+  splash(b, inW) {
+    if (G.sound && G.sound.leap && G.camera && (!Player.b || Player.b.room === b.room)) G.sound.leap(b, G.camera.position, G.camYaw || 0, inW);
+    Spray.burst(b, inW ? 1 : 0.55);
+  },
+  // your own dolphin: Jump at the surface leaps (higher the faster it swims); dashing fast at the surface it porpoises
+  // in low leaps every few seconds; happy (after a Call) it leaps; after a leap it dips under and comes back up
+  player(b, inp, c, dash, dt) {
+    const sp = SPECIES[b.sp];
+    if (b.mode === 'swim') {
+      const fast = b.speed > (sp.swimSpeed || 4) * 1.05;
+      b.porpT = fast && dash ? (b.porpT === undefined ? 1.2 : b.porpT - dt) : 1.2;
+      const since = G.t - (b.leapAt || -99);
+      if (inp.jump && since > 0.6) this.start(b, clamp(b.speed / ((sp.swimSpeed || 4) * 1.4), 0.35, 1));
+      else if (b.porpT <= 0) { b.porpT = 2.2 + Math.random() * 1.6; this.start(b, 0.35 + Math.random() * 0.3); }
+      else if (b.happy > 0.6 && since > 2.5) this.start(b, 0.85);
+    }
+    if (b.mode === 'dive' && (b.leapDip > 0 || b.leapUp)) {
+      if (inp.down || inp.up) { b.leapDip = 0; b.leapUp = false; }
+      else if (b.leapDip > 0) { b.leapDip -= dt; c.up = c.down = false; if (b.leapDip <= 0) b.leapUp = true; }
+      else c.up = true;
+    } else if (b.mode !== 'dive') { b.leapDip = 0; b.leapUp = false; }
+  },
+  // a wild dolphin: now and then a leap when it swims along at the surface, more often riding alongside a swimmer, and
+  // a run of low porpoising leaps when it hurries somewhere far; in the air it keeps its speed and heading
+  wild(b, c, dt) {
+    if (b.mode === 'air' && b.leaping) { c.want = b.speed; c.dx = Math.sin(b.yaw); c.dz = Math.cos(b.yaw); c.face = undefined; return; }
+    if (b.leapSoon > 0) { b.leapSoon -= dt; if (b.leapSoon <= 0 && this.start(b, 0.4 + Math.random() * 0.5)) return; }
+    if (b.mode !== 'swim' || b.caged || b.room || b.leapDip > 0) { if (b.leapDip > 0) b.leapDip -= dt; return; }
+    const fast = b.speed > Dive.swimMax(b) * 0.5, ride = b.state === 'ride';
+    const p = !fast ? 0 : ride ? 0.35 : b.state === 'flee' || (b.state === 'wander' && b.target && Math.hypot(b.target.x - b.pos.x, b.target.z - b.pos.z) > 20) ? 0.3 : 0.1;
+    if (p > 0 && G.t - (b.leapAt || -99) > 1.6 && Math.random() < dt * p) this.start(b, ride ? 0.5 + Math.random() * 0.5 : 0.3 + Math.random() * 0.6);
+  },
+};
+// round 18: the splash of a leap: white spray flung up round the body where it leaves or comes back into the water
+// (sprites like the blowhole's mist, from one small pool), and a patch of foam spreading on the water and fading
+const Spray = {
+  pool: [], rings: [],
+  burst(b, k) {
+    const cam = G.camera; if (!cam || !G.scene || !b.m || b.room) return;
+    if (Math.hypot(b.pos.x - cam.position.x, b.pos.z - cam.position.z) > 70) return;
+    if (!this.pool.length) {
+      for (let i = 0; i < 24; i++) {
+        const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: Env.glowTexture, color: 0xf6f9fb, transparent: true, opacity: 0, depthWrite: false }));
+        s.visible = false; s.renderOrder = 4; G.scene.add(s); this.pool.push({ s, t: 9, life: 1 });
+      }
+      const g = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+      for (let i = 0; i < 3; i++) {
+        const r = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: Env.glowTexture, color: 0xeef4f6, transparent: true, opacity: 0, depthWrite: false }));
+        r.visible = false; r.renderOrder = 3; G.scene.add(r); this.rings.push({ r, t: 9, life: 1 });
+      }
+    }
+    const m = b.m, fx = Math.sin(b.yaw), fz = Math.cos(b.yaw), n = Math.round(6 + 8 * k), sz = clamp(m.height * 1.4, 0.25, 1.3) * (0.6 + 0.5 * k);
+    for (let i = 0; i < n; i++) {
+      let q = this.pool.find((o) => o.t >= o.life);
+      if (!q) q = this.pool.reduce((a, o) => (o.t > a.t ? o : a));
+      if (q.s.parent !== G.scene) G.scene.add(q.s);
+      const along = (Math.random() - 0.3) * m.length * 0.45, side = (Math.random() - 0.5) * m.radius * 3, a = Math.random() * TAU, sp = (0.5 + Math.random()) * k;
+      Object.assign(q, { t: -i * 0.015, life: 0.6 + Math.random() * 0.4 * k, x: b.pos.x + fx * along + fz * side, z: b.pos.z + fz * along - fx * side, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vy: (2 + Math.random() * 2.6) * (0.5 + 0.6 * k) * Math.sqrt(b.k), y: WATER + 0.05, k: sz * (0.6 + Math.random() * 0.7) });
+    }
+    let r = this.rings.find((o) => o.t >= o.life) || this.rings.reduce((a, o) => (o.t > a.t ? o : a));
+    if (r.r.parent !== G.scene) G.scene.add(r.r);
+    Object.assign(r, { t: 0, life: 1.6 + 0.8 * k, x: b.pos.x + fx * m.length * 0.1, z: b.pos.z + fz * m.length * 0.1, k: clamp(m.length * 0.7, 0.5, 2.2) * (0.6 + 0.5 * k) });
+  },
+  update(dt) {
+    for (const q of this.pool) {
+      if (q.t >= q.life) { if (q.s.visible) q.s.visible = false; continue; }
+      q.t += dt;
+      const u = clamp(q.t / q.life, 0, 1);
+      q.s.visible = q.t > 0 && u < 1;
+      if (q.t <= 0) continue;
+      q.vy -= GRAV * 0.6 * dt; q.x += q.vx * dt; q.z += q.vz * dt; q.y = Math.max(WATER + 0.02, q.y + q.vy * dt);
+      q.s.position.set(q.x, q.y, q.z);
+      q.s.scale.setScalar(q.k * (0.5 + 0.9 * u));
+      q.s.material.opacity = 0.9 * Math.pow(1 - u, 1.2) * clamp(q.t * 14, 0, 1);
+    }
+    for (const q of this.rings) {
+      if (q.t >= q.life) { if (q.r.visible) q.r.visible = false; continue; }
+      q.t += dt;
+      const u = clamp(q.t / q.life, 0, 1), e = 1 - (1 - u) * (1 - u);
+      q.r.visible = u < 1;
+      q.r.position.set(q.x, WATER + 0.03, q.z);
+      q.r.scale.set(q.k * (0.6 + 1.6 * e), 1, q.k * (0.6 + 1.6 * e));
+      q.r.material.opacity = 0.55 * Math.pow(1 - u, 1.5);
+    }
+  },
+};
+// round 18 (end of the leap)
 
 // Shared movement for the player and wildlife.
 // c = { dx, dz: wanted direction (any length, 0 = none), want: wanted speed m/s, face: optional yaw to turn to, jump, up, down, takeoff,
@@ -518,7 +645,10 @@ function poseBody(b, dt, animate) {
     lo = -Math.min(as(Dive.ice(nx, nz, ry) - top - 0.05), as(p.y - Dive.under(tx, tz, ry) - 0.05));
     pt = clamp(pt, lo, hi);
   }
-  b.pitch = b.mode === 'climb' || b.wasClimb ? pt : damp(b.pitch, pt, b.mode === 'dive' ? 3.5 : 6, dt);
+  // round 18: a dolphin in the air on a leap: its body along the arc, nose up going up and down coming down
+  const lp = b.mode === 'air' && !!SPECIES[b.sp].leap;
+  if (lp) pt = -clamp(Math.atan2(b.vy, Math.max(b.speed, 1)), -1.1, 1.1);
+  b.pitch = b.mode === 'climb' || b.wasClimb ? pt : damp(b.pitch, pt, b.mode === 'dive' ? 3.5 : lp ? 9 : 6, dt);
   if (b.mode === 'dive') b.pitch = clamp(b.pitch, lo, hi);
   b.wasClimb = b.mode === 'climb';
   r.rotation.x = b.pitch;
@@ -628,6 +758,7 @@ const Player = {
     // (round 14: a hungry diver can still come up)
     const c = { dx: inp.mx, dz: inp.mz, want, jump: inp.jump && !(tired && b.mode === 'air'), up: inp.up && (!tired || b.mode === 'dive'), down: inp.down || (tired && b.mode === 'fly'), climbV: inp.iy, around: -inp.ix, letGo: inp.letGo, climb: inp.climb, fast: dash };
     if (b.mode === 'climb' || b.mode === 'perch') { if (inp.jump && b.mode === 'perch') c.letGo = true; }
+    if (sp.leap && !b.riding) Leap.player(b, inp, c, dash, dt);   // round 18: a dolphin's leaps
     // eating: stop, turn to the food, lower the head
     if (b.eat > 0) {
       // an eagle grabbing a fish keeps flying, then climbs away with it; everyone else stops to eat
@@ -653,6 +784,7 @@ const Player = {
     if (limp) { this.limpT = (this.limpT || 0) + dt * (1.4 + b.speed * 0.9); c.want *= 0.7 + 0.3 * Math.abs(Math.sin(this.limpT * Math.PI)); }
     const wasAir = b.mode === 'air', vy0 = b.vy;
     if (b.riding) { b.speed = 0; b.vy = 0; b.mode = 'ground'; } else moveBody(b, dt, c);
+    if (b.leaping) Leap.after(b, vy0);   // round 18: back in the water from a leap
     // landing hard from a big fall can hurt a paw
     if (wasAir && b.mode === 'ground' && vy0 < -12.5 && !sp.fly && Math.random() < 0.6) Sick.start('paw');
     // round 14: an animal that can't swim never stays in the sea (it jumped short of a floe): back up onto the ice
@@ -990,6 +1122,15 @@ const Wild = {
           else followers++;
           if (followers > 3) b.state = 'idle';
         }
+        // round 18: a wild dolphin comes over to ride alongside a swimmer going along in the water near it, for a while
+        // (a pod comes along behind its leader; a calf stays with its mother)
+        if (sp.leap) {
+          const inW = P.mode === 'swim' || P.mode === 'dive';
+          if (b.state === 'ride' && (d > 45 || P.room || !inW)) { b.state = 'idle'; b.timer = 1 + Math.random() * 2; }
+          else if (b.state !== 'ride' && P.sp !== b.sp && inW && !b.leader && !b.pen && b.age >= 0.6 && b.state !== 'flee' && d < 30 && P.speed > 1.5 && Math.random() < 0.06) {
+            b.state = 'ride'; b.rideT = 12 + Math.random() * 18; b.slot = (Math.random() < 0.5 ? -1 : 1) * (1 + Math.random() * 0.6); if (b.mode === 'sleep') b.mode = 'swim';
+          }
+        }
       }
       switch (b.state) {
         case 'caged':
@@ -1175,6 +1316,18 @@ const Wild = {
           if (b.mode !== 'fly' && d < 9) { b.state = 'idle'; b.timer = 2 + Math.random() * 3; }
           break;
         }
+        case 'ride': {
+          // round 18: riding alongside a swimmer: beside it and a little ahead (a bow ride), at its speed and its depth
+          b.rideT -= dt;
+          if (b.rideT <= 0 || !P) { b.state = 'idle'; b.timer = 1 + Math.random() * 2; break; }
+          const fx = Math.sin(P.yaw), fz = Math.cos(P.yaw), side = b.slot * (P.m.radius + m.radius + 0.5), ahead = P.m.length * 0.35 + 0.3 * Math.abs(b.slot);
+          const tx = P.pos.x + fx * ahead + fz * side, tz = P.pos.z + fz * ahead - fx * side;
+          const dx = tx - b.pos.x, dz = tz - b.pos.z, d = Math.hypot(dx, dz), vm = dv ? Dive.swimMax(b) : m.run;
+          if (d > 0.6) { c.dx = dx; c.dz = dz; c.want = clamp(d * 1.3, 0, d > 4 ? vm : Math.max(P.speed * 1.1, vm * 0.25)); }
+          else if (P.speed > 0.2) { c.face = P.yaw; c.want = P.speed; }
+          if (dv) b.wantY = P.mode === 'dive' ? P.pos.y : Infinity;
+          break;
+        }
         case 'follow': {
           const fx = Math.sin(P.yaw), fz = Math.cos(P.yaw);
           const back = 1.4 + m.length * 1.6;
@@ -1192,11 +1345,15 @@ const Wild = {
       if (b.state === 'tree' && b.mode !== 'climb' && b.mode !== 'perch' && b.tree === null && b.perchT !== undefined && b.perchT <= 0 && b.target) { b.state = 'idle'; b.timer = 2; }
       // round 17: on the alert it stops where it is and faces what it shows off at
       if (sp.display && b.alert > 0 && b.state !== 'flee' && b.mode === 'ground') { c.want = 0; c.dx = c.dz = 0; c.face = b.alertYaw; b.eat = 0; }
-      if (dv) this.steerDive(b, c, dt);
+      if (sp.leap) Leap.wild(b, c, dt);   // round 18: a wild dolphin's leaps
+      if (dv && b.mode !== 'air') this.steerDive(b, c, dt);
+      const vyL = b.vy;
       moveBody(b, dt, c);
+      if (b.leaping) Leap.after(b, vyL);   // round 18
       poseBody(b, dt, true);
     }
     Blow.update(dt);
+    if (Spray.pool.length) Spray.update(dt);   // round 18: the spray of dolphins' leaps
   },
   // round 14: a wild diver goes up and down toward the depth its state wants (b.wantY: Infinity for the surface,
   // -Infinity for the deep), else toward a depth of its own (b.depthF, from the floor to the top). Now and then it

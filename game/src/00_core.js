@@ -399,7 +399,36 @@ Object.assign(SEX_LOOK, {
   robin: { base: 'm', f: { model: true } }, barnowl: { base: 'f', m: { size: 0.94 } }, raven: { base: 'm', f: { size: 0.93 } },
   kiwi: { base: 'f', m: { size: 0.85 } }, dodo: { base: 'm', f: { size: 0.9 } },
 });
-const sexLook = (id, sex) => (SEX_LOOK[id] && SEX_LOOK[id][sex]) || null;
+// round 18: new sea foods (Rosemary: "more sea food for manatee and other sea animals"; 38_food draws them, 50_world
+// foodPoint says where they turn up). water: they count with the fish (and no one hands them out as a snack or puts
+// them in a bowl). plant: it grows in one place (seagrass on the sand, water hyacinth floating). New flags, each only on
+// these: floor (on or just over the sea floor or a river bottom: seagrass, shrimp, clams), float (always floating at
+// the surface: water hyacinth), shore (on a beach by the water line, and in a sea world on the sea floor too: crabs),
+// still (it stays where it is, no swimming round in circles like a fish; its own model moves a little).
+Object.assign(FOODS, {
+  seagrass: { name: 'Seagrass', water: true, plant: true, floor: true },
+  shrimp: { name: 'Shrimp', water: true, floor: true, still: true },
+  crab: { name: 'Crabs', water: true, shore: true, still: true },
+  clam: { name: 'Clams', water: true, floor: true, still: true },
+  hyacinth: { name: 'Water hyacinth', water: true, plant: true, float: true },
+});
+// round 18: who eats them, where it is real (each animal keeps its favorite): the manatee water hyacinth and seagrass,
+// the narwhal shrimp, the otter crabs, clams and shrimp (sea otters crack clams), the penguin, the puffin and the
+// flamingo shrimp, the crocodile and the raccoon crabs
+for (const [id, add] of Object.entries({ manatee: ['hyacinth', 'seagrass'], narwhal: ['shrimp'], otter: ['crab', 'clam', 'shrimp'], penguin: ['shrimp'],
+  puffin: ['shrimp'], flamingo: ['shrimp'], crocodile: ['crab'], raccoon: ['crab'] })) SPECIES[id].eats.push(...add);
+// round 18: the common bottlenose dolphin. A sea animal like the narwhal (aquatic, dive), but quicker. Two new flags,
+// each only on it: puff (a smaller, quicker puff of mist than the narwhal's when it blows) and leap (swimming fast at
+// the surface, when it is happy after a Call, or on Jump at the surface, it leaps clean out of the water in an arc and
+// dives back in with a splash; wild ones leap and porpoise now and then, and come to ride alongside other swimmers:
+// 60_actors Leap and Wild). Boys and girls look alike, boys a little bigger. It is last in SPECIES (the pixel check
+// builds every species in order).
+SPECIES.dolphin = { name: 'Dolphin', many: 'Dolphins', eats: ['fish', 'smallfish', 'squid', 'shrimp'], fav: 'fish', swim: true, dive: true, aquatic: true, noJump: true, leap: true, puff: 0.6, swimSpeed: 6.5, price: 1600, camNear: 0.9, baby: 'Dolphin calf' };
+SPECIES.dolphin.waters = 'arctic';   // round 18: the lead sets 'reef' (the dolphin's home world: the Coral Reef)
+SEX_LOOK.dolphin = { base: 'm', f: { size: 0.93 } };
+SHOP.push('dolphin');
+// round 18 (end)
+const sexLook =(id, sex) => (SEX_LOOK[id] && SEX_LOOK[id][sex]) || null;
 const sexOf = (id) => (S.sex && (S.sex[id] === 'm' || S.sex[id] === 'f') ? S.sex[id] : (SEX_LOOK[id] && SEX_LOOK[id].base) || 'f');
 // the grown-up's name for a boy or a girl ("Lioness", "Rooster"), else the species' own name
 const sexName = (id, sex) => { const L = sexLook(id, sex); return (L && L.name) || SPECIES[id].name; };
