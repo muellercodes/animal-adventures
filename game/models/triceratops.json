@@ -1,0 +1,109 @@
+{
+ "v": 2,
+ "id": "triceratops",
+ "data": "triceratops.bin",
+ "enc": "deflate",
+ "raw": 106140,
+ "maps": {
+  "color": "triceratops-color.webp",
+  "normal": "triceratops-normal.webp",
+  "babyColor": "triceratops-color-baby.webp"
+ },
+ "nv": 3378,
+ "ntri": 4178,
+ "nbv": 3378,
+ "nbt": 4178,
+ "bbox": [
+  -1.218001,
+  -0.011646,
+  -4.496433,
+  1.218001,
+  3.118859,
+  4.217995
+ ],
+ "bones": [
+  "hips",
+  "chest",
+  "neck",
+  "head",
+  "tail1",
+  "tail2",
+  "tail3",
+  "tail4",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.31965,
+   1.87591,
+   3.08924
+  ],
+  "r": 0.046,
+  "dir": [
+   0.8789,
+   0.1598,
+   0.4494
+  ],
+  "lid": [
+   0.739,
+   -0.652,
+   0.3
+  ],
+  "iris": 8016934,
+  "irisR": 0.93,
+  "pupilR": 0.4,
+  "rim": 1708554,
+  "lidCol": 4603437
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "head",
+   0.3
+  ],
+  "r": 1.2
+ },
+ "mouth": [
+  0.0,
+  0.8848,
+  4.0627
+ ],
+ "belly": [
+  0.0,
+  0.97,
+  -0.2
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.07,
+  0.07,
+  0.06
+ ],
+ "flat": 8022608,
+ "bdelta": 1.643662
+}

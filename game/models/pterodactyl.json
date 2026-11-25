@@ -1,0 +1,133 @@
+{
+ "v": 2,
+ "id": "pterodactyl",
+ "data": "pterodactyl.bin",
+ "enc": "deflate",
+ "raw": 79788,
+ "maps": {
+  "color": "pterodactyl-color.webp",
+  "normal": "pterodactyl-normal.webp",
+  "babyColor": "pterodactyl-color-baby.webp",
+  "fur": "pterodactyl-fur.webp"
+ },
+ "nv": 2526,
+ "ntri": 3194,
+ "nbv": 2526,
+ "nbt": 3194,
+ "bbox": [
+  -3.503467,
+  0.002708,
+  -0.580711,
+  3.503467,
+  1.278098,
+  1.755001
+ ],
+ "bones": [
+  "hips",
+  "neck",
+  "neck2",
+  "head",
+  "hornC",
+  "tail",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "wingL",
+  "wingR",
+  "wforeL",
+  "wforeR",
+  "whandL",
+  "whandR",
+  "f0L",
+  "f0R",
+  "f1L",
+  "f1R",
+  "f2L",
+  "f2R",
+  "f3L",
+  "f3R",
+  "f4L",
+  "f4R",
+  "f5L",
+  "f5R",
+  "f6L",
+  "f6R",
+  "f7L",
+  "f7R",
+  "f8L",
+  "f8R",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.04925,
+   1.10983,
+   0.82321
+  ],
+  "r": 0.017,
+  "dir": [
+   0.8638,
+   0.2009,
+   0.462
+  ],
+  "lid": [
+   0.8,
+   -0.729,
+   0.3
+  ],
+  "iris": 6961690,
+  "irisR": 0.92,
+  "pupilR": 0.42,
+  "rim": 2759178,
+  "lidCol": 6904909
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "neck2",
+   0.3
+  ],
+  "r": 1.1
+ },
+ "mouth": [
+  0.0,
+  0.9757,
+  1.714
+ ],
+ "belly": [
+  0.0,
+  0.66,
+  -0.02
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.07,
+  0.07,
+  0.06
+ ],
+ "flat": 6969932,
+ "fur": {
+  "len": 0.014,
+  "n": 4,
+  "lean": 1.0,
+  "tile": 0.0016,
+  "babyLen": 1.6,
+  "babyLean": 0.6,
+  "shade": 0.75,
+  "uvm": 2.9625
+ }
+}

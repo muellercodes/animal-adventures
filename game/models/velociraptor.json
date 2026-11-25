@@ -1,0 +1,130 @@
+{
+ "v": 2,
+ "id": "velociraptor",
+ "data": "velociraptor.bin",
+ "enc": "deflate",
+ "raw": 120468,
+ "maps": {
+  "color": "velociraptor-color.webp",
+  "normal": "velociraptor-normal.webp",
+  "babyColor": "velociraptor-color-baby.webp",
+  "fur": "velociraptor-fur.webp",
+  "feather": "velociraptor-feather.webp",
+  "featherNormal": "velociraptor-feathernrm.webp",
+  "babyFeather": "velociraptor-babyfeather.webp"
+ },
+ "nv": 3808,
+ "ntri": 4846,
+ "nbv": 3808,
+ "nbt": 4846,
+ "bbox": [
+  -0.132116,
+  -0.000673,
+  -1.331569,
+  0.132116,
+  0.759712,
+  0.667222
+ ],
+ "bones": [
+  "hips",
+  "chest",
+  "neck",
+  "neck2",
+  "head",
+  "tail1",
+  "tail2",
+  "tail3",
+  "tail4",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "handL",
+  "handR",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.02335,
+   0.72602,
+   0.46726
+  ],
+  "r": 0.0105,
+  "dir": [
+   0.8057,
+   0.1813,
+   0.564
+  ],
+  "lid": [
+   0.781,
+   -0.705,
+   0.3
+  ],
+  "iris": 14197304,
+  "irisR": 0.92,
+  "pupilR": 0.34,
+  "rim": 3811850,
+  "lidCol": 7429444,
+  "babyIris": 6965794
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "neck2",
+   0.5
+  ],
+  "r": 1.1
+ },
+ "mouth": [
+  0.0,
+  0.6603,
+  0.6521
+ ],
+ "belly": [
+  0.0,
+  0.34,
+  0.08
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.08,
+  0.07,
+  0.06
+ ],
+ "flat": 8151624,
+ "fur": {
+  "len": 0.018,
+  "n": 4,
+  "lean": 0.45,
+  "tile": 0.0016,
+  "babyLen": 1.0,
+  "babyLean": 0.45,
+  "shade": 0.85,
+  "babyOnly": true,
+  "uvm": 1.0435
+ },
+ "srgb": [
+  "feather",
+  "babyFeather"
+ ],
+ "feathers": {
+  "cols": 8
+ }
+}
