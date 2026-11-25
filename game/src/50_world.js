@@ -1145,7 +1145,7 @@ const World = (() => {
         let fl = lerp(lag, top, smooth((u + 14) / 13));
         if (u > 1) {
           // the fore reef: spurs and grooves down to about 5 m, the wall to 20 m, the sandy slope to 30 m
-          const sg = groove(x, z, g) * 1.3 * smooth((u - 1) / 4) * (1 - smooth((u - 18) / 10));
+          const sg = groove(x, z, g) * 1.3 * smooth((u - 2) / 6) * (1 - smooth((u - 18) / 10));
           fl += sg - 4.2 * smooth((u - 2) / 13) - 14 * smooth((u - 13) / 15) - 9.5 * smooth((u - 26) / 32);
           fl += 1.4 * fbm(n7, x * 0.02, z * 0.02, 3) * smooth((u - 30) / 30);
         }
@@ -1153,6 +1153,8 @@ const World = (() => {
         fl += 0.55 * fbm(n6, x * 0.22 + 3, z * 0.22, 2) * smooth((u + 12) / 6) * (1 - smooth((u - 26) / 8));
         // the channels: sand 3.5 m deep going out to 5.5 m, through the crest
         if (g.ch > 0) fl = lerp(fl, Math.min(fl, -3.5 - 2 * smooth((u + 4) / 14)), g.ch);
+        // the reef never comes out of the water: its highest points stay about 0.3 m under the surface
+        if (u > -16 && fl > -0.6) fl = lerp(fl, -0.6 + 0.3 * (1 - Math.exp(-(fl + 0.6) / 0.3)), smooth((u + 16) / 4));
         // far out: open sea 30 to 35 m deep, and now and then a patch reef rising to 5 m
         const far = smooth((s - 170) / 120);
         if (far > 0) {
@@ -1275,7 +1277,7 @@ const World = (() => {
           { type: 'starfish', variants: [0, 1], per: 7, minH: -6, maxH: -0.6, gap: 4, test: (x, z, h) => { const g = geo(x, z); return reefK(x, z, h, g) < 0.2 && bedK(x, z, h, g) < 0.3; }, scale: [0.8, 1.3], tries: 3 },
           { type: 'diadema', per: 6, minH: -8, maxH: -0.8, gap: 3, test: underBand(-16, 10), scale: [0.8, 1.2], tries: 3 },
           // the crest, the spurs and the wall, thick with coral
-          { type: 'crestcoral', variants: [0, 1], per: 120, minH: -3.5, maxH: -0.95, gap: 2.5, tile: ringTile(50, 130), test: (x, z, h) => { const g = geo(x, z); return g.u > -11 && g.u < 5 && g.ch < 0.3 && reefK(x, z, h, g) > 0.2; }, scale: [0.8, 1.2], tries: 5 },
+          { type: 'crestcoral', variants: [0, 1], per: 160, minH: -3.5, maxH: -0.85, gap: 2.1, tile: ringTile(50, 130), test: (x, z, h) => { const g = geo(x, z); return g.u > -11 && g.u < 5 && g.ch < 0.3 && reefK(x, z, h, g) > 0.2; }, scale: [0.8, 1.2], tries: 5 },
           { type: 'slopecoral', variants: [0, 1, 2], per: 140, minH: -11, maxH: -1.2, gap: 2.5, tile: ringTile(55, 140), test: (x, z, h) => { const g = geo(x, z); return g.u > 1 && g.u < 18 && reefK(x, z, h, g) > 0.2; }, scale: [0.9, 1.4], tries: 5 },
           { type: 'wallcoral', variants: [0, 1], per: 200, minH: -27, maxH: -3.5, gap: 2.2, tile: ringTile(60, 150), test: (x, z, h) => { const g = geo(x, z); return g.u > 10 && g.u < 31 && reefK(x, z, h, g) > 0.1; }, scale: [1.0, 1.6], tries: 5 },
           // small corals, algae and rubble between the big ones
