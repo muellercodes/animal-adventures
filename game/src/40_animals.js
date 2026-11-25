@@ -3190,7 +3190,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
         for (let i = 0; i < 90; i++) { st.t += 1 / 30; Rg.rig.update(1 / 30, st); }
         Rg.root.updateMatrixWorld(true);
         const box = new THREE.Box3(), v = new THREE.Vector3();
-        for (const n of ['head', ...names]) box.expandByPoint(Rg.bones[n].getWorldPosition(v));
+        for (const n of ['head', ...names.slice(0, o.iconN || N)]) box.expandByPoint(Rg.bones[n].getWorldPosition(v));
         const sz = box.getSize(new THREE.Vector3());
         return { size: Math.max(sz.x, sz.y, sz.z) * 1.1 + 4 * R, at: box.getCenter(v).toArray(), dir: o.iconDir || [0.72, 0.42, 0.75] };
       },
@@ -3220,7 +3220,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     },
     eye: { iris: 0x4A3418, pupil: 'round', pupilR: 0.42 },
     anim: { walk: 1.0, run: 3.4, floatDepth: 0.03, rear: [0.34, 0.11], hood: [[0, 1.35], [1, 2.1], [2, 1.55], [3, 1.1]] },
-    iconSt: { happy: 1 }, iconDir: [0.75, 0.2, 0.62],
+    iconSt: { happy: 1 }, iconDir: [0.8, 0.25, 0.55], iconN: 12,
   });
   // The western diamondback rattlesnake: 1.4 m and heavy, a broad triangular head on a thin neck, gray-brown with dark
   // diamonds edged in cream, a black and white banded tail and the rattle. It coils with its head raised and buzzes
@@ -9933,6 +9933,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     // head's lift and its place in front of the first bone with the head's size, amp the wave's width (a heavy snake
     // swings less); all 1 for the garter snake
     const kL = P.kL || 1, kH = P.kH || 1, ampK = P.amp || 1, hOff = P.headOff == null ? 0.012 : P.headOff;
+    const hoodMax = P.hood ? Math.max(...P.hood.map((h) => h[1])) : 1;
     const S = { ph: R.rnd * TAU, amp: 0.05 * kL * ampK, spd: 0, swim: 0, eat: 0, air: 0, lean: 0, look: 0, k: 0, lift: 0, rear: 0, rearT: 0, sway: R.rnd * TAU };
     moodInit(S, R.rnd);
     const xs = new Float32Array(N + 1), zs = new Float32Array(N + 1), ys = new Float32Array(N + 1);
@@ -9996,7 +9997,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       // call, being petted) and when something big comes near (st.alert), standing still on the ground
       let pitchUp = 0;
       if (P.rear || P.rattle) {
-        const al = (st.alert || 0) > 0, want = (hap > 0.45 || al) && !sleeping && mode === 'ground' && spd < 0.3;
+        const al = (st.alert || 0) > 0, want = ((st.happy || 0) > 0.6 || hap > 0.45 || al) && !sleeping && mode === 'ground' && spd < 0.3;
         S.rearT = want ? Math.max(S.rearT, al ? 1.5 : 3.5) : Math.max(0, S.rearT - dt);
         if (mode !== 'ground' || spd > 0.6) S.rearT = 0;
         spring(S, 'rear', S.rearT > 0 ? 1 : 0, S.rearT > 0 ? 2.4 : 1.8, dt);
@@ -10014,7 +10015,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       }
       // round 17: the cobra's hood (P.hood: [bone index, width]): the bones under it widen across and flatten a little
       // as it rears
-      if (P.hood) { const hr = sstep(0.35, 0.9, S.rear); for (const [i, kx] of P.hood) segs[i].scale.set(1 + (kx - 1) * hr, 1 - 0.3 * hr * (kx - 1) / (P.hood[0][1] - 1), 1); }
+      if (P.hood) { const hr = sstep(0.35, 0.9, S.rear); for (const [i, kx] of P.hood) segs[i].scale.set(1 + (kx - 1) * hr, 1 - 0.25 * hr * (kx - 1) / (hoodMax - 1), 1); }
       // head follows the first segment, with look and eat pitch
       _v1.set(xs[0] - xs[1], 0, zs[0] - zs[1]).normalize();
       const yaw = Math.atan2(_v1.x, _v1.z) * lerp(0.6, 1, sl) + S.look * (1 - S.rear * 0.6);

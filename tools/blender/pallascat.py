@@ -187,7 +187,7 @@ def _strands(P, N, R):
 
 
 KP = {
-    'gray': hexc(0x8A867E), 'grayDk': hexc(0x5E5A54), 'frost': hexc(0xE6E4DE), 'buff': hexc(0xA8987A), 'white': hexc(0xEEEBE4),
+    'gray': hexc(0x807A6E), 'grayDk': hexc(0x56524A), 'frost': hexc(0xE2E0D8), 'buff': hexc(0x9A8566), 'white': hexc(0xEEEBE4),
     'black': hexc(0x1E1C1A), 'nose': hexc(0x9A6A62), 'noseRim': hexc(0x4A3430), 'earIn': hexc(0xD8D0C4), 'pad': hexc(0x4A3A36),
     'lid': hexc(0x2A2420), 'kit': hexc(0x605C58),
 }
@@ -217,7 +217,7 @@ def _marks(R, Pm, N):
     eyew = sstep(1.75, 1.2, R['ring']) * (1 - R['lid']) * (1 - R['ball'])
     muz = sstep(0.06, 0.07, L[:, 2]) * sstep(0.004, -0.008, L[:, 1])
     chin = sstep(-0.02, -0.03, L[:, 1]) * sstep(0.03, 0.05, L[:, 2])
-    m['white'] = np.clip(eyew * 0.85 + muz + chin, 0, 1) * hd * (1 - R['nose'])
+    m['white'] = np.clip(eyew * 0.5 + muz + chin, 0, 1) * hd * (1 - R['nose'])
     return m
 
 
@@ -231,7 +231,7 @@ def paint(P, N, c):
     # the frosting: white tips on the long hairs, gray in the partings between the locks
     s, tone = _strands(P, N, R)
     col = mix(col, KP['grayDk'], (1 - s) * 0.4 * (1 - R['nose']))
-    col = mix(col, KP['frost'], s * tone * 0.55 * (1 - R['nose']) * (1 - R['ball']))
+    col = mix(col, KP['frost'], s * tone * 0.55 * (1 - R['nose']) * (1 - R['ball']) * (1 - 0.6 * sstep(0.14, 0.06, Pm[:, 1])))
     m = _marks(R, Pm, N)
     col = mix(col, KP['black'], m['bars'] * 0.75 + m['rings'] * 0.9)
     col = mix(col, KP['white'], m['white'] * 0.85)
