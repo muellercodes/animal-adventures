@@ -3153,6 +3153,9 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     const tip = 0.48 * L, z0 = tip - 0.052 * kH, dz = (0.94 * L - 0.052 * kH) / (N - 1), tailZ = tip - L;
     const bones = [['head', null, 0, R, z0 + 0.012 * kH]], names = [];
     for (let i = 0; i < N; i++) { bones.push(['s' + i, null, 0, R, z0 - i * dz]); names.push('s' + i); }
+    // the cobra's hood flaps (o.anim.hood): a bone each side on each hood bone, in its place, that the sides of the neck
+    // ride on (tools/blender/kingcobra.py), so they can curve forward as the hood spreads
+    for (const [i] of (o.anim && o.anim.hood) || []) bones.push(['hood' + i + 'L', 's' + i, 0, R, z0 - i * dz, 1]);
     const keys = [];
     for (let k = 0; k <= 24; k++) {
       const u = k / 24, z = lerp(z0 + 0.005 * kH, tailZ, u), r = Math.max(R * o.rad(u), 0.002);
@@ -3219,7 +3222,9 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       else cmix(C, hex(0xE8E2B0), sstep(-0.2, -0.6, P.ny) * 0.8);
     },
     eye: { iris: 0x4A3418, pupil: 'round', pupilR: 0.42 },
-    anim: { walk: 1.0, run: 3.4, floatDepth: 0.03, rear: [0.34, 0.11], hood: [[0, 1.35], [1, 2.1], [2, 1.55], [3, 1.1]] },
+    // (the hood: a long flat oval from just behind the head down about 9 head lengths, about 2.4 times the body wide
+    // at its widest; reared, the head is about 1.15 m up)
+    anim: { walk: 1.0, run: 3.4, floatDepth: 0.03, rear: [0.38, 0.08], hood: [[0, 1.8], [1, 2.6], [2, 2.75], [3, 2.55], [4, 2.1], [5, 1.55], [6, 1.12]], hoodCup: 0.1 },
     iconSt: { happy: 1 }, iconDir: [0.8, 0.25, 0.55], iconN: 12,
   });
   // The western diamondback rattlesnake: 1.4 m and heavy, a broad triangular head on a thin neck, gray-brown with dark
@@ -9876,7 +9881,8 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     const bx = xs[iB], bz = zs[iB];
     // the way the body runs at the base (forward), so it curls up in line with it
     let fx = xs[iB - 1] - xs[Math.min(N, iB + 1)], fz = zs[iB - 1] - zs[Math.min(N, iB + 1)];
-    const fl = Math.hypot(fx, fz) || 1; fx /= fl; fz /= fl;
+    // (mostly straight ahead, the way the snake faces, so the hood faces what is in front of it and the camera behind it)
+    let fl = Math.hypot(fx, fz) || 1; fx = 0.3 * fx / fl; fz = 0.3 * fz / fl + 0.7; fl = Math.hypot(fx, fz) || 1; fx /= fl; fz /= fl;
     for (let i = 0; i < iB; i++) {
       const u = sR - i * dz;   // distance up from the base along the body
       let up, fwd;
@@ -10004,6 +10010,8 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
         S.sway += dt * (1.3 + 0.3 * Math.sin(it * 0.37));
         const rr = sstep(0, 1, S.rear);
         if (rr > 0.001) pitchUp = P.rear ? snakeRear(P, S, rr, xs, ys, zs, N, dz, y0) : snakeRattle(P, S, rr, xs, ys, zs, cx, cz, N, dz, y0, t);
+        // how far the head is up off the ground (rig units): the game's camera looks up at it (70_game followCamera)
+        if (R.rig) R.rig.raise = Math.max(0, ys[0] - y0) * rr;
       }
       // the body origin should stay near root origin: shift so the middle sits on z ~ 0 (rest layout is already centered)
       for (let i = 0; i < N; i++) {
@@ -10015,7 +10023,15 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       }
       // round 17: the cobra's hood (P.hood: [bone index, width]): the bones under it widen across and flatten a little
       // as it rears
-      if (P.hood) { const hr = sstep(0.35, 0.9, S.rear); for (const [i, kx] of P.hood) segs[i].scale.set(1 + (kx - 1) * hr, 1 - 0.25 * hr * (kx - 1) / (hoodMax - 1), 1); }
+      if (P.hood) {
+        const hr = sstep(0.35, 0.9, S.rear);
+        for (const [i, kx] of P.hood) {
+          const f = (kx - 1) / (hoodMax - 1);
+          segs[i].scale.set(1 + (kx - 1) * hr, 1 - 0.35 * hr * f, 1);
+          // the flaps curve forward (toward the throat), so the hood is cupped and shows from the side too
+          for (const sd of 'LR') { const hb = B['hood' + i + sd]; if (hb) hb.position.set(0, -(P.hoodCup || 0) * hr * f, 0); }
+        }
+      }
       // head follows the first segment, with look and eat pitch
       _v1.set(xs[0] - xs[1], 0, zs[0] - zs[1]).normalize();
       const yaw = Math.atan2(_v1.x, _v1.z) * lerp(0.6, 1, sl) + S.look * (1 - S.rear * 0.6);

@@ -57,6 +57,25 @@ def _head_seams(s, th):
 
 M._head_seams = _head_seams
 SK.make(globals(), M, KS, eye_dir=(0.86, 0.32, 0.42))
+_fix0 = fix_weights
+
+
+def fix_weights(W, wpos, names, G, weld):
+    """the hood's flaps: the sides of the neck on each hood bone ride on its flap bone (hood<i>L / R, in the same place),
+    most at the outer edge of the hood and none on the back and the throat, so the game can curve them forward"""
+    W = _fix0(W, wpos, names, G, weld)
+    bi = {n: i for i, n in enumerate(names)}
+    s, th = M.tube_coords((wpos / KS).astype(F))
+    g = (np.sin(th) ** 3).astype(F) * sstep(0.03, 0.05, s)
+    for i in range(7):
+        for sd, side in (('L', wpos[:, 0] > 0), ('R', wpos[:, 0] < 0)):
+            h = bi.get(f'hood{i}{sd}')
+            if h is None:
+                continue
+            mv = W[:, bi[f's{i}']] * g * side
+            W[:, bi[f's{i}']] -= mv
+            W[:, h] += mv
+    return W
 K = {k: SK.hexc(v) for k, v in dict(olive=0x403C28, oliveLt=0x5A5438, dark=0x1A1812, band=0x8C8458, throat=0xE2D49A, belly=0xCFCAB0,
                                    bellyDk=0x5A5648, head=0x4A4430, gap=0x0E0D0A, skin=0xBDB698, hatch=0x121214, hband=0xEAE4B4).items()}
 
@@ -80,6 +99,13 @@ def paint(P, N, c):
     col *= (0.88 + 0.22 * jit)[:, None]
     band = sstep(0.72, 0.9, np.cos(2 * np.pi * b)) * sstep(0.07, 0.12, s) * (0.22 + 0.4 * sstep(0.25, 0.75, u))
     col = SK.mix(col, K['band'], band * (1 - bel))
+    # the hood (spread in the game): its back a lighter olive with two clear pale chevrons, its edges dark, so the
+    # spread hood's outline shows from behind and from in front
+    hood = sstep(0.05, 0.08, s) * sstep(0.44, 0.36, s)
+    col = SK.mix(col, K['oliveLt'] * 1.15, hood * sstep(1.25, 0.9, CT) * 0.7)
+    hb = (CS - 0.45 * np.abs(CT) * M.sect(CS)[2] - 0.13) / 0.11
+    col = SK.mix(col, K['band'] * 1.1, sstep(0.8, 0.92, np.cos(2 * np.pi * hb)) * hood * sstep(1.3, 1.0, CT) * 0.75 * (1 - bel))
+    col = SK.mix(col, K['dark'], hood * sstep(1.25, 1.45, CT) * sstep(1.95, 1.75, CT) * 0.85)
     # the skin between the scales: dark lines
     col = col * (0.62 + 0.38 * sstep(0.0, 0.12, E))[:, None] * (1 - head[:, None]) + col * head[:, None]
     # belly: cream yellow under the chin and throat, grayer further back, dark under the tail
