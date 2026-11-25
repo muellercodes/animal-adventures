@@ -1115,7 +1115,8 @@ const World = (() => {
     reef(seed) {
       const n1 = makeNoise(seed), n2 = makeNoise(seed + 1), n3 = makeNoise(seed + 2), n4 = makeNoise(seed + 3), n5 = makeNoise(seed + 4), n6 = makeNoise(seed + 5), n7 = makeNoise(seed + 6);
       const c = { sand: P(0xeee4d0), dry: P(0xe6d9bc), wet: P(0xcfc2a2), scrub: P(0x8e9452), duff: P(0x9a8a62),
-        lagoon: P(0xdcd4c0), bed: P(0x6c7a3a), bedDk: P(0x3e4c22), rubble: P(0xbcae8e), reef: P(0x6e5e44), reefDk: P(0x3e3428), algae: P(0x56562e), pinkish: P(0x9a7a76), deep: P(0xcfc6ae) };
+        lagoon: P(0xdcd4c0), bed: P(0x6c7a3a), bedDk: P(0x3e4c22), rubble: P(0xbcae8e), reef: P(0x3a3024), reefDk: P(0x221c14), algae: P(0x56562e), pinkish: P(0x9a7a76), deep: P(0xcfc6ae),
+        turf: P(0x3e3a18), coral1: P(0x7a2e6e), coral2: P(0x8e4a80) };
       const ISL = { x: 0, z: -12, r: 30 };
       const shoreR = (a) => ISL.r * (1 + 0.16 * n1(Math.cos(a) * 1.1, Math.sin(a) * 1.1) + 0.06 * n2(Math.cos(a) * 3, Math.sin(a) * 3)) * (1 + 0.2 * Math.cos(2 * (a - 0.35)));
       // how far out from the shore the reef crest runs, round the island
@@ -1237,7 +1238,15 @@ const World = (() => {
           const bed = bedK(x, z, h, g);
           if (bed > 0) { mix(o, c.bed, bed * 0.85); mix(o, c.bedDk, bed * 0.45 * (n2(x * 0.3, z * 0.3) * 0.5 + 0.5)); }
           const rk = reefK(x, z, h, g);
-          if (rk > 0) { mix(o, c.reef, rk); mix(o, c.reefDk, rk * 0.55 * (n5(x * 0.25, z * 0.25) * 0.5 + 0.5)); mix(o, c.algae, rk * 0.4 * smooth(n7(x * 0.08, z * 0.08) + 0.2)); mix(o, c.pinkish, rk * 0.35 * smooth((n3(x * 0.15, z * 0.15) - 0.25) / 0.3)); }
+          if (rk > 0) {
+            mix(o, c.reef, rk); mix(o, c.reefDk, rk * 0.45 * (n5(x * 0.25, z * 0.25) * 0.5 + 0.5));
+            // living reef rock (round 18 cover pass): olive brown turf algae and pink and mauve coralline algae in patches
+            mix(o, c.turf, rk * 0.75 * smooth((n7(x * 0.11, z * 0.11) + 0.05) / 0.35));
+            mix(o, c.coral1, rk * 0.65 * smooth((n3(x * 0.17 + 5, z * 0.17) - 0.05) / 0.3));
+            mix(o, c.coral2, rk * 0.45 * smooth((n1(x * 0.23, z * 0.23 + 7) - 0.15) / 0.3));
+            // (darker the shallower it is, where the light is strongest, so the rock never reads as bare pale stone)
+            o.multiplyScalar(1 - rk * 0.45 * (1 - smooth((-h - 1) / 6)));
+          }
           mix(o, c.deep, smooth((-h - 16) / 10) * (1 - rk));
         },
         grassAt(x, z, h) {
@@ -1277,11 +1286,11 @@ const World = (() => {
           { type: 'starfish', variants: [0, 1], per: 7, minH: -6, maxH: -0.6, gap: 4, test: (x, z, h) => { const g = geo(x, z); return reefK(x, z, h, g) < 0.2 && bedK(x, z, h, g) < 0.3; }, scale: [0.8, 1.3], tries: 3 },
           { type: 'diadema', per: 6, minH: -8, maxH: -0.8, gap: 3, test: underBand(-16, 10), scale: [0.8, 1.2], tries: 3 },
           // the crest, the spurs and the wall, thick with coral
-          { type: 'crestcoral', variants: [0, 1], per: 160, minH: -3.5, maxH: -0.85, gap: 2.1, tile: ringTile(50, 130), test: (x, z, h) => { const g = geo(x, z); return g.u > -11 && g.u < 5 && g.ch < 0.3 && reefK(x, z, h, g) > 0.2; }, scale: [0.8, 1.2], tries: 5 },
-          { type: 'slopecoral', variants: [0, 1, 2], per: 140, minH: -11, maxH: -1.2, gap: 2.5, tile: ringTile(55, 140), test: (x, z, h) => { const g = geo(x, z); return g.u > 1 && g.u < 18 && reefK(x, z, h, g) > 0.2; }, scale: [0.9, 1.4], tries: 5 },
-          { type: 'wallcoral', variants: [0, 1], per: 200, minH: -27, maxH: -3.5, gap: 2.2, tile: ringTile(60, 150), test: (x, z, h) => { const g = geo(x, z); return g.u > 10 && g.u < 31 && reefK(x, z, h, g) > 0.1; }, scale: [1.0, 1.6], tries: 5 },
+          { type: 'crestcoral', variants: [0, 1], per: 280, minH: -3.5, maxH: -0.85, gap: 1.6, tile: ringTile(50, 130), test: (x, z, h) => { const g = geo(x, z); return g.u > -11 && g.u < 5 && g.ch < 0.3 && reefK(x, z, h, g) > 0.2; }, scale: [0.8, 1.2], tries: 5 },
+          { type: 'slopecoral', variants: [0, 1, 2], per: 280, minH: -11, maxH: -1.2, gap: 1.8, tile: ringTile(55, 140), test: (x, z, h) => { const g = geo(x, z); return g.u > 1 && g.u < 18 && reefK(x, z, h, g) > 0.2; }, scale: [0.9, 1.4], tries: 5 },
+          { type: 'wallcoral', variants: [0, 1], per: 320, minH: -27, maxH: -3.5, gap: 1.8, tile: ringTile(60, 150), test: (x, z, h) => { const g = geo(x, z); return g.u > 10 && g.u < 31 && reefK(x, z, h, g) > 0.1; }, scale: [1.0, 1.6], tries: 5 },
           // small corals, algae and rubble between the big ones
-          { type: 'reefbits', variants: [0, 1, 2], per: 150, minH: -26, maxH: -0.6, gap: 1.5, tile: ringTile(45, 150), test: (x, z, h) => { const g = geo(x, z); return g.u > -13 && g.u < 31 && reefK(x, z, h, g) > 0.12; }, scale: [0.8, 1.3], tries: 3 },
+          { type: 'reefbits', variants: [0, 1, 2], per: 650, minH: -26, maxH: -0.6, gap: 0.85, tile: ringTile(45, 150), test: (x, z, h) => { const g = geo(x, z); return g.u > -13 && g.u < 31 && reefK(x, z, h, g) > 0.12; }, scale: [0.8, 1.3], tries: 3 },
           { type: 'barrelsponge', per: 5, minH: -32, maxH: -10, gap: 6, tile: ringTile(60, 190), test: underBand(16, 60), scale: [0.8, 1.4], tries: 3 },
           // far out: the patch reefs
           { type: 'slopecoral', variants: [0, 1, 2], per: 40, minH: -12, maxH: -2, gap: 3, tile: ringTile(180, 1e9), test: (x, z, h) => geo(x, z).s > 200 && reefK(x, z, h, Q) > 0.3, scale: [0.9, 1.4], tries: 6 },
