@@ -26,6 +26,12 @@ Object.assign(ZOO_LINES, {
   flamingos: ['Look, the flamingos are so pink!', 'That flamingo is standing on one leg!', 'It eats with its head upside down!'],
   penguins: ['Look at the penguins waddle!', 'The penguin is sliding on its tummy!', 'Look how fast they swim!'],
 });
+// round 17: Dino Park's velociraptors and pterodactyls, and the triceratops and stegosauruses in the plant eaters' paddock
+Object.assign(ZOO_LINES, {
+  raptors: ['Velociraptors have feathers!', 'Look at that big claw on its foot!', "They're only as big as a turkey!"],
+  ptero: ['Look at its huge wings!', 'The pterodactyl is flying!', 'Look at the crest on its head!'],
+});
+ZOO_LINES.brachio.push('Look at the triceratops horns!', 'Look at the plates on that stegosaurus!');
 const Zoos = {
   t: 0,
   max: { cityzoo: 7, petting: 4, dino: 6, safari: 7 },

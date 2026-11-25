@@ -455,6 +455,21 @@ const Sound = (() => {
         noise({ t, f: 700, q: 0.5, dur: 1.5, a: 0.15, vol: vol * 0.9, pan }); noise({ t, f: 2200, q: 0.8, dur: 1.3, a: 0.12, vol: vol * 0.35, pan }); } break;
       // round 17: Pallas's cat: a growly yip, a short rough bark that drops, twice (a kitten's are higher squeaks)
       case 'pallascat': for (let i = 0; i < 2; i++) { const t0 = t + i * 0.38; T({ t: t0, f: 520 * k, f2: 330 * k, dur: 0.16, type: 'sawtooth', bp: 1200 * k, q: 1.6, vib: 38, vibAmt: 30, vol: vol * 0.85 }); noise({ t: t0, f: 1100 * k, q: 1.0, dur: 0.12, vol: vol * 0.35, pan }); T({ t: t0, f: 160 * k, f2: 120 * k, dur: 0.18, type: 'sawtooth', lp: 420, vib: 30, vibAmt: 12, vol: vol * 0.4 }); } break;
+      // round 17: triceratops: a deep bellow that rises and falls twice over a low rumble (a hatchling bleats)
+      case 'triceratops': if (k > 1) { for (let i = 0; i < 2; i++) T({ t: t + i * 0.3, f: 360, f2: 280, dur: 0.24, type: 'sawtooth', lp: 1000, vib: 8, vibAmt: 14, vol: vol * 0.6 }); } else {
+        for (let i = 0; i < 2; i++) { const t0 = t + i * 0.9; T({ t: t0, f: 70, f2: 92, dur: 0.45, a: 0.12, type: 'sawtooth', lp: 300, vib: 5, vibAmt: 4, vol: vol * 1.3 }); T({ t: t0 + 0.42, f: 92, f2: 58, dur: 0.5, type: 'sawtooth', lp: 260, vib: 4, vibAmt: 4, vol: vol * 1.2 }); }
+        T({ t, f: 34, f2: 30, dur: 1.9, a: 0.3, type: 'sine', vol: vol * 1.1 }); } break;
+      // round 17: stegosaurus: low grunts, three short and one longer (a hatchling squeaks)
+      case 'stegosaurus': if (k > 1) { for (let i = 0; i < 3; i++) T({ t: t + i * 0.18, f: 600, f2: 480, dur: 0.1, type: 'triangle', vol: vol * 0.5 }); } else {
+        for (let i = 0; i < 4; i++) { const t0 = t + i * 0.38, d = i === 3 ? 0.55 : 0.2; T({ t: t0, f: 78, f2: 64, dur: d, a: 0.02, type: 'sawtooth', lp: 320, vib: 18, vibAmt: 5, vol: vol * 1.2 }); noise({ t: t0, f: 300, q: 1, dur: d * 0.8, vol: vol * 0.3, pan }); } } break;
+      // round 17: velociraptor: a chirping hiss, then a sharp call like a big bird's (a chick cheeps)
+      case 'velociraptor': if (k > 1) { for (let i = 0; i < 3; i++) T({ t: t + i * 0.12, f: 2800, f2: 3300, dur: 0.07, type: 'sine', vol: vol * 0.45 }); } else {
+        for (let i = 0; i < 4; i++) { const t0 = t + i * 0.09; T({ t: t0, f: 1700, f2: 2300, dur: 0.06, type: 'triangle', vol: vol * 0.45 }); }
+        noise({ t: t + 0.38, f: 3200, q: 0.8, dur: 0.35, vol: vol * 0.4, pan });
+        T({ t: t + 0.8, f: 900, f2: 1600, dur: 0.12, a: 0.005, type: 'sawtooth', bp: 1800, q: 2.4, vol: vol * 0.8 }); T({ t: t + 0.92, f: 1600, f2: 700, dur: 0.3, type: 'sawtooth', bp: 1500, q: 2.2, vib: 22, vibAmt: 40, vol: vol * 0.8 }); } break;
+      // round 17: pterodactyl: croaking screeches, a hoarse rasp sliding down, twice (a hatchling's thin squeaks)
+      case 'pterodactyl': if (k > 1) { for (let i = 0; i < 3; i++) T({ t: t + i * 0.15, f: 2200, f2: 1700, dur: 0.1, type: 'sawtooth', bp: 2400, q: 3, vol: vol * 0.4 }); } else {
+        for (let i = 0; i < 2; i++) { const t0 = t + i * 0.7; T({ t: t0, f: 820, f2: 520, dur: 0.5, a: 0.02, type: 'sawtooth', bp: 1300, q: 1.6, vib: 38, vibAmt: 60, vol: vol * 0.9 }); T({ t: t0, f: 1640, f2: 1100, dur: 0.45, type: 'square', bp: 2600, q: 2, vol: vol * 0.25 }); noise({ t: t0 + 0.05, f: 1900, q: 0.9, dur: 0.4, vol: vol * 0.3, pan }); } } break;
     }
   }
 

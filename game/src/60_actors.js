@@ -34,6 +34,9 @@ FEAR.chinesedragon = 2;
 // round 17: a king cobra and a rattlesnake stand their ground and show off instead (SPECIES display), and slip away only
 // from something big coming fast and close; an anaconda slides off into the water; a Pallas's cat is shy
 Object.assign(FEAR, { kingcobra: 1.2, rattlesnake: 1.2, anaconda: 3, pallascat: 5 });
+// round 17: a triceratops and a stegosaurus stand their ground (horns, spikes), velociraptors dash off, pterodactyls
+// take off
+Object.assign(FEAR, { triceratops: 0, stegosaurus: 0, velociraptor: 5, pterodactyl: 5 });
 // extra bump circles along a long body: [how far ahead of the body's middle, as a part of its length; radius, as a part
 // of its radius]. A brachiosaurus's middle is at its shoulders: the trunk runs back from there to its hips and tail
 // (its neck is high up, so fences pass under it)
@@ -47,7 +50,11 @@ const BODY_COL = { long: [[0.32, 0.8], [-0.32, 0.8]], brachiosaurus: [[0.14, 0.9
   // a Komodo dragon's middle is over its hips' front: its long thick tail runs well back
   komodo: [[0.34, 1.0], [-0.12, 1.0], [-0.46, 0.8]],
   // round 13: a griffin's chest and hips (its beak and tail hang past them); a winged lion is a lion's body
-  griffin: [[0.35, 0.84], [-0.33, 0.84]], wingedlion: [[0.3, 0.9], [-0.26, 0.9]] };
+  griffin: [[0.35, 0.84], [-0.33, 0.84]], wingedlion: [[0.3, 0.9], [-0.26, 0.9]],
+  // round 17: a triceratops's middle is its belly: its head and frill ahead and its hips and tail base behind; a
+  // stegosaurus's is its belly too, with its long tail behind; a velociraptor is balanced over its hips like a T. rex
+  triceratops: [[0.3, 0.9], [-0.15, 1.0], [-0.33, 0.6]], stegosaurus: [[0.25, 0.7], [-0.1, 0.9], [-0.33, 0.6]],
+  velociraptor: [[0.15, 0.9], [-0.105, 0.9], [-0.21, 0.7]] };
 // round 17: a Chinese dragon's middle is its hips: its neck and head run 2.7 m ahead and its long tail 3.2 m back
 BODY_COL.chinesedragon = [[0.4, 0.6], [0.22, 0.6], [-0.18, 0.5], [-0.36, 0.4]];
 const NOCTURNAL = { owl: 1, frog: 1, fox: 1, raccoon: 1, hedgehog: 1, hamster: 1, bat: 1, gecko: 1, ocelot: 1, leopard: 1 };
@@ -1035,13 +1042,14 @@ const Wild = {
             // a fruit bat spends the day hanging under a branch (with no tree near, it stays awake)
             else if (sleepy && b.sp === 'bat') { const t = this.roostTree(b); if (t) { b.state = 'roost'; b.target = t; b.ra = Math.random() * TAU; b.timer = 25; b.hangAt = null; } else b.timer = 3; }
             else if (sleepy && b.mode !== 'fly') { b.timer = 8 + Math.random() * 12; if (b.mode === 'ground' || b.mode === 'swim') b.mode = b.mode === 'swim' && b.sp !== 'otter' ? 'swim' : 'sleep'; }
-            else if ((b.sp === 'butterfly' || b.sp === 'bat' || sp.hover) && canFlyNow(b) && r < 0.75) {   // (round 16: hoverers too)
+            else if ((b.sp === 'butterfly' || b.sp === 'bat' || sp.hover || sp.soars) && canFlyNow(b) && r < (sp.soars ? 0.3 : 0.75)) {   // (round 16: hoverers too)
               // a butterfly flutters from flower to flower and a bat flies about at night: short flights near where it is
-              const bat = b.sp === 'bat';
-              b.target = b.pen ? this.pickTarget(b) : G.world.ringPoint(b.pos.x, b.pos.z, bat ? 5 : 2, bat ? 25 : 9, false) || this.pickTarget(b);
+              // (round 17: a soarer, the pterodactyl, flies off high over where it lives and glides down somewhere else)
+              const bat = b.sp === 'bat', so = !!sp.soars;
+              b.target = b.pen ? this.pickTarget(b) : G.world.ringPoint(b.pos.x, b.pos.z, bat ? 5 : so ? 15 : 2, bat ? 25 : so ? 50 : 9, false) || this.pickTarget(b);
               if (!b.pen && b.target && Math.hypot(b.target.x - b.home.x, b.target.z - b.home.z) > b.range) b.target = this.pickTarget(b);
               b.state = b.target ? 'wander' : 'idle'; b.timer = 2; b.pace = 1; b.stuck = 0; b.flutter = true;
-              b.flyH = bat ? (b.pen ? 1.2 : 3 + Math.random() * 4) : 0.5 + Math.random() * 1.2;
+              b.flyH = bat ? (b.pen ? 1.2 : 3 + Math.random() * 4) : so ? (b.pen ? 4 + Math.random() * 3 : 8 + Math.random() * 10) : 0.5 + Math.random() * 1.2;
             }
             // round 17: a roaming flier (sp.roam: only the Chinese dragon) now and then flies off on a long flight across
             // its home ground (between the Sky Lands' islands, up and down the Jungle river), as the flyaway state does
@@ -1067,7 +1075,8 @@ const Wild = {
           const t = b.target, dx = t.x - b.pos.x, dz = t.z - b.pos.z, d = Math.hypot(dx, dz);
           c.dx = dx; c.dz = dz; c.want = dv ? Dive.swimMax(b) * 0.45 * b.pace : m.walk * b.pace;
           if (b.flutter && b.mode !== 'fly' && d > 1 && canFlyNow(b)) c.takeoff = true;
-          if (b.mode === 'fly' && b.flutter) { c.want = sp.flySpeed * (b.sp === 'bat' ? 0.7 : 0.45); c.down = d < 1.2; c.up = !c.down && b.pos.y - G.world.H(b.pos.x, b.pos.z) < b.flyH; }
+          // (round 17: a soarer glides down over its last stretch)
+          if (b.mode === 'fly' && b.flutter) { c.want = sp.flySpeed * (b.sp === 'bat' ? 0.7 : sp.soars ? 0.55 : 0.45); c.down = d < (sp.soars ? Math.min(10, b.flyH * 1.2) : 1.2); c.up = !c.down && b.pos.y - G.world.H(b.pos.x, b.pos.z) < b.flyH; }
           else if (b.mode === 'fly') { c.want = sp.flySpeed * 0.6; c.down = d < 6; c.up = d > 6 && b.pos.y - G.world.H(b.pos.x, b.pos.z) < b.flyH; }
           if (b.blocked || b.speed < 0.05) b.stuck += dt; else b.stuck = Math.max(0, b.stuck - dt);
           if (d < 0.5 + m.radius || b.stuck > 2.5) { b.state = 'idle'; b.timer = 1 + Math.random() * 4; b.flutter = false; }

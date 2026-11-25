@@ -316,6 +316,18 @@ for (const id of ['rattlesnake', 'pallascat', 'kingcobra', 'anaconda']) { let i 
 // round 17: the Pallas's cat swims like the other cats (only as your own animal; wild ones keep out of deep water)
 Object.assign(SPECIES.pallascat, { swim: true, swimSpeed: 1.4, swimWild: false });
 // round 17 (end)
+// round 17: prehistoric animals. Dinosaurs hatch from big eggs, like the brachiosaurus and the T. rex. The velociraptor
+// is the real one, the size of a big turkey. The pterodactyl (a Pteranodon)
+// flies and soars, snatches fish from the water surface in flight (grab), and walks on all fours on the ground;
+// soars: a wild one takes off now and then for a short flight over where it lives (60_actors Wild).
+Object.assign(SPECIES, {
+  triceratops: { name: 'Triceratops', many: 'Triceratops', eats: ['twigs', 'grass', 'hay', 'lettuce', 'apple'], fav: 'twigs', outdoor: true, noJump: true, price: 1900, egg: 0xE6DCC6, baby: 'Baby triceratops' },
+  stegosaurus: { name: 'Stegosaurus', many: 'Stegosauruses', eats: ['grass', 'twigs', 'lettuce', 'hay'], fav: 'grass', outdoor: true, noJump: true, price: 1800, egg: 0xE4DDC8, baby: 'Baby stegosaurus' },
+  velociraptor: { name: 'Velociraptor', many: 'Velociraptors', eats: ['meat', 'bugs', 'worm', 'smallfish'], fav: 'meat', hunter: true, outdoor: true, price: 1000, egg: 0xEDE6D6, eggSpeck: [0.62, 0.55, 0.46], baby: 'Velociraptor chick' },
+  pterodactyl: { name: 'Pterodactyl', many: 'Pterodactyls', eats: ['fish', 'smallfish', 'squid'], fav: 'fish', fly: true, flySpeed: 12, grab: true, soars: true, outdoor: true, price: 1700, egg: 0xEFE9DA, baby: 'Baby pterodactyl' },
+});
+SHOP.push('triceratops', 'stegosaurus', 'velociraptor', 'pterodactyl');
+// round 17: prehistoric animals (end)
 const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow', 'snow', 'savanna', 'arctic'];
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];
 const SKIN = ['#F3D3B8', '#E6B691', '#C98E66', '#9A6544', '#6B4430'];
@@ -378,6 +390,8 @@ const SEX_LOOK = {
   // round 17: a boy king cobra and rattlesnake are bigger than a girl; a girl anaconda is much bigger than a boy
   kingcobra: { base: 'm', f: { size: 0.85 } }, rattlesnake: { base: 'm', f: { size: 0.9 } }, anaconda: { base: 'f', m: { size: 0.7 } },
   pallascat: { base: 'm', f: { size: 0.92 } },
+  // round 17: a girl pterodactyl (Pteranodon) is smaller with a much smaller crest (the crest is its horn bone)
+  pterodactyl: { base: 'm', f: { horns: 0.45, size: 0.8 } },
 };
 // round 17: a girl robin is paler (her own colors on the boy's sculpt); a girl barn owl and a girl kiwi are bigger (the
 // kiwi's bill longer with her), a boy raven and a boy dodo a little bigger. (The robot eagle: boys and girls alike.)

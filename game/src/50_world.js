@@ -74,7 +74,11 @@ const World = (() => {
     // round 15: the zebras' pen in Safari Park (in the City Zoo they share the giraffes' paddock)
     zebras: 'Zebras',
     // round 16: the City Zoo's flamingos and penguins
-    flamingos: 'Flamingos', penguins: 'Penguins' };
+    flamingos: 'Flamingos', penguins: 'Penguins',
+    // round 17: Dino Park's velociraptors and pterodactyls
+    raptors: 'Velociraptors', ptero: 'Pterodactyls' };
+  // round 17: the plant eaters' paddock in Dino Park (it was the brachiosauruses' alone)
+  PEN_NAMES.brachio = 'Plant-eating dinosaurs';
   const SIDE_ROT = { n: 0, s: Math.PI, e: Math.PI / 2, w: -Math.PI / 2 };
   function buildZoo(w, Z) {
     const H = w.H, hw = Z.hw, hd = Z.hd, at = (lx, lz) => [Z.x + lx, Z.z + lz];
@@ -572,6 +576,11 @@ const World = (() => {
           // her baby) and in the river (they keep to the water, divers' code in 60_actors)
           ...SP7([{ sp: 'kingcobra', n: 2, kids: 1, home: [-30, -25], range: 35 }, { sp: 'kingcobra', n: 1, home: [25, -55], range: 30 },
             { sp: 'anaconda', n: 1, kids: 1, home: [LAG.x, LAG.z], range: 12, water: true }, { sp: 'anaconda', n: 1, home: [xc(-90), -90], range: 40, water: true }]),
+          // round 17: more dinosaurs out in the jungle with the brachiosauruses and the T. rex (the Land, where Dino
+          // Park is, is the heaviest world on a phone, so the wild herds live here): a herd of triceratops with a baby,
+          // a pair of stegosauruses with a baby and a pack of velociraptors
+          ...SP7([{ sp: 'triceratops', n: 3, kids: 1, home: [70, -40], range: 40 }, { sp: 'stegosaurus', n: 2, kids: 1, home: [-70, 50], range: 40 },
+            { sp: 'velociraptor', n: 4, kids: 1, home: [-60, -20], range: 35 }]),
         ],
         ambient: [{ sp: 'parrot', w: 4 }, { sp: 'lizard', w: 3 }, { sp: 'frog', w: 2 }, { sp: 'snake', w: 2 }, { sp: 'turtle', w: 1, water: true }, { sp: 'otter', w: 1, water: true }],
         foods: { berries: 4, apple: 3, worm: 3, grass: 1, smallfish: 2, fish: 2, banana: 4, bugs: 3, twigs: 2, watermelon: 1, mushroom: 1, meat: 1, lettuce: 1, waterplants: 2 },   // (round 15: manatee: water plants in the river and the lagoon)
@@ -695,6 +704,8 @@ const World = (() => {
           ...SP7([{ sp: 'roboteagle', n: 3, kids: 1, home: [0, 0], range: 34 }]),
           // round 17: Chinese dragons: two that fly from island to island, and a pair with their baby on an island of their own
           ...SP7([{ sp: 'chinesedragon', n: 2, home: [22, 74], range: 120 }, { sp: 'chinesedragon', n: 2, kids: 1, home: [22, 74], range: 9 }]),
+          // round 17: a few pterodactyls on a high island (they soar off now and then and glide back)
+          ...SP7([{ sp: 'pterodactyl', n: 3, home: [100, 40], range: 12 }]),
         ],
         ambient: [{ sp: 'parrot', w: 3 }, { sp: 'owl', w: 1 }, { sp: 'swan', w: 1 }],
         foods: { berries: 5, apple: 3, acorn: 1, worm: 1, grass: 2, seeds: 2, bugs: 2, carrot: 1, smallfish: 1 },

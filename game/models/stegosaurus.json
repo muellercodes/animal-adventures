@@ -1,0 +1,110 @@
+{
+ "v": 2,
+ "id": "stegosaurus",
+ "data": "stegosaurus.bin",
+ "enc": "deflate",
+ "raw": 102750,
+ "maps": {
+  "color": "stegosaurus-color.webp",
+  "normal": "stegosaurus-normal.webp",
+  "babyColor": "stegosaurus-color-baby.webp"
+ },
+ "nv": 3236,
+ "ntri": 4181,
+ "nbv": 3236,
+ "nbt": 4181,
+ "bbox": [
+  -0.948534,
+  -0.013203,
+  -5.600372,
+  0.948534,
+  3.03811,
+  4.0281
+ ],
+ "bones": [
+  "hips",
+  "chest",
+  "neck",
+  "neck2",
+  "head",
+  "tail1",
+  "tail2",
+  "tail3",
+  "tail4",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.1046,
+   1.00261,
+   3.57656
+  ],
+  "r": 0.024,
+  "dir": [
+   0.8989,
+   0.1798,
+   0.3995
+  ],
+  "lid": [
+   0.75,
+   -0.667,
+   0.3
+  ],
+  "iris": 6965792,
+  "irisR": 0.93,
+  "pupilR": 0.42,
+  "rim": 1708554,
+  "lidCol": 4473133
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "neck2",
+   0.4
+  ],
+  "r": 1.2
+ },
+ "mouth": [
+  0.0,
+  0.666,
+  3.9668
+ ],
+ "belly": [
+  0.0,
+  0.96,
+  -0.2
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.07,
+  0.07,
+  0.06
+ ],
+ "flat": 7762002,
+ "bdelta": 0.374668
+}

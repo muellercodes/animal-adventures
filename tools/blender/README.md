@@ -862,6 +862,22 @@ is used:
   more): 49 KB + 46 + 41 + 6 + 10 + 7 + 23 + 1 + 8 KB, 198 KB of files, about 264 KB in the page. 9.7 MB / 6.4 MB. The
   peahen (`peafowlf`): 40 KB of files (about 53 KB in the page), 4.3 MB / 2.7 MB more.
 
+Round 17 prehistoric animals (texture memory with mipmaps on a phone, where the color and normal maps are capped at
+512; a baby's color map only when a baby is on screen):
+- Triceratops (`VOXEL=0.026 TRIS=6400 TEX=1024 WEIGHTS=transfer`, about 6 minutes on the shared machine): 8.4k
+  triangles; 1024 color and normal maps (WebP 66 and 48), 384 hatchling color map: 64 KB mesh + 37 + 138 + 7 KB,
+  249 KB of files (the normal map with its scales is most of it). About 2.8 MB on a phone (+0.8 MB for a baby).
+- Stegosaurus (`VOXEL=0.026 TRIS=6000 TEX=1024 WEIGHTS=transfer`): 8.4k triangles in the sculpt plus about 3.7k in the
+  game's plates (`stegoPlates()`, vertex colored, one draw call); the triceratops's set of maps: 61 KB + 35 + 137 + 6 KB,
+  242 KB of files. About 2.8 MB on a phone (+0.8 MB for a baby).
+- Velociraptor (`VOXEL=0.0045 TRIS=6400 TEX=768 WEIGHTS=transfer`): 9.7k triangles plus about 30 feather blades; 768
+  color and normal maps (WebP 70 and 56), 384 chick color map, 384 fur map (the chick's down), a 512 x 128 feather
+  atlas and its normal map, a 256 x 64 down atlas: 77 KB + 27 + 41 + 10 + 15 + 3 + 1 + 1 KB, 179 KB of files.
+- Pterodactyl (`VOXEL=0.012 TRIS=6400 TEX=1024 WEIGHTS=transfer`): 6.4k triangles; 1024 color and normal maps (WebP 68
+  and 52), 384 hatchling color map, 512 fur map (the pycnofibres): 47 KB + 18 + 26 + 5 + 20 KB, 119 KB of files.
+- Per world on a phone (round 16's `mem.py` walk plus the Sky Lands, before and after): the Land 309 to 325 MB (Dino
+  Park: all four), the Jungle 56 to 67 MB (the herds), the Sky Lands 38 to 40 MB; the other worlds as before.
+
 ## More cats and a hamster (round 7: `cat.py` as a template, `coat.py`, `hamster.py`)
 
 Five more cats (`blackcat`, `orangecat`, `calico`, `siamese`, `whitecat`) and a Syrian hamster. The tabby got its fixes
@@ -2066,3 +2082,62 @@ about 2 minutes each. `SK.small_scales()` draws small irregular scales (2D Worle
   hatchling 18 KB), about 12.6 MB / 4.2 MB; rattlesnake 9.6k triangles, 171 KB (16 + 38 + 116 KB), 6.3 MB / 2.8 MB;
   anaconda 8.2k triangles, 145 KB (15 + 36 + 93 KB), 6.3 MB / 2.8 MB; Pallas's cat 5.3k triangles plus 192 in the
   whiskers, 191 KB (53 + 78 + 35 + 4 + 12 + 5 KB), about 13.4 MB / 5 MB.
+## Round 17: prehistoric animals (`triceratops.py`, `stegosaurus.py`, `velociraptor.py`, `pterodactyl.py`)
+
+Four animals at their real size, laid out like the round 16b dinosaurs (`brachiosaurus.py`, `trex.py`: a trunk loft,
+sweeps for the neck, the legs and the tail, the head in its own frame, the sculpt's own skin weights) and, for the
+pterodactyl, like the fruit bat (`bat.py`: the wings sculpted spread flat, the membrane a thin plate cut to a 2D
+outline, every skin weight made in `fix_weights`).
+
+```bash
+python3 tools/blender/export_rig.py triceratops      # and stegosaurus, velociraptor, pterodactyl
+VOXEL=0.026 TRIS=6400 TEX=1024 WEIGHTS=transfer BLENDER_PY=... python3 tools/blender/make.py triceratops sculpt export
+VOXEL=0.026 TRIS=6000 TEX=1024 WEIGHTS=transfer BLENDER_PY=... python3 tools/blender/make.py stegosaurus sculpt export
+VOXEL=0.0045 TRIS=6400 TEX=768 WEIGHTS=transfer BLENDER_PY=... python3 tools/blender/make.py velociraptor sculpt export
+VOXEL=0.012 TRIS=6400 TEX=1024 WEIGHTS=transfer BLENDER_PY=... python3 tools/blender/make.py pterodactyl sculpt export
+```
+
+- A sweep (a neck or a tail) that starts inside a trunk loft has to start well inside it (more than the blend's k)
+  and the trunk has to end inside the sweep: a sweep's or a loft's end cap within k of the other surface leaves a
+  crescent ridge or a notch where it ends (the first stegosaurus had both at the base of its tail). The tails blend
+  into the trunk with a small k (0.14).
+- A part's box (`local()`) must reach past its blend: a thigh blend cut by the top of its box left a crescent across
+  the back.
+- Triceratops (8.6 m, 3 m at the hips): a broad body highest over the hips, a deep wedge of a face ending in a hooked
+  beak, a short nose horn, brow horns (`U.horn` polylines, about 1.2 m) curving forward, the cheeks flaring out under
+  the eyes, and the frill: a plate in its own frame (`fframe()`) cut to a superellipse (`_frad()`: squarer below, so
+  its lower corners come down beside the jaw joints, where the squamosals are), dished forward toward its sides
+  (`_dish()`), thicker at the rim, with nine knobs (epoccipitals, `KNOBS`) on each side pointing out of the outline.
+  Paint: olive-brown back, faint bands, a pale belly, the frill darker toward the rim with pale knobs, ivory horns
+  darkening to their bases, a dark beak. The hatchling (`baby_offset()`): the frill drawn in to about a third of its
+  height and narrower, the horns as buds; its own paler color map.
+- Stegosaurus (9.5 m): a deep, fairly narrow body arching high over the hips, a short neck and a small low head, short
+  front legs, long hind legs, the thagomizer (two pairs of `U.horn` spikes) at the end of the tail; buds on the
+  hatchling (`baby_offset()`). The plates are not in the sculpt: they alternate left and right and a sculpt is one
+  mirrored half. The game builds them (`stegoPlates()` in 40_animals.js, the species' `modelAccent`: a part that
+  stays on a sculpted body, one vertex-colored skinned mesh) on the spine where each base sits, with the same spine
+  weights as `fix_weights` (`stegoSpineW()`); their base heights follow the sculpted back (`STEGO_TOP`, sampled from
+  `shape()`). If the back changes, sample it again.
+- Velociraptor (2 m with the tail, 0.5 m at the hips): a biped like the T. rex, painted with the birds' plumage
+  (`bird.plumage()`, `feather_height()`: overlapping feathers in the color and normal maps), dark bars across the back
+  and the tail, a stripe back from the eye; a long low skull with lips and the tips of small teeth (`TEETH`), the
+  raised second toe with the sickle claw (`SICKLE`), folded arms with three clawed fingers. The arm feathers and the
+  tail fan are the game's feather blades (`SPEC.velociraptor.feathers`), cut from this file's feather atlas
+  (`FEATHER_ATLAS`, its own `extra_maps` and `export_extra` hooks: cell 0 the arm feathers, cell 1 the tail feathers).
+  The chick: fur shells on babies only and its own color map (tan with dark stripes).
+- Pterodactyl (Pteranodon, 7 m across the wings): the wing plane at `YM` = 0.9; the arm (humerus, forearm, the long
+  hand bone to the knuckle `KN`) and the 2 m wing finger make the leading edge, the membrane (`_outline()`: a little
+  propatagium in front of the arm, a long hollow trailing edge back to the thigh) is a plate 1.4 to 2.6 cm thick.
+  Weights (`fix_weights`): the leading edge along x on the arm's bones; behind the arm on the membrane's own bones
+  (`PLAG_X`, the game's `PTERO.plag`); past the knuckle between the finger (f0) and the last membrane bone (f8) by
+  the direction from the knuckle; the flank on the hips; the small fingers on the hand; the crest on its horn bone
+  (`hornC`: a hatchling has none, a girl's is smaller). In the game the folded arm is a long front leg standing on the
+  small fingers, the finger folded up and back along it (`PTERO.fold`, `fscl`), the membrane bones folded parallel to
+  it and shrunk across (`sc`), so the membrane lies along the folded finger.
+- Pterodactyl ground stance fix (later in round 17): the beak in front of the skull is now wholly on the head (its
+  lower edge drooped under the head mask's height and was half on the neck and the hips, which made a sail off the
+  beak tip whenever the neck bent), and only a narrow strip of membrane at the flank stays on the hips (`kh`, x 0.13 to
+  0.18 m), so the folded membrane gathers in to the humerus lying along the flank. Re-made from `lowpoly`
+  (`TRIS=6400 ... make.py pterodactyl lowpoly export`): the same mesh and textures, only the weights changed. The game
+  side (the ground fold `PTERO.ground`, the planted hands) is in the bird animator.
+- Budget: see the Budget section.
