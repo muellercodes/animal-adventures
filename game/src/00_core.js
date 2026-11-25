@@ -271,6 +271,20 @@ SHOP.push('ostrich');
 SPECIES.peafowl = { name: 'Peacock', many: 'Peacocks', eats: ['seeds', 'bugs', 'berries', 'corn', 'grass'], fav: 'seeds', fly: true, flySpeed: 7, price: 800, egg: 0xEADCC2, outdoor: true, baby: 'Peachick' };
 SHOP.push('peafowl');
 // round 16: big and water birds (end)
+// round 17: three more snakes and a wild cat. display: the king cobra rears up and spreads its hood ('rear'), the
+// rattlesnake coils and rattles ('rattle'), when it is happy, when it calls and when something big comes near (60_actors
+// Wild and poseBody, anim.rear and anim.rattle in 40_animals). newborn: a newborn's size as a part of the grown-up's
+// (the game's babies are 0.42 of it; these snakes are born or hatch much smaller). The king cobra hatches from an egg;
+// the rattlesnake and the anaconda are born live, like the garter snake. The anaconda swims and dives (not aquatic, no
+// puff of mist when it comes up).
+Object.assign(SPECIES, {
+  kingcobra: { name: 'King cobra', many: 'King cobras', eats: ['meat', 'fish', 'smallfish'], fav: 'meat', swim: true, swimSpeed: 2.0, noJump: true, hunter: true, display: 'rear', newborn: 0.16, price: 900, egg: 0xEEEADC, camNear: 0.75, baby: 'King cobra hatchling' },
+  rattlesnake: { name: 'Rattlesnake', many: 'Rattlesnakes', eats: ['meat', 'bugs', 'worm'], fav: 'meat', swim: true, swimSpeed: 1.4, noJump: true, hunter: true, display: 'rattle', newborn: 0.22, price: 500, baby: 'Baby rattlesnake' },
+  anaconda: { name: 'Green anaconda', many: 'Green anacondas', eats: ['meat', 'fish', 'smallfish'], fav: 'meat', swim: true, dive: true, swimSpeed: 2.2, noJump: true, blow: false, newborn: 0.16, price: 1300, outdoor: true, hunter: true, camNear: 0.7, baby: 'Baby anaconda' },
+  pallascat: { name: "Pallas's cat", many: "Pallas's cats", eats: ['meat', 'bugs', 'worm'], fav: 'meat', climb: true, hunter: true, price: 600, baby: "Pallas's cat kitten" },
+});
+for (const id of ['rattlesnake', 'pallascat', 'kingcobra', 'anaconda']) { let i = SHOP.length; while (i > 0 && SPECIES[SHOP[i - 1]].price > SPECIES[id].price) i--; SHOP.splice(i, 0, id); }
+// round 17 (end)
 const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow', 'snow', 'savanna', 'arctic'];
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];
 const SKIN = ['#F3D3B8', '#E6B691', '#C98E66', '#9A6544', '#6B4430'];
@@ -330,6 +344,9 @@ const SEX_LOOK = {
   flamingo: { base: 'm', f: { size: 0.88 } },
   ostrich: { base: 'm', f: { model: true, size: 0.9 } },
   peafowl: { base: 'm', m: { name: 'Peacock' }, f: { name: 'Peahen', model: true, horns: 0, size: 0.9 } },
+  // round 17: a boy king cobra and rattlesnake are bigger than a girl; a girl anaconda is much bigger than a boy
+  kingcobra: { base: 'm', f: { size: 0.85 } }, rattlesnake: { base: 'm', f: { size: 0.9 } }, anaconda: { base: 'f', m: { size: 0.7 } },
+  pallascat: { base: 'm', f: { size: 0.92 } },
 };
 const sexLook = (id, sex) => (SEX_LOOK[id] && SEX_LOOK[id][sex]) || null;
 const sexOf = (id) => (S.sex && (S.sex[id] === 'm' || S.sex[id] === 'f') ? S.sex[id] : (SEX_LOOK[id] && SEX_LOOK[id].base) || 'f');

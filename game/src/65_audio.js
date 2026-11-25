@@ -355,6 +355,25 @@ const Sound = (() => {
       // round 16: Atlantic puffin: a low growling purr, like a far-off motorbike, "arr-arr-arrr" (a puffling peeps)
       case 'puffin': if (k > 1) { for (let i = 0; i < 3; i++) T({ t: t + i * 0.14, f: 3000, f2: 3400, dur: 0.06, type: 'sine', vol: vol * 0.35 }); } else {
         for (let i = 0; i < 3; i++) { const t0 = t + i * 0.42, d = i === 2 ? 0.75 : 0.3; T({ t: t0, f: 170, f2: 140, dur: d, a: 0.03, type: 'sawtooth', lp: 900, vib: 34, vibAmt: 40, vol: vol * 0.9 }); noise({ t: t0, f: 600, q: 1.2, dur: d * 0.9, vol: vol * 0.25, pan }); } } break;
+      // round 17: king cobra: a low growling hiss, the breath rasping over a deep growl (a hatchling's is a thin hiss)
+      case 'kingcobra': if (k > 1) { noise({ t, f: 4200, type: 'highpass', dur: 0.4, vol: vol * 0.35, pan }); } else {
+        noise({ t, f: 1300, q: 0.6, dur: 1.1, a: 0.08, vol: vol * 0.8, pan }); noise({ t, f: 380, q: 1.2, dur: 0.9, a: 0.1, vol: vol * 0.45, pan });
+        T({ t: t + 0.05, f: 85, f2: 70, dur: 0.95, a: 0.12, type: 'sawtooth', lp: 320, vib: 23, vibAmt: 9, vol: vol * 0.75 }); } break;
+      // round 17: rattlesnake: the rattle's fast dry buzz, swelling and holding (a baby's single button barely clicks,
+      // with a short hiss)
+      case 'rattlesnake': if (k > 1) { for (let i = 0; i < 4; i++) noise({ t: t + i * 0.05, f: 6000, q: 2, dur: 0.02, vol: vol * 0.2, pan }); noise({ t: t + 0.2, f: 5000, type: 'highpass', dur: 0.35, vol: vol * 0.3, pan }); } else {
+        // (band-passed noise chopped by a fast square wave: the rattle's segments clicking about 55 times a second)
+        const d = 1.6, src = ac.createBufferSource(), f = ac.createBiquadFilter(), am = ac.createGain(), g = ac.createGain(), lfo = ac.createOscillator(), lg = ac.createGain();
+        src.buffer = noiseBuf; src.loop = true; f.type = 'bandpass'; f.frequency.value = 5200; f.Q.value = 1.1;
+        lfo.type = 'square'; lfo.frequency.setValueAtTime(48, t); lfo.frequency.linearRampToValueAtTime(58, t + 0.4); lg.gain.value = 0.5; am.gain.value = 0.5; lfo.connect(lg); lg.connect(am.gain);
+        src.connect(f); f.connect(am); am.connect(g); g.connect(out(vol * 0.9, pan));
+        g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.6, t + 0.08); g.gain.linearRampToValueAtTime(1, t + 0.4); g.gain.setValueAtTime(1, t + d - 0.25); g.gain.linearRampToValueAtTime(0.0001, t + d);
+        src.start(t, Math.random() * 1.5); src.stop(t + d + 0.05); lfo.start(t); lfo.stop(t + d + 0.05); } break;
+      // round 17: green anaconda: a deep, long, breathy hiss (a baby's is short and higher)
+      case 'anaconda': if (k > 1) { noise({ t, f: 3000, q: 0.7, dur: 0.45, vol: vol * 0.4, pan }); } else {
+        noise({ t, f: 700, q: 0.5, dur: 1.5, a: 0.15, vol: vol * 0.9, pan }); noise({ t, f: 2200, q: 0.8, dur: 1.3, a: 0.12, vol: vol * 0.35, pan }); } break;
+      // round 17: Pallas's cat: a growly yip, a short rough bark that drops, twice (a kitten's are higher squeaks)
+      case 'pallascat': for (let i = 0; i < 2; i++) { const t0 = t + i * 0.38; T({ t: t0, f: 520 * k, f2: 330 * k, dur: 0.16, type: 'sawtooth', bp: 1200 * k, q: 1.6, vib: 38, vibAmt: 30, vol: vol * 0.85 }); noise({ t: t0, f: 1100 * k, q: 1.0, dur: 0.12, vol: vol * 0.35, pan }); T({ t: t0, f: 160 * k, f2: 120 * k, dur: 0.18, type: 'sawtooth', lp: 420, vib: 30, vibAmt: 12, vol: vol * 0.4 }); } break;
     }
   }
 
