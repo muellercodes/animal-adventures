@@ -1902,8 +1902,13 @@ about 2 minutes each. `SK.small_scales()` draws small irregular scales (2D Worle
 - King cobra (KS 2.4, 3.7 m, `TEX=1024`): a slender body with 15 rows of big smooth scales, a big head with large
   plates and the pair of occipitals behind them, round pupils; olive brown with faint pale chevrons that point forward,
   clearer toward the darker tail, a cream-yellow throat. Hatchlings (`baby_paint`, 512 map): glossy black with narrow
-  yellow-white chevrons and pale bars across the head. In the game it rears up the front third of its body and spreads
-  its hood (`anim.rear`, `anim.hood`: the bones under the hood widen across).
+  yellow-white chevrons and pale bars across the head. In the game it rears up the front third of its body (the head
+  about 1.15 m up) and spreads its hood (`anim.rear`, `anim.hood`): the seven bones under the hood (from just behind the
+  head down about 9 head lengths, 1 m) widen across, up to about 2.5 times the body, and flatten, and a flap bone on
+  each side of each of them (`hood<i>L` / `R`, in the bone's own place, so they change nothing at rest) carries the
+  sides of the neck (`fix_weights` here moves sin(th)^3 of each hood bone's weight onto them) and curves them forward,
+  so the hood is cupped and reads from the side too. The hood's back is a lighter olive with two pale chevrons and its
+  edges are dark, so the spread outline shows.
 - Western diamondback rattlesnake (KS 1.45, 1.4 m, `TEX=768`): a heavy body on a thin neck, 25 rows of keeled scales, a
   broad triangular head with a heavy brow, the heat pit, small crown scales between the big brow plates, slit pupils;
   gray-brown with dark brown diamonds rimmed in cream, the dark eye stripe between pale lines, a black and white banded
@@ -1922,7 +1927,7 @@ about 2 minutes each. `SK.small_scales()` draws small irregular scales (2D Worle
   white chin and muzzle. Long fur shells (`len` 0.045, 6 layers, 2 at detail 1). Kittens are darker gray with faint
   marks.
 - Budget (files, about 4/3 of that in the page; texture memory with mipmaps on a computer and on a phone, where the
-  color and normal maps are capped at 512): king cobra 8.2k triangles, 182 KB (mesh 12, color 29, normal 122,
+  color and normal maps are capped at 512): king cobra 8.2k triangles, 186 KB (mesh 14, color 30, normal 121,
   hatchling 18 KB), about 12.6 MB / 4.2 MB; rattlesnake 9.6k triangles, 171 KB (16 + 38 + 116 KB), 6.3 MB / 2.8 MB;
   anaconda 8.2k triangles, 145 KB (15 + 36 + 93 KB), 6.3 MB / 2.8 MB; Pallas's cat 5.3k triangles plus 192 in the
   whiskers, 191 KB (53 + 78 + 35 + 4 + 12 + 5 KB), about 13.4 MB / 5 MB.
