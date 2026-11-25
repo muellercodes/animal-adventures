@@ -885,12 +885,19 @@ void main() {
       for (const p of o.hide || []) p.visible = false;
       // light filtered by the water: bluer and dimmer the deeper you go, dim under the ice
       tint.copy(cShal).multiplyScalar(1 / Math.max(0.05, Math.max(cShal.r, cShal.g, cShal.b)));
+      // (round 18: a world can give the light under its water a color of its own near the surface, water.light: the
+      // Coral Reef's clear water, where the sun still shows the reds and yellows of the corals a few meters down; it
+      // turns to the water's own color deeper down)
+      if (wd.light != null) { const lc = lcol(wd.light); lc.multiplyScalar(1 / Math.max(0.05, lc.r, lc.g, lc.b)); tint.copy(lc.lerp(tint, ks(1.5, 26, depth))); }
       o.sun.color.multiply(tint);
       o.sun.intensity *= 0.7 * (0.12 + 0.88 * Math.exp(-depth / 14)) * (1 - 0.75 * ice);
       // the light through the ice overhead, for the floes' undersides
       iceGlow.value.copy(o.sky.uniforms.uHorizon.value).lerp(tint, 0.45).multiplyScalar(0.5 * (0.06 + 0.94 * day));
       const hk = (0.55 + 0.45 * light / Math.max(0.05, 0.08 + 0.92 * day)) * (0.3 + 0.7 * day);
       o.hemi.color.multiply(tint).lerp(cTmp.copy(fogLin).multiplyScalar(2.2 / Math.max(0.02, fogLin.g)), 0.45).multiplyScalar(hk);
+      // (round 18: water.bright, how much of the light gets down there, the Coral Reef's own: its bright sand and pale
+      // fog would otherwise wash out the reef)
+      if (wd.bright != null) { o.sun.intensity *= wd.bright; o.hemi.color.multiplyScalar(wd.bright); }
       o.hemi.groundColor.copy(fogLin).multiplyScalar(0.45);
       // the surface overhead: the sky in its window, the mirror of the water outside it
       skyLin.copy(o.sky.uniforms.uZenith.value).lerp(o.sky.uniforms.uHorizon.value, 0.45).multiplyScalar(1.15);

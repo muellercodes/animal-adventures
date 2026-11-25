@@ -132,8 +132,8 @@ const isAquatic = (sp) => !!(SPECIES[sp] && SPECIES[sp].aquatic);
 // it be in world id (every other animal can be anywhere); waterWords(sp): where it lives, for the Map and the toasts
 const homeWaters = (sp) => (SPECIES[sp] && SPECIES[sp].waters) || seaWorld();
 const livesIn = (sp, id) => !isAquatic(sp) || (SPECIES[sp].waters ? SPECIES[sp].waters === id : !!(World.META[id] && World.META[id].sea));
-// (round 18: an animal whose home is a sea world, the dolphin, lives in the sea, not in that world's river)
-const waterWords = (sp) => (SPECIES[sp].waters && World.META[SPECIES[sp].waters] && !World.META[SPECIES[sp].waters].sea ? `live in the ${World.META[SPECIES[sp].waters].name} river` : 'live in the sea');
+// (round 18: a sea animal with a sea of its own, now that there are two: the narwhal "lives in the Arctic Ocean", the dolphin "lives in the Coral Reef")
+const waterWords = (sp) => { const M = SPECIES[sp].waters && World.META[SPECIES[sp].waters]; return M ? (M.sea ? `live in the ${M.name}` : `live in the ${M.name} river`) : 'live in the sea'; };
 const Dive = {
   // how far a diver keeps its body off the sea floor and the ice
   clr(b) { return 0.08 + b.m.height * 0.12; },

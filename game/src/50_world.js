@@ -13,7 +13,9 @@ const World = (() => {
     // round 7 food plants
     mushrooms: 1, melonpatch: 1, lettucebed: 1, birdfeeder: 1,
     // round 14: the Arctic Ocean's sea floor and bits of ice
-    urchins: 1, anemones: 1, sponge: 1, seaweed: 1, brash: 1 };
+    urchins: 1, anemones: 1, sponge: 1, seaweed: 1, brash: 1,
+    // round 18: the Coral Reef's corals and the things on its sand (the reef's own fish are Env.reef.life)
+    crestcoral: 1, slopecoral: 1, wallcoral: 1, bommie: 1, staghorn: 1, reefbits: 1, barrelsponge: 1, giantclam: 1, starfish: 1, diadema: 1, beachgrass: 1 };
   // drawn out to a middle distance (parked cars, signs and the like)
   const MID = { parked: 1, stopsign: 1, streetsign2: 1, oneway: 1, speedlimit: 1, busstopsign: 1, crosswalksign: 1, dumpster: 1, fence8: 1, foodcart: 1, phonebooth: 1,
     streetclock: 1, planterbox: 1, parkbooth: 1, bench: 1, parkbench: 1, picnic: 1, busstop: 1, statue: 1, trafficpole: 1,
@@ -1103,8 +1105,208 @@ const World = (() => {
         _dbg: { feat, fastW, conc, kind, bergsNear, field: () => field() },
       };
     },
+    // round 18: the Coral Reef. A warm, clear tropical sea round a small low sandy island: a white beach all round
+    // (land animals arrive on its south side), coconut palms leaning out over the water and beach grass inland; a
+    // shallow sandy lagoon (0.5 to 3 m deep) with seagrass meadows and coral heads; a fringing reef crest that nearly
+    // breaks the surface, cut by two channels; then the fore reef: spurs and grooves of coral down to 5 m, a wall to 20 m
+    // and a sandy slope to 30 m. Past the hand-made part: open blue sea 30 to 35 m deep with a patch reef rising to 5 m
+    // now and then. The reef fish, the sea turtles and the anemones with clownfish are Env.reef.life (39_reef), made
+    // around you as you swim.
+    reef(seed) {
+      const n1 = makeNoise(seed), n2 = makeNoise(seed + 1), n3 = makeNoise(seed + 2), n4 = makeNoise(seed + 3), n5 = makeNoise(seed + 4), n6 = makeNoise(seed + 5), n7 = makeNoise(seed + 6);
+      const c = { sand: P(0xeee4d0), dry: P(0xe6d9bc), wet: P(0xcfc2a2), scrub: P(0x8e9452), duff: P(0x9a8a62),
+        lagoon: P(0xdcd4c0), bed: P(0x6c7a3a), bedDk: P(0x3e4c22), rubble: P(0xbcae8e), reef: P(0x6e5e44), reefDk: P(0x3e3428), algae: P(0x56562e), pinkish: P(0x9a7a76), deep: P(0xcfc6ae) };
+      const ISL = { x: 0, z: -12, r: 30 };
+      const shoreR = (a) => ISL.r * (1 + 0.16 * n1(Math.cos(a) * 1.1, Math.sin(a) * 1.1) + 0.06 * n2(Math.cos(a) * 3, Math.sin(a) * 3)) * (1 + 0.2 * Math.cos(2 * (a - 0.35)));
+      // how far out from the shore the reef crest runs, round the island
+      const crestS = (a) => 50 + 22 * (0.5 + 0.5 * n3(Math.cos(a) * 1.3 + 5, Math.sin(a) * 1.3));
+      // two channels through the reef, where the lagoon's water goes out: south east and north west (angle, half width)
+      const CH = [[0.95, 7], [-2.25, 8]];
+      // where a spot is: its angle round the island, s (m out from the shore), u (m out past the reef crest), the crest's
+      // radius R, and ch (1 in a channel)
+      const Q = { a: 0, s: 0, u: 0, R: 0, ch: 0 };
+      function geo(x, z) {
+        const dx = x - ISL.x, dz = z - ISL.z, a = Math.atan2(dz, dx), sr = shoreR(a), cs = crestS(a);
+        Q.a = a; Q.s = Math.hypot(dx, dz) - sr; Q.u = Q.s - cs; Q.R = sr + cs;
+        let ch = 0; for (const [ca, cw] of CH) ch = Math.max(ch, smooth(1 - Math.abs(angDiff(a, ca)) * Q.R / cw));
+        Q.ch = ch * (1 - smooth((Q.u - 14) / 8)) * smooth((Q.u + 26) / 8);
+        return Q;
+      }
+      // spurs and grooves: ridges of coral running out to sea, about 13 m apart, with sand in the grooves between them
+      const groove = (x, z, g) => Math.sin(g.a * g.R * TAU / 13 + 1.6 * n6(x * 0.04, z * 0.04));
+      // patch reefs out in the open sea (0..1)
+      const patchK = (x, z) => smooth((fbm(n2, x * 0.0045 + 7, z * 0.0045, 3) - 0.16) / 0.14);
+      function H(x, z) {
+        const g = geo(x, z), s = g.s, u = g.u;
+        // the lagoon: from the beach down to 0.5 to 3 m of sand, shallower over the seagrass flats; the back reef rising
+        // to the crest, its top 0.3 to 1.3 m under the surface
+        const lag = -0.3 - 1.9 * smooth(s / 16) - 1.0 * smooth((n4(x * 0.035, z * 0.035) + 0.3) / 0.8) * smooth((s - 6) / 14);
+        const top = -0.45 - 1.1 * (0.5 + 0.5 * n5(x * 0.06, z * 0.06));
+        let fl = lerp(lag, top, smooth((u + 14) / 13));
+        if (u > 1) {
+          // the fore reef: spurs and grooves down to about 5 m, the wall to 20 m, the sandy slope to 30 m
+          const sg = groove(x, z, g) * 1.3 * smooth((u - 2) / 6) * (1 - smooth((u - 18) / 10));
+          fl += sg - 4.2 * smooth((u - 2) / 13) - 14 * smooth((u - 13) / 15) - 9.5 * smooth((u - 26) / 32);
+          fl += 1.4 * fbm(n7, x * 0.02, z * 0.02, 3) * smooth((u - 30) / 30);
+        }
+        // the reef's own rough framework: lumps and hollows of old coral rock under the living corals
+        fl += 0.55 * fbm(n6, x * 0.22 + 3, z * 0.22, 2) * smooth((u + 12) / 6) * (1 - smooth((u - 26) / 8));
+        // the channels: sand 3.5 m deep going out to 5.5 m, through the crest
+        if (g.ch > 0) fl = lerp(fl, Math.min(fl, -3.5 - 2 * smooth((u + 4) / 14)), g.ch);
+        // the reef never comes out of the water: its highest points stay about 0.3 m under the surface
+        if (u > -16 && fl > -0.6) fl = lerp(fl, -0.6 + 0.3 * (1 - Math.exp(-(fl + 0.6) / 0.3)), smooth((u + 16) / 4));
+        // far out: open sea 30 to 35 m deep, and now and then a patch reef rising to 5 m
+        const far = smooth((s - 170) / 120);
+        if (far > 0) {
+          const deep = -31.5 - 3 * fbm(n3, x * 0.004, z * 0.004, 2), pk = patchK(x, z);
+          const ptop = -4.5 - 3 * (0.5 + 0.5 * n5(x * 0.03, z * 0.03)) + 0.8 * n6(x * 0.2, z * 0.2);
+          fl = lerp(fl, lerp(deep, ptop, pk), far);
+        }
+        if (s > 4) return fl;
+        // the island: a gentle white beach all round, low sandy ground with little dunes inland
+        const inl = Math.max(0, -s);
+        let land = 0.28 + inl * 0.07 + 0.9 * smooth((inl - 9) / 14) * (0.6 + 0.4 * fbm(n1, x * 0.05, z * 0.05, 2));
+        land += 0.3 * n2(x * 0.13, z * 0.13) * smooth((inl - 3) / 6);
+        return lerp(land, fl, smooth((s + 2) / 6));
+      }
+      // what covers the sea floor (0..1): seagrass meadows in the lagoon, reef rock from the back reef down the wall
+      // (sand in the grooves and the channels), patch reefs far out
+      const bedK = (x, z, h, g) => (h > -0.55 || g.u > -12 || g.s < 5 ? 0 : smooth((fbm(n6, x * 0.03 + 3, z * 0.03, 3) + 0.02) / 0.18) * (1 - smooth((g.u + 16) / 4)) * smooth((g.s - 5) / 6));
+      const reefK = (x, z, h, g) => {
+        if (h > -0.2) return 0;
+        let k = smooth((g.u + 12) / 5) * (1 - smooth((g.u - 24) / 8)) * (1 - g.ch);
+        if (g.u > 2) k *= 1 - 0.7 * smooth((-groove(x, z, g) - 0.2) / 0.5) * (1 - smooth((g.u - 16) / 6));
+        const far = smooth((g.s - 170) / 120);
+        if (far > 0) k = Math.max(k, far * smooth((h + 15) / 5) * smooth((patchK(x, z) - 0.3) / 0.4));
+        return clamp(k * (0.75 + 0.5 * n4(x * 0.09, z * 0.09)), 0, 1);
+      };
+      // where on the reef a spot is, for the reef's fish and turtles: 0 land, 1 lagoon sand, 2 seagrass, 3 back reef and
+      // crest, 4 the fore reef's spurs, 5 the wall, 6 the deep sand, 7 a patch reef
+      function zone(x, z) {
+        const h = H(x, z); if (h > -0.5) return 0;
+        const g = geo(x, z), u = g.u;
+        if (g.s > 200 && reefK(x, z, h, g) > 0.4) return 7;
+        if (u < -12) return bedK(x, z, h, g) > 0.4 ? 2 : 1;
+        if (g.ch > 0.6) return 1;
+        if (u < 3) return 3;
+        if (u < 13) return 4;
+        if (u < 28) return 5;
+        return 6;
+      }
+      const SPAWN = [ISL.x + 3, ISL.z + shoreR(Math.PI / 2) - 7];
+      const SEA = [ISL.x + 12, ISL.z + shoreR(Math.PI / 2) + crestS(Math.PI / 2) + 19];
+      // where the new sea foods turn up (once they exist): seagrass in the meadows, shrimp and crabs on the reef, clams
+      // on the sand
+      const FOOD_AT = {
+        seagrass: (x, z, h, g) => bedK(x, z, h, g) > 0.3,
+        shrimp: (x, z, h, g) => reefK(x, z, h, g) > 0.3 && h > -18,
+        crab: (x, z, h, g) => (reefK(x, z, h, g) > 0.3 || g.u < -12) && h > -10,
+        clam: (x, z, h, g) => reefK(x, z, h, g) < 0.2 && bedK(x, z, h, g) < 0.3 && h > -20,
+      };
+      const out = (x, z) => -Math.atan2(z - ISL.z, x - ISL.x);   // a prop's rotation that turns its +x out to sea
+      // which tiles a rule can put things in: those reaching the reef's ring (d0..d1 m from the island's middle)
+      const ringTile = (d0, d1) => (x0, z0, sz) => { const cx = clamp(ISL.x, x0, x0 + sz), cz = clamp(ISL.z, z0, z0 + sz), fx = Math.max(Math.abs(x0 - ISL.x), Math.abs(x0 + sz - ISL.x)), fz = Math.max(Math.abs(z0 - ISL.z), Math.abs(z0 + sz - ISL.z)); return Math.hypot(cx - ISL.x, cz - ISL.z) < d1 && Math.hypot(fx, fz) > d0; };
+      const underBand = (lo, hi) => (x, z) => { const u = geo(x, z).u; return u > lo && u < hi; };
+      return {
+        name: 'Coral Reef', blurb: 'A warm blue sea with a sandy island, palm trees, coral reefs and lots of colorful fish. Sea turtles swim here.',
+        spawn: SPAWN, sea: true, seaSpawn: SEA,
+        // clear turquoise over the sand, deep blue past the reef (water.depth: the water's own look by how deep it is,
+        // 35_envkit), and under the water bright and clear
+        H, fog: [90, 380], people: 0, ripple: 1,
+        water: { color: 0x1f8fa8, deep: 0x0a3f78, under: 0x2f9cba, underDeep: 0x0b4f88, clarity: 1.15, light: 0xc4e8e8, bright: 0.62,
+          depth: { at: H, x0: -300, z0: -310, size: 600, n: 160, shallow: 0x24bab4, mid: 0x1092b0 } },
+        sky: { dayZ: 0x2b78d2, dayH: 0xc2e2f0 },
+        grassH: [0.22, 0.42], grassTint: [0.19, 0.27, 0.5, 0.85], flowerColors: [0xffffff, 0xd88ac8],
+        surface(x, z, h) {
+          if (h > -0.25) { const veg = smooth((-geo(x, z).s - 8) / 6); return [veg * 0.45, 1 - veg * 0.45, 0, 0]; }
+          const g = geo(x, z), bed = bedK(x, z, h, g), rk = reefK(x, z, h, g);
+          return [bed * 0.7, Math.max(0, 1 - bed * 0.7 - rk * 0.45), 0, rk * 0.45];
+        },
+        paint(o, x, z, h) {
+          const g = geo(x, z);
+          if (h > -0.25) {
+            // white coral sand, damp and darker at the water's edge; sandy soil and scrub in the island's middle
+            o.copy(c.sand); mix(o, c.dry, (n2(x * 0.08, z * 0.08) * 0.5 + 0.5) * 0.45);
+            mix(o, c.wet, smooth((0.38 - h) / 0.45) * 0.65);
+            const veg = smooth((-g.s - 8) / 6);
+            if (veg > 0) { mix(o, c.duff, veg * 0.5 * (0.6 + 0.4 * n3(x * 0.1, z * 0.1))); mix(o, c.scrub, veg * 0.4 * smooth(n4(x * 0.06, z * 0.06) + 0.3)); }
+            return;
+          }
+          // under the water: pale sand, seagrass meadows, reef rock with algae and rubble, paler sand far down
+          o.copy(c.lagoon); mix(o, c.rubble, (n2(x * 0.05, z * 0.05) * 0.5 + 0.5) * 0.3);
+          const bed = bedK(x, z, h, g);
+          if (bed > 0) { mix(o, c.bed, bed * 0.85); mix(o, c.bedDk, bed * 0.45 * (n2(x * 0.3, z * 0.3) * 0.5 + 0.5)); }
+          const rk = reefK(x, z, h, g);
+          if (rk > 0) { mix(o, c.reef, rk); mix(o, c.reefDk, rk * 0.55 * (n5(x * 0.25, z * 0.25) * 0.5 + 0.5)); mix(o, c.algae, rk * 0.4 * smooth(n7(x * 0.08, z * 0.08) + 0.2)); mix(o, c.pinkish, rk * 0.35 * smooth((n3(x * 0.15, z * 0.15) - 0.25) / 0.3)); }
+          mix(o, c.deep, smooth((-h - 16) / 10) * (1 - rk));
+        },
+        grassAt(x, z, h) {
+          if (h > 0.4) return 0.55 * smooth((-geo(x, z).s - 9) / 5) * smooth(n4(x * 0.06, z * 0.06) + 0.45);
+          if (h < -0.6) return bedK(x, z, h, geo(x, z)) * 0.9;
+          return 0;
+        },
+        flowersAt(x, z, h) { return h < 0.8 ? 0 : 0.06 * smooth((-geo(x, z).s - 10) / 5); },
+        foodPoint(type, cx, cz, r0, r1) {
+          const want = FOOD_AT[type]; if (!want) return undefined;
+          for (let k = 0; k < 14; k++) {
+            const a = Math.random() * TAU, d = r0 + (r1 - r0) * Math.sqrt(Math.random()), x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d, h = H(x, z);
+            if (h > WATER - 0.5 || !want(x, z, h, geo(x, z))) continue;
+            return { x, z, h, y: type === 'shrimp' ? Math.min(WATER - 0.3, h + 0.2 + Math.random() * 0.5) : h };   // (h: the floor, see w.foodPoint)
+          }
+          return null;
+        },
+        build(w) {
+          // coconut palms round the shore, leaning out over the water (their lean is along their +x), and a few inland
+          w.scatter({ type: 'reefpalm', variants: [0, 1, 2], n: 18, sample: (r, k) => { const a = (k / 18) * TAU + (r() - 0.5) * 0.25, d = shoreR(a) - 4 - r() * 5; return [ISL.x + Math.cos(a) * d, ISL.z + Math.sin(a) * d]; },
+            face: (x, z, rot) => out(x, z) + (rot - Math.PI) * 0.12, gap: 3.5, minH: 0.35, scale: [0.85, 1.15], tries: 22, test: (x, z) => Math.hypot(x - SPAWN[0], z - SPAWN[1]) > 4.5 });
+          w.scatter({ type: 'reefpalm', variants: [1, 2], n: 7, sample: (r) => { const a = r() * TAU, d = Math.sqrt(r()) * ISL.r * 0.55; return [ISL.x + Math.cos(a) * d, ISL.z + Math.sin(a) * d]; },
+            face: (x, z, rot) => out(x, z) + (rot - Math.PI) * 0.6, gap: 5, minH: 1, scale: [0.8, 1.05], tries: 30 });
+          // a few dark beach rocks by the water
+          w.scatter({ type: 'rock', variants: [0, 1, 2], n: 6, sample: (r) => { const a = r() * TAU, d = shoreR(a) - 1 - r() * 3; return [ISL.x + Math.cos(a) * d, ISL.z + Math.sin(a) * d]; }, gap: 6, minH: -0.4, maxH: 0.9, scale: [0.6, 1.5], tries: 30,
+            test: (x, z) => Math.hypot(x - SPAWN[0], z - SPAWN[1]) > 8 });
+          // the reef's fish, sea turtles and anemones with clownfish, made around you as you go (39_reef)
+          w.life = Env.reef ? Env.reef.life(w, zone) : null;
+        },
+        rules: [
+          // the island
+          { type: 'beachgrass', variants: [0, 1], per: 40, minH: 0.45, gap: 1.2, test: (x, z) => geo(x, z).s < -6, scale: [0.7, 1.3] },
+          // the lagoon: coral heads, staghorn thickets, giant clams, starfish and urchins on the sand
+          { type: 'bommie', variants: [0, 1], per: 4, minH: -4, maxH: -1.9, gap: 9, test: (x, z) => { const g = geo(x, z); return g.u < -15 && g.s > 9; }, scale: [0.8, 1.3], tries: 4 },
+          { type: 'staghorn', variants: [0, 1], per: 10, minH: -6, maxH: -1.3, gap: 3, mask: (x, z) => smooth((n5(x * 0.05 + 9, z * 0.05) + 0.1) / 0.3), test: underBand(-22, 6), scale: [0.8, 1.25], tries: 4 },
+          { type: 'giantclam', per: 3, minH: -5, maxH: -0.7, gap: 6, test: underBand(-26, 6), scale: [0.8, 1.2], tries: 4 },
+          { type: 'starfish', variants: [0, 1], per: 7, minH: -6, maxH: -0.6, gap: 4, test: (x, z, h) => { const g = geo(x, z); return reefK(x, z, h, g) < 0.2 && bedK(x, z, h, g) < 0.3; }, scale: [0.8, 1.3], tries: 3 },
+          { type: 'diadema', per: 6, minH: -8, maxH: -0.8, gap: 3, test: underBand(-16, 10), scale: [0.8, 1.2], tries: 3 },
+          // the crest, the spurs and the wall, thick with coral
+          { type: 'crestcoral', variants: [0, 1], per: 160, minH: -3.5, maxH: -0.85, gap: 2.1, tile: ringTile(50, 130), test: (x, z, h) => { const g = geo(x, z); return g.u > -11 && g.u < 5 && g.ch < 0.3 && reefK(x, z, h, g) > 0.2; }, scale: [0.8, 1.2], tries: 5 },
+          { type: 'slopecoral', variants: [0, 1, 2], per: 140, minH: -11, maxH: -1.2, gap: 2.5, tile: ringTile(55, 140), test: (x, z, h) => { const g = geo(x, z); return g.u > 1 && g.u < 18 && reefK(x, z, h, g) > 0.2; }, scale: [0.9, 1.4], tries: 5 },
+          { type: 'wallcoral', variants: [0, 1], per: 200, minH: -27, maxH: -3.5, gap: 2.2, tile: ringTile(60, 150), test: (x, z, h) => { const g = geo(x, z); return g.u > 10 && g.u < 31 && reefK(x, z, h, g) > 0.1; }, scale: [1.0, 1.6], tries: 5 },
+          // small corals, algae and rubble between the big ones
+          { type: 'reefbits', variants: [0, 1, 2], per: 150, minH: -26, maxH: -0.6, gap: 1.5, tile: ringTile(45, 150), test: (x, z, h) => { const g = geo(x, z); return g.u > -13 && g.u < 31 && reefK(x, z, h, g) > 0.12; }, scale: [0.8, 1.3], tries: 3 },
+          { type: 'barrelsponge', per: 5, minH: -32, maxH: -10, gap: 6, tile: ringTile(60, 190), test: underBand(16, 60), scale: [0.8, 1.4], tries: 3 },
+          // far out: the patch reefs
+          { type: 'slopecoral', variants: [0, 1, 2], per: 40, minH: -12, maxH: -2, gap: 3, tile: ringTile(180, 1e9), test: (x, z, h) => geo(x, z).s > 200 && reefK(x, z, h, Q) > 0.3, scale: [0.9, 1.4], tries: 6 },
+          { type: 'wallcoral', variants: [0, 1], per: 20, minH: -26, maxH: -5, gap: 3.2, tile: ringTile(180, 1e9), test: (x, z, h) => geo(x, z).s > 200 && reefK(x, z, h, Q) > 0.2, scale: [0.9, 1.4], tries: 5 },
+          { type: 'reefbits', variants: [0, 1, 2], per: 50, minH: -14, maxH: -2, gap: 1.8, tile: ringTile(180, 1e9), test: (x, z, h) => geo(x, z).s > 200 && reefK(x, z, h, Q) > 0.2, scale: [0.8, 1.3], tries: 3 },
+          { type: 'barrelsponge', per: 2, minH: -34, maxH: -12, gap: 8, tile: ringTile(180, 1e9), test: (x, z) => geo(x, z).s > 200, scale: [0.8, 1.3], tries: 3 },
+        ],
+        landmarks: { none: 1 },
+        wildlife: [
+          // a flock of dodos on the island (their real home was a tropical island)
+          ...SP7([{ sp: 'dodo', n: 4, kids: 1, home: [ISL.x - 4, ISL.z - 4], range: 16 }]),
+          // bottlenose dolphin pods off the reef and by the south east channel (once the dolphin exists)
+          ...(SPECIES.dolphin ? SP7([{ sp: 'dolphin', n: 4, kids: 1, home: [SEA[0] + 10, SEA[1] + 15], range: 55, water: true, depth: [2, 16] }, { sp: 'dolphin', n: 3, kids: 1, home: [ISL.x - 95, ISL.z - 90], range: 60, water: true, depth: [2, 20] }]) : []),
+        ],
+        ambient: SPECIES.dolphin ? SP7([{ sp: 'dolphin', w: 3, water: true, kids: 1 }]) : null,
+        // fish at every depth, as in the Arctic Ocean; the new sea foods where they live (once they exist); fruit, seeds
+        // and bugs on the island
+        foods: Object.assign({ fish: 6, smallfish: 5, berries: 1, seeds: 1, bugs: 1 }, ...[['seagrass', 3], ['shrimp', 3], ['crab', 2], ['clam', 2]].filter(([f]) => FOODS[f]).map(([f, k]) => ({ [f]: k }))),
+        walk: [],
+        // (for tests: the shapes behind the world)
+        _dbg: { geo, zone, bedK, reefK, patchK, ISL, shoreR, crestS, SEA },
+      };
+    },
   };
-  const SEEDS = { land: 11, forest: 23, swamp: 37, jungle: 41, meadow: 53, sky: 67, snow: 79, savanna: 97, arctic: 113 };
+  const SEEDS = { land: 11, forest: 23, swamp: 37, jungle: 41, meadow: 53, sky: 67, snow: 79, savanna: 97, arctic: 113, reef: 131 };   // (round 18: reef)
   const META = {}; for (const id of WORLD_ORDER) { const d = DEFS[id](SEEDS[id]); META[id] = { name: d.name, blurb: d.blurb, needsFly: !!d.needsFly, sea: !!d.sea }; }   // (round 14: sea, a world where sea animals live)
   const HOUSE_COLORS = ['white', 'yellow', 'blue', 'brick', 'gray'];
   const SHOP_NAMES = { general: 'general store', bakery: 'bakery', cafe: 'cafe', post: 'post office', library: 'library', icecream: 'ice cream shop', diner: 'diner', hardware: 'hardware store', flower: 'flower shop', toy: 'toy store', pet: 'pet store', books: 'bookstore', vet: 'vet', grocery: 'grocery store', clothes: 'clothes store',
@@ -1274,15 +1476,16 @@ const World = (() => {
     const t = Math.max(1e-3, g + s + r + n);
     out[k] = g / t; out[k + 1] = s / t; out[k + 2] = r / t; out[k + 3] = n / t;
   }
-  function groundMaterial() {
+  function groundMaterial(def) {
     const T = makeGroundTex();
     const m = new THREE.MeshLambertMaterial({ vertexColors: true });
     m.onBeforeCompile = (sh) => {
       Object.assign(sh.uniforms, { tGrass: { value: T.grass }, tSoil: { value: T.soil }, tRock: { value: T.rock }, tSnow: { value: T.snow }, tMacro: { value: T.macro } });
       sh.uniforms.uCaust = Env.underwater ? Env.underwater.caust : { value: 0 }; sh.uniforms.uCaustT = Env.waterUniforms.time;   // (round 14)
+      sh.uniforms.uRipple = { value: (def && def.ripple) || 0 };   // (round 18: rippled sand under the water, the Coral Reef's)
       sh.vertexShader = 'attribute vec4 surf;\nvarying vec3 vGW;\nvarying vec3 vGN;\nvarying vec4 vSurf;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
         vGW = (modelMatrix * vec4(transformed, 1.0)).xyz; vGN = normalize(mat3(modelMatrix) * objectNormal); vSurf = surf;`);
-      sh.fragmentShader = 'varying vec3 vGW;\nvarying vec3 vGN;\nvarying vec4 vSurf;\nuniform sampler2D tGrass, tSoil, tRock, tSnow, tMacro;\nuniform float uCaust, uCaustT;\n' + sh.fragmentShader.replace('#include <color_fragment>', `
+      sh.fragmentShader = 'varying vec3 vGW;\nvarying vec3 vGN;\nvarying vec4 vSurf;\nuniform sampler2D tGrass, tSoil, tRock, tSnow, tMacro;\nuniform float uCaust, uCaustT, uRipple;\n' + sh.fragmentShader.replace('#include <color_fragment>', `
         vec3 vc = vColor;
         vec3 gn = normalize(vGN);
         // steep ground shows rock whatever it is painted
@@ -1313,6 +1516,20 @@ const World = (() => {
           float c1 = abs(sin(ca.x * 2.1) + sin(ca.y * 2.3)), c2 = abs(sin(cb.x * 1.9) + sin(cb.y * 2.2));
           float cs = pow(max(0.0, 1.0 - c1 * 0.6), 5.0) + pow(max(0.0, 1.0 - c2 * 0.6), 5.0) * 0.6;
           diffuseColor.rgb *= 1.0 + cs * uCaust * 1.6 * exp(vGW.y / 9.0) * smoothstep(-0.1, -0.6, vGW.y);
+        }
+        // round 18: ripples in the sand under the water (a world with def.ripple: the Coral Reef), across the swell
+        if (uRipple > 0.0 && vGW.y < -0.5) {
+          vec2 rq = vGW.xz;
+          float rw = sin(dot(rq, vec2(0.83, 0.56)) * 11.0 + sin(rq.y * 0.7 + rq.x * 0.31) * 2.2 + sin(rq.x * 2.3 - rq.y * 1.1) * 0.35);
+          diffuseColor.rgb *= 1.0 + (smoothstep(-0.3, 0.85, rw) - 0.55) * 0.2 * uRipple * wt.y * smoothstep(-0.5, -1.5, vGW.y);
+        }
+        // round 18: the sea floor seen from above the clear water (the same worlds): the water takes the reds out first,
+        // so white sand a meter or two down looks turquoise and deeper down deep blue
+        // (the camera's place from the view matrix: a Lambert material is not given cameraPosition)
+        vec3 camW = -vec3(dot(viewMatrix[0].xyz, viewMatrix[3].xyz), dot(viewMatrix[1].xyz, viewMatrix[3].xyz), dot(viewMatrix[2].xyz, viewMatrix[3].xyz));
+        if (uRipple > 0.0 && vGW.y < 0.0 && camW.y > 0.02) {
+          vec3 vd = normalize(camW - vGW);
+          diffuseColor.rgb *= exp(vGW.y * (1.0 + 1.0 / max(0.25, vd.y)) * vec3(0.7, 0.14, 0.08));
         }`);
     };
     return m;
@@ -1591,7 +1808,8 @@ const World = (() => {
         const ok = h >= minH && h <= maxH && (!o.test || o.test(x, z, h, H, w)) && spaced;
         if (ok) {
           const variant = variants[(r() * variants.length) | 0], s = s0 + r() * (s1 - s0), rot = r() * TAU;
-          placeProp(owner, o, o.type, variant, x, z, h, s, rot);
+          // (round 18: o.face(x, z, rot): a rotation of its own, for the reef's palms leaning out over the water)
+          placeProp(owner, o, o.type, variant, x, z, h, s, o.face ? o.face(x, z, rot) : rot);
           if (o.free) o.free.push({ x, z, gap }); else markPlaced(x, z, gap);
           placed++;
         }
@@ -2424,7 +2642,7 @@ const World = (() => {
 
     /* the hand-made middle */
     const col = new THREE.Color();
-    const terrMat = groundMaterial();
+    const terrMat = groundMaterial(def);
     w.disposables.push(terrMat);
     let poolDirty = true;
     def.build(w);
@@ -2522,6 +2740,7 @@ const World = (() => {
       for (const o of def.rules) {
         const want = o.per || 0, n = Math.floor(want) + (rr() < want - Math.floor(want) ? 1 : 0);
         if (!n) continue;
+        if (o.tile && !o.tile(t.x0, t.z0, TILE)) continue;   // (round 18: a rule that only some tiles can hold, the Coral Reef's)
         const tries = Math.ceil(n * (o.tries || 2.5));
         const variants = o.variants || [0], s0 = o.scale ? o.scale[0] : 0.85, s1 = o.scale ? o.scale[1] : 1.15;
         const minH = o.minH !== undefined ? o.minH : 0.35, maxH = o.maxH !== undefined ? o.maxH : 999, gap = o.gap || 2;
@@ -2795,6 +3014,7 @@ const World = (() => {
     w.coverK = 1;
     // gates swing open when you walk up; door animations ease toward their target
     w.tick = (dt, P) => {
+      if (w.life) w.life(dt, P);   // round 18: the Coral Reef's fish and sea turtles (39_reef)
       for (const g of w.gates) {
         if (P && !P.room) {
           const d = Math.hypot(P.pos.x - g.x, P.pos.z - g.z);
@@ -3007,6 +3227,13 @@ const World = (() => {
       return null;
     };
     w.foodPoint = (type, cx, cz, r0, r1) => {
+      // round 18: a world can say where a food turns up (the Coral Reef's sea foods), undefined: the usual places
+      if (def.foodPoint) {
+        const q = def.foodPoint(type, cx, cz, r0, r1);
+        // (it sits on the floor as the mesh draws it, like the other small foods below, keeping any height over the floor)
+        if (q && q.h !== undefined) q.y = meshH(q.x, q.z, q.h) + (q.y - q.h);
+        if (q !== undefined) return q;
+      }
       const spotType = SPOT_FOOD[type];
       // round 18: a crab on a beach by the water line, else in a sea world on the bottom of the shallows (under 6 m);
       // water hyacinth floating at the surface; seagrass, shrimp and clams on the bottom (shrimp a little over it)
