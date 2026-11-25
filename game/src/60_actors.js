@@ -26,6 +26,8 @@ const FEAR = { chicken: 3, duck: 4.5, swan: 3, frog: 2.5, lizard: 3, snake: 2, b
 // round 16: small and tree birds stand upright and fly off when something comes at them
 Object.assign(UPRIGHT, { cardinal: 1, bluejay: 1, hummingbird: 1, toucan: 1, snowyowl: 1 });
 Object.assign(FEAR, { cardinal: 3, bluejay: 3.5, hummingbird: 2.5, toucan: 4, snowyowl: 5 });
+// round 17: a Chinese dragon stands its ground, but flies off if something much bigger comes at it fast
+FEAR.chinesedragon = 2;
 // extra bump circles along a long body: [how far ahead of the body's middle, as a part of its length; radius, as a part
 // of its radius]. A brachiosaurus's middle is at its shoulders: the trunk runs back from there to its hips and tail
 // (its neck is high up, so fences pass under it)
@@ -40,6 +42,8 @@ const BODY_COL = { long: [[0.32, 0.8], [-0.32, 0.8]], brachiosaurus: [[0.14, 0.9
   komodo: [[0.34, 1.0], [-0.12, 1.0], [-0.46, 0.8]],
   // round 13: a griffin's chest and hips (its beak and tail hang past them); a winged lion is a lion's body
   griffin: [[0.35, 0.84], [-0.33, 0.84]], wingedlion: [[0.3, 0.9], [-0.26, 0.9]] };
+// round 17: a Chinese dragon's middle is its hips: its neck and head run 2.7 m ahead and its long tail 3.2 m back
+BODY_COL.chinesedragon = [[0.4, 0.6], [0.22, 0.6], [-0.18, 0.5], [-0.36, 0.4]];
 const NOCTURNAL = { owl: 1, frog: 1, fox: 1, raccoon: 1, hedgehog: 1, hamster: 1, bat: 1, gecko: 1, ocelot: 1, leopard: 1 };
 // round 10: a butterfly starts out as a caterpillar. Below PUPA_AGE its body is the caterpillar (b.form, a hidden
 // species), and when it grows past it, it makes a chrysalis and comes out a grown monarch (70_game: Pupa). A butterfly
@@ -1014,6 +1018,12 @@ const Wild = {
               if (!b.pen && b.target && Math.hypot(b.target.x - b.home.x, b.target.z - b.home.z) > b.range) b.target = this.pickTarget(b);
               b.state = b.target ? 'wander' : 'idle'; b.timer = 2; b.pace = 1; b.stuck = 0; b.flutter = true;
               b.flyH = bat ? (b.pen ? 1.2 : 3 + Math.random() * 4) : 0.5 + Math.random() * 1.2;
+            }
+            // round 17: a roaming flier (sp.roam: only the Chinese dragon) now and then flies off on a long flight across
+            // its home ground (between the Sky Lands' islands, up and down the Jungle river), as the flyaway state does
+            else if (sp.roam && canFlyNow(b) && !b.pen && !b.hasKids && r < 0.3) {
+              const q = G.world.ringPoint(b.home.x, b.home.z, b.range * 0.25, b.range, b.water && Math.random() < 0.3);
+              if (q && Math.hypot(q.x - b.pos.x, q.z - b.pos.z) > 15) { b.state = 'flyaway'; b.target = q; b.flyH = 5 + Math.random() * 9; if (b.mode === 'sleep') b.mode = 'ground'; } else b.timer = 2;
             }
             else {
               if (b.mode === 'sleep') b.mode = 'ground';

@@ -559,6 +559,8 @@ const World = (() => {
             { sp: 'manatee', n: 2, home: [LAG.x, LAG.z], range: 12, water: true }]),
           // round 16: toco toucans in the trees by the spawn and out by the lagoon (they hop about and swoop between trees)
           ...SP7([{ sp: 'toucan', n: 4, kids: 1, home: [-15, 15], range: 45 }, { sp: 'toucan', n: 3, home: [LAG.x + 15, LAG.z - 15], range: 30 }]),
+          // round 17: two Chinese dragons along the river: they fly up and down it, swim and rest on its banks
+          ...SP7([{ sp: 'chinesedragon', n: 2, home: [xc(-40), -40], range: 90, water: true }]),
         ],
         ambient: [{ sp: 'parrot', w: 4 }, { sp: 'lizard', w: 3 }, { sp: 'frog', w: 2 }, { sp: 'snake', w: 2 }, { sp: 'turtle', w: 1, water: true }, { sp: 'otter', w: 1, water: true }],
         foods: { berries: 4, apple: 3, worm: 3, grass: 1, smallfish: 2, fish: 2, banana: 4, bugs: 3, twigs: 2, watermelon: 1, mushroom: 1, meat: 1, lettuce: 1, waterplants: 2 },   // (round 15: manatee: water plants in the river and the lagoon)
@@ -676,6 +678,8 @@ const World = (() => {
           ...SP7([{ sp: 'wingcat', n: 3, home: [0, 0], range: 26 }, { sp: 'unicorn', n: 2, kids: 1, home: [64, -30], range: 14 }]),
           // round 13: griffins nest on the highest island, winged lions on another
           ...SP7([{ sp: 'griffin', n: 2, kids: 1, home: [110, -96], range: 9 }, { sp: 'wingedlion', n: 2, kids: 1, home: [-96, 104], range: 12 }]),
+          // round 17: Chinese dragons: two that fly from island to island, and a pair with their baby on an island of their own
+          ...SP7([{ sp: 'chinesedragon', n: 2, home: [0, 0], range: 120 }, { sp: 'chinesedragon', n: 2, kids: 1, home: [-62, 32], range: 12 }]),
         ],
         ambient: [{ sp: 'parrot', w: 3 }, { sp: 'owl', w: 1 }, { sp: 'swan', w: 1 }],
         foods: { berries: 5, apple: 3, acorn: 1, worm: 1, grass: 2, seeds: 2, bugs: 2, carrot: 1, smallfish: 1 },

@@ -271,6 +271,13 @@ SHOP.push('ostrich');
 SPECIES.peafowl = { name: 'Peacock', many: 'Peacocks', eats: ['seeds', 'bugs', 'berries', 'corn', 'grass'], fav: 'seeds', fly: true, flySpeed: 7, price: 800, egg: 0xEADCC2, outdoor: true, baby: 'Peachick' };
 SHOP.push('peafowl');
 // round 16: big and water birds (end)
+// round 17: the Chinese dragon (Rosemary: "purple in the middle, blue on top, and pink on the bottom"). A magic animal
+// like the unicorn and the griffin: it flies once half grown (with no wings: it swims through the air in waves), swims,
+// and hatches from a pearly egg. roam: wild ones now and then fly off on a long flight across their home ground
+// (between the Sky Lands' islands, up and down the Jungle river); only the dragon has it (Wild.update in 60_actors).
+SPECIES.chinesedragon = { name: 'Chinese dragon', many: 'Chinese dragons', eats: ['fish', 'smallfish', 'apple', 'berries', 'banana'], fav: 'fish', fly: true, flySpeed: 11, swim: true, swimSpeed: 2.6, outdoor: true, roam: true, price: 2000, egg: 0xE6DCF2, eggSpeck: [0.62, 0.5, 0.86], baby: 'Baby dragon' };
+SHOP.push('chinesedragon');
+// round 17: the Chinese dragon (end)
 const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow', 'snow', 'savanna', 'arctic'];
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];
 const SKIN = ['#F3D3B8', '#E6B691', '#C98E66', '#9A6544', '#6B4430'];
