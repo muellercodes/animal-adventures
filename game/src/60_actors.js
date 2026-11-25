@@ -93,6 +93,11 @@ function setBodyAge(b, age) {
 const canFlyNow = (b) => !!SPECIES[b.sp].fly && b.age >= FLY_AGE;
 // round 11: a Komodo dragon climbs trees only while it is young (real hatchlings live up in the trees)
 const canClimb = (b) => !!SPECIES[b.sp].climb || (!!SPECIES[b.sp].climbBaby && b.age < 0.4);
+// round 17: can this body swim? A species with swimWild: false (the cats that learned to swim in round 17) swims only
+// as the player's animal; wild, zoo and tag-along ones stay out of deep water as before. wildSwims: the same for a
+// wild one of that species, before it has a body.
+const wildSwims = (id) => !!SPECIES[id].swim && SPECIES[id].swimWild !== false;
+const canSwim = (b) => { const sp = SPECIES[b.form || b.sp]; return !!sp.swim && (!!b.player || sp.swimWild !== false); };
 function jumpV(b) { const h = b.sp === 'frog' ? 0.45 * b.k : clamp(b.m.height * 0.9, 0.25, 1.3); return Math.sqrt(2 * GRAV * h); }
 // round 14: in the air over a lead between ice floes: is there ice (or land) to come down on ahead, within what is left
 // of the jump? Then an animal that can't swim may cross the gap.
@@ -204,7 +209,7 @@ const Blow = {
 // c = { dx, dz: wanted direction (any length, 0 = none), want: wanted speed m/s, face: optional yaw to turn to, jump, up, down, takeoff,
 //       climb: a tree to start climbing, climbV: -1..1 up/down while climbing, around: -1..1 around the trunk, letGo }
 function moveBody(b, dt, c) {
-  const w = G.world, H = w.H, sp = SPECIES[b.form || b.sp], m = b.m, p = b.pos, fly = canFlyNow(b), swim = !!sp.swim;
+  const w = G.world, H = w.H, sp = SPECIES[b.form || b.sp], m = b.m, p = b.pos, fly = canFlyNow(b), swim = canSwim(b);   // (round 17: canSwim)
   // round 14: divers and animals that live only in the water
   const dive = !!sp.dive && !b.room && !!w.def.water, aqua = !!sp.aquatic;
   if (c.climb && b.mode !== 'climb' && b.mode !== 'perch') startClimb(b, c.climb);
@@ -754,7 +759,7 @@ const Wild = {
     // (round 14: on sea ice, standing on the ice)
     const h = G.world.iceAt ? G.world.groundAt(x, z, 2) : G.world.H(x, z);
     b.pos.set(x, h, z);
-    if (SPECIES[sp].swim && !b.room && h < WATER - b.m.float) {
+    if (canSwim(b) && !b.room && h < WATER - b.m.float) {   // (round 17: canSwim)
       b.mode = 'swim'; b.pos.y = WATER - b.m.float;
       // round 14: a wild diver starts somewhere between the sea floor and the surface (or the ice)
       if (canDive(b) && !b.caged) {
@@ -784,7 +789,7 @@ const Wild = {
       if (spec.pen) { pt = w.penPoint(spec.pen, 1); extra = { pen: spec.pen, home: { x: spec.pen.x, z: spec.pen.z }, range: Math.min(spec.pen.hw, spec.pen.hd) }; }
       else {
         // (round 14: ice: lives out on the sea ice, like a polar bear on the floes)
-        pt = aq ? this.seaPoint(w, spec.home[0], spec.home[1], 0, spec.range) : (spec.ice && w.icePoint ? w.icePoint(spec.home[0], spec.home[1], 0, spec.range) : null) || (spec.water && sp.swim ? w.ringPoint(spec.home[0], spec.home[1], 0, spec.range, true) : null) || (spec.wade ? this.wadePoint(w, spec.home[0], spec.home[1], 0, spec.range) : null) || w.ringPoint(spec.home[0], spec.home[1], 0, spec.range, false);
+        pt = aq ? this.seaPoint(w, spec.home[0], spec.home[1], 0, spec.range) : (spec.ice && w.icePoint ? w.icePoint(spec.home[0], spec.home[1], 0, spec.range) : null) || (spec.water && wildSwims(spec.sp) ? w.ringPoint(spec.home[0], spec.home[1], 0, spec.range, true) : null) || (spec.wade ? this.wadePoint(w, spec.home[0], spec.home[1], 0, spec.range) : null) || w.ringPoint(spec.home[0], spec.home[1], 0, spec.range, false);
         extra = { home: { x: spec.home[0], z: spec.home[1] }, range: spec.range, water: !!spec.water || aq };
         if (spec.ice) extra.ice = true;
         if (spec.wade) extra.wade = true;   // round 16
@@ -850,7 +855,7 @@ const Wild = {
     let sum = 0; for (const q of def.ambient) sum += q.w;
     let pick = Math.random() * sum, spec = def.ambient[0];
     for (const q of def.ambient) { pick -= q.w; if (pick <= 0) { spec = q; break; } }
-    const water = (!!spec.water && SPECIES[spec.sp].swim) || isAquatic(spec.sp);   // (round 14: sea animals only in the water)
+    const water = (!!spec.water && wildSwims(spec.sp)) || isAquatic(spec.sp);   // (round 14: sea animals only in the water; round 17: wildSwims)
     const pt = (spec.ice && w.icePoint ? w.icePoint(x, z, 0, 25) : null) || w.ringPoint(x, z, 0, 25, water) || (water ? null : w.ringPoint(x, z, 0, 25, false));
     if (!pt) return;
     this.group(w, { sp: spec.sp, n: water ? 1 + (Math.random() < 0.4 ? 1 : 0) : 1, kids: spec.kids && Math.random() < 0.5 ? Math.ceil(Math.random() * spec.kids) : 0, home: [pt.x, pt.z], range: 30, water, amb: true, ice: !!spec.ice }, null);
@@ -908,7 +913,7 @@ const Wild = {
     // (round 14: a polar bear out on the ice mostly walks about on the floes)
     if (b.ice && w.icePoint && !sp.aquatic && Math.random() < 0.7) { const q = w.icePoint(b.home.x, b.home.z, 0, b.range); if (q) return q; }
     if (b.wade && Math.random() < 0.7) { const q = this.wadePoint(w, b.home.x, b.home.z, 0, b.range); if (q) return q; }   // round 16: wading birds
-    const water = (b.water && sp.swim && Math.random() < 0.75) || !!sp.aquatic;   // (round 14: sea animals keep to the water)
+    const water = (b.water && canSwim(b) && Math.random() < 0.75) || !!sp.aquatic;   // (round 14: sea animals keep to the water; round 17: canSwim)
     if (canDive(b)) b.depthF = Math.random() * 0.8;   // round 14: and a diver picks a depth to swim at
     return w.ringPoint(b.home.x, b.home.z, 0, b.range, water) || w.ringPoint(b.pos.x, b.pos.z, 1, 8, water);
   },
@@ -1155,7 +1160,7 @@ const Wild = {
           if (d > 0.4) { c.dx = dx; c.dz = dz; c.want = d > 4 ? m.run * 0.8 : Math.min(m.walk * 1.2, Math.max(P.speed, m.walk * 0.6)); }
           if (P.mode === 'fly' && canFlyNow(b)) { c.takeoff = b.mode !== 'fly'; c.want = sp.flySpeed * clamp(d / 6, 0.3, 1); c.up = b.pos.y < P.pos.y - 0.5; c.down = b.pos.y > P.pos.y + 1; }
           else if (b.mode === 'fly') { c.down = true; }
-          if (P.mode === 'swim' && !sp.swim) { c.want = 0; }
+          if (P.mode === 'swim' && !canSwim(b)) { c.want = 0; }   // (round 17: a tag-along cat waits on the bank)
           // round 14: a diver following you swims at your depth
           if (dv) { b.wantY = P.mode === 'dive' ? P.pos.y : Infinity; if (d > 0.4) c.want = d > 4 ? Dive.swimMax(b) * 0.9 : Math.min(Dive.swimMax(b) * 0.6, Math.max(P.speed, Dive.swimMax(b) * 0.2)); }
           break;

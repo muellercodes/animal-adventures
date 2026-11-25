@@ -4524,7 +4524,9 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
         tail: ['tail1', 'tail2', 'tail3'], tailIdle: [-0.35, 0.25, 0.45], tailRun: [0.15, 0.0, 0.0], tailWalkLift: [1.7, -0.25, -0.55],
         tailSway: 0.1, tailWalk: 0.05, tailFlick: 0.25, wag: 0.15,
         ears: ['earL', 'earR'], earBack: 0.5, lookAmp: 0.8,
-        floatDepth: 0.17, swimHead: -0.4,
+        // (round 17: cats swim now; a house cat floats low, only its head and the top of its back out of the water.
+        // It was 0.17, which the big cats on bigCat still use)
+        floatDepth: 0.2, swimHead: -0.4,
         climb: { splay: 0.55, drop: 0.55, reach: 0.25, neck: -0.35, tail: [-0.3, -0.05, 0], flex: 0.2, toe: 0.8 },
         sleep: { style: 'curl', neck: [2.6, 1.1], tail: [2.5, 0.0], bend: 1.3, roll: 0.3, rumpBend: 0.5 },
         sit: { idle: 3, pitch: 0.62, drop: 0.6, rump: 0.5, chest: 0.25, front: [0.06, 0.0], hind: [0.3, 0.05, 0.0], neck: [-0.15, 0.0, 0.0], tail: [1.0, 0.25, 0.15], tailYaw: [0.6, 1.0, 1.0],
@@ -6697,10 +6699,14 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     for (const n in s.size) s.size[n] *= k;
     s.shell.len *= k; s.detail.tile *= k;
     const A = s.anim;
+    A.floatDepth = 0.17;   // (round 17: the house cat's float before it went lower; the ocelot keeps it)
     for (const n of ['stride', 'floatDepth', 'eatY', 'eatDrop']) if (A[n] != null) A[n] *= k;
     A.lift = sc3(A.lift); A.bob = sc3(A.bob);
     return s;
   };
+  // round 17: the big cats that learned to swim swim like the tiger: low in the water with the head held up, paddling
+  // with all four legs (the tiger's numbers, for a big cat scaled by k)
+  const bigCatSwim = (k) => ({ floatDepth: 0.23 * k, swimHead: -0.3, swimPitch: -0.04, paddle: 1.0 });
   ids.push('snowleopard');
   SPEC.snowleopard = () => {
     const k = 2.5, s = bigCat(k);
@@ -6730,6 +6736,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       walk: 1.0, trot: 2.4, run: 8.0, maxRate: 4.2,
       // a low prowl: the head carried low
       nod: 0.03, trotNeck: 0.1, runNeck: 0.2,
+      ...bigCatSwim(k),   // round 17
       tail: ['tail1', 'tail2', 'tail3', 'tail4'], tailIdle: [0.0, 0.05, 0.15, 0.3], tailRun: [0.35, 0.05, -0.1, -0.15],
       tailWalk: 0.05, tailSway: 0.08, tailFlick: 0.12, wag: 0.1,
       climb: Object.assign({}, A.climb, { tail: [-0.3, -0.05, 0, 0] }),
@@ -6777,6 +6784,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     Object.assign(A, {
       // a heavy walk, a short charge
       walk: 1.1, trot: 2.6, run: 7.5, maxRate: 3.6, roll: 0.03, nod: 0.03, trotNeck: 0.08, runNeck: 0.18,
+      ...bigCatSwim(k),   // round 17
       tail: ['tail1', 'tail2'], tailIdle: [-0.25, -0.1], tailRun: [0.15, 0.0], tailWalk: 0.04, tailSway: 0.05, tailFlick: 0.12, wag: 0.05,
       climb: Object.assign({}, A.climb, { tail: [-0.2, 0.0] }),
       // lies down like a big cat, the head up a little or laid on the paws
@@ -7539,9 +7547,10 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     };
   };
 
-  // ===== round 11: winged cat =====
-  // A silver tabby house cat with a pair of feathered wings growing from its shoulders, soft gray to white like a
-  // barn owl's or a dove's. The wings are bird wings (the birds' wing bones and feather blades, stdWing) on the cat's
+  // ===== round 11: winged cat (round 17: the Flying lava) =====
+  // A house cat with a pair of feathered wings growing from its shoulders. Round 17: Rosemary named it the Flying lava
+  // and made it orange: a bright orange tabby with fiery orange wings, red-orange at the feather tips (it was a silver
+  // tabby with soft gray barn owl wings; the id is still wingcat). The wings are bird wings (the birds' wing bones and feather blades, stdWing) on the cat's
   // chest; the legged animator folds them along the back on the ground and beats them in flight (anim.wings). The
   // sculpted model (tools/blender/wingcat.py) brings the feathered wing arm and the feather atlas.
   ids.push('wingcat');
@@ -7556,25 +7565,30 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
   SPEC.wingcat = () => {
     const s = SPEC.cat(), W = wingcatWing(false), WA = wingcatWing(true), tabby = s.paint;
     s.bones.push(...W.bones);
-    // silver mackerel tabby for the procedural body: black stripes on pale silver, a white chin
+    // round 17: the Flying lava (Rosemary's name for it; it was a silver tabby): for the procedural body a bright orange
+    // tabby with deep red-orange stripes and a golden chin (tools/blender/wingcat.py paints the sculpted one)
     s.paint = (P, C) => {
       tabby(P, C);
       const l = lum(C);
-      cset(C, l < 0.3 ? mixc(hex(0x1A1A1C), hex(0x5E5E60), sstep(0.06, 0.3, l)) : mixc(hex(0x9A9A98), hex(0xE8E6E2), sstep(0.34, 0.75, l)));
+      cset(C, l < 0.3 ? mixc(hex(0x701404), hex(0xB0360A), sstep(0.06, 0.3, l)) : mixc(hex(0xD8601A), hex(0xF4BE62), sstep(0.34, 0.75, l)));
     };
+    s.babyPaint = (P, C) => { cmix(C, hex(0xE88A3A), 0.3); C.fl = Math.min(1, C.fl * 1.4 + 0.15); };
     s.eyes[0].iris = 0x8CAE48; s.eyes[0].lid = [0.7, -0.72, 0.2];
     // a mammal: it blinks with the upper lid (spec.feathers alone would make it blink like a bird)
     s.lowerBlink = false;
-    const K = { gray: hex(0xA8ACB0), grayDk: hex(0x80858A), pale: hex(0xDCDEDF), white: hex(0xF2F2F0) };
+    // round 17: fiery orange feathers, red-orange toward the tips, golden at the base (they were barn owl grays)
+    const K = { gray: hex(0xE4641A), grayDk: hex(0xA82A08), pale: hex(0xF09838), white: hex(0xF6BC56) };
     s.feathers = (rest, md) => ({
       tex: [256, 128], rough: 0.8,
+      // round 17: the model's blades are light golden orange underneath (seen from below in flight)
+      under: [0xFFA634, 0.8],
       list: (md ? WA : W).feathers,
       paint(u, t, C) {
         const k = Math.floor(u * FNC), sx = fract(u * FNC);
-        if (k === 0 || k === 1) { vane(sx, t, C, K.pale, K.grayDk, K.white); cmix(C, K.white, (1 - t) * 0.5); }
-        else vane(sx, t, C, K.gray, K.pale, K.grayDk);
+        if (k === 0 || k === 1) { vane(sx, t, C, K.gray, K.grayDk, K.white); cmix(C, K.white, (1 - t) * 0.5); cmix(C, K.grayDk, sstep(0.6, 1.0, t) * 0.6); }
+        else { vane(sx, t, C, K.gray, K.pale, K.grayDk); cmix(C, K.grayDk, sstep(0.7, 1.0, t) * 0.4); }
       },
-      babyPaint: downFeather(hex(0xC8CACB), hex(0xE2E3E3), null),
+      babyPaint: downFeather(hex(0xF0A448), hex(0xF8C870), null),
     });
     // kittens: small fluffy wings
     s.baby.wing = 0.5;
@@ -7751,6 +7765,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       // round 16b: the sculpt's muzzle is longer now; a cub's is shorter (the winged lion's cub too)
       modelBaby: { muzzle: 0.78 },
       anim: (A) => ({
+        ...bigCatSwim(k),   // round 17 (the winged lion too)
         tailIdle: [-0.5, -0.15, 0.3], tailRun: [0.2, 0.1, 0.1], tailFlick: 0.2,
         sit: Object.assign({}, A.sit, { tail: [0.6, 0.3, 0.2], tailYaw: [0.3, 0.4, 0.4], wrap: [0.6, 1.0, 1.4], wrapY: [0.0, 0.0, 0.0] }),
       }),
@@ -7812,6 +7827,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       length: 0.8, iris: 0xB8B03C, nose: 0xB0786A, shell: 0.012,
       anim: (A) => ({
         walk: 1.0, trot: 2.5, run: 9.0, maxRate: 4.2,
+        ...bigCatSwim(k),   // round 17
         tailIdle: [0.0, 0.05, 0.15, 0.3], tailRun: [0.35, 0.05, -0.1, -0.15],
         climb: Object.assign({}, A.climb, { tail: [-0.3, -0.05, 0, 0] }),
         sit: Object.assign({}, A.sit, { tail: [0.9, 0.2, 0.1, 0.05], tailYaw: [0.5, 0.8, 0.8, 0.8], wrap: [1.2, 2.3, 3.0, 3.5], wrapY: [0.1, 0.0, -0.02, -0.02] }),
@@ -8316,6 +8332,9 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       // the fastest runner in the game: a long, stretched-out double suspension gallop, the back flexing hard with
       // every stride (stride: m per cycle at the walk; it grows with the speed up to strideMax times that)
       walk: 1.25, trot: 3.2, run: 15.0, stride: 1.3, strideMax: 4.6, maxRate: 3.4,
+      // round 17: swims as the tiger, a little deeper (its long legs carry its body higher, so at the tiger's float its
+      // whole back stood out of the water)
+      ...bigCatSwim(k), floatDepth: 0.285 * k,
       duty: [0.62, 0.42, 0.26], lift: [0.1, 0.12], flexF: 1.6, flexH: 1.1,
       gaits: { g: [0.42, 0.56, 0.0, 0.12] },
       bob: [0.006, 0.018, 0.07], pitchRun: 0.12, flexRun: 0.42, rumpFlex: 0.8, roll: 0.012,
