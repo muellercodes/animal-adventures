@@ -352,6 +352,72 @@ const Sound = (() => {
       // beating), and a chick's high whistling trill
       case 'penguin': if (k > 1) { for (let i = 0; i < 6; i++) T({ t: t + i * 0.08, f: 2600 + (i % 2) * 400, f2: 3000 - (i % 2) * 300, dur: 0.07, type: 'sine', vol: vol * 0.4 }); } else {
         let tc = t; for (let i = 0; i < 7; i++) { const f = 520 + 160 * Math.sin(i * 0.9); T({ t: tc, f, f2: f * 1.12, dur: 0.12, a: 0.01, type: 'sawtooth', bp: 1300, q: 1.8, vib: 34, vibAmt: 30, vol: vol * 0.8 }); T({ t: tc, f: f * 1.5, f2: f * 1.62, dur: 0.11, type: 'sawtooth', bp: 2100, q: 2, vol: vol * 0.3 }); tc += 0.13; } } break;
+      // round 17: American robin: the clear caroling song, "cheerily, cheer-up, cheerio", phrases of two or three
+      // whistled notes rising and falling (a chick's thin begging peeps)
+      case 'robin': {
+        if (k > 1) { for (let i = 0; i < 4; i++) T({ t: t + i * 0.12, f: 4200, f2: 4700, dur: 0.06, a: 0.005, vol: vol * 0.3 }); break; }
+        const ph = [[[2600, 3000, 0.11], [3000, 2500, 0.12], [2500, 2700, 0.1]], [[2400, 2900, 0.12], [2900, 2300, 0.15]], [[2700, 3100, 0.1], [3100, 2650, 0.12], [2600, 2200, 0.14]]];
+        let tc = t;
+        for (const p of ph) { for (const [f, f2, d] of p) { T({ t: tc, f, f2, dur: d, a: 0.012, vib: 28, vibAmt: 40, vol: vol * 0.5 }); tc += d + 0.03; } tc += 0.28; }
+        break;
+      }
+      // round 17: barn owl: a long, harsh, hissing screech that falls a little (not a hoot); an owlet's wheezy snore
+      case 'barnowl': {
+        if (k > 1) { noise({ t, f: 4200, f2: 3600, q: 1.4, dur: 0.6, a: 0.08, vol: vol * 0.3, pan }); break; }
+        noise({ t, f: 3600, f2: 2600, q: 1.6, dur: 1.5, a: 0.06, vol: vol * 0.75, pan });
+        noise({ t, f: 6200, f2: 5200, q: 2.2, dur: 1.4, a: 0.06, vol: vol * 0.3, pan });
+        T({ t, f: 1500, f2: 1150, dur: 1.4, a: 0.06, type: 'sawtooth', bp: 2800, q: 1.2, vib: 55, vibAmt: 260, vol: vol * 0.32 });
+        break;
+      }
+      // round 17: common raven: deep, hollow croaks, "kronk kronk" (now and then a hollow knocking); a chick's
+      // hoarse begging squawks
+      case 'raven': {
+        if (k > 1) { for (let i = 0; i < 3; i++) { T({ t: t + i * 0.22, f: 900, f2: 760, dur: 0.14, type: 'sawtooth', bp: 1400, q: 2, vib: 40, vibAmt: 60, vol: vol * 0.4 }); noise({ t: t + i * 0.22, f: 1800, q: 1.2, dur: 0.12, vol: vol * 0.2, pan }); } break; }
+        if (Math.random() < 0.2) { for (let i = 0; i < 4; i++) { T({ t: t + i * 0.09, f: 620, f2: 480, dur: 0.05, a: 0.003, type: 'triangle', vol: vol * 0.6 }); noise({ t: t + i * 0.09, f: 1100, q: 2, dur: 0.04, vol: vol * 0.3, pan }); } break; }
+        const n = 2 + (Math.random() < 0.5 ? 1 : 0);
+        for (let i = 0; i < n; i++) {
+          const t0 = t + i * 0.42, f = 330 - i * 10;
+          T({ t: t0, f, f2: f * 0.86, dur: 0.24, a: 0.015, type: 'sawtooth', bp: 720, q: 1.6, vib: 30, vibAmt: f * 0.12, vol: vol * 0.95 });
+          T({ t: t0, f: f * 2, f2: f * 1.7, dur: 0.2, type: 'square', bp: 1500, q: 2.2, vol: vol * 0.2 });
+          noise({ t: t0, f: 900, q: 1.0, dur: 0.18, vol: vol * 0.25, pan });
+        }
+        break;
+      }
+      // round 17: robot eagle: the bald eagle's chattering whistle with a metallic, synthesized edge (square waves and
+      // a ringing partial that is not in tune with them), a click before it
+      case 'roboteagle': {
+        noise({ t, f: 6000, q: 4, dur: 0.02, vol: vol * 0.3, pan });
+        const n = 9;
+        for (let i = 0; i < n; i++) {
+          const u = i / (n - 1), t0 = t + 0.04 + i * (0.075 + 0.02 * u), f = (2300 + 900 * Math.sin(u * Math.PI * 0.9)) * (k > 1 ? 1.15 : 1);
+          T({ t: t0, f, f2: f * (i < 4 ? 1.12 : 0.88), dur: 0.055 + 0.02 * u, a: 0.004, type: 'square', bp: f * 1.2, q: 3, vib: 38, vibAmt: f * 0.02, vol: vol * (0.3 + 0.14 * Math.sin(u * Math.PI)) });
+          T({ t: t0, f: f * 1.414, dur: 0.07, a: 0.003, vol: vol * 0.12 });
+        }
+        break;
+      }
+      // round 17: brown kiwi: a boy's shrill rising whistle, "ki-wi", over and over; a girl's lower, hoarse cry (a chick
+      // peeps)
+      case 'kiwi': {
+        if (k > 1) { for (let i = 0; i < 3; i++) T({ t: t + i * 0.18, f: 2600, f2: 3200, dur: 0.08, vol: vol * 0.35 }); break; }
+        const n = 6 + Math.floor(Math.random() * 3), girl = b.sex === 'f';
+        for (let i = 0; i < n; i++) {
+          const t0 = t + i * (girl ? 0.42 : 0.36);
+          if (girl) { T({ t: t0, f: 700, f2: 820, dur: 0.22, a: 0.02, type: 'sawtooth', bp: 1100, q: 1.4, vib: 45, vibAmt: 90, vol: vol * 0.6 }); noise({ t: t0, f: 1500, q: 0.9, dur: 0.2, vol: vol * 0.35, pan }); }
+          else T({ t: t0, f: 1500 + i * 40, f2: 3100 + i * 30, dur: 0.24, a: 0.02, vib: 8, vibAmt: 30, vol: vol * 0.55 });
+        }
+        break;
+      }
+      // round 17: dodo: a deep honking coo, two or three hollow hoots (a chick's soft peeps)
+      case 'dodo': {
+        if (k > 1) { for (let i = 0; i < 3; i++) T({ t: t + i * 0.2, f: 1600, f2: 1900, dur: 0.1, type: 'triangle', vol: vol * 0.4 }); break; }
+        const n = 2 + (Math.random() < 0.5 ? 1 : 0);
+        for (let i = 0; i < n; i++) {
+          const t0 = t + i * 0.55;
+          T({ t: t0, f: 190, f2: 160, dur: 0.38, a: 0.05, type: 'triangle', lp: 700, vib: 6, vibAmt: 6, vol: vol * 1.1 });
+          T({ t: t0, f: 380, f2: 320, dur: 0.3, a: 0.04, type: 'sawtooth', bp: 620, q: 2.2, vol: vol * 0.35 });
+        }
+        break;
+      }
       // round 16: Atlantic puffin: a low growling purr, like a far-off motorbike, "arr-arr-arrr" (a puffling peeps)
       case 'puffin': if (k > 1) { for (let i = 0; i < 3; i++) T({ t: t + i * 0.14, f: 3000, f2: 3400, dur: 0.06, type: 'sine', vol: vol * 0.35 }); } else {
         for (let i = 0; i < 3; i++) { const t0 = t + i * 0.42, d = i === 2 ? 0.75 : 0.3; T({ t: t0, f: 170, f2: 140, dur: d, a: 0.03, type: 'sawtooth', lp: 900, vib: 34, vibAmt: 40, vol: vol * 0.9 }); noise({ t: t0, f: 600, q: 1.2, dur: d * 0.9, vol: vol * 0.25, pan }); } } break;
@@ -403,8 +469,9 @@ const Sound = (() => {
     } else if (b.mode === 'fly' && SPECIES[b.sp].hover) {
       // (round 16: a hummingbird's wings hum all the time it flies)
       flapT -= dt; if (flapT <= 0) { flapT = 0.12; tone({ f: 94 + Math.random() * 8, dur: 0.16, a: 0.04, type: 'sawtooth', lp: 420, vol: 0.05 }); }
-    } else if (b.mode === 'fly' && b.vy > 0.5) {
-      flapT -= dt; if (flapT <= 0) { flapT = 0.28; noise({ f: 500, f2: 260, q: 0.7, dur: 0.16, vol: 0.12 }); }
+    } else if (b.mode === 'fly' && b.vy > 0.5 && !SPECIES[b.sp].silent) {
+      // (round 17: a barn owl flies silently, SPECIES silent; a robot eagle's wings whir like servos, SPECIES servo)
+      flapT -= dt; if (flapT <= 0) { flapT = 0.28; noise({ f: 500, f2: 260, q: 0.7, dur: 0.16, vol: 0.12 }); if (SPECIES[b.sp].servo) tone({ f: 820, f2: 1250, dur: 0.2, a: 0.03, type: 'sawtooth', bp: 1500, q: 5, vol: 0.05 }); }
     }
   }
   function step(surface, vol) {

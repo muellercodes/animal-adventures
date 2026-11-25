@@ -1,0 +1,70 @@
+{
+ "v": 2,
+ "id": "robinf",
+ "base": "robin",
+ "maps": {
+  "color": "robinf-color.webp",
+  "feather": "robinf-feather.webp",
+  "featherNormal": "robinf-feathernrm.webp"
+ },
+ "srgb": [
+  "feather"
+ ],
+ "eye": {
+  "p": [
+   0.01887,
+   0.14005,
+   0.08473
+  ],
+  "r": 0.00481,
+  "dir": [
+   0.9091,
+   0.101,
+   0.4041
+  ],
+  "lid": [
+   0.84,
+   -0.84,
+   0.1
+  ],
+  "iris": 1971212,
+  "irisR": 0.95,
+  "pupilR": 0.5,
+  "rim": 920072,
+  "lidCol": 2761760,
+  "babyLidCol": 4078650
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "head",
+   0.3
+  ],
+  "w": 0.8,
+  "babyAt": 0.35,
+  "hug": true,
+  "babyK": 1.6,
+  "lift": 0.35
+ },
+ "mouth": [
+  0.0,
+  0.1295,
+  0.1154
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.1,
+  0.1,
+  0.1
+ ],
+ "flat": 8018500
+}

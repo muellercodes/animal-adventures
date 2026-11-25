@@ -271,6 +271,20 @@ SHOP.push('ostrich');
 SPECIES.peafowl = { name: 'Peacock', many: 'Peacocks', eats: ['seeds', 'bugs', 'berries', 'corn', 'grass'], fav: 'seeds', fly: true, flySpeed: 7, price: 800, egg: 0xEADCC2, outdoor: true, baby: 'Peachick' };
 SHOP.push('peafowl');
 // round 16: big and water birds (end)
+// round 17: birds (an American robin, a barn owl, a common raven, a robot eagle, a brown kiwi and a dodo). New flags,
+// each only on these: silent (the barn owl's wingbeats make no sound), noSick (the robot eagle never gets sick) and
+// servo (the robot eagle's wings whir like servos when it flaps; 65_audio).
+Object.assign(SPECIES, {
+  robin: { name: 'Robin', many: 'Robins', eats: ['worm', 'berries', 'bugs'], fav: 'worm', fly: true, flySpeed: 9, price: 220, egg: 0x9CCFD8, baby: 'Robin chick' },
+  barnowl: { name: 'Barn owl', many: 'Barn owls', eats: ['meat', 'bugs', 'worm'], fav: 'meat', fly: true, nightEyes: true, silent: true, flySpeed: 8, hunter: true, outdoor: true, price: 600, egg: 0xF6F4EE, baby: 'Barn owlet' },
+  raven: { name: 'Raven', many: 'Ravens', eats: ['meat', 'berries', 'bugs', 'apple', 'hotdog'], fav: 'meat', fly: true, flySpeed: 11, outdoor: true, price: 650, egg: 0xA8C2AE, eggSpeck: [0.42, 0.36, 0.28], baby: 'Raven chick' },
+  roboteagle: { name: 'Robot eagle', many: 'Robot eagles', eats: ['fish', 'smallfish', 'hotdog'], fav: 'fish', fly: true, flySpeed: 13, hunter: true, grab: true, noSick: true, servo: true, outdoor: true, price: 1500, egg: 0xC4CAD0, baby: 'Robot eaglet' },
+  kiwi: { name: 'Kiwi', many: 'Kiwis', eats: ['worm', 'bugs', 'berries', 'seeds'], fav: 'worm', outdoor: true, price: 400, egg: 0xF4F2EC, baby: 'Kiwi chick' },
+  dodo: { name: 'Dodo', many: 'Dodos', eats: ['apple', 'berries', 'seeds', 'banana'], fav: 'apple', outdoor: true, price: 800, egg: 0xF0ECE0, baby: 'Dodo chick' },
+});
+for (const id of ['robin', 'kiwi', 'barnowl', 'raven', 'dodo', 'roboteagle']) { let i = SHOP.length; while (i > 0 && SPECIES[SHOP[i - 1]].price > SPECIES[id].price) i--; SHOP.splice(i, 0, id); }
+SMALL_PREY.push('robin', 'kiwi');
+// round 17: birds (end)
 const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow', 'snow', 'savanna', 'arctic'];
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];
 const SKIN = ['#F3D3B8', '#E6B691', '#C98E66', '#9A6544', '#6B4430'];
@@ -331,6 +345,12 @@ const SEX_LOOK = {
   ostrich: { base: 'm', f: { model: true, size: 0.9 } },
   peafowl: { base: 'm', m: { name: 'Peacock' }, f: { name: 'Peahen', model: true, horns: 0, size: 0.9 } },
 };
+// round 17: a girl robin is paler (her own colors on the boy's sculpt); a girl barn owl and a girl kiwi are bigger (the
+// kiwi's bill longer with her), a boy raven and a boy dodo a little bigger. (The robot eagle: boys and girls alike.)
+Object.assign(SEX_LOOK, {
+  robin: { base: 'm', f: { model: true } }, barnowl: { base: 'f', m: { size: 0.94 } }, raven: { base: 'm', f: { size: 0.93 } },
+  kiwi: { base: 'f', m: { size: 0.85 } }, dodo: { base: 'm', f: { size: 0.9 } },
+});
 const sexLook = (id, sex) => (SEX_LOOK[id] && SEX_LOOK[id][sex]) || null;
 const sexOf = (id) => (S.sex && (S.sex[id] === 'm' || S.sex[id] === 'f') ? S.sex[id] : (SEX_LOOK[id] && SEX_LOOK[id].base) || 'f');
 // the grown-up's name for a boy or a girl ("Lioness", "Rooster"), else the species' own name

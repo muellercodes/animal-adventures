@@ -26,6 +26,9 @@ const FEAR = { chicken: 3, duck: 4.5, swan: 3, frog: 2.5, lizard: 3, snake: 2, b
 // round 16: small and tree birds stand upright and fly off when something comes at them
 Object.assign(UPRIGHT, { cardinal: 1, bluejay: 1, hummingbird: 1, toucan: 1, snowyowl: 1 });
 Object.assign(FEAR, { cardinal: 3, bluejay: 3.5, hummingbird: 2.5, toucan: 4, snowyowl: 5 });
+// round 17: birds (a robin and a kiwi are shy, a raven is bold, a dodo had no enemies and did not run)
+Object.assign(UPRIGHT, { robin: 1, barnowl: 1, raven: 1, roboteagle: 1, kiwi: 1, dodo: 1 });
+Object.assign(FEAR, { robin: 3.5, barnowl: 5, raven: 3, roboteagle: 4, kiwi: 4, dodo: 0.5 });
 // extra bump circles along a long body: [how far ahead of the body's middle, as a part of its length; radius, as a part
 // of its radius]. A brachiosaurus's middle is at its shoulders: the trunk runs back from there to its hips and tail
 // (its neck is high up, so fences pass under it)
@@ -41,6 +44,7 @@ const BODY_COL = { long: [[0.32, 0.8], [-0.32, 0.8]], brachiosaurus: [[0.14, 0.9
   // round 13: a griffin's chest and hips (its beak and tail hang past them); a winged lion is a lion's body
   griffin: [[0.35, 0.84], [-0.33, 0.84]], wingedlion: [[0.3, 0.9], [-0.26, 0.9]] };
 const NOCTURNAL = { owl: 1, frog: 1, fox: 1, raccoon: 1, hedgehog: 1, hamster: 1, bat: 1, gecko: 1, ocelot: 1, leopard: 1 };
+NOCTURNAL.barnowl = NOCTURNAL.kiwi = 1;   // round 17: a barn owl hunts at dusk and at night, a kiwi is out at night
 // round 10: a butterfly starts out as a caterpillar. Below PUPA_AGE its body is the caterpillar (b.form, a hidden
 // species), and when it grows past it, it makes a chrysalis and comes out a grown monarch (70_game: Pupa). A butterfly
 // is full size when it comes out, so its body does not grow after that.
@@ -475,7 +479,7 @@ function poseBody(b, dt, animate) {
   r.position.copy(b.pos); r.rotation.y = b.yaw;
   let pt = 0;
   if (b.mode === 'climb') pt = -Math.PI / 2;
-  else if (b.mode === 'fly' && b.sp !== 'owl' && b.sp !== 'snowyowl') pt = -clamp(b.vy * 0.08, -0.3, 0.3);   // (round 16: the snowy owl flies like the owl)
+  else if (b.mode === 'fly' && b.sp !== 'owl' && b.sp !== 'snowyowl' && b.sp !== 'barnowl') pt = -clamp(b.vy * 0.08, -0.3, 0.3);   // (round 16: the snowy owl flies like the owl; round 17: the barn owl too)
   else if (b.mode === 'ground' && !UPRIGHT[b.sp]) {
     const d = Math.max(0.12, b.m.length * 0.35), fx = Math.sin(b.yaw) * d, fz = Math.cos(b.yaw) * d;
     // (round 14: on sea ice, the slope of the ice, not of the sea floor under it)
@@ -696,9 +700,10 @@ const Sick = {
   kind() { return (S.ills && S.ills[S.animal]) || (S.sick > 0 ? 'cold' : null); },
   label() { const k = this.kind(); return !k ? '' : k === 'tummy' ? 'Tummy ache' : k === 'paw' ? 'Hurt ' + this.limb(S.animal) : 'Has a cold'; },
   // (round 14: an animal that lives in the sea can't get to a vet, so it never gets sick)
-  sync() { S.sick = S.ills && S.ills[S.animal] && !isAquatic(S.animal) ? 1 : 0; },
+  // (round 17: nor does a robot, SPECIES noSick: the robot eagle)
+  sync() { S.sick = S.ills && S.ills[S.animal] && !isAquatic(S.animal) && !SPECIES[S.animal].noSick ? 1 : 0; },
   start(kind, why) {
-    if (S.sick > 0 || R.hatch || R.pupa || isAquatic(S.animal)) return;
+    if (S.sick > 0 || R.hatch || R.pupa || isAquatic(S.animal) || SPECIES[S.animal].noSick) return;
     if (kind === 'paw' && S.animal === 'snake') kind = 'tummy';
     S.ills = S.ills || {}; S.ills[S.animal] = kind; S.sick = 1;
     const nm = SPECIES[S.animal].name.toLowerCase();
@@ -1429,6 +1434,7 @@ const Folk = {
 const CAGED = { lizard: 'terrarium', snake: 'terrarium', frog: 'terrarium', turtle: 'terrarium', parrot: 'birdCage', bunny: 'hutch', hedgehog: 'hutch',
   chickadee: 'birdCage', cockatiel: 'birdCage' };   // round 7
 for (const sp of ['cardinal', 'bluejay', 'hummingbird', 'toucan']) CAGED[sp] = 'birdCage';   // round 16: the small birds and the toucan
+CAGED.robin = 'birdCage';   // round 17
 CAGED.butterfly = 'terrarium';   // round 10: a caterpillar (and then its butterfly) lives in a glass tank
 for (const sp of ['gecko', 'beardeddragon', 'iguana', 'chameleon']) CAGED[sp] = 'terrarium';   // round 11: the small lizards
 const CAGE_WORDS = { terrarium: 'a glass tank', birdCage: 'a big bird cage', hutch: 'a cozy pen' };

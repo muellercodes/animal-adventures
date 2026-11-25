@@ -565,6 +565,8 @@ const Animals = (() => {
   // - a little more light on the side that faces the sun's half of the sky, so the shaded side is not flat.
   // How much of each, by the coat (detail kind): x sky reflection, y sun shine, z wrap.
   const LIFT_KIND = { fur: [0.45, 0.45, 0.25], feather: [0.7, 0.7, 0.15], scale: [1.1, 1.0, 0.05], skin: [1.0, 0.85, 0.15] };
+  // (round 17: a metal body, the robot eagle's sculpt with metal in its json: the sky's full reflection and sun shine, no wrap)
+  LIFT_KIND.metal = [1.25, 1.0, 0.0];
   const LIFT_SKIP = { butterfly: 1, caterpillar: 1 };   // (the monarch, its caterpillar and its chrysalis keep their look)
   const LIFT = {
     aaSkyZ: { value: new THREE.Vector3(0.6, 0.69, 0.8) }, aaSkyH: { value: new THREE.Vector3(0.9, 0.98, 1.05) },
@@ -674,7 +676,8 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
   // feather material from a model's atlas (alpha tested, so the shadows get the outlines too); hidden until the
   // maps are decoded, so the bare rectangles never show
   function featherModelMaterial(M, fs, baby) {
-    const mm = M.maps, m = new THREE.MeshStandardMaterial({ roughness: fs.rough || 0.8, metalness: 0, side: THREE.DoubleSide, alphaTest: 0.5 });
+    // (round 17: fs.metal, the robot eagle's metal feather plates; 0 for every other bird)
+    const mm = M.maps, m = new THREE.MeshStandardMaterial({ roughness: fs.rough || 0.8, metalness: fs.metal || 0, side: THREE.DoubleSide, alphaTest: 0.5 });
     m.visible = false;
     // round 13 (winged lion): fs.under (an sRGB color and an amount) makes the undersides of the blades (their front
     // faces: featherBladeCut's triangles face down) paler, toward that color, keeping the light and dark of the atlas
@@ -5595,6 +5598,256 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     return s;
   };
 
+  // ===== round 17: birds (an American robin, a barn owl, a common raven, a robot eagle, a brown kiwi and a dodo) =====
+  // All made from existing birds, as in round 16: the robin from the chickadee (songBird), the barn owl from the great
+  // horned owl, the raven and the robot eagle from the bald eagle, the kiwi and the dodo from the hen (scaleBird). Their
+  // sculpts (tools/blender/<id>.py) are made on the same base files with the same numbers (tools/blender/refit.py).
+  ids.push('robin', 'barnowl', 'raven', 'roboteagle', 'kiwi', 'dodo');
+  // round 17: a bird spec's legs made shorter (D > 0) or longer (D < 0): every height y goes to y - D * sstep(ya, yb, y),
+  // so the body moves down (or up) between the feet and the hips and the feet keep their shape (songBird's drop, with
+  // the band given). The sculpt uses the same numbers (refit.api's DROP, YA, YB). In the base bird's units, before
+  // scaleBird. Only the dodo and the barn owl use it.
+  function dropBird(s, D, ya, yb) {
+    const Y = (y) => y - D * sstep(ya, yb, y), p3 = (p) => [p[0], Y(p[1]), p[2]], k6 = (q) => [q[0], Y(q[1]), ...q.slice(2)];
+    s.size.height = Y(s.size.height); s.size.eyeHeight = Y(s.size.eyeHeight);
+    s.bones = s.bones.map((b) => [b[0], b[1], b[2], Y(b[3]), ...b.slice(4)]);
+    for (const f of s.fur) f.keys = f.keys.map(k6);
+    s.accent = (s.accent || []).map((a) => Object.assign({}, a, a.keys ? { keys: a.keys.map(k6) } : null, a.pts ? { pts: a.pts.map(p3) } : null, a.c ? { c: p3(a.c) } : null, a.outline ? { outline: a.outline.map(p3) } : null));
+    s.eyes = s.eyes.map((e) => Object.assign({}, e, { p: p3(e.p) }));
+    s.mouth = p3(s.mouth);
+    const f0 = s.feathers;
+    s.feathers = (rest, md) => { const f = f0(rest, md); f.list = f.list.map((b) => Object.assign({}, b, { base: p3(b.base) })); return f; };
+    return s;
+  }
+
+  // ===== ROBIN (American robin) =====
+  // About 25 cm: the chickadee's body at 1.85 of its size. A brick-orange breast, a dark gray-brown back, a blackish head
+  // with a broken white eye ring, white streaks on the throat, white under the tail, a yellow bill with a dusky tip. The
+  // girl (game/models/robinf.json, her own colors on the same sculpt) is paler: a grayer head and a duller breast. The
+  // fledgling has a speckled breast. It runs in spurts and stops on lawns, and pulls up worms.
+  SPEC.robin = () => {
+    const K = { back: hex(0x5A5148), head: hex(0x2A2624), breast: hex(0xBC5426), breastLt: hex(0xD07038), white: hex(0xEEECE6), leg: hex(0x5A4E48) };
+    return songBird({
+      k: 1.85, lenK: 1.08,
+      bill: [[0, 0.0712, 0.0465, 0.0027, 0.0029, 0.0028], [0, 0.0708, 0.051, 0.002, 0.0021, 0.0021], [0, 0.0702, 0.0556, 0.0012, 0.0012, 0.0012], [0, 0.0694, 0.0594, 0.0005, 0.0005, 0.0005]],
+      billCol: 0xE2AE2A, babyBillCol: 0x5A4A36, legCol: 0x5A4E48, claw: 0x2A2420, babyLeg: 0x8A7E74,
+      mouth: [0, 0.0696, 0.0594],
+      eye: { r: 0.0026 * 1.85, iris: 0x1A120C },
+      wing: { s: 0.25, prim: 0.95, wid: 1.2, tip: 0.38 },
+      tail: (md, P3, k) => tailFan('tail', P3([0, 0.051, -0.036]), md ? 12 : 8, 0.056 * k, 0.019 * k, 16, -6, 5, { dx: 0.008 * k, dy: 0.003 * k, dz: 0.002 * k, roll: 20, taper: 0.06, curl: 0.03, tip: md ? undefined : 0.85 }),
+      down: [0x8A8276, 0xA49C90],
+      paint(q, C) {
+        cset(C, K.back);
+        cmix(C, K.breast, sstep(0.15, -0.45, q.ny) * sstep(-0.03, 0.0, q.z));
+        cmix(C, K.breastLt, sstep(-0.5, -0.9, q.ny) * 0.3);
+        if (q.part === 'head') cmix(C, K.head, sstep(0.07, 0.074, q.y));
+        if (q.part === 'leg') cset(C, K.leg);
+      },
+      featherPaint(u, t, C) {
+        const kk = Math.floor(u * FNC), s = fract(u * FNC);
+        if (kk === 5) { vane(s, t, C, hex(0x2E2A28), hex(0x3E3A36), hex(0x1E1A18)); cmix(C, K.white, sstep(0.88, 0.95, t) * 0.6); }
+        else vane(s, t, C, hex(0x4A443E), hex(0x6A625A), hex(0x2E2A26));
+      },
+      anim: { walk: 0.5, run: 2.0, lookPeriod: 1.6, lookRate: 7 },
+    });
+  };
+
+  // ===== BARN OWL =====
+  // About 35 cm: the great horned owl's body at 0.64 of its size with its legs a little longer (dropBird), no ear tufts
+  // and the barn owl's own head: a white heart-shaped face disc edged in buff, small dark eyes, a pale bill in the
+  // feathers. Golden-buff and soft gray above with fine dark and white speckles, white to pale buff underneath with a
+  // few dark dots. The girl is a little bigger and more buff below. The owlet: white fluffy down. It flies silently
+  // (SPECIES silent: no wingbeat sound) and hunts at dusk and at night.
+  SPEC.barnowl = () => {
+    const k = 0.64, s = scaleBird(dropBird(SPEC.owl(), -0.03, 0.012, 0.13), k);
+    const K = { gold: hex(0xC8964E), gray: hex(0xA8A29A), white: hex(0xF4F0E8), buff: hex(0xE6CFA6), dark: hex(0x3A2E24), rim: hex(0xB8885A) };
+    s.fur = s.fur.filter((f) => f.name !== 'tuft');
+    s.eyes = [Object.assign(s.eyes[0], { iris: 0x140C08, irisR: 0.95, pupilR: 0.6, rim: 0x080604 })];
+    s.accent = s.accent.map((a) => Object.assign(a, a.bone === 'head' ? { col: 0xE8D8C4 } : { col: 0xC8BCB0 }));
+    s.paint = (P, C) => {
+      const x = Math.abs(P.x) / k, y = P.y / k, z = P.z / k;
+      cset(C, K.white);
+      if (P.part !== 'leg') {
+        const back = sstep(-0.1, 0.4, P.ny - 0.6 * P.nz);
+        cmix(C, K.gold, back);
+        cmix(C, K.gray, back * sstep(0.45, 0.75, noise(x * 60, y * 60, z * 60)) * 0.6);
+      }
+      if (P.part === 'head') cmix(C, K.rim, sstep(0.03, 0.05, Math.hypot(x - 0.02, y - 0.46)) * sstep(0.0, 0.5, P.nz) * 0.8);
+      C.ro = 0.9;
+    };
+    const f0 = s.feathers;
+    s.feathers = (rest, md) => Object.assign(f0(rest, md), {
+      paint(u, t, C) { const kk = Math.floor(u * FNC), s2 = fract(u * FNC); vane(s2, t, C, K.gold, K.buff, K.gold); cmix(C, K.gray, sstep(0.5, 0.8, Math.sin(t * (kk === 5 ? 18 : 24)) * 0.5 + 0.5) * 0.45); cmix(C, K.white, sstep(0.0, 0.3, 1 - Math.abs(s2 - 0.5) * 2) * 0.0); },
+      babyPaint: downFeather(hex(0xF2EEE6), hex(0xFAF8F2), null),
+    });
+    s.babyPaint = (P, C) => { cset(C, P.part === 'leg' ? hex(0xD8D0C4) : hex(0xF2EEE6)); C.ro = 0.95; };
+    return s;
+  };
+
+  // ===== RAVEN (common raven) =====
+  // About 60 cm: the bald eagle's body at 0.72 of its size, carried more level, with the raven's own heavy black bill
+  // (a deep, gently arched culmen, bristles over the nostrils), shaggy throat feathers, a long wedge-shaped tail and
+  // black scaly legs. Glossy black all over with a blue-purple sheen. It walks and hops, and soars on flat wings with
+  // the primaries spread like fingers. The chick: dark gray down.
+  SPEC.raven = () => {
+    const k = 0.72, s = scaleBird(SPEC.eagle(), k), S3 = (a) => a.map((v) => v * k);
+    const K = { black: hex(0x16161C), sheen: hex(0x2C2E48), dk: hex(0x0A0A0E) };
+    delete s.anim.grab;
+    Object.assign(s.anim, { standPitch: -0.32, walk: 0.6, run: 1.7, waddle: 0.06, soar: { climb: 0.7, every: 4.5, beats: 4 }, lookPeriod: 2.2, lookRate: 6 });
+    s.eyes = [Object.assign(s.eyes[0], { iris: 0x1E140E, irisR: 0.92, pupilR: 0.45, rim: 0x0A0806, babyIris: 0x2A2420 })];
+    const billKeys = [[0, 0.392, 0.24, 0.016, 0.018, 0.016], [0, 0.39, 0.262, 0.013, 0.015, 0.013], [0, 0.384, 0.284, 0.009, 0.011, 0.009], [0, 0.375, 0.302, 0.005, 0.006, 0.005], [0, 0.366, 0.313, 0.0015, 0.002, 0.0015]];
+    s.accent = [{ kind: 'loft', bone: 'head', segs: 10, cap0: 2, cap1: 2, capLen1: 0.4, col: 0x141416, babyCol: 0x3A3632, keys: billKeys.map((a) => a.map((v) => v * k)) },
+      ...s.accent.filter((a) => a.bone !== 'head').map((a) => Object.assign(a, { col: 0x1A1A1E, babyCol: 0x5A5652 }))];
+    s.paint = (P, C) => {
+      cset(C, K.black);
+      cmix(C, K.sheen, sstep(0.2, 0.9, P.ny) * 0.5);
+      cmul(C, 0.9 + 0.2 * noise(P.x * 400, P.y * 400, P.z * 400));
+      C.ro = 0.55;
+    };
+    const f0 = s.feathers;
+    s.feathers = (rest, md) => {
+      const f = f0(rest, md);
+      f.list = f.list.filter((b) => b.bone !== 'tail').concat(
+        // a long wedge-shaped tail (the middle feathers longest) under black coverts
+        tailFan('tail', S3([0, 0.262, -0.19]), md ? 12 : 10, 0.3 * k, (md ? 0.078 : 0.066) * k, 22, -4, 5, { dx: 0.05 * k, dy: 0.01 * k, dz: 0.012 * k, roll: 14, taper: 0.34, curl: 0.03, tip: md ? undefined : 0.55 }),
+        tailFan('tail', S3([0, 0.272, -0.17]), 7, 0.13 * k, 0.075 * k, 26, 4, 6, { dx: 0.04 * k, taper: 0.15, curl: 0.04, tip: md ? undefined : 0.8 }));
+      f.rough = 0.55;
+      f.paint = (u, t, C) => { const s2 = fract(u * FNC); vane(s2, t, C, K.black, K.sheen, K.dk); };
+      f.babyPaint = downFeather(hex(0x4A4846), hex(0x5E5C5A), null);
+      return f;
+    };
+    s.babyPaint = (P, C) => { cset(C, P.part === 'leg' ? hex(0x4A4642) : hex(0x46444A)); C.ro = 0.95; };
+    return s;
+  };
+
+  // ===== ROBOT EAGLE =====
+  // Rosemary: "make a realistic robot eagle as well. where the eyes are just make it green." A machine in the bald
+  // eagle's real shape and size (its skeleton, animator and moves: it soars and snatches fish): overlapping brushed
+  // steel and dark gunmetal plates shaped like feathers, a silver head, a polished dark bronze beak and talons, panel
+  // lines and small rivets, and glowing green eyes (eyes[0].glow: lit at night too). The sculpt's json says metal (the
+  // body and its feather plates are metal, 40_animals modelMaterial and featherModelMaterial), so it reflects the sky.
+  // The baby: a small robot eaglet with rounder plates and the same green eyes. It never gets sick (SPECIES noSick), and
+  // its wings whir like servos when it flaps (SPECIES servo, 65_audio).
+  SPEC.roboteagle = () => {
+    const s = SPEC.eagle();
+    const K = { steel: hex(0xA4A8AE), gun: hex(0x4A4E56), silver: hex(0xD4D8DC), bronze: hex(0x5E4630), seam: hex(0x2A2C30) };
+    s.paint = (P, C) => {
+      cset(C, P.part === 'head' ? K.silver : K.steel);
+      if (P.part === 'body' || P.part === 'wcov') cmix(C, K.gun, sstep(0.1, 0.8, P.ny) * 0.7);
+      if (P.part === 'body') cmix(C, K.silver, sstep(0.29, 0.33, P.y + 0.25 * (P.z - 0.12)) * sstep(0.09, 0.13, P.z));
+      if (P.part === 'leg') cset(C, P.y < 0.07 ? K.bronze : K.gun);
+      cmix(C, K.seam, sstep(0.7, 0.85, cells(P.x * 40, P.y * 40, P.z * 40)) * 0.6);
+      C.ro = 0.4;
+    };
+    s.eyes = [Object.assign(s.eyes[0], { iris: 0x48FF78, irisR: 0.92, pupilR: 0.3, rim: 0x0C3018, sclera: 0x101410, glow: 0x30FF60, babyIris: 0x48FF78 })];
+    s.accent = s.accent.map((a) => Object.assign(a, { col: a.kind === 'tube' ? 0x5E4630 : a.mirror ? 0xC8CCD0 : 0x5E4630, babyCol: a.mirror ? 0xB0B4B8 : 0x5E4630 }));
+    const f0 = s.feathers;
+    s.feathers = (rest, md) => Object.assign(f0(rest, md), {
+      rough: 0.4, metal: 1,
+      paint(u, t, C) { const kk = Math.floor(u * FNC), s2 = fract(u * FNC); vane(s2, t, C, kk === 5 || kk === 6 ? K.silver : kk === 0 ? K.gun : K.steel, K.seam, K.seam); },
+      babyPaint: (u, t, C) => { const s2 = fract(u * FNC); vane(s2, t, C, K.steel, K.silver, K.seam); },
+    });
+    s.babyPaint = (P, C) => { cset(C, P.part === 'leg' ? K.bronze : K.steel); cmix(C, K.silver, sstep(0.0, 0.8, P.ny) * 0.4); C.ro = 0.4; };
+    return s;
+  };
+
+  // ===== KIWI (North Island brown kiwi) =====
+  // About 40 cm: the hen's legs at 0.9 of their size under the kiwi's own round, pear-shaped body (highest at the rump,
+  // no visible wings and no tail), covered in shaggy, hair-like brown feathers streaked darker; a small head on a short
+  // neck carried low and forward (the neck and head bones are moved down and forward from the hen's), small dark eyes,
+  // bristles at the base of a very long, thin, gently curved pale bill with the nostrils at its tip; short thick legs
+  // with four toes. The girl (the species' own sculpt) is bigger, with a longer bill (SEX_LOOK size: the boy is smaller).
+  // It cannot fly; it probes the ground for worms with its bill. The chick: a small fluffy copy.
+  SPEC.kiwi = () => {
+    const k = 0.9, s0 = SPEC.chicken();
+    const K = { brown: hex(0x6A4E34), dark: hex(0x3E2C1E), light: hex(0x8C6C4C), bill: hex(0xD8C4A4), leg: hex(0xB8A898) };
+    const NB = { neck: [0, 0.272, 0.09], neck2: [0, 0.27, 0.128], head: [0, 0.264, 0.162], comb: [0, 0.284, 0.18] };
+    s0.bones = s0.bones.map((b) => (NB[b[0]] ? [b[0], b[1], ...NB[b[0]], ...b.slice(5)] : b));
+    s0.fur = [
+      { name: 'body', bones: ['tail', 'hips', 'neck', 'neck2', 'head'], blend: 0.025, segs: 14, cap0: 3, capLen0: 0.8, keys: [
+        [0, 0.255, -0.172, 0.03, 0.03, 0.02], [0, 0.25, -0.145, 0.075, 0.08, 0.06], [0, 0.238, -0.09, 0.1, 0.1, 0.09], [0, 0.228, -0.02, 0.102, 0.096, 0.1],
+        [0, 0.226, 0.04, 0.088, 0.082, 0.09], [0, 0.24, 0.085, 0.06, 0.056, 0.06], [0, 0.256, 0.118, 0.04, 0.038, 0.04], [0, 0.262, 0.145, 0.03, 0.03, 0.03]] },
+      { name: 'head', bones: ['head'], segs: 12, cap0: 3, cap1: 2, capLen1: 0.5, keys: [
+        [0, 0.27, 0.14, 0.022, 0.022, 0.022], [0, 0.272, 0.162, 0.025, 0.024, 0.024], [0, 0.266, 0.184, 0.019, 0.019, 0.018], [0, 0.258, 0.198, 0.01, 0.01, 0.01]] },
+      ...s0.fur.filter((f) => f.name === 'leg' || f.name === 'drum'),
+    ];
+    s0.accent = [{ kind: 'loft', bone: 'head', segs: 10, cap0: 2, cap1: 2, capLen1: 0.4, col: 0xD8C4A4, babyCol: 0xE0CCAC, keys: [
+      [0, 0.258, 0.196, 0.0048, 0.0052, 0.005], [0, 0.248, 0.23, 0.0036, 0.0038, 0.0036], [0, 0.234, 0.264, 0.0028, 0.003, 0.0028], [0, 0.218, 0.296, 0.0022, 0.0024, 0.0022], [0, 0.205, 0.318, 0.0016, 0.0016, 0.0016]] },
+    ...s0.accent.filter((a) => a.kind === 'tube')];
+    s0.eyes = [Object.assign(s0.eyes[0], { p: [0.018, 0.274, 0.178], r: 0.0034, dir: [0.94, 0.12, 0.3], iris: 0x140E0A, irisR: 0.9, pupilR: 0.5, rim: 0x0A0806, babyIris: 0x140E0A })];
+    s0.mouth = [0, 0.205, 0.318];
+    s0.size = { length: 0.5, height: 0.34, radius: 0.1, eyeHeight: 0.274 };
+    s0.feathers = (rest, md) => ({ tex: [256, 128], rough: 0.9, list: [], paint(u, t, C) { cset(C, K.brown); }, babyPaint: downFeather(hex(0x6A5038), hex(0x7E6448), null) });
+    Object.assign(s0.anim, { walk: 0.8, run: 2.6, eatPitch: 0.6, eatElev: [-20, -40, -50], eatY: 0.02, peck: 0.3, peckRate: 1.8, jumpFlap: 0, runPitch: 0.05, headBob: 0.4, lookAmp: 0.6,
+      sleepNeck: [[0.6, 1.8], [0.2, 0.3], [0.3, 0.2]] });
+    s0.paint = (P, C) => {
+      cset(C, P.part === 'leg' ? K.leg : K.brown);
+      if (P.part !== 'leg') { cmix(C, K.dark, sstep(0.55, 0.85, noise(P.x * 120, P.y * 40, P.z * 120)) * 0.5); cmix(C, K.light, sstep(-0.3, -0.9, P.ny) * 0.3); }
+      C.ro = 0.92;
+    };
+    s0.babyPaint = (P, C) => { cset(C, P.part === 'leg' ? K.leg : hex(0x705440)); C.ro = 0.95; };
+    s0.baby = Object.assign(s0.baby, { muzzle: 0.7, roles: { comb: 'horn' } });
+    s0.modelSpec = (md) => ({ anim: { wing: s0.anim.wing }, baby: { muzzle: 0.6, fluff: 0, wing: 0.1, eye: 1.0 } });
+    return scaleBird(s0, k);
+  };
+
+  // ===== DODO =====
+  // About 70 cm tall: the hen's skeleton at 1.5 of her size with shorter legs (dropBird) under the dodo's own heavy,
+  // round body: blue-gray plumage, paler gray below, a big head with bare grayish skin round the eye and the base of the
+  // bill, a huge hooked bill (pale yellow-green with a dark hooked tip and a black-edged pale base), tiny useless wings
+  // with pale feathers, a tuft of curly pale feathers for a tail, stout yellow legs. It cannot fly. Boys are a little
+  // bigger. The chick: gray down.
+  SPEC.dodo = () => {
+    const k = 1.5, s0 = SPEC.chicken();
+    const K = { gray: hex(0x7C828C), grayDk: hex(0x5E646E), pale: hex(0xB4B6B4), face: hex(0x9A9488), bill: hex(0xC8C890), tip: hex(0x3A3A30), leg: hex(0xD8B43A), tuft: hex(0xE4E0D4) };
+    // tiny wings: the hen's wing at half the size, a few short pale feathers
+    const W = stdWing({
+      s: 0.46, sh: [0.075, 0.3, 0.045], prim: 0.9, wid: 1.2, tip: 0.6, atlas: true,
+      folded: { roll: -70, yaw: 4, pitch: 8 }, foldedPos: [0.018, 0.0, -0.01],
+      featherFold: { tert: [110, 102], sec: [104, 90], prim: [96, 88] },
+      flap: { amp: 50, rate: 7, upFold: 0.3, twist: 10, glide: 3 },
+      cells: { prim: 0, sec: 1, gcov: 2, lcov: 3, tert: 2, pcov: 3 },
+    });
+    s0.bones = [...s0.bones.filter(notWing).map((b) => (b[0] === 'tail' ? ['tail', 'hips', 0, 0.31, -0.165] : b)), ...W.bones];
+    s0.anim.wing = W.wing;
+    s0.fur = [
+      { name: 'body', bones: ['tail', 'hips', 'neck', 'neck2', 'head'], blend: 0.03, segs: 14, cap0: 3, capLen0: 0.8, keys: [
+        [0, 0.31, -0.19, 0.03, 0.03, 0.02], [0, 0.29, -0.16, 0.08, 0.075, 0.07], [0, 0.26, -0.1, 0.12, 0.11, 0.11], [0, 0.25, -0.02, 0.13, 0.12, 0.13],
+        [0, 0.255, 0.05, 0.12, 0.115, 0.12], [0, 0.29, 0.1, 0.08, 0.08, 0.08], [0, 0.34, 0.112, 0.055, 0.055, 0.055], [0, 0.385, 0.118, 0.042, 0.042, 0.04]] },
+      { name: 'head', bones: ['head'], segs: 12, cap0: 3, cap1: 2, capLen1: 0.5, keys: [
+        [0, 0.405, 0.095, 0.03, 0.03, 0.03], [0, 0.41, 0.125, 0.036, 0.036, 0.034], [0, 0.405, 0.15, 0.03, 0.03, 0.028], [0, 0.398, 0.165, 0.02, 0.02, 0.02]] },
+      ...s0.fur.filter((f) => f.name === 'leg' || f.name === 'drum'),
+    ];
+    s0.accent = [
+      { kind: 'loft', bone: 'head', segs: 10, cap0: 2, cap1: 2, capLen1: 0.4, colFn: (x, y, z) => (z / k > 0.235 ? K.tip : K.bill), babyCol: 0x4A4840, keys: [
+        [0, 0.408, 0.158, 0.016, 0.02, 0.018], [0, 0.41, 0.19, 0.013, 0.017, 0.015], [0, 0.405, 0.22, 0.011, 0.014, 0.012], [0, 0.392, 0.245, 0.008, 0.01, 0.008], [0, 0.375, 0.256, 0.004, 0.005, 0.004]] },
+      ...babyC(s0.accent.filter((a) => a.kind === 'tube').map((a) => Object.assign(a, { col: 0xD8B43A })), 0x8A8478)];
+    s0.eyes = [Object.assign(s0.eyes[0], { p: [0.026, 0.418, 0.14], r: 0.0058, iris: 0xE8D8A0, irisR: 0.85, pupilR: 0.42, rim: 0x5A4A20, babyIris: 0x2A2018 })];
+    s0.mouth = [0, 0.375, 0.256];
+    s0.feathers = (rest, md) => ({
+      tex: [256, 128], rough: 0.85,
+      list: [
+        ...W.feathers,
+        // a tuft of curly pale feathers high on the rump
+        ...[0, 1, 2, 3, 4].map((i) => ({ bone: 'tail', mirror: true, base: [0.006 + i * 0.006, 0.32 - i * 0.004, -0.17 + i * 0.006], yaw: (80 + i * 9) * DEG, pitch: (58 - i * 6) * DEG, roll: -60 * DEG, len: 0.09 - i * 0.006, wid: 0.03, arc: md ? -1.6 + i * 0.15 : 0, curl: 0.12, cell: fcell(5) })),
+      ],
+      paint(u, t, C) { const kk = Math.floor(u * FNC), s2 = fract(u * FNC); if (kk === 5) vane(s2, t, C, K.tuft, hex(0xC8C4B8), hex(0xB0ACA0)); else vane(s2, t, C, kk === 0 ? K.pale : K.gray, K.pale, K.grayDk); },
+      babyPaint: downFeather(hex(0x8A8A8A), hex(0xA0A0A0), null),
+    });
+    Object.assign(s0.anim, { walk: 0.55, run: 1.5, stride: 0.2, waddle: 0.12, bob: 0.01, headBob: 0.5, peckRate: 1.4, eatElev: [-30, -60, -70], jumpFlap: 0.5, lookPeriod: 2.4, lookRate: 4 });
+    s0.paint = (P, C) => {
+      cset(C, P.part === 'leg' ? K.leg : K.gray);
+      if (P.part !== 'leg') { cmix(C, K.grayDk, sstep(0.3, 0.9, P.ny) * 0.4); cmix(C, K.pale, sstep(-0.2, -0.8, P.ny) * 0.5); }
+      // (scaleBird hands this paint the hen's units, after dropBird: the head is 0.04 lower)
+      if (P.part === 'head') cmix(C, K.face, sstep(0.02, 0.012, Math.hypot(Math.abs(P.x) - 0.024, P.y - 0.374, P.z - 0.145)));
+      C.ro = 0.88;
+    };
+    s0.babyPaint = (P, C) => { cset(C, P.part === 'leg' ? hex(0xB8A070) : hex(0x8A8A8C)); C.ro = 0.95; };
+    s0.baby = Object.assign(s0.baby, { muzzle: 0.55, roles: { comb: 'horn' } });
+    s0.modelSpec = (md) => ({ anim: { wing: W.wing }, baby: { muzzle: 0.5, fluff: 0, wing: 0.15, eye: 1.0 } });
+    return scaleBird(dropBird(s0, 0.04, 0.02, 0.12), k);
+  };
+
   // ===== RHINO (white rhinoceros, the square-lipped one) =====
   // A huge barrel body on short pillar legs with three toes, a shoulder hump, a long head carried low with a wide
   // square mouth, two horns (on their own bone: calves have only a bump), small eyes and tube-shaped ears; thick gray
@@ -10163,7 +10416,8 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
   function modelMaterial(M, baby) {
     const md = M.md, tint = (baby ? md.babyTint : md.tint) || [1, 1, 1], rim = md.rim || [0.25, 0.1, 0.08];
     // (md.roughK: round 7, a glossier coat on a shared body, such as a black cat's sheen)
-    const m = new THREE.MeshStandardMaterial({ roughness: md.roughK || 1, metalness: 0 });
+    // (round 17: md.metal, a metal body: the robot eagle's; 0 for every other sculpt)
+    const m = new THREE.MeshStandardMaterial({ roughness: md.roughK || 1, metalness: md.metal || 0 });
     m.userData.aa = { aaRimC: { value: new THREE.Vector3().fromArray(rim) } };
     m.onBeforeCompile = aaModelCompile;
     const mm = M.maps, flat = linColor(md.flat || 0xe0b0a0);
@@ -10353,7 +10607,8 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
         if (f.mirror) pushPart(fb, part, boneIndex, uvFn, null, true);
       }
       const fmat = fa ? (baby) => featherModelMaterial(fa, fs, baby) : (baby) => new THREE.MeshStandardMaterial({ map: featherTexture(fs, baby), roughness: fs.rough || 0.8, metalness: 0, side: THREE.DoubleSide });
-      geos.push({ geo: batchGeometry(fb, false), mat: fmat(false), babyMat: fs.babyPaint || fa ? () => fmat(true) : null });
+      // (round 17: a bird with no feather blades at all, the kiwi, gets no feather mesh and no feather texture)
+      if (fs.list.length) geos.push({ geo: batchGeometry(fb, false), mat: fmat(false), babyMat: fs.babyPaint || fa ? () => fmat(true) : null });
     }
     // eyes
     const eyeDefs = [];
@@ -10367,7 +10622,8 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     A.lift = !LIFT_SKIP[id];
     if (A.lift) {
       for (const g of geos) {
-        const k = g.cards ? 'fur' : g.accent ? 'skin' : g.fur ? det.kind : 'feather';
+        // (round 17: a metal sculpt, the robot eagle, lights its body and feather plates as metal)
+        const k = g.cards ? 'fur' : g.accent ? 'skin' : M && M.md.metal && !g.accent ? 'metal' : g.fur ? det.kind : 'feather';
         liftMat(g.mat, k);
         if (g.babyMat) { const bm = g.babyMat; g.babyMat = () => liftMat(bm(), k); }
       }
@@ -10512,6 +10768,8 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
   diffuseColor.rgb *= aaSh;
 #endif`)
       .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n  roughnessFactor = mix(roughnessFactor, 0.75, aaLidF);')
+      // (round 17: AA_GLOW, a glowing eye: the lids cover its light)
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n#ifdef AA_GLOW\n  totalEmissiveRadiance *= 1.0 - aaLidF;\n#endif')
       .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
 {
   float aaC = pow(saturate(dot(normal, normalize(vec3(-0.42, 0.55, 0.72)))), 160.0) + 0.5 * pow(saturate(dot(normal, normalize(vec3(0.38, 0.12, 0.92)))), 700.0);
@@ -10529,6 +10787,9 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
   function eyeMaterial(A) {
     const e = A.spec.eyes[0];
     const m = new THREE.MeshStandardMaterial({ map: eyeTexture(e), roughness: 0.06, metalness: 0 });
+    // round 17: e.glow (the robot eagle's green eyes; no other eye has it): the iris lights itself, day and night, except
+    // where the lids cover it (AA_GLOW in aaEyeCompile)
+    if (e.glow) { m.emissive = new THREE.Color(e.glow).convertSRGBToLinear(); m.emissiveMap = m.map; m.emissiveIntensity = 1.6; m.defines = Object.assign(m.defines || {}, { AA_GLOW: '' }); }
     const lk = e.lid || (A.spec.feathers ? [0.62, -0.62, 0.15] : [0.7, -0.72, 0.2]);
     m.userData.aa = { aaLid: { value: A.lidCol[0].clone() }, aaOpen: { value: new THREE.Vector2(1, 1) }, aaLidK: { value: new THREE.Vector3().fromArray(lk) } };
     m.onBeforeCompile = aaEyeCompile;
@@ -10896,6 +11157,8 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
   Object.assign(COLLAR, { eagle: { at: ['neck', 'head', 0.3], w: 0.8 }, chickadee: { at: ['neck', 'head', 0.35], w: 0.8 }, rhino: { at: ['neck', 'neck2', 0.4], r: 0.75 } });
   // round 16: small and tree birds
   Object.assign(COLLAR, { cardinal: COLLAR.chickadee, bluejay: COLLAR.chickadee, hummingbird: COLLAR.chickadee, toucan: COLLAR.parrot, snowyowl: COLLAR.owl });
+  // round 17: birds (on the bodies they are made from)
+  Object.assign(COLLAR, { robin: COLLAR.chickadee, barnowl: COLLAR.owl, raven: COLLAR.eagle, roboteagle: COLLAR.eagle, kiwi: COLLAR.chicken, dodo: COLLAR.chicken });
   // round 7: cats and a hamster
   Object.assign(COLLAR, {
     blackcat: COLLAR.cat, orangecat: COLLAR.cat, calico: COLLAR.cat, siamese: COLLAR.cat, whitecat: COLLAR.cat,
