@@ -10,6 +10,7 @@ const BIG = { horse: 1, moose: 1, deer: 1, swan: 1, rhino: 1, eagle: 1, crocodil
   griffin: 1, wingedlion: 1,   // round 13
   zebra: 1,   // round 15
   flamingo: 1, peafowl: 1, ostrich: 1, penguin: 1 };   // round 16
+BIG.chinesedragon = 1;   // round 17
 // the school day, in seconds after sunrise (a day lasts 720 seconds)
 const T_LEAVE = 20, T_BELL = 70, T_RECESS = 280, T_CLASS2 = 340, T_OUT = 450, T_HOME = 560;
 const NO_POSE = { crouch: 0, reach: 0 };

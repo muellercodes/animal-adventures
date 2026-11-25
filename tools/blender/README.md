@@ -1953,3 +1953,61 @@ species ship a `-color-baby.webp` of their own.)
   eagle 6.39k, 251 KB (335 KB: the plates do not compress), 9.0 / 5.7 MB; kiwi 5.99k, 163 KB (218 KB), 9.4 / 6.1 MB;
   dodo 6.2k, 182 KB (243 KB), 10.9 / 7.6 MB. Icons 14 to 32 KB each. About 3 to 4 minutes of Blender each on the
   shared machine.
+## Round 17: the Chinese dragon (`chinesedragon.py`)
+
+Rosemary's dragon: "purple pink and blue: purple in the middle, blue on top, and pink on the bottom". The classic long
+Chinese dragon on the lizard template (`lizkit.py`), laid out in base units and scaled by KS = 12 (the file writes its
+numbers in game meters and divides them by KS, `G()`), about 6 m from the snout to the tail tip and about 30 cm
+across the body:
+- The body is one loft from the tail tip to the snout (`ROWS`, the same rows as `CDR.body` in `40_animals.js`): a
+  python-thin tube, the neck rising a little to a long head with a broad flat-topped snout narrowing to an upturned nose
+  with flared nostril pads, heavy brows over big round eyes (`EYE_R` 4.2 cm), a long mouth line, a lower jaw, two small
+  fangs over the lower lip (`fangs`). Short legs (elbows out behind, knees forward) with eagle's feet: three long toes
+  forward and one back, long hooked claws (`CLAW` 1.5).
+- `EXTRAS`: the fin crest all down the back (`lizkit.crest`, blade spines every 7.5 cm, up to 10.5 cm tall), the mane
+  (eight rows of broad flame-shaped locks rooted on the neck, lying back along it and lifting off at their tips, built
+  from points on the loft's surface, `_mane_lock`, so they never sink into the widening neck; each lock flattened
+  against the skin; locks on the cheeks and over the crown), the beard, the antlers (a main beam swept up and back
+  with three tines and a burr), the tail tuft (a fan of locks) and tufts behind the elbows and knees. `_chains()` is a
+  union of tapering chains, each evaluated only near its own box. Hair locks that end in thin points read as spikes:
+  they end at 1.2 to 1.6 cm and merge at their roots (blend 4 to 7 cm).
+- The chain is longer than a lizard's (four trunk bones `s1` .. `s4`, `neck1`, `neck2`, ten tail bones): the file
+  has its own `spine_chain()` (weights) and `spine_line()` (bend rings) over the game skeleton's pivots. `fix_extra()`
+  gives the antlers, beard, fangs and the front of the mane to the head (the chain would give an antler's tip to the
+  neck, which is nearer to it in the middle plane) and the elbow and knee tufts to the forearm and shin.
+- Skin: carp scales over the back and sides (`carp()`: staggered rows round the body, 28 scales round it, rows spaced
+  by the local girth so they shrink down the tail; the scale nearer the head lies on top, so each shows its rounded
+  free edge toward the tail), the belly in wide bands right across like a snake's (`TH_B`, each overlapping the next,
+  the free edge raised), small bead scales on the head and legs (the template's), strands along the hair, rays on
+  the crest's spines and ridges on the antlers, all as the height field.
+- Paint: by the angle round each section from the top (the surface's own on the legs): blue on top, purple on the
+  sides (from about 60 degrees), pink underneath (from about 115 degrees), blended over about 15 degrees; each scale a
+  little lighter or darker and a touch shifted in hue, the grooves darker, the free edge of each belly band a deeper
+  pink; pink lips and nose pads, purple-pink feet. Chosen to go with them: the mane, beard and tufts deep blue
+  (0x3B2FA0) going violet (0x7A48D0) toward their tips, the crest's spines deep blue (0x3440B0) to violet (0x8C5ADA),
+  the antlers pale pink (0xF2C8E4) at the burr going lavender (0xC6B4F2) at the tips, ivory claws and fangs, golden
+  eyes (iris 0xE8B020, round pupils). The whiskers are the game's (pale pink-lavender, `DWH` in `40_animals.js`).
+- The baby has the same colors and its own shape (`baby_offset()`): antler buds (the antlers drawn most of the way down
+  to their burrs), a short mane, beard and tufts, a low crest, a small tail tuft; the game makes it shorter and rounder
+  with a big head and eyes (`baby` in its spec).
+- The texture regions cut the long body into short pieces (`UV_Z`) so its islands pack into the square maps; the
+  antlers and the mane get their own islands.
+- In the game (`40_animals.js`): the legged animator with `anim.serpent` (off for every other species). The body is a
+  chain of bones forward from the hips (`s1` .. `s4`, the chest, `neck1`, `neck2`, the head) and back along the
+  tail; each wave is a curve along the body turned into each bone's bend (the change of the curve's slope from its
+  parent's stretch to its own), the trunk's share before the legs are placed and the neck's and tail's after their
+  usual pose. Walking, the trunk bends in an S between the legs in step with the gait and a wave runs back along the
+  tail; swimming, a sideways wave runs down the whole body with the legs tucked; flying (it has no wings), a slow up
+  and down wave runs from the head to the tail tip (amplitude 5 cm at the head to 42 cm at the tail tip, wavelength
+  3.2 m) with a smaller sideways one, the head kept steady and the legs tucked along the belly (body relative, since
+  the shoulders ride up and down on the wave) and paddling a little; happy, a ripple runs down the body; asleep it
+  curls round on itself (3.6 radians along the body). The whiskers are a tapered tube from each side of the upper lip
+  rebuilt every frame by `spec.extend` (`dragonExtend`): out and a little forward at the lip, then curving back and
+  down, streaming back when it moves or flies, a slow wave running out along them; a baby's are short. The menu
+  picture swings the tail round in an S (`spec.icon`).
+- Budget (`VOXEL=0.007 TRIS=2400 TEX=1024 WEIGHTS=transfer`, about 3 minutes of Blender): 9.2k triangles (plus 240 in
+  the whiskers); 1024 color (WebP 62) and normal (WebP 48) maps, no baby map (the baby has the same colors): 75 KB mesh
+  with the baby's offsets + 59 + 103 KB, 239 KB of files, about 318 KB in the page. Texture memory with mipmaps:
+  about 10.7 MB on a computer, about 2.7 MB on a phone (the maps capped at 512). The maps are only a quarter covered
+  (many small islands on the crest, mane and antlers, and the long body cut into strips); the body still gets about
+  2 mm a texel on a computer.

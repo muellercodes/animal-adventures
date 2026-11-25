@@ -421,6 +421,21 @@ const Sound = (() => {
       // round 16: Atlantic puffin: a low growling purr, like a far-off motorbike, "arr-arr-arrr" (a puffling peeps)
       case 'puffin': if (k > 1) { for (let i = 0; i < 3; i++) T({ t: t + i * 0.14, f: 3000, f2: 3400, dur: 0.06, type: 'sine', vol: vol * 0.35 }); } else {
         for (let i = 0; i < 3; i++) { const t0 = t + i * 0.42, d = i === 2 ? 0.75 : 0.3; T({ t: t0, f: 170, f2: 140, dur: d, a: 0.03, type: 'sawtooth', lp: 900, vib: 34, vibAmt: 40, vol: vol * 0.9 }); noise({ t: t0, f: 600, q: 1.2, dur: d * 0.9, vol: vol * 0.25, pan }); } } break;
+      // round 17: Chinese dragon: a deep rumbling roar that swells and falls over a low breath, with a soft bell-like
+      // chime ringing in it (two bell tones, each a few inharmonic partials dying away); a baby dragon gives a little
+      // squeaky growl and a high tinkle
+      case 'chinesedragon': {
+        const bell = (t0, f, v) => { T({ t: t0, f, dur: 1.7, a: 0.004, type: 'sine', vol: v }); T({ t: t0, f: f * 2.76, dur: 1.0, a: 0.003, type: 'sine', vol: v * 0.42 }); T({ t: t0, f: f * 5.4, dur: 0.55, a: 0.002, type: 'sine', vol: v * 0.2 }); };
+        if (k > 1) { T({ t, f: 300, f2: 430, dur: 0.18, type: 'sawtooth', bp: 950, q: 1.5, vib: 18, vibAmt: 22, vol: vol * 0.65 }); T({ t: t + 0.16, f: 430, f2: 260, dur: 0.42, a: 0.02, type: 'sawtooth', bp: 800, q: 1.5, vib: 16, vibAmt: 26, vol: vol * 0.65 }); bell(t + 0.3, 1320, vol * 0.14); }
+        else {
+          T({ t, f: 76, f2: 104, dur: 0.55, a: 0.14, type: 'sawtooth', lp: 430, vib: 27, vibAmt: 7, vol: vol * 1.2 });
+          T({ t: t + 0.48, f: 104, f2: 64, dur: 1.35, a: 0.06, type: 'sawtooth', lp: 380, vib: 21, vibAmt: 8, vol: vol * 1.35 });
+          T({ t, f: 38, f2: 32, dur: 1.9, a: 0.3, type: 'sine', vol: vol * 1.1 });
+          noise({ t: t + 0.08, f: 360, q: 0.7, dur: 1.5, a: 0.1, vol: vol * 0.32, pan });
+          bell(t + 0.38, 660, vol * 0.17); bell(t + 0.9, 990, vol * 0.11);
+        }
+        break;
+      }
     }
   }
 

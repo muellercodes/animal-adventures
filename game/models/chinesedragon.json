@@ -1,0 +1,120 @@
+{
+ "v": 2,
+ "id": "chinesedragon",
+ "data": "chinesedragon.bin",
+ "enc": "deflate",
+ "raw": 123960,
+ "maps": {
+  "color": "chinesedragon-color.webp",
+  "normal": "chinesedragon-normal.webp"
+ },
+ "nv": 4020,
+ "ntri": 4580,
+ "nbv": 4020,
+ "nbt": 4580,
+ "bbox": [
+  -0.31573,
+  0.016157,
+  -3.592232,
+  0.31573,
+  1.095866,
+  2.755867
+ ],
+ "bones": [
+  "hips",
+  "s1",
+  "s2",
+  "s3",
+  "s4",
+  "chest",
+  "neck1",
+  "neck2",
+  "head",
+  "tail1",
+  "tail2",
+  "tail3",
+  "tail4",
+  "tail5",
+  "tail6",
+  "tail7",
+  "tail8",
+  "tail9",
+  "tail10",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.09264,
+   0.63504,
+   2.37
+  ],
+  "r": 0.042,
+  "dir": [
+   0.8653,
+   0.2036,
+   0.4581
+  ],
+  "lid": [
+   0.81,
+   -0.81,
+   0.25
+  ],
+  "lidCol": 3094386,
+  "iris": 15249440,
+  "irisR": 0.86,
+  "pupilR": 0.42,
+  "rim": 3807752
+ },
+ "mouth": [
+  0.0,
+  0.5304,
+  2.7504
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.05,
+  0.04,
+  0.08
+ ],
+ "flat": 8010952,
+ "collar": {
+  "at": [
+   "neck1",
+   "neck2",
+   0.5
+  ],
+  "r": 0.9,
+  "maxR": 0.2
+ },
+ "belly": [
+  0.0,
+  0.272,
+  0.0
+ ],
+ "bdelta": 0.443578
+}

@@ -9204,6 +9204,73 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     if (WG) { S.wfold = 1; S.wfly = 0; S.wgl = 0; S.wflap = 0; S.wph = R.rnd * TAU; }
     const wE1 = new THREE.Euler(0, 0, 0, 'YZX'), wE2 = new THREE.Euler(0, 0, 0, 'YXZ'), wE3 = new THREE.Euler(0, 0, 0, 'YXZ');
     const wq1 = new THREE.Quaternion(), wq2 = new THREE.Quaternion(), wq3 = new THREE.Quaternion();
+    // round 17 (the Chinese dragon, anim.serpent; null for every other species, which then run exactly as before): a
+    // long body on a chain of bones, forward from the hips (serpent.fwd: the trunk bones, the chest, the neck and the
+    // head) and back along the tail. On the ground the trunk bends in an S between the legs with each step and a wave
+    // runs back along the tail; in the water a sideways wave runs down the whole body; in the air it swims through the
+    // sky with no wings, a slow up and down wave running from its head to its tail tip, the legs tucked along the belly
+    // and paddling a little; happy, a ripple runs down its body; asleep it curls round on itself. Each wave is a curve
+    // along the body (s: meters back from the head's pivot) turned into each bone's bend, the change of the curve's
+    // slope from its parent's stretch to its own. serpentBody() bends the trunk before the legs are placed;
+    // serpentEnds() adds the neck's and the tail's share after the neck and tail have their usual pose.
+    const SV = P.serpent || null;
+    const svB = SV ? [hips, ...SV.fwd.map((n) => B[n])] : null, svNF = SV ? svB.length : 0;
+    const svX = SV ? new Float32Array(svNF) : null, svY = SV ? new Float32Array(svNF) : null;
+    const svTX = SV ? new Float32Array(nT) : null, svTY = SV ? new Float32Array(nT) : null;
+    const svO = [0, 0];
+    if (SV) Object.assign(S, { svf: 0, fph: R.rnd * TAU, sph2: R.rnd * TAU, tph: R.rnd * TAU, rph: 0 });
+    // the curve's slopes at s: o[0] up (dy/ds), o[1] sideways (dx/ds, toward +x)
+    function svSlope(s, o, K) {
+      let vy = 0, vx = 0;
+      const u = sat(s / K.Lb);
+      if (K.wF > 1e-3) {
+        const F = SV.fly, a0 = F.a[0] * K.kL, a1 = F.a[1] * K.kL, a = lerp(a0, a1, u), k = TAU / (F.lam * K.kL), p = k * s - S.fph;
+        vy += K.wF * (a * k * Math.cos(p) + ((a1 - a0) / K.Lb) * Math.sin(p));
+        const k2 = k * 0.6, p2 = k2 * s - S.fph * 0.55 + 1.3;
+        vx += K.wF * F.side * a * k2 * Math.cos(p2);
+      }
+      if (K.wS > 1e-3) {
+        const W = SV.swim, a = lerp(W.a[0], W.a[1], u) * K.kL, k = TAU / (W.lam * K.kL);
+        vx += K.wS * a * k * Math.cos(k * s - S.sph2);
+      }
+      if (K.wG > 1e-3) {
+        // the trunk: an S between the chest and the hips, swinging with the steps; the neck straightens toward the
+        // head; the tail: the trunk's bend dying away and a wave running back along it
+        const span = Math.max(0.1, K.sH - K.sC), T = K.aw * K.kL * (PI / span) * K.cw;
+        let g;
+        if (s < K.sC) g = T * sstep(K.sC - 0.45 * K.kL, K.sC, s);
+        else if (s <= K.sH) g = T * Math.cos((PI * (s - K.sC)) / span);
+        else {
+          const d = s - K.sH, kt = TAU / (SV.tailLam * K.kL), at = SV.tail * K.kL * sat(d / (K.Lb - K.sH)) * K.at;
+          g = -T * Math.exp(-d / (0.7 * K.kL)) + at * kt * Math.cos(kt * d - S.tph);
+        }
+        vx += K.wG * g;
+      }
+      if (K.hp > 1e-3) { const k = TAU / (2.2 * K.kL); vx += K.hp * 0.05 * K.kL * k * Math.cos(k * s - S.rph); }
+      o[0] = vy; o[1] = vx;
+    }
+    // segment angles along both chains (Φ: pitch down, about x; Ψ: yaw, about y) from the curve, plus the curl asleep
+    const svK = { Lb: 6, kL: 1, sC: 1.6, sH: 2.1, wF: 0, wS: 0, wG: 0, aw: 0, cw: 0, at: 0, hp: 0, curl: 0 };
+    function serpentAngles() {
+      // (the rest skeleton follows the baby's proportions: kL, the body's size against the grown-up's)
+      const K = svK, r = R.rest, a = A.rest, zh = r.head.z, tl = tail[nT - 1].name;
+      K.kL = (zh - r.tail1.z) / (a.head.z - a.tail1.z);
+      K.Lb = zh - r[tl].z + (a[tl].z - SV.tip) * K.kL;
+      K.sC = zh - r.chest.z; K.sH = zh - r.hips.z;
+      const sOf = (b) => zh - r[b.name].z;
+      for (let i = 0; i < svNF; i++) {
+        const last = i === svNF - 1, s0 = sOf(svB[i]), s1 = last ? -SV.head * K.kL * 0.5 : 0.5 * (s0 + sOf(svB[i + 1]));
+        svSlope(s1, svO, K);
+        let ax = Math.atan(svO[0]), ay = -Math.atan(svO[1]) + K.curl * (s1 / K.Lb);
+        if (i >= svNF - 3) { const st = SV.steady * (i === svNF - 1 ? 1 : 0.5); ax *= 1 - st; }
+        svX[i] = ax; svY[i] = ay;
+      }
+      for (let j = 0; j < nT; j++) {
+        const s0 = sOf(tail[j]), s1 = j < nT - 1 ? 0.5 * (s0 + sOf(tail[j + 1])) : s0 + 0.5 * (K.Lb - s0);
+        svSlope(s1, svO, K);
+        svTX[j] = Math.atan(svO[0]); svTY[j] = -Math.atan(svO[1]) + K.curl * (s1 / K.Lb);
+      }
+    }
     // (ch: the chest's own rotation, taken back out of the folded wings so they keep lying along the back while the
     // chest bends to eat, sit or curl up asleep)
     function wingPose(f, flapRoll, twist, g, bodyPitch, ch) {
@@ -9345,6 +9412,29 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
         const ry = Math.sin(w2 - i * 0.9 + (P.wavePh || 0)) * S.wave * (i === 0 ? 1 : 1.2);
         if (spine[i] === hips) hips.rotation.y += ry; else spine[i].rotation.y = ry;
       }
+      // round 17: anim.serpent (the Chinese dragon): the body's waves, the trunk's share now (before the legs are placed)
+      if (SV) {
+        spring(S, 'svf', mode === 'fly' ? 1 : 0, 3, dt);
+        const K = svK, flyK = sat(S.svf) * (1 - sl);
+        K.wF = flyK; K.wS = swim * (1 - flyK) * (1 - sl); K.wG = (1 - swim) * (1 - sl) * (1 - flyK);
+        S.fph += dt * lerp(SV.fly.rate[0], SV.fly.rate[1], sat(spd / 8));
+        S.sph2 += dt * lerp(SV.swim.rate[0], SV.swim.rate[1], sat(spd / 2.5));
+        S.tph += dt * (0.6 + 1.8 * S.move) * (1 - 0.5 * sick);
+        S.rph += dt * 5;
+        // walking, the S swings with the steps (more as it goes faster); standing, a slow lazy sway
+        K.aw = SV.walk * (gaitOn * (0.6 + 0.4 * gw) + 0.45 * still * (1 - S.eat));
+        K.cw = lerp(Math.sin(it * 0.45 + R.rnd * 7), Math.cos(w2), sat(gaitOn * 1.5));
+        K.at = (0.3 + 0.7 * S.move) * (1 - 0.5 * sick);
+        K.hp = hap2 * (1 - flyK);
+        K.curl = SV.curl * sleepSide * sl * (1 - swim);
+        serpentAngles();
+        hips.rotation.x += svX[0]; hips.rotation.y += svY[0];
+        for (let i = 1; i < svNF; i++) {
+          const b = svB[i];
+          if (neck.includes(b)) continue;   // (the neck's share comes after its own pose, at the end)
+          if (b === chest) { chest.rotation.x += svX[i] - svX[i - 1]; chest.rotation.y += svY[i] - svY[i - 1]; } else b.rotation.set(svX[i] - svX[i - 1], svY[i] - svY[i - 1], 0);
+        }
+      }
 
       // ----- legs -----
       for (const lg of legs) {
@@ -9437,6 +9527,17 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
             }
           }
           ty = lerp(ty, lg.Pp.y + ay, air); tz = lerp(tz, lg.Pp.z + az, air); flx = lerp(flx, af, air); tq = lerp(tq, aq, air);
+        }
+        // round 17: anim.serpent: flying and swimming, the legs tuck along the belly (along the body, as the shoulders
+        // and hips ride up and down on the waves) and paddle a little
+        if (SV && (S.svf > 0.001 || swim > 0.001) && sl < 0.999) {
+          const tk = lg.front ? SV.tuck.f : SV.tuck.h, k = Math.max(sat(S.svf), swim) * (1 - sl);
+          const pd = Math.sin(S.fph * 0.5 + lg.idx * 1.7) * 0.12 * legH;
+          rootPos(lg.bs[0], root, Hp); rootQuat(lg.bs[0].parent, root, qSl);
+          vSl.set(lg.Pp.x - lg.base.x, lg.Pp.y - lg.base.y + tk[0] * legH, lg.Pp.z - lg.base.z + tk[1] * legH + pd).applyQuaternion(qSl).add(Hp);
+          tx = lerp(tx, vSl.x, k); ty = lerp(ty, vSl.y, k); tz = lerp(tz, vSl.z, k); flx = lerp(flx, tk[2], k); tq = lerp(tq, tk[3], k);
+          _v2.set(side * 0.3, 1, lg.front ? -0.6 : 0.6).normalize();
+          lg.pole.lerp(_v2, k).normalize();
         }
         // climbing: the trunk is the local ground plane; legs splay wide and reach, claws curled in
         if (clb > 0.001) {
@@ -9599,6 +9700,11 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
           rootQuat(tail[i].parent, root, WR.q0).invert().multiply(WR.q1.setFromUnitVectors(WR.r, WR.d));
           tail[i].quaternion.slerp(WR.q0, sit);
         }
+      }
+      // round 17: anim.serpent: the neck's and the tail's share of the dragon's body waves, over their usual pose
+      if (SV) {
+        for (let i = 1; i < svNF; i++) { const b = svB[i]; if (neck.includes(b)) { b.rotation.x += svX[i] - svX[i - 1]; b.rotation.y += svY[i] - svY[i - 1]; } }
+        for (let j = 0; j < nT; j++) { tail[j].rotation.x += svTX[j] - (j ? svTX[j - 1] : svX[0]); tail[j].rotation.y += svTY[j] - (j ? svTY[j - 1] : svY[0]); }
       }
       // ----- mane (horse): flops with the stride, streams back at speed -----
       for (let i = 0; i < mane.length; i++) {
@@ -11223,6 +11329,8 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
   COLLAR.puffin = { at: ['neck', 'head', 0.4], w: 0.8 };
   COLLAR.ostrich = { at: ['neck', 'neck2', 0.3] };
   COLLAR.peafowl = { at: ['neck', 'neck2', 0.5] };
+  // ===== round 17: Chinese dragon (on the neck under the mane; maxR leaves the mane's locks out of the band's fit)
+  COLLAR.chinesedragon = { at: ['neck1', 'neck2', 0.5], r: 0.9, maxR: 0.2 };
   // segments around the neck; how far up the fur shells the band rides (fraction of the visible fur length)
   const COLLAR_N = 20, COLLAR_LIFT = 0.8;
   // fuzz factor of a loft surface at arc s, angle th (same noise as buildLoft)
@@ -12799,6 +12907,186 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       },
     };
   };
+
+  // ===== round 17: Chinese dragon =====
+  // Rosemary's dragon ("purple pink and blue: purple in the middle, blue on top, and pink on the bottom"): the classic
+  // long Chinese dragon, about 6 m from its snout to the tip of its tail and no thicker than a big python, on four short
+  // legs with eagle's feet (three toes forward, one back, long claws), a long head with a broad snout and an upturned
+  // nose, big round golden eyes under heavy brows, two branching antlers, long whiskers from the upper lip (spec.extend
+  // bends them: they trail back when it moves and stream out behind it when it flies), a small beard under the chin, a
+  // flowing mane down its neck, a ridge of fin spines all down its back and a tuft at the end of its tail. Blue on top,
+  // purple on the sides and pink underneath, the belly in wide bands like a snake's and the body in carp scales. It
+  // has no wings: it flies by swimming through the air in slow waves that run down its body (anim.serpent in the
+  // legged animator, off for every other species), walks on its four legs with its body following in curves, and
+  // swims with its whole body. The sculpted model is tools/blender/chinesedragon.py (the lizard template, lizkit.py,
+  // twelve times as big); its loft rows and these bones are the same numbers, here in game meters.
+  ids.push('chinesedragon');
+  const CDR = {
+    // the body loft of chinesedragon.py: z, top, height of the widest line, bottom, half width, exponents (top, bottom)
+    body: [
+      [-3.2, 0.448, 0.42, 0.396, 0.01, 2.0, 2.0], [-3.1, 0.465, 0.42, 0.38, 0.026, 2.0, 2.0], [-2.9, 0.481, 0.42, 0.364, 0.045, 2.0, 2.0],
+      [-2.5, 0.5, 0.42, 0.346, 0.066, 2.0, 2.0], [-2.0, 0.521, 0.42, 0.326, 0.088, 2.1, 2.0], [-1.4, 0.543, 0.42, 0.305, 0.11, 2.1, 2.0],
+      [-0.85, 0.56, 0.42, 0.289, 0.128, 2.1, 2.0], [-0.35, 0.572, 0.42, 0.277, 0.142, 2.1, 2.0], [0.0, 0.578, 0.42, 0.272, 0.148, 2.1, 2.0],
+      [0.5, 0.582, 0.42, 0.268, 0.152, 2.1, 2.0], [1.0, 0.584, 0.42, 0.268, 0.153, 2.1, 2.0], [1.4, 0.584, 0.423, 0.27, 0.15, 2.1, 2.0],
+      [1.62, 0.586, 0.428, 0.277, 0.142, 2.1, 2.0], [1.8, 0.598, 0.448, 0.306, 0.126, 2.1, 2.0], [1.95, 0.628, 0.49, 0.356, 0.114, 2.1, 2.0],
+      [2.08, 0.668, 0.534, 0.405, 0.113, 2.2, 2.0], [2.18, 0.704, 0.56, 0.432, 0.134, 2.4, 2.1], [2.3, 0.722, 0.57, 0.442, 0.142, 2.5, 2.1],
+      [2.42, 0.698, 0.57, 0.452, 0.126, 2.6, 2.2], [2.54, 0.672, 0.568, 0.462, 0.11, 2.8, 2.2], [2.64, 0.656, 0.565, 0.47, 0.097, 2.8, 2.2],
+      [2.71, 0.645, 0.562, 0.478, 0.084, 2.6, 2.1], [2.75, 0.626, 0.556, 0.492, 0.062, 2.3, 2.0], [2.775, 0.6, 0.55, 0.51, 0.032, 2.1, 2.0],
+    ],
+    // the colors she asked for (the fallback body's; the model paints its own, and the parts chosen to go with them)
+    blue: hex(0x2F6FE0), purple: hex(0x7A3CC8), pink: hex(0xF28CC4), whisker: 0xE6B4E6,
+  };
+  // the whiskers (barbels): a tapered tube from each side of the upper lip, bent every frame by spec.extend (dragonExtend);
+  // the species' shared geometry is a placeholder and each rig gets its own
+  const DWH = { nr: 12, ns: 5, len: 1.15, r0: 0.014, r1: 0.003, at: [0.074, 0.55, 2.68] };
+  const dragonWhiskerGeo = () => {
+    const g = new THREE.BufferGeometry(), ns = DWH.ns, n = (DWH.nr + 1) * ns;
+    g.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(n * 6), 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(new Float32Array(n * 6), 3));
+    const idx = [];
+    for (let w = 0; w < 2; w++) for (let i = 0; i < DWH.nr; i++) for (let j = 0; j < ns; j++) {
+      const a = w * n + i * ns + j, b = w * n + i * ns + (j + 1) % ns, c = a + ns, d = b + ns;
+      idx.push(a, c, b, b, c, d);
+    }
+    g.setIndex(idx);
+    return g;
+  };
+  const dragonExtend = (R) => {
+    const m = R.extras.whiskers;
+    if (!m) return null;
+    const g = dragonWhiskerGeo(), pos = g.attributes.position.array, nor = g.attributes.normal.array, n = DWH.nr, ns = DWH.ns;
+    m.geometry = g;
+    m.frustumCulled = false;
+    const P = [], T = new THREE.Vector3(), U = new THREE.Vector3(), W = new THREE.Vector3(), D = new THREE.Vector3(), Q = new THREE.Vector3();
+    for (let i = 0; i <= n; i++) P.push(new THREE.Vector3());
+    let trail = 0, fly = 0, ph = R.rnd * 9;
+    return (dt, st) => {
+      const mode = st.mode || 'ground', spd = Math.abs(st.speed || 0), asleep = mode === 'sleep' ? 1 : 0;
+      trail = damp(trail, sat(spd / 3), 2.5, dt);
+      fly = damp(fly, mode === 'fly' || mode === 'air' ? 1 : mode === 'swim' ? 0.5 : 0, 2, dt);
+      ph += dt * (1.3 + 2.5 * fly + trail);
+      // (a baby's whiskers are short; the mesh is scaled with the baby's head, so that is taken back out)
+      const s = m.userData.s || 1, L = (DWH.len * lerp(0.3, 1, R.age)) / s;
+      for (let i = 0; i < n; i++) {
+        const u = i / n;
+        // out to the side and a little forward at the lip, then curving back and down; streaming back in the wind
+        const back = sat(u * 1.6) * (0.55 + 0.45 * Math.max(trail, fly));
+        D.set(lerp(0.78, 0.3 - 0.15 * fly, back), lerp(-0.12, -0.5 + 0.55 * fly - 0.25 * asleep, back), lerp(0.62, -0.85, back));
+        // a slow wave runs out along each whisker
+        D.x += Math.sin(ph - u * 5.5) * 0.22 * u * (0.4 + fly);
+        D.y += Math.cos(ph * 0.8 - u * 4.5) * 0.18 * u * (0.5 + fly);
+        D.normalize();
+        P[i + 1].copy(P[i]).addScaledVector(D, L / n);
+      }
+      for (let w = 0; w < 2; w++) {
+        // (the right whisker mirrors the left one about the head's middle: the mesh sits at the left one's root)
+        const sx = w === 0 ? 1 : -1, dx = w === 0 ? 0 : (-2 * DWH.at[0]) / s, o = w * (n + 1) * ns * 3;
+        for (let i = 0; i <= n; i++) {
+          T.subVectors(P[Math.min(n, i + 1)], P[Math.max(0, i - 1)]).normalize();
+          U.set(0, 1, 0).addScaledVector(T, -T.y).normalize();
+          W.crossVectors(T, U);
+          const r = lerp(DWH.r0, DWH.r1, i / n) / s;
+          for (let j = 0; j < ns; j++) {
+            const a = (j / ns) * TAU, k = o + (i * ns + j) * 3;
+            Q.copy(U).multiplyScalar(Math.cos(a)).addScaledVector(W, Math.sin(a));
+            pos[k] = (P[i].x + Q.x * r) * sx + dx; pos[k + 1] = P[i].y + Q.y * r; pos[k + 2] = P[i].z + Q.z * r;
+            nor[k] = Q.x * sx; nor[k + 1] = Q.y; nor[k + 2] = Q.z;
+          }
+        }
+      }
+      g.attributes.position.needsUpdate = true; g.attributes.normal.needsUpdate = true;
+    };
+  };
+  SPEC.chinesedragon = () => {
+    const C = CDR;
+    const row = (r) => [0, r[2], r[0], r[4], r[1] - r[2], r[2] - r[3], Math.max(2, Math.min(r[5], 2.4))];
+    const bones = [
+      ['hips', null, 0, 0.42, 0.0], ['s1', 'hips', 0, 0.42, 0.32], ['s2', 's1', 0, 0.42, 0.64], ['s3', 's2', 0, 0.422, 0.96], ['s4', 's3', 0, 0.425, 1.28],
+      ['chest', 's4', 0, 0.43, 1.6], ['neck1', 'chest', 0, 0.45, 1.82], ['neck2', 'neck1', 0, 0.5, 1.98], ['head', 'neck2', 0, 0.565, 2.14],
+    ];
+    const tails = [];
+    [-0.32, -0.64, -0.96, -1.28, -1.6, -1.92, -2.24, -2.54, -2.82, -3.04].forEach((z, i) => { tails.push('tail' + (i + 1)); bones.push(['tail' + (i + 1), i ? 'tail' + i : 'hips', 0, 0.42, z]); });
+    bones.push(
+      ['thighL', 'hips', 0.1, 0.4, 0.0, 1], ['shinL', 'thighL', 0.205, 0.3, 0.1, 1], ['hmetaL', 'shinL', 0.225, 0.085, -0.03, 1], ['hpawL', 'hmetaL', 0.23, 0.03, 0.03, 1],
+      ['armL', 'chest', 0.1, 0.4, 1.6, 1], ['foreL', 'armL', 0.195, 0.29, 1.52, 1], ['fmetaL', 'foreL', 0.215, 0.08, 1.6, 1], ['fpawL', 'fmetaL', 0.22, 0.03, 1.66, 1],
+    );
+    const P = {};
+    for (const b of bones) P[b[0]] = b.slice(2, 5);
+    const legKeys = (names, r) => {
+      const p = names.map((n) => P[n]), mid = [0, 1, 2].map((i) => lerp(p[1][i], p[2][i], 0.5));
+      return [[p[0][0] * 0.6, p[0][1], p[0][2], r * 1.25, r * 1.25, r * 1.25], [...p[0], r * 1.1, r * 1.1, r * 1.1], [...p[1], r, r, r], [...mid, r * 0.8, r * 0.8, r * 0.8], [...p[2], r * 0.7, r * 0.6, r * 0.6], [...p[3], r * 0.62, r * 0.45, r * 0.5]];
+    };
+    const toes = (r, len, claw) => [{ a: -28, len: len * 0.85, r, claw }, { a: 0, len, r, claw }, { a: 28, len: len * 0.85, r, claw }, { a: 180, len: len * 0.62, r, claw }];
+    return {
+      size: { length: 6.0, height: 0.75, radius: 0.3, eyeHeight: 0.62 },
+      tex: [256, 512], rough: 0.5,
+      detail: { kind: 'scale', tile: 0.12, amt: 0.25, bump: 0.6, sheen: 0.06 },
+      bones,
+      fur: [
+        { name: 'body', bones: ['hips', 's1', 's2', 's3', 's4', 'chest', 'neck1', 'neck2', 'head'], blend: 0.1, segs: 14, cap1: 3, capLen1: 0.55, keys: C.body.filter((r) => r[0] >= -0.35).map(row) },
+        { name: 'tail', bones: ['hips', ...tails], blend: 0.1, segs: 10, cap1: 2, keys: C.body.filter((r) => r[0] <= 0.0).map(row).reverse() },
+        { name: 'fleg', mirror: true, bones: ['chest', 'armL', 'foreL', 'fmetaL', 'fpawL'], blend: 0.04, segs: 8, cap1: 2, keys: legKeys(['armL', 'foreL', 'fmetaL', 'fpawL'], 0.06) },
+        { name: 'hleg', mirror: true, bones: ['hips', 'thighL', 'shinL', 'hmetaL', 'hpawL'], blend: 0.04, segs: 8, cap1: 2, keys: legKeys(['thighL', 'shinL', 'hmetaL', 'hpawL'], 0.07) },
+      ],
+      // (the body without its model: blue on top, purple sides, a pink belly, scales)
+      paint(Pp, Cc) {
+        const up = Pp.part === 'fleg' || Pp.part === 'hleg' ? Pp.ny : Math.cos(Math.atan2(Math.abs(Pp.nx), Pp.ny));
+        cset(Cc, C.purple);
+        cmix(Cc, C.blue, sstep(0.25, 0.55, up));
+        cmix(Cc, C.pink, sstep(-0.3, -0.55, up));
+        const d = cells(Pp.x * 30, Pp.y * 30, Pp.z * 22);
+        cmul(Cc, 0.82 + 0.25 * sstep(0.15, 0.6, d));
+        Cc.ro = 0.4 + 0.15 * (1 - d);
+      },
+      accent: [...birdToes(P.fpawL, toes(0.018, 0.13, 0.05), 0xC890D8, 'fpawL'), ...birdToes(P.hpawL, toes(0.02, 0.14, 0.055), 0xC890D8, 'hpawL')],
+      accentRough: 0.45,
+      extras: () => [{ bone: 'head', name: 'whiskers', geo: dragonWhiskerGeo(), mat: new THREE.MeshStandardMaterial({ color: linColor(C.whisker), roughness: 0.55, metalness: 0, side: THREE.DoubleSide }), at: DWH.at }],
+      extend: (R) => dragonExtend(R),
+      // the menu picture: the tail swung round in an S and the head turned a little toward the camera, seen from in
+      // front and to one side (a straight 6 m dragon is a thin line in a square picture)
+      icon: (R) => {
+        const B = R.bones, k = R.age < 0.6 ? 0.78 : 1;
+        for (let i = 1; i <= 10; i++) B['tail' + i].rotation.y += i <= 3 ? 0.3 : i <= 8 ? -0.34 : 0.1;
+        B.s2.rotation.y += 0.08; B.s4.rotation.y -= 0.08; B.neck1.rotation.y -= 0.12; B.neck2.rotation.y += 0.2; B.head.rotation.y += 0.15;
+        return { size: 4.0 * k, at: [0.25, 0.55 * k, 0.75 * k], dir: [0.72, 0.4, 0.8] };
+      },
+      eyes: [{ bone: 'head', p: [0.105, 0.635, 2.37], r: 0.042, dir: [0.85, 0.2, 0.45], iris: 0xE8B020, irisR: 0.86, pupilR: 0.4, rim: 0x3A1A08 }],
+      mouth: [0, 0.53, 2.75],
+      anim: {
+        type: 'legged', walk: 1.2, trot: 2.6, run: 5.5, stride: 0.75, strideMax: 2.0, maxRate: 3.2,
+        duty: [0.66, 0.55, 0.45], lift: [0.08, 0.08], flexF: 0.6, flexH: 0.55, splay: 0.6,
+        gaits: { w: [0.0, 0.5, 0.5, 0.0], t: [0.0, 0.5, 0.5, 0.0], g: [0.0, 0.5, 0.5, 0.0] },
+        bob: [0.004, 0.008, 0.02], pitchRun: 0.0, flexRun: 0.0, roll: 0.02,
+        legs: [
+          { n: ['armL', 'foreL', 'fmetaL', 'fpawL'], front: true, pole: [0.6, 0.6, -0.5] },
+          { n: ['thighL', 'shinL', 'hmetaL', 'hpawL'], front: false, pole: [0.6, 0.6, 0.5] },
+        ],
+        spine: [], wave: 0,
+        neck: ['neck1', 'neck2', 'head'], neckDist: [0.4, 0.35, 0.25], nod: 0.02, chew: 0.04, chewRate: 6, eatY: 0.02, eatMax: 1.3, eatPitch: 0.05,
+        tail: tails, tailSway: 0.03, tailWalk: 0.0,
+        floatDepth: 0.48, swimHead: -0.2, swimPitch: 0.0, paddleR: 0.5, lookAmp: 0.5,
+        sleep: { style: 'flat', neck: [0.5, 0.15], tail: [0.0, -0.01] }, wag: 0.0,
+        // round 17: the dragon's body waves (anim.serpent in animLegged): the trunk bones and the neck from the hips
+        // forward (fwd), the head's length, the tail tip (z); the S between its legs as it walks (walk, m), the wave
+        // along the tail (tail: amplitude at the tip, m; tailLam: wavelength), flying (amplitude at the head and at the
+        // tail tip, wavelength, wave rate slow and fast, the sideways share), swimming (the same for its sideways
+        // wave), the curl asleep (radians along the whole body), how steady the head keeps in the waves, the legs
+        // tucked in flight and in the water ([up, forward, flex, toe], leg heights along the body)
+        serpent: {
+          fwd: ['s1', 's2', 's3', 's4', 'chest', 'neck1', 'neck2', 'head'], head: 0.55, tip: -3.2,
+          walk: 0.07, tail: 0.24, tailLam: 2.4,
+          fly: { a: [0.05, 0.42], lam: 3.2, rate: [2.0, 3.6], side: 0.3 },
+          swim: { a: [0.04, 0.34], lam: 2.8, rate: [1.6, 3.2] },
+          curl: 3.6, steady: 0.7,
+          tuck: { f: [0.55, -0.3, 1.3, 1.0], h: [0.5, -0.5, 0.6, 0.8] },
+        },
+      },
+      // the baby: shorter and rounder, a big head and eyes, a short snout, short legs and tail; antler buds, a low
+      // crest and a short mane come from the model's baby offsets, short whiskers from dragonExtend
+      baby: { head: 1.6, eye: 1.25, muzzle: 0.78, neck: [0.8, 1.15], body: [1.15, 1.15, 0.72], leg: [0.85, 1.15], tail: 0.72 },
+    };
+  };
+  // round 17: Chinese dragon (end of the spec)
 
   // opts.sex ('m' or 'f', round 12): a boy or a girl, with that one's own sculpt and horns where SEX_LOOK says so
   function build(id, opts) {
