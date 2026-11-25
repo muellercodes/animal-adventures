@@ -328,7 +328,9 @@ Object.assign(SPECIES, {
 });
 SHOP.push('triceratops', 'stegosaurus', 'velociraptor', 'pterodactyl');
 // round 17: prehistoric animals (end)
-const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow', 'snow', 'savanna', 'arctic'];
+const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow', 'snow', 'savanna', 'arctic', 'reef'];   // (round 18: the Coral Reef)
+// round 18: with a second sea (the Coral Reef) the narwhal keeps to its own, the Arctic Ocean (waters, as the manatee's)
+SPECIES.narwhal.waters = 'arctic';
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];
 const SKIN = ['#F3D3B8', '#E6B691', '#C98E66', '#9A6544', '#6B4430'];
 const HAIR = ['#2B1E16', '#5A3A22', '#A8692E', '#D9B66A', '#8B2E1F', '#1E1E1E', '#B8B2A8'];

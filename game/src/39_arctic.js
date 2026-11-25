@@ -885,6 +885,10 @@ void main() {
       for (const p of o.hide || []) p.visible = false;
       // light filtered by the water: bluer and dimmer the deeper you go, dim under the ice
       tint.copy(cShal).multiplyScalar(1 / Math.max(0.05, Math.max(cShal.r, cShal.g, cShal.b)));
+      // (round 18: a world can give the light under its water a color of its own near the surface, water.light: the
+      // Coral Reef's clear water, where the sun still shows the reds and yellows of the corals a few meters down; it
+      // turns to the water's own color deeper down)
+      if (wd.light != null) { const lc = lcol(wd.light); lc.multiplyScalar(1 / Math.max(0.05, lc.r, lc.g, lc.b)); tint.copy(lc.lerp(tint, ks(1.5, 26, depth))); }
       o.sun.color.multiply(tint);
       o.sun.intensity *= 0.7 * (0.12 + 0.88 * Math.exp(-depth / 14)) * (1 - 0.75 * ice);
       // the light through the ice overhead, for the floes' undersides

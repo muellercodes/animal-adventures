@@ -3529,8 +3529,24 @@ float envHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.
       uOpacity: { value: opacity }, uSwamp: { value: swampy ? 1 : 0 },
       uSize: { value: size },
     });
+    // round 18: opts.depth, the water's look by how deep it is (the Coral Reef): clear turquoise over the sand in the
+    // shallows, deep blue where it is deep, a little foam where it is very shallow. A map of the depth over a square
+    // (from depth.at, the world's ground height; 0 at the surface, 1 at 20 m and deeper), deep outside it. Only with the
+    // define WATER_DEPTH: every other water is drawn as before.
+    const dp = opts.depth;
+    if (dp) {
+      const N = dp.n || 128, data = new Uint8Array(N * N * 4);
+      for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+        const h = dp.at(dp.x0 + ((i + 0.5) / N) * dp.size, dp.z0 + ((j + 0.5) / N) * dp.size), v = Math.round(clamp(-h / 20, 0, 1) * 255), k = (j * N + i) * 4;
+        data[k] = data[k + 1] = data[k + 2] = v; data[k + 3] = 255;
+      }
+      const tex = new THREE.DataTexture(data, N, N, THREE.RGBAFormat);
+      tex.magFilter = tex.minFilter = THREE.LinearFilter; tex.needsUpdate = true;
+      Object.assign(u, { uDepthT: { value: tex }, uDepthB: { value: new V3(dp.x0, dp.z0, 1 / dp.size) }, uTurq: { value: lcol(dp.shallow) }, uMidC: { value: lcol(dp.mid) } });
+    }
     const m = new THREE.ShaderMaterial({
       uniforms: u, fog: true, lights: true, transparent: true, depthWrite: false,
+      defines: dp ? { WATER_DEPTH: '' } : {},
       vertexShader: `
 uniform float uTime;
 varying vec3 vWorld;
@@ -3552,6 +3568,10 @@ void main() {
       fragmentShader: `
 uniform float uTime, uOpacity, uSwamp, uSize;
 uniform vec3 uShallow, uDeep;
+#ifdef WATER_DEPTH
+uniform sampler2D uDepthT;
+uniform vec3 uDepthB, uTurq, uMidC;
+#endif
 varying vec3 vWorld;
 varying vec2 vLocal;
 #include <common>
@@ -3604,6 +3624,11 @@ void main() {
   // at low angles the deep color dominates; slow patches break up uniformity
   float patchN = sin(vWorld.x * 0.21 + sin(vWorld.z * 0.17) * 1.5) * sin(vWorld.z * 0.19 + t * 0.05) * 0.5 + 0.5;
   vec3 body = mix(uShallow, uDeep, clamp(0.95 - ndv * 0.45 + patchN * 0.15, 0.0, 1.0));
+  #ifdef WATER_DEPTH
+  vec2 dq = (vWorld.xz - uDepthB.xy) * uDepthB.z;
+  float dep = (dq.x > 0.0 && dq.y > 0.0 && dq.x < 1.0 && dq.y < 1.0) ? texture2D(uDepthT, dq).r : 1.0;
+  body = mix(mix(uTurq, uMidC, smoothstep(0.0, 0.3, dep)), body, smoothstep(0.2, 0.85, dep));
+  #endif
   vec3 lit = body * (amb * mix(0.55, 0.85, uSwamp) + sunCol * max(ld.y, 0.0) * mix(0.22, 0.4, uSwamp));
   // soft ripple shading so the surface reads as moving water
   float rip = (g.x * 0.7 + g.y * 0.5) / mix(0.16, 0.08, uSwamp);
@@ -3615,6 +3640,16 @@ void main() {
   float spec = pow(nh, 400.0) * 4.0 + pow(nh, 60.0) * 0.15;
   col += sunCol * spec * mix(1.0, 0.3, uSwamp) * smoothstep(-0.05, 0.1, ld.y);
   float alpha = mix(uOpacity, 1.0, clamp(fres * 1.5 + (1.0 - ndv) * 0.3, 0.0, 1.0));
+  #ifdef WATER_DEPTH
+  col = mix(lit, refl, min(fres, 0.5) * 0.45);
+  alpha = mix(mix(0.32, uOpacity, smoothstep(0.0, 0.5, dep)), 1.0, clamp(fres * 1.2 + (1.0 - ndv) * 0.25, 0.0, 1.0));
+  // foam where the water is very shallow, over the reef crest and along the beach
+  vec2 fq = vWorld.xz * 0.45 + vec2(t * 0.11, -t * 0.07);
+  float fn = sin(fq.x * 2.1 + sin(fq.y * 1.7)) * sin(fq.y * 2.6 + sin(fq.x * 1.3 + t * 0.4)) * 0.5 + 0.5;
+  float foam = smoothstep(0.034, 0.012, dep) * smoothstep(0.55, 0.85, fn + rip * 0.08) * (1.0 - step(dep, 0.002));
+  col = mix(col, (amb + sunCol * max(ld.y, 0.0)) * 0.8, foam * 0.7);
+  alpha = max(alpha, foam * 0.85);
+  #endif
   // swamp: floating specks and duckweed patches
   if (uSwamp > 0.5) {
     vec2 c = floor(vWorld.xz * 3.0);

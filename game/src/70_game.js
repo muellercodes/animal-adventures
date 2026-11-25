@@ -826,6 +826,7 @@ const WORLD_BG = {
   snow: 'linear-gradient(160deg,#d6e6f2 0 30%,#8c96a4 30% 45%,#f2f5f9 45% 75%,#3f7088 75%)',
   savanna: 'linear-gradient(160deg,#cfe0ee 0 35%,#4e5a2a 35% 42%,#c8a868 42% 80%,#8e5434 80%)',
   arctic: 'linear-gradient(160deg,#d3dde5 0 32%,#eef3f7 32% 48%,#2c5c6a 48% 80%,#0a2530 80%)',   // (round 14)
+  reef: 'linear-gradient(160deg,#9fd0f0 0 30%,#f4ecdc 30% 40%,#5fd0cc 40% 62%,#1ba3be 62% 80%,#0b4f88 80%)',   // (round 18)
 };
 const worldBg = (id) => ASSETS.worlds[id] ? `url(${ASSETS.worlds[id]})` : WORLD_BG[id];
 
@@ -991,7 +992,7 @@ function switchAnimal(id) {
     showLoading(`Going to the ${World.META[sea].name}...`, () => {
       loadWorld(sea); Player.set(id); Player.b.room = null; Player.b.yaw = 0; Player.place(...spawnOf(id)); Cam.snap = true; Cam.zoom = 1; Foods.fill(60);
       if (!S.visited.includes(sea)) { S.visited.push(sea); S.leaves += LEAVES.world; UI.toast(`${SPECIES[id].many} ${waterWords(id)}. You found the ${World.META[sea].name}! +${LEAVES.world} leaves`, 4500); }
-      else UI.toast(`${SPECIES[id].many} ${waterWords(id)}, so you went to the ${World.META[sea].name}.`, 4000);
+      else UI.toast(`${SPECIES[id].many} ${waterWords(id)}, so you went ${World.META[sea].sea && SPECIES[id].waters ? 'there' : 'to the ' + World.META[sea].name}.`, 4000);   // (round 18: "there" when the words name the sea)
       R.paused = false; save();
       if (born) beginLife(id);
     });
