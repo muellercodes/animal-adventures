@@ -69,6 +69,22 @@ const Sound = (() => {
     gate.connect(gateG); gateG.connect(crg.gain);
     const crOut = gainNode(0.0, amb); cr.connect(crg); crg.connect(crOut); cr.start(); gate.start();
     A.crickets = crOut;
+    // round 18: the Coral Reef: surf (low rolling noise, swelling with each wave in update), and under the water a soft
+    // low hush and the crackle of snapping shrimp (a loop of sparse sharp clicks)
+    const surf = ac.createBufferSource(); surf.buffer = noiseBuf; surf.loop = true;
+    const sf = ac.createBiquadFilter(); sf.type = 'lowpass'; sf.frequency.value = 520; sf.Q.value = 0.4;
+    const sg = gainNode(0.0, amb); surf.connect(sf); sf.connect(sg); surf.start(0, 1.3);
+    A.surf = sg;
+    const hush = ac.createBufferSource(); hush.buffer = noiseBuf; hush.loop = true;
+    const hf = ac.createBiquadFilter(); hf.type = 'lowpass'; hf.frequency.value = 220;
+    const hg = gainNode(0.0, amb); hush.connect(hf); hf.connect(hg); hush.start(0, 0.4);
+    A.under = hg;
+    const len = Math.floor(ac.sampleRate * 4.7), cb = ac.createBuffer(1, len, ac.sampleRate), cd = cb.getChannelData(0);
+    for (let i = 0; i < 260; i++) { const at = Math.floor(Math.random() * (len - 400)), amp = 0.3 + Math.random() * 0.7, dk = 0.002 * ac.sampleRate * (0.5 + Math.random()); for (let k = 0; k < 300; k++) cd[at + k] += (Math.random() * 2 - 1) * amp * Math.exp(-k / dk); }
+    const crk = ac.createBufferSource(); crk.buffer = cb; crk.loop = true;
+    const cf = ac.createBiquadFilter(); cf.type = 'highpass'; cf.frequency.value = 2400;
+    const cg = gainNode(0.0, amb); crk.connect(cf); cf.connect(cg); crk.start();
+    A.crackle = cg;
   }
   function birdCall(kind, vol, pan) {
     const t = now();
@@ -479,9 +495,18 @@ const Sound = (() => {
     const t = now();
     const daylight = 1 - s.night;
     // wind, crickets, water near the player
-    A.wind.gain.setTargetAtTime(s.inside ? 0.0 : (s.world === 'sky' ? 0.32 : 0.12) * (0.7 + 0.3 * Math.sin(G.t * 0.21)), t, 0.6);
+    const reef = s.world === 'reef' && !s.inside, under = reef && !!(Env.underwater && Env.underwater.under);   // (round 18)
+    A.wind.gain.setTargetAtTime(s.inside || under ? 0.0 : (s.world === 'sky' ? 0.32 : 0.12) * (0.7 + 0.3 * Math.sin(G.t * 0.21)), t, 0.6);
     // (round 14: no crickets, songbirds or frogs out on the Arctic Ocean)
-    A.crickets.gain.setTargetAtTime(!s.inside && s.world !== 'sky' && s.world !== 'arctic' && s.night > 0.6 ? 0.018 : 0, t, 1.2);
+    // (round 18: on the Coral Reef: surf on the island and at the surface, the hush and the snapping shrimp under the water,
+    // and no wind, crickets or birds down there)
+    if (A.surf) {
+      const swell = Math.pow(0.5 + 0.5 * Math.sin(G.t * 0.83) * Math.sin(G.t * 0.31 + 1), 2);
+      A.surf.gain.setTargetAtTime(reef && !under ? (0.04 + 0.11 * swell) * (waterNear ? 1 : 0.55) : 0, t, 0.35);
+      A.under.gain.setTargetAtTime(under ? 0.1 : 0, t, 0.3);
+      A.crackle.gain.setTargetAtTime(under ? 0.07 : 0, t, 0.3);
+    }
+    A.crickets.gain.setTargetAtTime(!s.inside && !under && s.world !== 'sky' && s.world !== 'arctic' && s.night > 0.6 ? 0.018 : 0, t, 1.2);
     waterCheck -= dt;
     if (waterCheck <= 0 && s.pos && G.world) {
       waterCheck = 1; waterNear = 0;
@@ -489,7 +514,7 @@ const Sound = (() => {
     }
     A.water.gain.setTargetAtTime(waterNear * 0.09, t, 0.8);
     nextBird -= dt;
-    if (nextBird <= 0 && !s.inside && s.world !== 'arctic') {
+    if (nextBird <= 0 && !s.inside && s.world !== 'arctic' && s.world !== 'reef') {   // (round 18: none on the Coral Reef)
       nextBird = 2 + Math.random() * 5;
       const pan = Math.random() * 1.6 - 0.8;
       if (daylight > 0.5) {

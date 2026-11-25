@@ -37,8 +37,9 @@
       const k = (y * N + x) * 4; let v = 255, a = 255;
       if (y < Hf && x < Hf) {
         // brain coral: meandering ridges along the contour lines of a noise field, dark grooves between them
-        const f = fbm(nz, x / 70, y / 70, 3) * 7 + fbm(nz2, x / 23, y / 23, 2) * 0.35, t = Math.abs((f - Math.floor(f)) - 0.5) * 2;
-        v = 255 * (0.42 + 0.58 * ks(0.12, 0.62, t) - 0.1 * ks(0.85, 1, t));
+        const th = fbm(nz, x / 55, y / 55, 3) * 7, wx = x + 6 * fbm(nz2, x / 30, y / 30, 2), wy = y + 6 * fbm(nz2, y / 30 + 9, x / 30, 2);
+        const t = 0.5 + 0.5 * Math.sin((wx * Math.cos(th) + wy * Math.sin(th)) * 0.62);
+        v = 255 * (0.4 + 0.6 * ks(0.25, 0.7, t) - 0.12 * ks(0.9, 1, t));
       } else if (y < Hf) {
         // coral cups: round corallites, a dark ring and a pale middle, packed close
         const X = x - Hf, gx = X / 13, gy = y / 13, ix = Math.floor(gx), iy = Math.floor(gy);
@@ -92,7 +93,8 @@
   #endif
   vAbsW = (modelMatrix * aw).xyz; }`);
       sh.fragmentShader = 'varying vec3 vAbsW;\n' + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
-  if (vAbsW.y < 0.0 && cameraPosition.y > 0.02) { vec3 vd = normalize(cameraPosition - vAbsW); diffuseColor.rgb *= exp(vAbsW.y * (1.0 + 1.0 / max(0.25, vd.y)) * vec3(0.7, 0.14, 0.08)); }`);
+  vec3 camW = -vec3(dot(viewMatrix[0].xyz, viewMatrix[3].xyz), dot(viewMatrix[1].xyz, viewMatrix[3].xyz), dot(viewMatrix[2].xyz, viewMatrix[3].xyz));
+  if (vAbsW.y < 0.0 && camW.y > 0.02) { vec3 vd = normalize(camW - vAbsW); diffuseColor.rgb *= exp(vAbsW.y * (1.0 + 1.0 / max(0.25, vd.y)) * vec3(0.7, 0.14, 0.08)); }`);
     };
     const k0 = key === THREE.Material.prototype.customProgramCacheKey ? 'plain' : key.call(m);
     m.customProgramCacheKey = () => 'reefabs-' + k0;
@@ -161,7 +163,7 @@
   // a flattened round tube (an elkhorn branch, a plate coral): along pts, half width w(t) to each side (side vectors sv)
   // and thickness th(t), its top colored colTop(t) and its underside colBot, the edges rounded
   function slab(pts, sv, w, th, colTop, colBot) {
-    const S = soup(), n = pts.length, RR = 8, rings = [];
+    const S = soup(), n = pts.length, RR = 6, rings = [];
     for (let i = 0; i < n; i++) {
       const t = i / (n - 1), d = pts[Math.min(n - 1, i + 1)].clone().sub(pts[Math.max(0, i - 1)]).normalize(), sd = sv[i].clone().normalize();
       const up = new V3().crossVectors(sd, d).normalize(), ring = [];
@@ -244,7 +246,7 @@
   }
   // a barrel sponge: a big rough vase, ribbed, dark inside
   function barrel(r, x, z, size, col, lod, y0 = 0) {
-    const R0 = 14, rows = 6, S = soup(), h = size * (0.7 + r() * 0.3), inside = mulc(col, 0.25), rim = mixc(col, L(0xd8b8a0), 0.25);
+    const R0 = 18, rows = 7, S = soup(), h = size * (0.7 + r() * 0.3), inside = mulc(col, 0.3), rim = mixc(col, L(0xe8c8b0), 0.35);
     const at = (i, k) => { const t = k / rows, a = (i / R0) * TAU, rad = size * (0.32 + 0.22 * t + 0.05 * Math.sin(t * 3)) * (1 + 0.07 * Math.sin(a * 7 + t * 4)) * (1 + 0.04 * Math.sin(t * 19)); return new V3(Math.cos(a) * rad, t * h, Math.sin(a) * rad); };
     for (let k = 0; k < rows; k++) for (let i = 0; i < R0; i++) {
       const j = (i + 1) % R0, c0 = mixc(mulc(col, 0.8), col, k / rows), c1 = mixc(mulc(col, 0.8), col, (k + 1) / rows);
@@ -413,7 +415,7 @@
   VARIANTS.staghorn = 2;
   PROPS.reefbits = (v) => { const r = krng(18550 + v * 29), lod = []; return Object.assign(coralProp(bits(r, 0, 0, 1.8, lod, 8 + v * 2), null, lod, 0), { lodD: 16 }); };
   VARIANTS.reefbits = 3;
-  PROPS.barrelsponge = () => { const r = krng(18600), lod = []; return coralProp([barrel(r, 0, 0, 1.0, COL.sponge, lod)], null, lod, 0.4); };
+  PROPS.barrelsponge = () => { const r = krng(18600), lod = []; return coralProp([barrel(r, 0, 0, 1.0, L(0xc89078), lod), ...bits(r, 0, 0, 2, lod, 4)], null, lod, 0.4); };
   // a giant clam: two heavy ribbed shells with wavy edges, sitting hinge down in the sand, the bright blue green mantle
   // spread between them
   PROPS.giantclam = () => {
@@ -436,7 +438,7 @@
       S.quad(C0, M(u0, 1), M(u1, 1), C1, mantle(u0, 1), mantle(u0, 0), mantle(u1, 0), mantle(u1, 1));
     }
     const g = grain(S.geo(false));
-    return { parts: [{ geometry: g, material: absorb(mat('reefClam', { map: atlas(), side: DS, std: true, roughness: 0.45 })), castShadow: false }], radius: 0, sink: 0.04 };
+    return { parts: [{ geometry: g, material: absorb(mat('reefClam', { map: atlas(), side: DS, std: true, roughness: 0.45 })), castShadow: false }], radius: 0, sink: 0.02 };
   };
   // starfish: a red orange cushion star with knobs, or a slim bright blue star
   PROPS.starfish = (v) => {
@@ -450,7 +452,7 @@
     smoothNormals(g);
     const c0 = blue ? L(0x2a66c8) : L(0xd2582c), c1 = blue ? L(0x4a8ae0) : L(0xe8a060);
     paint(g, (px, py, pz) => mixc(c0, c1, blue ? 0.3 + 0.3 * Math.sin(px * 90) : ks(0.6, 0.9, Math.abs(Math.sin(px * 60) * Math.sin(pz * 60)))));
-    return { parts: [{ geometry: grain(g), material: hardMat(), castShadow: false }], radius: 0 };
+    return { parts: [{ geometry: grain(g), material: hardMat(), castShadow: false }], radius: 0, sink: 0 };
   };
   VARIANTS.starfish = 2;
   // long-spined black sea urchins, a few together
@@ -468,7 +470,7 @@
         gs.push(paint(prep(cone), L(0x24202a)));
       }
     }
-    return { parts: [{ geometry: grain(merge(gs)), material: hardMat(), castShadow: false }], radius: 0 };
+    return { parts: [{ geometry: grain(merge(gs)), material: hardMat(), castShadow: false }], radius: 0, sink: 0 };
   };
   // beach grass: a tuft of long thin blades, yellow green with dry tips
   PROPS.beachgrass = (v) => {
@@ -762,11 +764,12 @@
     gs.push(paint(prep(new THREE.CylinderGeometry(0.24, 0.27, 0.09, 12, 1, true).translate(0, 0.045, 0)), L(0x9a2a40)));
     gs.push(paint(prep(new THREE.CylinderGeometry(0.24, 0.24, 0.01, 12).translate(0, 0.09, 0)), L(0xb8a080)));
     const base = L(0xb89a6a), tipC = L(0xe8dcc0), pinky = L(0xd89aa0);
-    for (let i = 0; i < 110; i++) {
-      const a = r() * TAU, d = Math.sqrt(r()) * 0.25, x = Math.cos(a) * d, z = Math.sin(a) * d, len = 0.06 + r() * 0.05, out = 0.4 + d * 3.5;
-      const dir = new V3(Math.cos(a) * out + (r() - 0.5) * 0.4, 1, Math.sin(a) * out + (r() - 0.5) * 0.4).normalize(), p0 = new V3(x, 0.09, z), p2 = p0.clone().addScaledVector(dir, len);
-      const tc = r() < 0.35 ? pinky : tipC;
-      gs.push(K.tube([p0, p0.clone().lerp(p2, 0.5).add(new V3(dir.x * 0.01, 0.006, dir.z * 0.01)), p2], (k, t) => 0.0085 * (1 - t * 0.25), { radial: 4, cap: 'end', capColor: tc, color: (t) => mixc(base, tc, ks(0.45, 1, t)) }));
+    for (let i = 0; i < 150; i++) {
+      const a = r() * TAU, d = Math.sqrt(r()) * 0.26, x = Math.cos(a) * d, z = Math.sin(a) * d, len = 0.07 + r() * 0.05, out = 0.5 + d * 4;
+      const dir = new V3(Math.cos(a) * out + (r() - 0.5) * 0.5, 1, Math.sin(a) * out + (r() - 0.5) * 0.5).normalize(), p0 = new V3(x, 0.085, z);
+      const p1 = p0.clone().addScaledVector(dir, len * 0.5), p2 = p1.clone().addScaledVector(dir, len * 0.3).add(new V3(Math.cos(a) * len * 0.3, -len * 0.12, Math.sin(a) * len * 0.3));
+      const tc = r() < 0.4 ? pinky : tipC;
+      gs.push(K.tube([p0, p1, p2], (k, t) => 0.009 * (1 - t * 0.2), { radial: 4, cap: 'end', capColor: tc, color: (t) => mixc(base, tc, ks(0.4, 1, t)) }));
     }
     const g = merge(gs);
     return g;

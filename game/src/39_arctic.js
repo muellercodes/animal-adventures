@@ -895,6 +895,9 @@ void main() {
       iceGlow.value.copy(o.sky.uniforms.uHorizon.value).lerp(tint, 0.45).multiplyScalar(0.5 * (0.06 + 0.94 * day));
       const hk = (0.55 + 0.45 * light / Math.max(0.05, 0.08 + 0.92 * day)) * (0.3 + 0.7 * day);
       o.hemi.color.multiply(tint).lerp(cTmp.copy(fogLin).multiplyScalar(2.2 / Math.max(0.02, fogLin.g)), 0.45).multiplyScalar(hk);
+      // (round 18: water.bright, how much of the light gets down there, the Coral Reef's own: its bright sand and pale
+      // fog would otherwise wash out the reef)
+      if (wd.bright != null) { o.sun.intensity *= wd.bright; o.hemi.color.multiplyScalar(wd.bright); }
       o.hemi.groundColor.copy(fogLin).multiplyScalar(0.45);
       // the surface overhead: the sky in its window, the mirror of the water outside it
       skyLin.copy(o.sky.uniforms.uZenith.value).lerp(o.sky.uniforms.uHorizon.value, 0.45).multiplyScalar(1.15);

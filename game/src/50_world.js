@@ -1141,7 +1141,7 @@ const World = (() => {
         // the lagoon: from the beach down to 0.5 to 3 m of sand, shallower over the seagrass flats; the back reef rising
         // to the crest, its top 0.3 to 1.3 m under the surface
         const lag = -0.3 - 1.9 * smooth(s / 16) - 1.0 * smooth((n4(x * 0.035, z * 0.035) + 0.3) / 0.8) * smooth((s - 6) / 14);
-        const top = -0.3 - 1.0 * (0.5 + 0.5 * n5(x * 0.06, z * 0.06));
+        const top = -0.45 - 1.1 * (0.5 + 0.5 * n5(x * 0.06, z * 0.06));
         let fl = lerp(lag, top, smooth((u + 14) / 13));
         if (u > 1) {
           // the fore reef: spurs and grooves down to about 5 m, the wall to 20 m, the sandy slope to 30 m
@@ -1149,6 +1149,8 @@ const World = (() => {
           fl += sg - 4.2 * smooth((u - 2) / 13) - 14 * smooth((u - 13) / 15) - 9.5 * smooth((u - 26) / 32);
           fl += 1.4 * fbm(n7, x * 0.02, z * 0.02, 3) * smooth((u - 30) / 30);
         }
+        // the reef's own rough framework: lumps and hollows of old coral rock under the living corals
+        fl += 0.55 * fbm(n6, x * 0.22 + 3, z * 0.22, 2) * smooth((u + 12) / 6) * (1 - smooth((u - 26) / 8));
         // the channels: sand 3.5 m deep going out to 5.5 m, through the crest
         if (g.ch > 0) fl = lerp(fl, Math.min(fl, -3.5 - 2 * smooth((u + 4) / 14)), g.ch);
         // far out: open sea 30 to 35 m deep, and now and then a patch reef rising to 5 m
@@ -1209,7 +1211,7 @@ const World = (() => {
         // clear turquoise over the sand, deep blue past the reef (water.depth: the water's own look by how deep it is,
         // 35_envkit), and under the water bright and clear
         H, fog: [90, 380], people: 0, ripple: 1,
-        water: { color: 0x1f8fa8, deep: 0x0a3f78, under: 0x2f9cba, underDeep: 0x0b4f88, clarity: 1.15, light: 0xc4e8e8,
+        water: { color: 0x1f8fa8, deep: 0x0a3f78, under: 0x2f9cba, underDeep: 0x0b4f88, clarity: 1.15, light: 0xc4e8e8, bright: 0.62,
           depth: { at: H, x0: -300, z0: -310, size: 600, n: 160, shallow: 0x24bab4, mid: 0x1092b0 } },
         sky: { dayZ: 0x2b78d2, dayH: 0xc2e2f0 },
         grassH: [0.22, 0.42], grassTint: [0.19, 0.27, 0.5, 0.85], flowerColors: [0xffffff, 0xd88ac8],
@@ -1267,17 +1269,17 @@ const World = (() => {
           // the island
           { type: 'beachgrass', variants: [0, 1], per: 40, minH: 0.45, gap: 1.2, test: (x, z) => geo(x, z).s < -6, scale: [0.7, 1.3] },
           // the lagoon: coral heads, staghorn thickets, giant clams, starfish and urchins on the sand
-          { type: 'bommie', variants: [0, 1], per: 4, minH: -4, maxH: -1.1, gap: 9, test: (x, z) => { const g = geo(x, z); return g.u < -15 && g.s > 9; }, scale: [0.8, 1.3], tries: 4 },
-          { type: 'staghorn', variants: [0, 1], per: 10, minH: -6, maxH: -0.9, gap: 3, mask: (x, z) => smooth((n5(x * 0.05 + 9, z * 0.05) + 0.1) / 0.3), test: underBand(-22, 6), scale: [0.8, 1.25], tries: 4 },
+          { type: 'bommie', variants: [0, 1], per: 4, minH: -4, maxH: -1.9, gap: 9, test: (x, z) => { const g = geo(x, z); return g.u < -15 && g.s > 9; }, scale: [0.8, 1.3], tries: 4 },
+          { type: 'staghorn', variants: [0, 1], per: 10, minH: -6, maxH: -1.3, gap: 3, mask: (x, z) => smooth((n5(x * 0.05 + 9, z * 0.05) + 0.1) / 0.3), test: underBand(-22, 6), scale: [0.8, 1.25], tries: 4 },
           { type: 'giantclam', per: 3, minH: -5, maxH: -0.7, gap: 6, test: underBand(-26, 6), scale: [0.8, 1.2], tries: 4 },
           { type: 'starfish', variants: [0, 1], per: 7, minH: -6, maxH: -0.6, gap: 4, test: (x, z, h) => { const g = geo(x, z); return reefK(x, z, h, g) < 0.2 && bedK(x, z, h, g) < 0.3; }, scale: [0.8, 1.3], tries: 3 },
           { type: 'diadema', per: 6, minH: -8, maxH: -0.8, gap: 3, test: underBand(-16, 10), scale: [0.8, 1.2], tries: 3 },
           // the crest, the spurs and the wall, thick with coral
-          { type: 'crestcoral', variants: [0, 1], per: 60, minH: -3, maxH: -0.25, gap: 2.6, tile: ringTile(50, 130), test: (x, z, h) => { const g = geo(x, z); return g.u > -11 && g.u < 5 && g.ch < 0.3 && reefK(x, z, h, g) > 0.2; }, scale: [0.9, 1.4], tries: 8 },
-          { type: 'slopecoral', variants: [0, 1, 2], per: 80, minH: -11, maxH: -0.6, gap: 2.6, tile: ringTile(55, 140), test: (x, z, h) => { const g = geo(x, z); return g.u > 1 && g.u < 18 && reefK(x, z, h, g) > 0.2; }, scale: [0.9, 1.45], tries: 8 },
-          { type: 'wallcoral', variants: [0, 1], per: 90, minH: -26, maxH: -3.5, gap: 2.6, tile: ringTile(60, 150), test: (x, z, h) => { const g = geo(x, z); return g.u > 10 && g.u < 31 && reefK(x, z, h, g) > 0.15; }, scale: [0.9, 1.5], tries: 8 },
+          { type: 'crestcoral', variants: [0, 1], per: 120, minH: -3.5, maxH: -0.95, gap: 2.5, tile: ringTile(50, 130), test: (x, z, h) => { const g = geo(x, z); return g.u > -11 && g.u < 5 && g.ch < 0.3 && reefK(x, z, h, g) > 0.2; }, scale: [0.8, 1.2], tries: 5 },
+          { type: 'slopecoral', variants: [0, 1, 2], per: 140, minH: -11, maxH: -1.2, gap: 2.5, tile: ringTile(55, 140), test: (x, z, h) => { const g = geo(x, z); return g.u > 1 && g.u < 18 && reefK(x, z, h, g) > 0.2; }, scale: [0.9, 1.4], tries: 5 },
+          { type: 'wallcoral', variants: [0, 1], per: 200, minH: -27, maxH: -3.5, gap: 2.2, tile: ringTile(60, 150), test: (x, z, h) => { const g = geo(x, z); return g.u > 10 && g.u < 31 && reefK(x, z, h, g) > 0.1; }, scale: [1.0, 1.6], tries: 5 },
           // small corals, algae and rubble between the big ones
-          { type: 'reefbits', variants: [0, 1, 2], per: 150, minH: -26, maxH: -0.3, gap: 1.5, tile: ringTile(45, 150), test: (x, z, h) => { const g = geo(x, z); return g.u > -13 && g.u < 31 && reefK(x, z, h, g) > 0.12; }, scale: [0.8, 1.3], tries: 3 },
+          { type: 'reefbits', variants: [0, 1, 2], per: 150, minH: -26, maxH: -0.6, gap: 1.5, tile: ringTile(45, 150), test: (x, z, h) => { const g = geo(x, z); return g.u > -13 && g.u < 31 && reefK(x, z, h, g) > 0.12; }, scale: [0.8, 1.3], tries: 3 },
           { type: 'barrelsponge', per: 5, minH: -32, maxH: -10, gap: 6, tile: ringTile(60, 190), test: underBand(16, 60), scale: [0.8, 1.4], tries: 3 },
           // far out: the patch reefs
           { type: 'slopecoral', variants: [0, 1, 2], per: 40, minH: -12, maxH: -2, gap: 3, tile: ringTile(180, 1e9), test: (x, z, h) => geo(x, z).s > 200 && reefK(x, z, h, Q) > 0.3, scale: [0.9, 1.4], tries: 6 },
@@ -1521,8 +1523,10 @@ const World = (() => {
         }
         // round 18: the sea floor seen from above the clear water (the same worlds): the water takes the reds out first,
         // so white sand a meter or two down looks turquoise and deeper down deep blue
-        if (uRipple > 0.0 && vGW.y < 0.0 && cameraPosition.y > 0.02) {
-          vec3 vd = normalize(cameraPosition - vGW);
+        // (the camera's place from the view matrix: a Lambert material is not given cameraPosition)
+        vec3 camW = -vec3(dot(viewMatrix[0].xyz, viewMatrix[3].xyz), dot(viewMatrix[1].xyz, viewMatrix[3].xyz), dot(viewMatrix[2].xyz, viewMatrix[3].xyz));
+        if (uRipple > 0.0 && vGW.y < 0.0 && camW.y > 0.02) {
+          vec3 vd = normalize(camW - vGW);
           diffuseColor.rgb *= exp(vGW.y * (1.0 + 1.0 / max(0.25, vd.y)) * vec3(0.7, 0.14, 0.08));
         }`);
     };
