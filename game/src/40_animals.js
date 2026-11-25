@@ -3184,6 +3184,16 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       eyes: [Object.assign({ bone: 'head', p: [0.74 * H * hw, hy + 0.25 * H, z0 + 0.026 * kH], r: 0.0036 * kH, dir: [0.85, 0.3, 0.35], irisR: 0.92, pupilR: 0.5, lid: [0.95, -0.95, 0], noBlink: true }, o.eye)],
       mouth: [0, hy - 0.15 * H, z0 + 0.05 * kH],
       anim: Object.assign({ type: 'snake', stride: 0.6 * kL, names, z0, dz, R, kL, kH, headOff: 0.012 * kH }, o.anim),
+      // the menu picture: the snake in its pose (o.iconSt: reared, coiled to rattle, curled up) framed on its bones
+      icon: (Rg) => {
+        const st = Object.assign({ t: 0, speed: 0, mode: 'ground', vy: 0, eat: 0, turn: 0, idle: 0 }, o.iconSt);
+        for (let i = 0; i < 90; i++) { st.t += 1 / 30; Rg.rig.update(1 / 30, st); }
+        Rg.root.updateMatrixWorld(true);
+        const box = new THREE.Box3(), v = new THREE.Vector3();
+        for (const n of ['head', ...names]) box.expandByPoint(Rg.bones[n].getWorldPosition(v));
+        const sz = box.getSize(new THREE.Vector3());
+        return { size: Math.max(sz.x, sz.y, sz.z) * 1.1 + 4 * R, at: box.getCenter(v).toArray(), dir: o.iconDir || [0.72, 0.42, 0.75] };
+      },
     };
   }
   ids.push('kingcobra', 'rattlesnake', 'anaconda');
@@ -3210,6 +3220,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     },
     eye: { iris: 0x4A3418, pupil: 'round', pupilR: 0.42 },
     anim: { walk: 1.0, run: 3.4, floatDepth: 0.03, rear: [0.34, 0.11], hood: [[0, 1.35], [1, 2.1], [2, 1.55], [3, 1.1]] },
+    iconSt: { happy: 1 }, iconDir: [0.75, 0.2, 0.62],
   });
   // The western diamondback rattlesnake: 1.4 m and heavy, a broad triangular head on a thin neck, gray-brown with dark
   // diamonds edged in cream, a black and white banded tail and the rattle. It coils with its head raised and buzzes
@@ -3233,6 +3244,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     },
     eye: { iris: 0x8A7A56, pupil: 'v', pupilR: 0.45 },
     anim: { walk: 0.5, run: 1.3, floatDepth: 0.025, amp: 0.8, rattle: [0.3, 0.17] },
+    iconSt: { alert: 1 },
   });
   // The green anaconda: 5 m and very thick, olive green with big black spots, a narrow head with the eyes and nostrils
   // on top. It swims and dives, slow on land, and rests at the surface with only the top of its head out (swimLift: the
@@ -3250,6 +3262,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     },
     eye: { iris: 0x8A6A2A, pupil: 'v', pupilR: 0.4, dir: [0.55, 0.75, 0.35] },
     anim: { walk: 0.4, run: 1.0, floatDepth: 0.17, amp: 0.7, swimLift: 0.1 },
+    iconSt: { mode: 'sleep' }, iconDir: [0.6, 0.6, 0.55],
   });
 
   // ---------- round 2 species: horse, pig, goat, otter, hedgehog, raccoon ----------
