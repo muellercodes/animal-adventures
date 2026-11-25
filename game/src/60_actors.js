@@ -132,7 +132,8 @@ const isAquatic = (sp) => !!(SPECIES[sp] && SPECIES[sp].aquatic);
 // it be in world id (every other animal can be anywhere); waterWords(sp): where it lives, for the Map and the toasts
 const homeWaters = (sp) => (SPECIES[sp] && SPECIES[sp].waters) || seaWorld();
 const livesIn = (sp, id) => !isAquatic(sp) || (SPECIES[sp].waters ? SPECIES[sp].waters === id : !!(World.META[id] && World.META[id].sea));
-const waterWords = (sp) => (SPECIES[sp].waters && World.META[SPECIES[sp].waters] ? `live in the ${World.META[SPECIES[sp].waters].name} river` : 'live in the sea');
+// (round 18: an animal whose home is a sea world, the dolphin, lives in the sea, not in that world's river)
+const waterWords = (sp) => (SPECIES[sp].waters && World.META[SPECIES[sp].waters] && !World.META[SPECIES[sp].waters].sea ? `live in the ${World.META[SPECIES[sp].waters].name} river` : 'live in the sea');
 const Dive = {
   // how far a diver keeps its body off the sea floor and the ice
   clr(b) { return 0.08 + b.m.height * 0.12; },
@@ -222,7 +223,7 @@ const Blow = {
 // comes up again. It leaps only where there is deep open water all along the arc and past where it comes down.
 // b.leaping: in the air on a leap (poseBody tips the body along the arc); b.leapDip: seconds of the dip under after it
 // comes back in; b.leapUp: after the dip, your own dolphin comes back up to the surface by itself (Down stops that).
-FEAR.dolphin = 2.5;   // (round 18: it lets swimmers come close, and rides alongside them)
+FEAR.dolphin = 1.2;   // (round 18: it lets swimmers come close, and rides alongside them)
 const Leap = {
   // deep open water ahead for a leap of length dist
   room(b, dist) {
@@ -1105,7 +1106,7 @@ const Wild = {
         // big wild animal near it
         if (sp.display && P.sp !== b.sp && !pAir && !P.room && b.mode === 'ground' && d < 3 + m.length * 0.6 && P.m.height > m.height * 3) { b.alert = 2.5; b.alertYaw = Math.atan2(P.pos.x - b.pos.x, P.pos.z - b.pos.z); }
         if (psp.display && P.sp !== b.sp && !P.room && b.room === P.room && P.mode === 'ground' && d < 3 + P.m.length * 0.6 && m.height > P.m.height * 3) P.alert = 2;
-        if (d < fr && b.state !== 'flee' && b.state !== 'flyaway' && b.state !== 'tree' && b.mode !== 'sleep') {
+        if (d < fr && b.state !== 'flee' && b.state !== 'flyaway' && b.state !== 'tree' && b.state !== 'ride' && b.mode !== 'sleep') {   // (round 18: not riding alongside)
           const t = canClimb(b) && !b.pen ? G.world.treeNear(b.pos.x, b.pos.z, 7) : null;
           if (t) { b.state = 'tree'; b.target = t; b.timer = 10; b.perchT = 6 + Math.random() * 8; }
           else if (canFlyNow(b) && b.sp !== 'chicken' && !b.pen && !b.hasKids && Math.random() < 0.65) {
@@ -1127,7 +1128,7 @@ const Wild = {
         if (sp.leap) {
           const inW = P.mode === 'swim' || P.mode === 'dive';
           if (b.state === 'ride' && (d > 45 || P.room || !inW)) { b.state = 'idle'; b.timer = 1 + Math.random() * 2; }
-          else if (b.state !== 'ride' && P.sp !== b.sp && inW && !b.leader && !b.pen && b.age >= 0.6 && b.state !== 'flee' && d < 30 && P.speed > 1.5 && Math.random() < 0.06) {
+          else if (b.state !== 'ride' && P.sp !== b.sp && inW && !b.leader && !b.pen && b.age >= 0.6 && b.state !== 'flee' && d < 40 && P.speed > 1.5 && Math.random() < 0.12) {
             b.state = 'ride'; b.rideT = 12 + Math.random() * 18; b.slot = (Math.random() < 0.5 ? -1 : 1) * (1 + Math.random() * 0.6); if (b.mode === 'sleep') b.mode = 'swim';
           }
         }
