@@ -583,7 +583,7 @@ const World = (() => {
             { sp: 'velociraptor', n: 4, kids: 1, home: [-60, -20], range: 35 }]),
         ],
         ambient: [{ sp: 'parrot', w: 4 }, { sp: 'lizard', w: 3 }, { sp: 'frog', w: 2 }, { sp: 'snake', w: 2 }, { sp: 'turtle', w: 1, water: true }, { sp: 'otter', w: 1, water: true }],
-        foods: { berries: 4, apple: 3, worm: 3, grass: 1, smallfish: 2, fish: 2, banana: 4, bugs: 3, twigs: 2, watermelon: 1, mushroom: 1, meat: 1, lettuce: 1, waterplants: 2 },   // (round 15: manatee: water plants in the river and the lagoon)
+        foods: { berries: 4, apple: 3, worm: 3, grass: 1, smallfish: 2, fish: 2, banana: 4, bugs: 3, twigs: 2, watermelon: 1, mushroom: 1, meat: 1, lettuce: 1, waterplants: 2, hyacinth: 2 },   // (round 15: manatee: water plants in the river and the lagoon; round 18: water hyacinth floating there too)
         walk: [],
       };
     },
@@ -1097,7 +1097,7 @@ const World = (() => {
           ...SP7([{ sp: 'puffin', n: 8, kids: 2, home: [-30, -10], range: 12 }, { sp: 'puffin', n: 5, home: [-64, -8], range: 16, water: true }]),
         ],
         ambient: [...SP7([{ sp: 'polarbear', w: 2, ice: true }, { sp: 'narwhal', w: 3, water: true, kids: 1 }, { sp: 'puffin', w: 2, water: true }])],
-        foods: { fish: 5, smallfish: 4, squid: 3, berries: 1, meat: 1 },
+        foods: { fish: 5, smallfish: 4, squid: 3, berries: 1, meat: 1, shrimp: 2, clam: 2, crab: 1 },   // (round 18: shrimp and clams on the sea floor, crabs on the beach)
         walk: [],
         // (for tests: the shapes behind the world)
         _dbg: { feat, fastW, conc, kind, bergsNear, field: () => field() },
@@ -2983,8 +2983,37 @@ const World = (() => {
       if (hi < lo) return null;
       return Math.random() < 0.33 ? Math.max(lo, hi - Math.random() * 0.15) : lerp(lo, hi, Math.random());
     };
+    // round 18: the new sea foods. floorPoint: a spot on the bottom of open water inside a ring, shallower than maxD if
+    // one turns up; shorePoint: a spot on dry ground just above the water line (a beach), or null
+    // (a small food on the ground or the bottom sits on the terrain as its mesh draws it, running straight between the
+    // grid points, so it is not hidden in it where the ground curves)
+    const meshH = (x, z, h) => {
+      const g = TILE / TSEG, gx = Math.floor(x / g) * g, gz = Math.floor(z / g) * g, u = (x - gx) / g, v = (z - gz) / g;
+      return Math.max(h, lerp(lerp(H(gx, gz), H(gx + g, gz), u), lerp(H(gx, gz + g), H(gx + g, gz + g), u), v)) + 0.004;
+    };
+    const floorPoint = (cx, cz, r0, r1, maxD) => {
+      let first = null;
+      for (let k = 0; k < 4; k++) { const p = w.ringPoint(cx, cz, r0, r1, true); if (!p) continue; if (p.h > WATER - maxD) return p; first = first || p; }
+      return first;
+    };
+    const shorePoint = (cx, cz, r0, r1) => {
+      if (!def.water) return null;
+      for (let k = 0; k < 40; k++) {
+        const a = Math.random() * TAU, d = r0 + (r1 - r0) * Math.sqrt(Math.random()), x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d, h = H(x, z);
+        if (h < WATER + 0.04 || h > WATER + 0.7 || (w.iceAt && w.iceAt(x, z))) continue;
+        tmpRing.set(x, 0, z); if (w.collide(tmpRing, 0.15)) continue;
+        return { x, z, y: meshH(x, z, h) };
+      }
+      return null;
+    };
     w.foodPoint = (type, cx, cz, r0, r1) => {
       const spotType = SPOT_FOOD[type];
+      // round 18: a crab on a beach by the water line, else in a sea world on the bottom of the shallows (under 6 m);
+      // water hyacinth floating at the surface; seagrass, shrimp and clams on the bottom (shrimp a little over it)
+      const F18 = FOODS[type];
+      if (F18.shore) { const b = shorePoint(cx, cz, r0, r1); if (b || !def.sea) return b; const p = floorPoint(cx, cz, r0, r1, 6); return p && p.h > WATER - 6 ? { x: p.x, z: p.z, y: meshH(p.x, p.z, p.h) } : null; }
+      if (F18.float) { const p = w.ringPoint(cx, cz, r0, r1, true); return p ? { x: p.x, z: p.z, y: WATER - 0.03 } : null; }
+      if (F18.floor) { const p = floorPoint(cx, cz, r0, r1, 20), L18 = F18.lift; return p ? { x: p.x, z: p.z, y: meshH(p.x, p.z, p.h) + (L18 ? L18[0] + (L18[1] - L18[0]) * Math.random() : 0) } : null; }
       // round 15: manatee. Water plants (plant): eelgrass on the bottom of deep water, or a mat of water lettuce floating
       // at the surface (in the Jungle's river and lagoon, the only world that has them)
       if (FOODS[type].plant) { const p = w.ringPoint(cx, cz, r0, r1, true); if (!p) return null; const bed = p.h < WATER - 1.2 && Math.random() < 0.55; return { x: p.x, z: p.z, y: bed ? p.h : WATER - 0.03 }; }

@@ -834,6 +834,11 @@ even skin compresses to 5 KB), 1024 normal map with the wrinkles (WebP 58), 256 
 1 KB, 85 KB of files, about 114 KB in the page plus about 46 KB of icons (34 KB of PNG). Texture memory: about 11 MB
 with mipmaps on a computer, about 3 MB on a phone (the color and normal maps capped at 512).
 
+Dolphin (round 18, `VOXEL=0.004 TRIS=4200 WEIGHTS=transfer TEX=1024`, about 4 minutes on the shared machine): 6.6k
+triangles (about 7k in the game with the eyes); 1024 color map (WebP 66), 1024 normal map (WebP 56), 256 calf color
+map: 43 KB mesh + 14 + 15 + 3 KB, 77 KB of files, about 103 KB in the page plus the icons. Texture memory: about 11 MB
+with mipmaps on a computer, about 3 MB on a phone (the color and normal maps capped at 512).
+
 Round 16 small and tree birds (`TRIS=6000 TEX=768`, a few minutes each on the shared machine; the same maps as the
 chickadee: 768 color and normal maps, 384 or 512 baby maps, 384 fur map, 512 x 256 feather atlas): cardinal
 (`VOXEL=0.0008`) 6.0k body triangles, 159 KB of files (about 212 KB in the page), the girl's coat (`cardinalf`) 39 KB;
@@ -2140,4 +2145,45 @@ VOXEL=0.012 TRIS=6400 TEX=1024 WEIGHTS=transfer BLENDER_PY=... python3 tools/ble
   0.18 m), so the folded membrane gathers in to the humerus lying along the flank. Re-made from `lowpoly`
   (`TRIS=6400 ... make.py pterodactyl lowpoly export`): the same mesh and textures, only the weights changed. The game
   side (the ground fold `PTERO.ground`, the planted hands) is in the bird animator.
+- Budget: see the Budget section.
+
+## Round 18: the bottlenose dolphin (`dolphin.py`)
+
+A common bottlenose dolphin, a grown-up: 2.8 m from the tip of the beak to the tips of the flukes, 0.6 m deep (0.85 m
+to the tip of the dorsal fin) and 0.5 m wide, the belly on y = 0. Made from `narwhal.py` (one loft, flippers and flukes
+on their own frames, weights all from the sculpt's own parts); the steps are the narwhal's.
+
+```bash
+python3 tools/blender/export_rig.py dolphin
+VOXEL=0.004 TRIS=4200 WEIGHTS=transfer TEX=1024 BLENDER_PY=... python3 tools/blender/make.py dolphin sculpt export
+```
+
+- Shape: one loft (`BODY`) from the tail stock to the tip of the beak, the head included: in front of the blowhole the
+  keys fall over the rounded melon and turn sharply into the short thick beak (the crease, about z 1.015), then close
+  in a quarter ellipse at the tip (`_front_keys()`). The narwhal's lesson holds: a separate melon or beak blended on
+  prints a rim round the face, so the profile is all in the loft's keys, with a soft groove at the crease (`body()`)
+  and the lower jaw a little longer than the upper (a small ellipsoid under the tip). The tail stock's sections have
+  exponents under 2 above and below (its keels).
+- The mouth line (`MOUTH_Z`, `MOUTH_Y`): a groove along the beak and round its tip, rising at its corner (the "smile",
+  `CORNER_Z`), a small dimple at the corner; the eye (12.5 mm) just behind and above the corner in a soft lid ring; one
+  crescent blowhole on top, horns forward (`BLOW`).
+- The dorsal fin (`fin()`): a plate across x = 0 (the mirror makes both sides), its outline along y (`DF_Y`: leading
+  edge `DF_ZL` convex and swept back, trailing edge `DF_ZT` concave, meeting at the pointed tip over the back of its
+  base), an airfoil thickness along the chord (`DF_T`), blended into the back with a wide fillet. The flippers
+  (`flipper()`, the narwhal's, pointed and swept back, low on the sides) and the flukes (`fluke()`, the narwhal's, with
+  the outline of broad pointed flukes: the leading edge swept back, the trailing edge from the notch out to the tips).
+- Weights (`fix_weights`): the narwhal's chain along z (the dorsal fin rides on it), the flukes on the fluke bone, the
+  flippers on theirs.
+- Paint: gray (0x666C73; the game's light shows it paler), a darker cape over the back from the melon to the tail
+  stock (`_cape()`: its lower edge dips a little under the dorsal fin and rises toward the head and the flukes), the
+  throat and the belly pale with a soft wavy edge a little under the widest line, a faint pink on the belly, the lower
+  jaw pale, a faint dark line from the eye to the flipper, the mouth line a little darker; the fins dark, the undersides
+  of the flippers and the flukes paler. A few faint pale rake marks (`_rakes()`: three short parallel lines, other
+  dolphins' teeth), also in the height field with a fine grain. The calf (`paint_baby`) is paler with a faint cape and
+  five or six faint pale fetal fold stripes across the middle of each side; its shape is the game's baby maps
+  (`SPEC.dolphin.baby`).
+- No collar (`meta()` has no collar place).
+- In the game: `SPEC.dolphin` and `animDolphin` (the narwhal's `animWhale`, quicker, with the leap on top: out of the
+  water the beats stop and the body is held in a curve along the arc while the game tips the whole body along it);
+  the leap itself, the splash and the wild dolphins' rides are in 60_actors (`Leap`, `Spray`, `Wild` state `ride`).
 - Budget: see the Budget section.

@@ -402,14 +402,15 @@ Object.assign(SEX_LOOK, {
 // round 18: new sea foods (Rosemary: "more sea food for manatee and other sea animals"; 38_food draws them, 50_world
 // foodPoint says where they turn up). water: they count with the fish (and no one hands them out as a snack or puts
 // them in a bowl). plant: it grows in one place (seagrass on the sand, water hyacinth floating). New flags, each only on
-// these: floor (on or just over the sea floor or a river bottom: seagrass, shrimp, clams), float (always floating at
-// the surface: water hyacinth), shore (on a beach by the water line, and in a sea world on the sea floor too: crabs),
-// still (it stays where it is, no swimming round in circles like a fish; its own model moves a little).
+// these: floor (on the sea floor or a river bottom: seagrass, shrimp, clams; lift: how high over it, a range in meters),
+// float (always floating at the surface: water hyacinth), shore (on a beach by the water line, else in a sea world on
+// the sea floor of the shallows: crabs), stay (it stays where it is, no swimming round in circles like a fish; its own
+// model moves a little).
 Object.assign(FOODS, {
   seagrass: { name: 'Seagrass', water: true, plant: true, floor: true },
-  shrimp: { name: 'Shrimp', water: true, floor: true, still: true },
-  crab: { name: 'Crabs', water: true, shore: true, still: true },
-  clam: { name: 'Clams', water: true, floor: true, still: true },
+  shrimp: { name: 'Shrimp', water: true, floor: true, lift: [0.08, 0.3], stay: true },
+  crab: { name: 'Crabs', water: true, shore: true, stay: true },
+  clam: { name: 'Clams', water: true, floor: true, stay: true },
   hyacinth: { name: 'Water hyacinth', water: true, plant: true, float: true },
 });
 // round 18: who eats them, where it is real (each animal keeps its favorite): the manatee water hyacinth and seagrass,

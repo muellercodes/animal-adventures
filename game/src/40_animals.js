@@ -9107,7 +9107,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
   const DL = {
     chest: [0, 0.3, 0.12], hips: [0, 0.31, -0.3], tail1: [0, 0.33, -0.72], tail2: [0, 0.35, -1.06], fluke: [0, 0.36, -1.33],
     neck: [0, 0.3, 0.5], head: [0, 0.3, 0.7], flipper: [0.2, 0.16, 0.42],
-    eye: [0.152, 0.262, 0.835], mouth: [0, 0.198, 1.1],
+    eye: [0.1345, 0.27, 0.852], mouth: [0, 0.2, 1.13],
   };
   SPEC.dolphin = () => {
     const K = { side: hex(0x6B7178), cape: hex(0x41474E), belly: hex(0xDCDAD4), fin: hex(0x50565D), calf: hex(0x8A9096), calfCape: hex(0x6A7077), calfBelly: hex(0xE2E0DA) };
@@ -12610,7 +12610,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     const base = animWhale(R, A), B = R.bones, P = A.spec.anim;
     const sp = P.spine.map((n) => B[n]), neck = B[P.front[0]], head = B[P.front[1]];
     const fls = [[B.flipperL, 1], [B.flipperR, -1]];
-    const st2 = {}, S = { air: 0 };
+    const st2 = {}, S = { air: 0 }, ARCH = [0, 0.5, 0.9, 1, 0.7];
     return function update(dt, st) {
       dt = clamp(dt || 0, 0, 0.1);
       const leap = st.mode === 'air';
@@ -12622,7 +12622,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       const a = S.air;
       if (a < 0.001) return;
       const arch = 0.07;
-      for (let i = 1; i < sp.length; i++) sp[i].rotation.x = sp[i].rotation.x * (1 - 0.8 * a) - a * arch * [0, 0.5, 0.9, 1, 0.7][i];
+      for (let i = 1; i < sp.length; i++) sp[i].rotation.x = sp[i].rotation.x * (1 - 0.8 * a) - a * arch * ARCH[i];
       if (neck) neck.rotation.x += a * arch * 0.5;
       if (head) head.rotation.x += a * arch * 0.4;
       for (const [f, sd] of fls) if (f) { f.rotation.z = f.rotation.z * (1 - a) + sd * a * 0.12; f.rotation.y = f.rotation.y * (1 - a) + sd * a * 0.2; }

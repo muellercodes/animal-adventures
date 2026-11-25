@@ -1754,3 +1754,255 @@
   }
   Env.addFood('waterplants', foodWaterplants, { setup: setupWaterplants, update: updateWaterplants });
 })();
+
+/* ---------- round 18: new sea foods (Rosemary: "more sea food for manatee and other sea animals") ----------
+   Each is a group named 'food-<type>' with its origin where it sits, vertex colored, about life size, moving a little
+   by itself (60_actors Foods keeps them where they are: FOODS still / plant):
+     seagrass  a tuft of turtle grass on the sand: a dozen and a half long flat green ribbons with round tips, standing up
+               and leaning over, olive and brown at some tips, swaying (origin on the bottom)
+     shrimp    a pink-gray shrimp about 12 cm long, hovering just over the bottom: a curved, banded body, the fan of its
+               tail, a spiky rostrum, eyes on stalks, legs and swimmerets underneath, long antennae sweeping back; it
+               bobs, its antennae sway and now and then it flicks its tail and darts back
+     crab      a small red-orange shore crab (a 9 cm shell): a wide smooth shell, two claws held up in front, four legs a
+               side, eyes on stalks; it scuttles sideways back and forth in quick little runs, claws up (origin on the
+               ground)
+     clam      a hard clam about 9 cm wide, half open on the sand: two ridged valves (ribs from the hinge out and growth
+               rings), cream and tan with gray-brown bands outside, white and violet inside, the pale flesh showing; it
+               opens a little wider and closes again, slowly
+     hyacinth  a clump of water hyacinth floating on the water: three rosettes of glossy round leaves on puffy swollen
+               stalks, each with a spike of pale violet flowers (a yellow spot in a blue patch on the top petal), and
+               dark feathery roots hanging down; it bobs and turns slowly (origin at the surface, set 3 cm under it) ---------- */
+(() => {
+  const K = Env._k;
+  const { TAU, V3, lerp, smooth, rng, L, mixc, mulc, prep, paint, merge, soup, path, tube, mat } = K;
+  const DS = THREE.DoubleSide, PI = Math.PI;
+  const sph = (r, w, h, x, y, z, sx = 1, sy = 1, sz = 1) => { const g = prep(new THREE.SphereGeometry(r, w, h)); g.scale(sx, sy, sz); g.translate(x, y, z); return g; };
+
+  // ---- seagrass: flat ribbons rising from a clump on the sand
+  function foodSeagrass() {
+    const r = rng(1801), S = soup();
+    for (let i = 0; i < 17; i++) {
+      const a = r() * TAU, rr = Math.sqrt(r()) * 0.06, bx = Math.cos(a) * rr, bz = Math.sin(a) * rr;
+      const len = 0.18 + r() * 0.2, wid = 0.013 + r() * 0.006, lean = 0.15 + r() * 0.5, dir = a + (r() - 0.5) * 1.2, tw = (r() - 0.5) * 1.4, tone = r(), old = r() < 0.3;
+      const fx = Math.cos(dir), fz = Math.sin(dir), N = 8;
+      const at = (t) => { const ben = lean * t * t; return new V3(bx + fx * Math.sin(ben) * len * t, Math.cos(ben * 0.7) * len * t, bz + fz * Math.sin(ben) * len * t); };
+      const sd = (t) => { const th = dir + PI / 2 + tw * t, w = wid * 0.5 * (t > 0.9 ? Math.sqrt(Math.max(0.05, 1 - Math.pow((t - 0.9) / 0.1, 2))) : 1); return new V3(Math.cos(th) * w, 0, Math.sin(th) * w); };
+      const col = (t, s) => {
+        let c = mixc(L(0x2f5e22), L(0x5d9a38), smooth(0, 0.5, t));
+        c = mixc(c, L(0x6fa848), 0.25 * tone);
+        if (old) c = mixc(c, L(0x8a7a3a), smooth(0.6, 1, t) * 0.7);
+        // pale specks of tiny growths on the older blades
+        if (old && Math.sin(t * 91 + i * 7) * Math.sin(s * 3 + t * 37 + i) > 0.75) c = mixc(c, L(0xb8b48a), 0.5);
+        return mulc(c, 0.82 + 0.3 * tone);
+      };
+      for (let j = 0; j < N; j++) {
+        const t0 = j / N, t1 = (j + 1) / N, p0 = at(t0), p1 = at(t1), s0 = sd(t0), s1 = sd(t1);
+        S.quad(p0.clone().sub(s0), p1.clone().sub(s1), p1.clone().add(s1), p0.clone().add(s0), col(t0, 0), col(t1, 0), col(t1, 1), col(t0, 1));
+      }
+    }
+    return [{ geo: S.geo(false), mat: mat('f18seagrass', { std: true, roughness: 0.55, side: DS }), name: 'sgBlades' }];
+  }
+  function setupSeagrass(root) { const m = root.getObjectByName('sgBlades'); if (m) m.castShadow = false; root.userData.sg = m; root.userData.anim = true; }
+  function updateSeagrass(root, t) { const m = root.userData.sg; if (!m) return; const ph = root.userData.phase || 0; m.rotation.z = Math.sin(t * 0.9 + ph) * 0.08; m.rotation.x = Math.sin(t * 0.7 + ph * 1.3) * 0.06; }
+
+  // ---- shrimp: z forward (the head), y up; built about its middle, lifted so it hovers just over its origin
+  const SH_ANT = [0, 0.024, 0.05];   // where the antennae sway from
+  function foodShrimp() {
+    const pink = L(0xcf9488), grey = L(0x9a8580), band = L(0x7e5048), red = L(0xb8503c), pale = L(0xe2c6bc);
+    const col = (t, a) => { const seg = 0.5 + 0.5 * Math.cos(t * 7 * TAU); let c = mixc(pink, grey, 0.35 + 0.3 * Math.cos(a)); c = mixc(c, band, smooth(0.7, 1, seg) * 0.45 * (t < 0.62 ? 1 : 0)); c = mixc(c, pale, smooth(0.2, -0.8, Math.cos(a)) * 0.4); return c; };
+    // the body: the carapace in front, the abdomen curving down and back, banded at each segment
+    const pts = path([new V3(0, 0.012, 0.045), new V3(0, 0.015, 0.02), new V3(0, 0.013, -0.008), new V3(0, 0.003, -0.03), new V3(0, -0.012, -0.045)], 16);
+    const rad = (i, t) => { const base = t < 0.35 ? lerp(0.008, 0.0125, smooth(0, 0.25, t)) : lerp(0.0125, 0.0045, smooth(0.35, 1, t)); return base * (1 + (t > 0.35 ? 0.07 * Math.max(0, Math.cos((t - 0.35) * 6 * TAU)) : 0)); };
+    const body = tube(pts, rad, { radial: 8, cap: 'both', color: col });
+    body.scale(0.78, 1, 1);
+    // the rostrum, a spiky blade forward and up from the carapace
+    const ros = tube(path([new V3(0, 0.018, 0.045), new V3(0, 0.021, 0.062), new V3(0, 0.024, 0.075)], 4), (i, t) => 0.0022 * (1 - t) + 0.0003, { radial: 4, cap: 'end', color: () => mixc(pink, red, 0.4) });
+    // the eyes on stalks, black
+    const eyes = [];
+    for (const s of [-1, 1]) { eyes.push(tube([new V3(s * 0.004, 0.017, 0.044), new V3(s * 0.009, 0.02, 0.052)], 0.0018, { radial: 4, color: () => pink })); eyes.push(paint(sph(0.0028, 8, 6, s * 0.0098, 0.0205, 0.053), L(0x101012))); }
+    // the tail fan: the telson and two uropods a side, spread
+    const fan = soup();
+    const blade = (ang, len, wid) => {
+      const d = new V3(Math.sin(ang), -0.6, -Math.cos(ang)).normalize(), sdv = new V3(Math.cos(ang), 0, Math.sin(ang)), o = new V3(0, -0.012, -0.045);
+      const tip = o.clone().addScaledVector(d, len), m1 = o.clone().addScaledVector(d, len * 0.5);
+      fan.quad(o, m1.clone().addScaledVector(sdv, -wid), tip, m1.clone().addScaledVector(sdv, wid), mixc(pink, red, 0.3), mixc(pink, red, 0.5), mixc(red, L(0x7a3a30), 0.4), mixc(pink, red, 0.5));
+    };
+    blade(0, 0.024, 0.004);
+    for (const s of [-1, 1]) { blade(s * 0.45, 0.026, 0.0055); blade(s * 0.9, 0.022, 0.005); }
+    // the legs under the carapace and the swimmerets under the abdomen
+    const legs = [];
+    for (let k = 0; k < 5; k++) for (const s of [-1, 1]) {
+      const z = 0.04 - k * 0.007;
+      legs.push(tube(path([new V3(s * 0.004, 0.005, z), new V3(s * 0.009, -0.004, z + 0.002), new V3(s * 0.01, -0.012, z + 0.006)], 4), 0.0008, { radial: 3, color: () => mixc(pink, pale, 0.4) }));
+    }
+    for (let k = 0; k < 4; k++) for (const s of [-1, 1]) { const z = 0.005 - k * 0.011, y = 0.002 - k * 0.003; legs.push(tube([new V3(s * 0.003, y - 0.005, z), new V3(s * 0.005, y - 0.011, z - 0.002)], 0.0012, { radial: 3, color: () => mixc(pink, red, 0.25) })); }
+    // long antennae sweeping back, short antennules forward
+    const ant = [];
+    for (const s of [-1, 1]) {
+      ant.push(tube(path([new V3(s * 0.004, 0.012, 0.05), new V3(s * 0.02, 0.022, 0.075), new V3(s * 0.04, 0.03, 0.06), new V3(s * 0.06, 0.03, 0.0), new V3(s * 0.07, 0.024, -0.06)], 12), (i, t) => 0.0007 * (1 - t * 0.7) + 0.0002, { radial: 3, color: () => mixc(red, pink, 0.35) }));
+      ant.push(tube(path([new V3(s * 0.003, 0.014, 0.05), new V3(s * 0.007, 0.022, 0.068), new V3(s * 0.009, 0.026, 0.08)], 6), 0.0006, { radial: 3, color: () => mixc(red, pink, 0.5) }));
+    }
+    const m = mat('f18shrimp', { std: true, roughness: 0.3, side: DS });
+    const bodyG = merge([body, ros, ...eyes, fan.geo(false), ...legs]), antG = merge(ant);
+    bodyG.translate(0, 0.012, 0);
+    antG.translate(-SH_ANT[0], 0.012 - SH_ANT[1], -SH_ANT[2]);
+    return [{ geo: bodyG, mat: m, name: 'shBody' }, { geo: antG, mat: m, name: 'shAnt' }];
+  }
+  function setupShrimp(root) {
+    const piv = new THREE.Group(); piv.name = 'shrimp';
+    const body = root.getObjectByName('shBody'), ant = root.getObjectByName('shAnt');
+    for (const o of [body, ant]) if (o) { piv.add(o); o.castShadow = false; }
+    if (ant) ant.position.set(SH_ANT[0], SH_ANT[1], SH_ANT[2]);
+    root.add(piv);
+    root.userData.shrimp = { piv, ant };
+    root.userData.anim = true;
+  }
+  function updateShrimp(root, t) {
+    const q = root.userData.shrimp; if (!q) return;
+    const ph = root.userData.phase || 0, T = 4.5, u = (((t + ph * 3) / T) % 1 + 1) % 1;
+    // now and then a quick flick of the tail: it darts back a little, then drifts forward again
+    const flick = u < 0.06 ? Math.sin(PI * u / 0.06) : 0, back = u < 0.06 ? smooth(0, 1, u / 0.06) : 1 - smooth(0, 1, (u - 0.06) / 0.94);
+    q.piv.position.set(Math.sin(t * 0.4 + ph) * 0.03, Math.sin(t * 1.3 + ph) * 0.008, -0.07 * back);
+    q.piv.rotation.x = 0.25 * flick + Math.sin(t * 2.1 + ph) * 0.03;
+    q.piv.rotation.y = Math.sin(t * 0.3 + ph) * 0.4;
+    if (q.ant) { q.ant.rotation.y = Math.sin(t * 1.7 + ph) * 0.12; q.ant.rotation.x = Math.sin(t * 1.1 + ph * 2) * 0.08; }
+  }
+
+  // ---- crab: x to the sides, z forward, on the ground
+  function foodCrab() {
+    const top = L(0xb8461f), dark = L(0x7a2a14), under = L(0xe6cfaa), leg = L(0xc65a2a), tipC = L(0x4a2a1a);
+    const shellCol = (x, y, z) => { let c = mixc(under, top, smooth(0.018, 0.026, y)); const n = Math.sin(x * 190) * Math.sin(z * 170 + x * 60); c = mixc(c, dark, smooth(0.5, 0.9, n) * 0.35 * smooth(0.02, 0.03, y)); return mixc(c, mixc(top, L(0xd8743a), 0.5), smooth(0.03, 0.05, Math.abs(x)) * 0.3); };
+    const shell = paint(sph(0.045, 14, 8, 0, 0.022, 0, 1, 0.38, 0.78), shellCol);
+    // the eyes on stalks in the middle of the front edge
+    const eyes = [];
+    for (const s of [-1, 1]) { eyes.push(tube([new V3(s * 0.008, 0.026, 0.03), new V3(s * 0.01, 0.034, 0.036)], 0.0022, { radial: 4, color: () => top })); eyes.push(paint(sph(0.003, 8, 6, s * 0.0104, 0.0352, 0.037), L(0x0c0c0c))); }
+    // four legs a side: out and up to the knee, then down to a pointed tip, each a little farther back
+    const legs = [];
+    for (let k = 0; k < 4; k++) for (const s of [-1, 1]) {
+      const z = 0.016 - k * 0.013, sp = 0.3 - k * 0.22, len = 0.04 + (k === 2 ? 0.005 : 0), dx = Math.cos(sp), dz = Math.sin(sp);
+      const p0 = new V3(s * 0.034, 0.018, z), p1 = new V3(s * (0.034 + dx * len * 0.55), 0.034, z + dz * len * 0.55), p2 = new V3(s * (0.034 + dx * len), 0.002, z + dz * len);
+      legs.push(tube(path([p0, p1, p2], 5), (i, t) => 0.0048 * (1 - t * 0.7) + 0.0007, { radial: 5, cap: 'end', color: (t) => mixc(leg, tipC, smooth(0.8, 1, t)) }));
+    }
+    // the claws: an arm forward and in from each front corner, the swollen palm, two fingers with dark tips
+    const claws = [];
+    for (const s of [-1, 1]) {
+      claws.push(tube(path([new V3(s * 0.03, 0.018, 0.026), new V3(s * 0.04, 0.026, 0.042), new V3(s * 0.026, 0.03, 0.056)], 6), 0.0055, { radial: 6, color: () => top }));
+      claws.push(paint(sph(0.011, 10, 8, s * 0.02, 0.03, 0.062, 0.85, 0.75, 1.25), (x, y) => mixc(top, L(0xd06a34), smooth(0.03, 0.04, y) * 0.4)));
+      claws.push(tube(path([new V3(s * 0.016, 0.034, 0.072), new V3(s * 0.012, 0.035, 0.083), new V3(s * 0.007, 0.032, 0.088)], 4), (i, t) => 0.0035 * (1 - t * 0.8), { radial: 5, cap: 'end', color: (t) => mixc(top, tipC, smooth(0.55, 0.95, t)) }));
+      claws.push(tube(path([new V3(s * 0.02, 0.025, 0.07), new V3(s * 0.016, 0.026, 0.081), new V3(s * 0.01, 0.029, 0.086)], 4), (i, t) => 0.003 * (1 - t * 0.8), { radial: 5, cap: 'end', color: (t) => mixc(top, tipC, smooth(0.55, 0.95, t)) }));
+    }
+    const m = mat('f18crab', { std: true, roughness: 0.42 });
+    return [{ geo: merge([shell, ...eyes, ...legs]), mat: m, name: 'crBody' }, { geo: merge(claws), mat: m, name: 'crClaws' }];
+  }
+  function setupCrab(root) {
+    const piv = new THREE.Group(); piv.name = 'crab';
+    const body = root.getObjectByName('crBody'), claws = root.getObjectByName('crClaws');
+    for (const o of [body, claws]) if (o) piv.add(o);
+    root.add(piv);
+    root.userData.crab = { piv, claws };
+    root.userData.anim = true;
+  }
+  function updateCrab(root, t) {
+    const q = root.userData.crab; if (!q) return;
+    const ph = root.userData.phase || 0, T = 3.2, u = (((t + ph * 2) / T) % 1 + 1) % 1, n = Math.floor((t + ph * 2) / T);
+    // quick little runs sideways, one way then back, with pauses; a tiny jiggle of the steps while it runs
+    const run = smooth(0.1, 0.4, u) - smooth(0.6, 0.9, u), dir = n % 2 ? -1 : 1, moving = (u > 0.1 && u < 0.4) || (u > 0.6 && u < 0.9);
+    q.piv.position.set(dir * 0.09 * run, moving ? Math.abs(Math.sin(t * 40)) * 0.003 : 0, 0);
+    q.piv.rotation.y = Math.sin(t * 0.25 + ph) * 0.5;
+    if (q.claws) q.claws.rotation.x = -0.12 - 0.08 * Math.sin(t * 1.7 + ph);
+  }
+
+  // ---- clam: an oval shell, the hinge (the umbo) at the back (-z); the bottom valve sunk a little in the sand, the top
+  // valve open; ribs fan out from the umbo, growth rings round it
+  const CL = { W: 0.046, D: 0.038, H: 0.017, U: -0.03 }, CL_HINGE = [0, 0.012, -0.03];
+  function valve(top) {
+    const S = soup(), NA = 18, NR = 6;
+    const O = (th) => [CL.W * Math.cos(th), CL.D * Math.sin(th) * (Math.sin(th) < 0 ? 0.92 : 1)];
+    const P = (th, rho, inner) => {
+      const o = O(th), x = o[0] * rho, z = CL.U + (o[1] - CL.U) * rho;
+      const dome = CL.H * Math.pow(Math.max(0, 1 - Math.pow(rho, 2.2)), 0.55);
+      const rib = inner ? 0 : 0.0011 * (0.5 + 0.5 * Math.cos(th * 30)) * smooth(0.15, 0.5, rho) + 0.0004 * Math.sin(rho * 40) * rho;
+      return new V3(x, (dome * (inner ? 0.82 : 1) + rib) * (top ? 1 : -1), z);
+    };
+    const outC = (th, rho) => { const ring = 0.5 + 0.5 * Math.sin(rho * 40 + Math.sin(th * 3) * 0.8); const c = mixc(L(0xcbb894), L(0xa48862), rho * 0.6); return mixc(c, L(0x6e5c4c), smooth(0.55, 0.95, ring) * 0.5 * rho); };
+    const inC = (th, rho) => mixc(L(0xf0ece6), L(0x8466a6), smooth(0.78, 1, rho) * 0.65);
+    for (let i = 0; i < NA; i++) for (let j = 0; j < NR; j++) {
+      const t0 = (i / NA) * TAU, t1 = ((i + 1) / NA) * TAU, r0 = j / NR, r1 = (j + 1) / NR;
+      const a = [P(t0, r0), P(t1, r0), P(t1, r1), P(t0, r1)], b = [P(t0, r0, 1), P(t0, r1, 1), P(t1, r1, 1), P(t1, r0, 1)];
+      if (top) { S.quad(a[0], a[3], a[2], a[1], outC(t0, r0), outC(t0, r1), outC(t1, r1), outC(t1, r0)); S.quad(b[0], b[3], b[2], b[1], inC(t0, r0), inC(t1, r0), inC(t1, r1), inC(t0, r1)); }
+      else { S.quad(a[0], a[1], a[2], a[3], outC(t0, r0), outC(t1, r0), outC(t1, r1), outC(t0, r1)); S.quad(b[0], b[1], b[2], b[3], inC(t0, r0), inC(t0, r1), inC(t1, r1), inC(t1, r0)); }
+    }
+    return S.geo(true);
+  }
+  function foodClam() {
+    const flesh = paint(sph(1, 10, 6, 0, 0, 0, CL.W * 0.78, 0.006, CL.D * 0.72), (x, y, z) => mixc(L(0xe6c2b0), L(0xc98e7c), smooth(0.015, 0.03, Math.hypot(x, z)) * 0.6));
+    flesh.translate(0, 0.001, -0.004);
+    const low = valve(false), up = valve(true);
+    for (const g of [low, flesh]) g.translate(0, CL_HINGE[1], 0);
+    up.translate(0, 0, -CL_HINGE[2]);   // its origin at the hinge (setupClam puts it back there)
+    const m = mat('f18clam', { std: true, roughness: 0.48, side: DS });
+    return [{ geo: merge([low, flesh]), mat: m, name: 'clLow' }, { geo: up, mat: m, name: 'clUp' }];
+  }
+  function setupClam(root) {
+    const up = root.getObjectByName('clUp');
+    if (up) up.position.set(CL_HINGE[0], CL_HINGE[1], CL_HINGE[2]);
+    root.userData.clam = up; root.userData.anim = true;
+  }
+  function updateClam(root, t) { const up = root.userData.clam; if (!up) return; const ph = root.userData.phase || 0; up.rotation.x = -(0.42 + 0.14 * Math.sin(t * 0.5 + ph)); }
+
+  // ---- water hyacinth: rosettes of glossy round leaves on puffy stalks, a spike of flowers each, roots hanging
+  function rosette(gs, r, cx, cz, size) {
+    const n = 5 + ((r() * 2) | 0), stalkC = L(0x7aa84a), stalkLt = L(0xa6c870), leafC = L(0x3f7a2a), leafLt = L(0x5f9a3a);
+    for (let i = 0; i < n; i++) {
+      const a = r() * TAU, up = 0.55 + r() * 0.45, len = size * (0.05 + r() * 0.03), d = new V3(Math.cos(a), 0, Math.sin(a));
+      // the swollen spongy stalk: thin at the base, a puffy bulb, thin again under the leaf
+      const p0 = new V3(cx, 0.035, cz), p1 = p0.clone().addScaledVector(d, len * Math.cos(up) * 0.6).add(new V3(0, len * Math.sin(up) * 0.6, 0)), p2 = p0.clone().addScaledVector(d, len * Math.cos(up)).add(new V3(0, len * Math.sin(up), 0));
+      gs.push(tube(path([p0, p1, p2], 5), (k, t) => size * (0.006 + 0.011 * Math.sin(PI * Math.min(1, t * 1.25)) * (t < 0.8 ? 1 : 0.3)), { radial: 5, color: (t) => mixc(stalkLt, stalkC, t) }));
+      // the leaf: a round, slightly cupped, glossy blade, tipped up at the stalk's angle
+      const lw = size * (0.042 + r() * 0.012), tilt = 1.25 - up * 0.9, S = soup(), NR = 3, NA = 9;
+      const fwd = new V3(d.x * Math.sin(tilt), Math.cos(tilt), d.z * Math.sin(tilt)).normalize(), side = new V3(-d.z, 0, d.x), nrm = new V3().crossVectors(side, fwd).normalize();
+      const LP = (rr, th) => p2.clone().addScaledVector(side, Math.cos(th) * rr * lw).addScaledVector(fwd, Math.sin(th) * rr * lw + lw * 0.85).addScaledVector(nrm, rr * rr * lw * 0.18);
+      const LC = (rr) => mixc(leafLt, leafC, rr * 0.8);
+      for (let jr = 0; jr < NR; jr++) for (let ja = 0; ja < NA; ja++) {
+        const r0 = jr / NR, r1 = (jr + 1) / NR, t0 = (ja / NA) * TAU, t1 = ((ja + 1) / NA) * TAU;
+        S.quad(LP(r0, t0), LP(r1, t0), LP(r1, t1), LP(r0, t1), LC(r0), LC(r1), LC(r1), LC(r0));
+      }
+      gs.push(S.geo(true));
+    }
+    // the flower spike: a green stalk up from the middle, pale violet flowers round its top half
+    const H = size * (0.13 + r() * 0.05), top = new V3(cx + (r() - 0.5) * 0.02, 0.035 + H, cz + (r() - 0.5) * 0.02);
+    gs.push(tube(path([new V3(cx, 0.035, cz), new V3(cx, 0.035 + H * 0.5, cz), top], 6), size * 0.004, { radial: 5, color: () => L(0x5f8a3a) }));
+    const nf = 9 + ((r() * 4) | 0);
+    for (let k = 0; k < nf; k++) {
+      const t = 0.45 + 0.55 * (k / nf), fa = k * 2.4 + r(), c = new V3(lerp(cx, top.x, t), 0.035 + H * t, lerp(cz, top.z, t));
+      const dir = new V3(Math.cos(fa), 0.25, Math.sin(fa)).normalize(), sd = new V3(-dir.z, 0, dir.x), upv = new V3().crossVectors(dir, sd).normalize(), F = soup(), pr = size * 0.024;
+      const at = (ang, k2, out) => c.clone().addScaledVector(sd, Math.cos(ang) * k2).addScaledVector(upv, Math.sin(ang) * k2).addScaledVector(dir, out);
+      for (let p = 0; p < 6; p++) {
+        const pa = (p / 6) * TAU + 0.26, rr = pr * (p === 1 ? 1.15 : 1), mid = p === 1 ? L(0x6a5ab8) : L(0xd8c8ee);
+        const tip = at(pa, rr, pr * 0.25), e0 = at(pa - 0.45, rr * 0.75, pr * 0.2), e1 = at(pa + 0.45, rr * 0.75, pr * 0.2);
+        F.tri(c, e0, tip, mid, L(0xc9b4e6), L(0xb39ad8)); F.tri(c, tip, e1, mid, L(0xb39ad8), L(0xc9b4e6));
+        if (p === 1) { const y = at(pa, rr * 0.45, pr * 0.24), Y = L(0xf0d030); F.tri(y.clone().addScaledVector(upv, pr * 0.12), y.clone().addScaledVector(sd, pr * 0.1), y.clone().addScaledVector(sd, -pr * 0.1), Y, Y, Y); }
+      }
+      gs.push(F.geo(false));
+    }
+    // the roots: dark purple-black feathery strands hanging in the water
+    for (let k = 0; k < 6; k++) {
+      const a = r() * TAU, rr = 0.015 * r(), len = (0.12 + r() * 0.14) * size, tp = new V3(cx + Math.cos(a) * rr, 0.03, cz + Math.sin(a) * rr), sw = new V3((r() - 0.5) * 0.05, 0, (r() - 0.5) * 0.05);
+      gs.push(tube(path([tp, tp.clone().add(new V3(sw.x * 0.3, -len * 0.5, sw.z * 0.3)), tp.clone().add(new V3(sw.x, -len, sw.z))], 5), (i, t) => 0.003 * (1 - t * 0.6) * size, { radial: 3, color: (t) => mixc(L(0x4a3a4a), L(0x1e1820), t) }));
+    }
+  }
+  function foodHyacinth() {
+    const r = rng(1818), gs = [];
+    for (const [x, z, s] of [[0, 0, 1.15], [0.13, 0.09, 0.9], [-0.1, 0.11, 0.8]]) rosette(gs, r, x, z, s);
+    return [{ geo: merge(gs), mat: mat('f18hyacinth', { std: true, roughness: 0.3, side: DS }), name: 'hyClump' }];
+  }
+  function setupHyacinth(root) { root.userData.hy = root.getObjectByName('hyClump'); root.userData.anim = true; }
+  function updateHyacinth(root, t) { const m = root.userData.hy; if (!m) return; const ph = root.userData.phase || 0; m.position.y = Math.sin(t * 1.05 + ph) * 0.007; m.rotation.y = Math.sin(t * 0.11 + ph) * 0.5; m.rotation.z = Math.sin(t * 0.85 + ph * 2) * 0.03; m.rotation.x = Math.sin(t * 0.7 + ph) * 0.025; }
+
+  Env.addFood('seagrass', foodSeagrass, { setup: setupSeagrass, update: updateSeagrass });
+  Env.addFood('shrimp', foodShrimp, { setup: setupShrimp, update: updateShrimp });
+  Env.addFood('crab', foodCrab, { setup: setupCrab, update: updateCrab });
+  Env.addFood('clam', foodClam, { setup: setupClam, update: updateClam });
+  Env.addFood('hyacinth', foodHyacinth, { setup: setupHyacinth, update: updateHyacinth });
+})();
+// round 18 (end of the sea foods)

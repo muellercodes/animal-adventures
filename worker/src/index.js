@@ -161,7 +161,9 @@ const SPECIES = ['duck', 'swan', 'chicken', 'frog', 'lizard', 'snake', 'bunny', 
   'cardinal', 'bluejay', 'hummingbird', 'toucan', 'snowyowl', 'flamingo', 'peafowl', 'ostrich', 'penguin', 'puffin',
   // round 17: snakes, a wild cat, prehistoric animals, birds and the Chinese dragon
   'kingcobra', 'rattlesnake', 'anaconda', 'pallascat', 'triceratops', 'stegosaurus', 'velociraptor', 'pterodactyl',
-  'robin', 'barnowl', 'raven', 'roboteagle', 'kiwi', 'dodo', 'chinesedragon'];
+  'robin', 'barnowl', 'raven', 'roboteagle', 'kiwi', 'dodo', 'chinesedragon',
+  // round 18: the bottlenose dolphin
+  'dolphin'];
 const MODES = ['ground', 'air', 'swim', 'fly', 'climb', 'perch', 'sleep',
   'dive'];   // round 14: under the water (an animal that can dive)
 const MAX_IN_WORLD = 60;

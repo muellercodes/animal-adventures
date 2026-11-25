@@ -296,7 +296,7 @@ const Spray = {
     const cam = G.camera; if (!cam || !G.scene || !b.m || b.room) return;
     if (Math.hypot(b.pos.x - cam.position.x, b.pos.z - cam.position.z) > 70) return;
     if (!this.pool.length) {
-      for (let i = 0; i < 24; i++) {
+      for (let i = 0; i < 30; i++) {
         const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: Env.glowTexture, color: 0xf6f9fb, transparent: true, opacity: 0, depthWrite: false }));
         s.visible = false; s.renderOrder = 4; G.scene.add(s); this.pool.push({ s, t: 9, life: 1 });
       }
@@ -306,13 +306,13 @@ const Spray = {
         r.visible = false; r.renderOrder = 3; G.scene.add(r); this.rings.push({ r, t: 9, life: 1 });
       }
     }
-    const m = b.m, fx = Math.sin(b.yaw), fz = Math.cos(b.yaw), n = Math.round(6 + 8 * k), sz = clamp(m.height * 1.4, 0.25, 1.3) * (0.6 + 0.5 * k);
+    const m = b.m, fx = Math.sin(b.yaw), fz = Math.cos(b.yaw), n = Math.round(8 + 10 * k), sz = clamp(m.height * 1.8, 0.3, 1.5) * (0.6 + 0.5 * k);
     for (let i = 0; i < n; i++) {
       let q = this.pool.find((o) => o.t >= o.life);
       if (!q) q = this.pool.reduce((a, o) => (o.t > a.t ? o : a));
       if (q.s.parent !== G.scene) G.scene.add(q.s);
       const along = (Math.random() - 0.3) * m.length * 0.45, side = (Math.random() - 0.5) * m.radius * 3, a = Math.random() * TAU, sp = (0.5 + Math.random()) * k;
-      Object.assign(q, { t: -i * 0.015, life: 0.6 + Math.random() * 0.4 * k, x: b.pos.x + fx * along + fz * side, z: b.pos.z + fz * along - fx * side, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vy: (2 + Math.random() * 2.6) * (0.5 + 0.6 * k) * Math.sqrt(b.k), y: WATER + 0.05, k: sz * (0.6 + Math.random() * 0.7) });
+      Object.assign(q, { t: -i * 0.015, life: 0.6 + Math.random() * 0.4 * k, x: b.pos.x + fx * along + fz * side, z: b.pos.z + fz * along - fx * side, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vy: (2.4 + Math.random() * 3) * (0.5 + 0.6 * k) * Math.sqrt(b.k), y: WATER + 0.05, k: sz * (0.6 + Math.random() * 0.7) });
     }
     let r = this.rings.find((o) => o.t >= o.life) || this.rings.reduce((a, o) => (o.t > a.t ? o : a));
     if (r.r.parent !== G.scene) G.scene.add(r.r);
@@ -328,7 +328,7 @@ const Spray = {
       q.vy -= GRAV * 0.6 * dt; q.x += q.vx * dt; q.z += q.vz * dt; q.y = Math.max(WATER + 0.02, q.y + q.vy * dt);
       q.s.position.set(q.x, q.y, q.z);
       q.s.scale.setScalar(q.k * (0.5 + 0.9 * u));
-      q.s.material.opacity = 0.9 * Math.pow(1 - u, 1.2) * clamp(q.t * 14, 0, 1);
+      q.s.material.opacity = Math.pow(1 - u, 1.2) * clamp(q.t * 14, 0, 1);
     }
     for (const q of this.rings) {
       if (q.t >= q.life) { if (q.r.visible) q.r.visible = false; continue; }
@@ -1883,6 +1883,9 @@ const Foods = {
     // round 15: manatee. Water plants (plant: true) stay where they grow; the ones on the river bottom are deep (they
     // glow only for an animal that can dive down to them)
     if (FOODS[type] && FOODS[type].plant) { f.plant = true; f.deep = y < WATER - 0.6; const wp = obj.userData.wp; if (wp) { if (wp.mat) wp.mat.visible = !f.deep; if (wp.bed) wp.bed.visible = f.deep; } }
+    // round 18: sea foods that stay where they are (shrimp, crabs, clams: FOODS stay) count with the fish; on the sea
+    // floor they are deep (they glow only for an animal that can dive down to them)
+    else if (FOODS[type] && FOODS[type].stay) { f.wet = true; f.deep = y < WATER - 0.6; }
     else if (FOODS[type] && FOODS[type].water) {
       const a = Math.random() * TAU;
       f.fish = { cx: x, cz: z, r: 0.8 + Math.random() * 1.6, a, w: (Math.random() < 0.5 ? -1 : 1) * (0.25 + Math.random() * 0.3) };
@@ -1975,7 +1978,7 @@ const Foods = {
     }
     const weights = Object.entries(w.def.foods).filter(([t, n]) => n > 0 && foodOK(t));
     const outdoors = this.list.filter((f) => !f.bowl && f.x < World.ROOM_X - 20);
-    const land = outdoors.filter((f) => !f.fish && !f.plant).length, fish = outdoors.length - land;   // (round 15: water plants count with the fish)
+    const land = outdoors.filter((f) => !f.fish && !f.plant && !f.wet).length, fish = outdoors.length - land;   // (round 15: water plants count with the fish; round 18: and the sea foods that stay, f.wet)
     const sp = SPECIES[P.form || P.sp];
     let added = 0;
     for (let k = 0; k < 12 && added < maxAdd; k++) {
