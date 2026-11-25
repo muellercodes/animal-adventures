@@ -12667,7 +12667,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     return out;
   }
   function stegoPlates() {
-    const NU = 10, NV = 12, pos = [], idx = [], col = [], badd = [], wts = [];
+    const NU = 6, NV = 9, pos = [], idx = [], col = [], badd = [], wts = [];
     const cBase = hex(0x5A5838), cFace = hex(0x9A6A3E), cMid = hex(0xB0834C), cRim = hex(0x3E2A1C), cGroove = hex(0x5E3E26);
     STEGO_PL.forEach(([zc, h0, len0], k) => {
       const h = h0 * 1.15, len = len0 * 0.95;

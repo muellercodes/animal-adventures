@@ -583,7 +583,7 @@ def _regions(P, N, c):
     r['ball'] = sstep(0.001, 0.0003, c['ball']) * sstep(EYE_R + 0.002, EYE_R + 0.0006, de)
     r['lid'] = sstep(EYE_R + 0.006, EYE_R + 0.002, de) * (1 - r['ball'])
     r['claw'] = sstep(0.003, 0.0006, c['claw'])
-    r['head'] = sstep(-0.14, -0.06, L[:, 2]) * sstep(0.96, 1.0, y) * sstep(0.1, 0.07, x)
+    r['head'] = sstep(-0.14, -0.06, L[:, 2]) * sstep(0.88, 0.92, y) * sstep(0.1, 0.07, x)
     r['beak'] = r['head'] * sstep(0.08, 0.16, L[:, 2])
     r['crest'] = sstep(0.004, -0.002, c['crest'] - np.minimum(c['head'], c['neck'])) * sstep(0.012, 0.003, c['crest']) * sstep(0.84, 0.74, z)
     r['wing'] = sstep(0.16, 0.24, x) * sstep(0.05, 0.03, np.abs(y - YM))
