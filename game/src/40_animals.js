@@ -4521,7 +4521,9 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
         tail: ['tail1', 'tail2', 'tail3'], tailIdle: [-0.35, 0.25, 0.45], tailRun: [0.15, 0.0, 0.0], tailWalkLift: [1.7, -0.25, -0.55],
         tailSway: 0.1, tailWalk: 0.05, tailFlick: 0.25, wag: 0.15,
         ears: ['earL', 'earR'], earBack: 0.5, lookAmp: 0.8,
-        floatDepth: 0.17, swimHead: -0.4,
+        // (round 17: cats swim now; a house cat floats low, only its head and the top of its back out of the water.
+        // It was 0.17, which the big cats on bigCat still use)
+        floatDepth: 0.2, swimHead: -0.4,
         climb: { splay: 0.55, drop: 0.55, reach: 0.25, neck: -0.35, tail: [-0.3, -0.05, 0], flex: 0.2, toe: 0.8 },
         sleep: { style: 'curl', neck: [2.6, 1.1], tail: [2.5, 0.0], bend: 1.3, roll: 0.3, rumpBend: 0.5 },
         sit: { idle: 3, pitch: 0.62, drop: 0.6, rump: 0.5, chest: 0.25, front: [0.06, 0.0], hind: [0.3, 0.05, 0.0], neck: [-0.15, 0.0, 0.0], tail: [1.0, 0.25, 0.15], tailYaw: [0.6, 1.0, 1.0],
@@ -6443,10 +6445,14 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     for (const n in s.size) s.size[n] *= k;
     s.shell.len *= k; s.detail.tile *= k;
     const A = s.anim;
+    A.floatDepth = 0.17;   // (round 17: the house cat's float before it went lower; the ocelot keeps it)
     for (const n of ['stride', 'floatDepth', 'eatY', 'eatDrop']) if (A[n] != null) A[n] *= k;
     A.lift = sc3(A.lift); A.bob = sc3(A.bob);
     return s;
   };
+  // round 17: the big cats that learned to swim swim like the tiger: low in the water with the head held up, paddling
+  // with all four legs (the tiger's numbers, for a big cat scaled by k)
+  const bigCatSwim = (k) => ({ floatDepth: 0.23 * k, swimHead: -0.3, swimPitch: -0.04, paddle: 1.0 });
   ids.push('snowleopard');
   SPEC.snowleopard = () => {
     const k = 2.5, s = bigCat(k);
@@ -6476,6 +6482,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       walk: 1.0, trot: 2.4, run: 8.0, maxRate: 4.2,
       // a low prowl: the head carried low
       nod: 0.03, trotNeck: 0.1, runNeck: 0.2,
+      ...bigCatSwim(k),   // round 17
       tail: ['tail1', 'tail2', 'tail3', 'tail4'], tailIdle: [0.0, 0.05, 0.15, 0.3], tailRun: [0.35, 0.05, -0.1, -0.15],
       tailWalk: 0.05, tailSway: 0.08, tailFlick: 0.12, wag: 0.1,
       climb: Object.assign({}, A.climb, { tail: [-0.3, -0.05, 0, 0] }),
@@ -6523,6 +6530,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     Object.assign(A, {
       // a heavy walk, a short charge
       walk: 1.1, trot: 2.6, run: 7.5, maxRate: 3.6, roll: 0.03, nod: 0.03, trotNeck: 0.08, runNeck: 0.18,
+      ...bigCatSwim(k),   // round 17
       tail: ['tail1', 'tail2'], tailIdle: [-0.25, -0.1], tailRun: [0.15, 0.0], tailWalk: 0.04, tailSway: 0.05, tailFlick: 0.12, wag: 0.05,
       climb: Object.assign({}, A.climb, { tail: [-0.2, 0.0] }),
       // lies down like a big cat, the head up a little or laid on the paws
@@ -7503,6 +7511,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       // round 16b: the sculpt's muzzle is longer now; a cub's is shorter (the winged lion's cub too)
       modelBaby: { muzzle: 0.78 },
       anim: (A) => ({
+        ...bigCatSwim(k),   // round 17 (the winged lion too)
         tailIdle: [-0.5, -0.15, 0.3], tailRun: [0.2, 0.1, 0.1], tailFlick: 0.2,
         sit: Object.assign({}, A.sit, { tail: [0.6, 0.3, 0.2], tailYaw: [0.3, 0.4, 0.4], wrap: [0.6, 1.0, 1.4], wrapY: [0.0, 0.0, 0.0] }),
       }),
@@ -7564,6 +7573,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       length: 0.8, iris: 0xB8B03C, nose: 0xB0786A, shell: 0.012,
       anim: (A) => ({
         walk: 1.0, trot: 2.5, run: 9.0, maxRate: 4.2,
+        ...bigCatSwim(k),   // round 17
         tailIdle: [0.0, 0.05, 0.15, 0.3], tailRun: [0.35, 0.05, -0.1, -0.15],
         climb: Object.assign({}, A.climb, { tail: [-0.3, -0.05, 0, 0] }),
         sit: Object.assign({}, A.sit, { tail: [0.9, 0.2, 0.1, 0.05], tailYaw: [0.5, 0.8, 0.8, 0.8], wrap: [1.2, 2.3, 3.0, 3.5], wrapY: [0.1, 0.0, -0.02, -0.02] }),
@@ -8068,6 +8078,9 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       // the fastest runner in the game: a long, stretched-out double suspension gallop, the back flexing hard with
       // every stride (stride: m per cycle at the walk; it grows with the speed up to strideMax times that)
       walk: 1.25, trot: 3.2, run: 15.0, stride: 1.3, strideMax: 4.6, maxRate: 3.4,
+      // round 17: swims as the tiger, a little deeper (its long legs carry its body higher, so at the tiger's float its
+      // whole back stood out of the water)
+      ...bigCatSwim(k), floatDepth: 0.285 * k,
       duty: [0.62, 0.42, 0.26], lift: [0.1, 0.12], flexF: 1.6, flexH: 1.1,
       gaits: { g: [0.42, 0.56, 0.0, 0.12] },
       bob: [0.006, 0.018, 0.07], pitchRun: 0.12, flexRun: 0.42, rumpFlex: 0.8, roll: 0.012,

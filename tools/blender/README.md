@@ -1101,6 +1101,17 @@ wing blades and eyes, 29k at detail 2 with 4 fur shell layers); 768 color (WebP 
 color map, fur map, feather atlas 512 x 256 and its down atlas: 69 KB mesh and cards + 33 + 16 + 7 + 8 + 6 + 13 + 1 +
 4 KB, about 220 KB in the page plus its two icons (29 KB).
 
+Round 17: Rosemary renamed the winged cat the Flying lava (the id stays `wingcat`) and made it orange. Only the paint
+changed (`wingcat.py`): a bright warm orange mackerel tabby (ground 0xD8601A, darker 0xB0420E along the back) with deep
+red-orange stripes (0x5E1004 edged 0x942806), golden instead of cream on the chin, throat and belly so it stays orange
+all over, the wing arm's coverts fiery orange with a red-orange band toward each tip and ember flecks, and a new feather
+atlas: orange vanes, golden toward the base and on the inner vanes, deep red-orange tips. Kittens: an orange fuzz with
+dark red stripes and golden orange down on the wings. The game's model blades get a golden orange underside
+(`spec.feathers` `under`, as the winged lion's). The whole pipeline was rerun with the settings above: the sculpt,
+mesh, normals, skin weights, fur, whiskers and kitten offsets came out identical to round 11's, but `uv.pack_islands`
+laid the islands out differently, so every map was redone on the new layout (`.bin` 70 to 70 KB, the files 169 to 170
+KB in all). The first try's stripes at 0x701404 rendered bright red; 0x5E1004 reads as dark red-orange.
+
 Unicorn (`VOXEL=0.0045 TRIS=4400 TEX=768`): 6.7k triangles plus 1.7k in the hair cards (11.5k in the game with the
 wing blades and eyes, 19.8k at detail 2 with the fur shells); 768 color (WebP 68) and normal (46) maps, 256 foal color
 map, fur map, 192 x 256 strand texture, feather atlases: 78 KB mesh and cards + 16 + 23 + 2 + 5 + 18 + 12 + 1 + 4 KB,
