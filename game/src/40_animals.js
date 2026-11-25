@@ -12634,7 +12634,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
         sleep: { style: 'fold', neck: [0.3, 0.35], tail: [0.8, -0.02], roll: 0.04, bend: 0.15 },
       },
       // the hatchling: a fifth of the size (then the game's 0.42), a big head with big eyes, chunky legs
-      baby: { head: 0.5, muzzle: 0.75, eye: 1.4, neck: [0.2, 0.22], body: [0.19, 0.19, 0.18], leg: [0.19, 0.23], tail: 0.17, rebind: true, tagK: 0.35 },
+      baby: { head: 0.36, muzzle: 0.75, eye: 1.5, neck: [0.2, 0.22], body: [0.19, 0.19, 0.18], leg: [0.19, 0.23], tail: 0.17, rebind: true, tagK: 0.35 },
     };
   };
 
@@ -12669,17 +12669,18 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
   function stegoPlates() {
     const NU = 10, NV = 12, pos = [], idx = [], col = [], badd = [], wts = [];
     const cBase = hex(0x5A5838), cFace = hex(0x9A6A3E), cMid = hex(0xB0834C), cRim = hex(0x3E2A1C), cGroove = hex(0x5E3E26);
-    STEGO_PL.forEach(([zc, h, len], k) => {
+    STEGO_PL.forEach(([zc, h0, len0], k) => {
+      const h = h0 * 1.15, len = len0 * 0.95;
       const side = k % 2 ? -1 : 1, lean = (6 + 6 * (1 - h / 0.78)) * DEG, yb = interpArr(zc, STEGO_TOP.z, STEGO_TOP.y) - 0.07;
       const W = stegoSpineW(yb, zc), b0 = pos.length / 3, sd = k * 1.7;
       // the outline: half length along the body at height fraction v (the widest a little under the middle, the front
       // edge fuller than the back, the tip leaning back a little)
-      const hw = (v) => (len / 2) * (v < 0.42 ? lerp(0.62, 1.0, Math.sqrt(v / 0.42)) : Math.sqrt(Math.max(0, 1 - Math.pow((v - 0.42) / 0.58, 1.6))));
+      const hw = (v) => (len / 2) * (v < 0.4 ? lerp(0.6, 1.0, Math.sqrt(v / 0.4)) : Math.pow(Math.max(0, 1 - (v - 0.4) / 0.6), 0.85));
       const ac = (v) => -0.12 * len * v * v;
       for (let s = 0; s < 2; s++) {
         const sg = s ? -1 : 1;
         for (let j = 0; j <= NV; j++) for (let i = 0; i <= NU; i++) {
-          const v = j / NV, u = -1 + (2 * i) / NU, bb = lerp(-0.1, h, v), vv = Math.max(0, bb / h);
+          const v = j / NV, u = -1 + (2 * i) / NU, bb = lerp(-0.1, h, v), vv = clamp(bb / h, 0, 1);
           const a = ac(vv) + u * hw(vv) * (u > 0 ? 1.04 : 0.96);
           // thickness: thick at the base and the middle, thin at the rim (closed at the outline)
           const th = (0.012 + 0.055 * Math.pow(1 - vv, 1.4)) * (1 - u * u) * (j === NV ? 0 : 1);
@@ -12798,7 +12799,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
         lookAmp: 0.45, breathe: 0.01,
         sleep: { style: 'fold', neck: [0.4, 0.3], tail: [0.9, -0.05], roll: 0.03, bend: 0.15 },
       },
-      baby: { head: 0.55, muzzle: 0.8, eye: 1.35, neck: [0.2, 0.22], body: [0.19, 0.19, 0.18], leg: [0.2, 0.24], tail: 0.17, rebind: true, tagK: 0.35 },
+      baby: { head: 0.5, muzzle: 0.62, eye: 1.4, neck: [0.17, 0.22], body: [0.19, 0.19, 0.18], leg: [0.2, 0.24], tail: 0.17, rebind: true, tagK: 0.35 },
       // round 17: the plates on the sculpted body (they alternate left and right, and a sculpt is one mirrored half):
       // one skinned, vertex-colored part (modelAccent, the accent batch: one draw call)
       modelAccent: () => stegoPlates(),
@@ -12814,8 +12815,8 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
           hold = Math.max(0, hold - dt);
           k = damp(k, hold > 0 && st.mode !== 'sleep' && (st.speed || 0) < 1.5 && !((st.eat || 0) > 0.1) ? 1 : 0, 3, dt);
           if (k < 0.002) return;
-          ph += dt * 2.4;
-          for (let i = 0; i < T.length; i++) T[i].rotation.y += Math.sin(ph - i * 0.6) * (0.14 + 0.08 * i) * k;
+          ph += dt * 2.2;
+          for (let i = 0; i < T.length; i++) T[i].rotation.y += Math.sin(ph - i * 0.2) * (0.24 + 0.06 * i) * k;
         };
       },
     };
@@ -12935,16 +12936,16 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
   const PTERO = {
     sh: [0.12, 0.9, 0.22], arm: [0.26, 0.5, 0.6],
     // the wing finger: [yaw in flight (deg, 0 straight out, 90 straight back), yaw folded (absolute), length]
-    finger: [6, 160, 2.0],
-    // folded, the wing finger shrinks toward the knuckle (its far end reaches back over the shoulder, not past the tail)
-    fscl: { fold: 0.72 },
+    finger: [6, 150, 2.0],
+    // folded, the wing finger shrinks toward the knuckle (its far end comes up to the shoulder, not high over the back)
+    fscl: { fold: 0.5 },
     // folded into a front leg: the humerus back and down, the forearm down and a little forward, the hand down
     fold: { hum: 60, elb: -95, wri: 10 },
     // the membrane's own bones along the humerus, the forearm and the hand: pointing back in flight, folded up along
     // the arm (their membrane gathers in across the arm as they shrink, sc)
-    plag: [{ parent: 'wingL', n: 2, at: [0.35, 0.9], spread: [92, 90], fold: [110, 120] },
-      { parent: 'wforeL', n: 3, at: [0.2, 0.9], spread: [90, 88], fold: [140, 150] },
-      { parent: 'whandL', n: 3, at: [0.2, 0.9], spread: [86, 80], fold: [155, 158] }],
+    plag: [{ parent: 'wingL', n: 2, at: [0.35, 0.9], spread: [92, 90], fold: [70, 80] },
+      { parent: 'wforeL', n: 3, at: [0.2, 0.9], spread: [90, 88], fold: [140, 148] },
+      { parent: 'whandL', n: 3, at: [0.2, 0.9], spread: [86, 80], fold: [146, 150] }],
   };
   SPEC.pterodactyl = () => {
     const K = { body: hex(0x8A7A66), dk: hex(0x5A4A3A), wing: hex(0x6A5446), beak: hex(0xD8C8A0), crest: hex(0xA8402A), leg: hex(0x6A5A4A) };
@@ -12957,7 +12958,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
         ...PTERO.plag.map((p) => Object.assign({ blades: [] }, p))],
     });
     W.wing.shrink = true;
-    for (let i = 1; i < W.wing.fb.length; i++) W.wing.fb[i].sc = 0.25;
+    for (let i = 1; i < W.wing.fb.length; i++) W.wing.fb[i].sc = 0.1;
     W.wing.fscl = Object.assign({ n: 1, hd: [0] }, PTERO.fscl);
     const fa = PTERO.finger[0] * DEG, fT = (s) => [kn + Math.cos(fa) * PTERO.finger[2] * s, sy, sz - Math.sin(fa) * PTERO.finger[2] * s];
     const xL = 0.1;
@@ -13041,7 +13042,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
         crawl: { swing: 0.3, lift: 0.06 },
         // grab: catching a fish at the water surface in flight: the body tips down, the neck reaches down to dip the
         // beak, the legs trail
-        grab: { legs: [-0.1, -0.9, 0.3], pitch: 0.35, wings: 18, neck: [0.45, 0.45, 0.3] },
+        grab: { legs: [-0.1, -0.9, 0.3], pitch: 0.12, wings: 18, neck: [0.25, 0.3, 0.25] },
         sleepNeck: [[0.35, 0], [0.3, 0], [0.3, 0]], sitDrop: 0.8,
       },
     };

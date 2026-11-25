@@ -22,7 +22,7 @@ ID = 'pterodactyl'
 BOUNDS = (V(-3.55, -0.001, -0.72), V(3.55, 1.34, 1.82))
 TAIL_RINGS = 0
 DISSOLVE_DEGENERATE = True
-BAKE_DIST = (0.01, 0.03, 0.12)
+BAKE_DIST = (0.006, 0.02, 0.12)
 
 # ---------- landmarks (left side, +x): the same numbers as PTERO in the game's 40_animals.js ----------
 YM = 0.9
@@ -62,15 +62,15 @@ HEAD = [
     (0.2, 0.074, -0.01, -0.086, 0.046, 2.3, 2.3),
     (0.4, 0.056, -0.01, -0.066, 0.034, 2.3, 2.2),
     (0.6, 0.04, -0.01, -0.048, 0.024, 2.2, 2.1),
-    (0.78, 0.025, -0.01, -0.03, 0.015, 2.1, 2.0),
-    (0.9, 0.01, -0.009, -0.013, 0.007, 2.0, 2.0),
-    (0.945, 0.0, -0.009, -0.004, 0.002, 2.0, 2.0),
+    (0.78, 0.026, -0.01, -0.031, 0.016, 2.1, 2.0),
+    (0.88, 0.016, -0.009, -0.021, 0.011, 2.0, 2.0),
+    (0.935, 0.006, -0.009, -0.011, 0.006, 2.0, 2.0),
 ]
 EYE_S, EYE_U = 0.0, 0.03
 EYE_R = 0.017
 EYE_DIR = nrm([0.86, 0.2, 0.46])
 LID_W, LID_H, LID_OFF = 0.017, 0.013, 0.0006
-MOUTH = hp(0.9, -0.008)
+MOUTH = hp(0.9, -0.009)
 
 
 def _seat(s, u, r, out=0.35):
@@ -127,7 +127,7 @@ def head(P):
     d = smin(d, ellipsoid(L, V(0.03, -0.045, -0.06), V(0.025, 0.035, 0.05)), 0.02)
     # the mouth: a straight groove from the jaw joint to the tip of the beak, the lower jaw a little narrower
     lu = -0.012 - 0.008 * sstep(0.6, 0.0, s)
-    lip = np.exp(-((u - lu) / 0.0025) ** 2) * sstep(-0.02, 0.03, s)
+    lip = np.exp(-((u - lu) / 0.0025) ** 2) * sstep(-0.02, 0.03, s) * sstep(0.88, 0.8, s)
     d = d + 0.003 * lip + 0.0025 * sstep(lu + 0.0005, lu - 0.006, u) * sstep(0.0, 0.05, s)
     # small slit nostrils high on the beak
     no = ((s - 0.32) / 0.05) ** 2 + ((u - 0.03) / 0.006) ** 2
@@ -472,7 +472,7 @@ def fix_weights(W, wpos, names, G, weld):
         # body: hips; the neck along its length (neck, neck2); the head; the crest on its own bone; the tiny tail
         L = hframe(Q)
         hd = sstep(-0.16, -0.1, L[:, 2]) * sstep(0.12, 0.08, Q[:, 0]) * sstep(0.97, 1.0, y)
-        cr = (cs['crest'] < cs['head'] + 0.002).astype(F) * sstep(0.82, 0.74, z) * sstep(1.05, 1.1, y)
+        cr = ((cs['crest'] < np.minimum(cs['head'], cs['neck']) + 0.002) & (cs['crest'] < 0.02)).astype(F) * sstep(0.84, 0.76, z)
         u = np.interp(z, [0.2, 0.3, 0.52, 0.7], [0.0, 1.0, 2.0, 3.0]).astype(F)
         nk = sstep(0.24, 0.32, z) * sstep(0.12, 0.08, Q[:, 0]) * (1 - hd)
         for nm, w in BD.blend_chain(u, ['hips', 'neck', 'neck2', 'head'], 0.25):
@@ -480,6 +480,9 @@ def fix_weights(W, wpos, names, G, weld):
         Wl[:, nb['hips']] += (1 - nk) * (1 - hd)
         Wl[:, nb['head']] += hd * (1 - cr)
         Wl[:, nb['hornC']] += hd * cr
+        # the crest behind the skull: wholly on its own bone (it reaches back past the neck's start)
+        crb = cr * (1 - hd)
+        Wl = Wl * (1 - crb[:, None]); Wl[:, nb['hornC']] += crb
         tl = sstep(-0.36, -0.42, z) * sstep(0.04, 0.02, Q[:, 0])
         Wl = Wl * (1 - tl[:, None]); Wl[:, nb['tail']] += tl
         # hind legs: by height, the top blending into the hips
@@ -582,7 +585,7 @@ def _regions(P, N, c):
     r['claw'] = sstep(0.003, 0.0006, c['claw'])
     r['head'] = sstep(-0.14, -0.06, L[:, 2]) * sstep(0.96, 1.0, y) * sstep(0.1, 0.07, x)
     r['beak'] = r['head'] * sstep(0.08, 0.16, L[:, 2])
-    r['crest'] = sstep(0.004, -0.002, c['crest'] - c['head']) * sstep(0.84, 0.74, z)
+    r['crest'] = sstep(0.004, -0.002, c['crest'] - np.minimum(c['head'], c['neck'])) * sstep(0.012, 0.003, c['crest']) * sstep(0.84, 0.74, z)
     r['wing'] = sstep(0.16, 0.24, x) * sstep(0.05, 0.03, np.abs(y - YM))
     r['bone'] = np.maximum(sstep(0.006, 0.001, c['arm']), sstep(0.005, 0.001, c['finger'])) * sstep(0.16, 0.24, x)
     r['leg'] = sstep(0.62, 0.5, y) * sstep(0.2, 0.0, z) * sstep(0.04, 0.07, x)
@@ -618,7 +621,7 @@ def paint(P, N, c, baby=False):
     # the beak: ivory, the edges and the tip darker, a little streaky
     L = R['L']
     bc = U.mix(np.tile(K['beak'], (n, 1)), K['beakDk'], sstep(0.004, 0.0, np.abs(L[:, 1] + 0.012)) * 0.4 + 0.12 * (vnoise(Pm * V(200, 200, 12), 14) - 0.5))
-    bc = U.mix(bc, K['beakTip'], sstep(0.78, 0.94, L[:, 2]) * 0.7)
+    bc = U.mix(bc, K['beakDk'], sstep(0.8, 0.94, L[:, 2]) * 0.35)
     col = U.mix(col, bc, R['beak'] * (0.6 if baby else 1.0))
     # the crest: deep red, darker toward its edges, a paler streak along it
     if not baby:

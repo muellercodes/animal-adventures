@@ -3,24 +3,24 @@
  "id": "pterodactyl",
  "data": "pterodactyl.bin",
  "enc": "deflate",
- "raw": 79788,
+ "raw": 81084,
  "maps": {
   "color": "pterodactyl-color.webp",
   "normal": "pterodactyl-normal.webp",
   "babyColor": "pterodactyl-color-baby.webp",
   "fur": "pterodactyl-fur.webp"
  },
- "nv": 2526,
- "ntri": 3194,
- "nbv": 2526,
- "nbt": 3194,
+ "nv": 2579,
+ "ntri": 3198,
+ "nbv": 2579,
+ "nbt": 3198,
  "bbox": [
   -3.503467,
-  0.002708,
+  0.001444,
   -0.580711,
   3.503467,
   1.278098,
-  1.755001
+  1.753566
  ],
  "bones": [
   "hips",
@@ -96,8 +96,8 @@
  },
  "mouth": [
   0.0,
-  0.9757,
-  1.714
+  0.9747,
+  1.7139
  ],
  "belly": [
   0.0,
@@ -128,6 +128,6 @@
   "babyLen": 1.6,
   "babyLean": 0.6,
   "shade": 0.75,
-  "uvm": 2.9625
+  "uvm": 3.0035
  }
 }

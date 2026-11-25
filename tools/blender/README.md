@@ -1886,3 +1886,56 @@ used only by the peacock's train and crest; the other kinds draw as before.
   City Zoo, the Safari Park and by the farm on the Land.
 - Budget: see the Budget section.
 
+## Round 17: prehistoric animals (`triceratops.py`, `stegosaurus.py`, `velociraptor.py`, `pterodactyl.py`)
+
+Four animals at their real size, laid out like the round 16b dinosaurs (`brachiosaurus.py`, `trex.py`: a trunk loft,
+sweeps for the neck, the legs and the tail, the head in its own frame, the sculpt's own skin weights) and, for the
+pterodactyl, like the fruit bat (`bat.py`: the wings sculpted spread flat, the membrane a thin plate cut to a 2D
+outline, every skin weight made in `fix_weights`).
+
+```bash
+python3 tools/blender/export_rig.py triceratops      # and stegosaurus, velociraptor, pterodactyl
+VOXEL=0.026 TRIS=6400 TEX=1024 WEIGHTS=transfer BLENDER_PY=... python3 tools/blender/make.py triceratops sculpt export
+VOXEL=0.026 TRIS=6000 TEX=1024 WEIGHTS=transfer BLENDER_PY=... python3 tools/blender/make.py stegosaurus sculpt export
+VOXEL=0.0045 TRIS=6400 TEX=768 WEIGHTS=transfer BLENDER_PY=... python3 tools/blender/make.py velociraptor sculpt export
+VOXEL=0.012 TRIS=6400 TEX=1024 WEIGHTS=transfer BLENDER_PY=... python3 tools/blender/make.py pterodactyl sculpt export
+```
+
+- A sweep (a neck or a tail) that starts inside a trunk loft has to start well inside it (more than the blend's k)
+  and the trunk has to end inside the sweep: a sweep's or a loft's end cap within k of the other surface leaves a
+  crescent ridge or a notch where it ends (the first stegosaurus had both at the base of its tail). The tails blend
+  into the trunk with a small k (0.14).
+- A part's box (`local()`) must reach past its blend: a thigh blend cut by the top of its box left a crescent across
+  the back.
+- Triceratops (8.6 m, 3 m at the hips): a broad body highest over the hips, a deep wedge of a face ending in a hooked
+  beak, a short nose horn, brow horns (`U.horn` polylines, about 1.2 m) curving forward, the cheeks flaring out under
+  the eyes, and the frill: a plate in its own frame (`fframe()`) cut to a superellipse (`_frad()`: squarer below, so
+  its lower corners come down beside the jaw joints, where the squamosals are), dished forward toward its sides
+  (`_dish()`), thicker at the rim, with nine knobs (epoccipitals, `KNOBS`) on each side pointing out of the outline.
+  Paint: olive-brown back, faint bands, a pale belly, the frill darker toward the rim with pale knobs, ivory horns
+  darkening to their bases, a dark beak. The hatchling (`baby_offset()`): the frill drawn in to about a third of its
+  height and narrower, the horns as buds; its own paler color map.
+- Stegosaurus (9.5 m): a deep, fairly narrow body arching high over the hips, a short neck and a small low head, short
+  front legs, long hind legs, the thagomizer (two pairs of `U.horn` spikes) at the end of the tail; buds on the
+  hatchling (`baby_offset()`). The plates are not in the sculpt: they alternate left and right and a sculpt is one
+  mirrored half. The game builds them (`stegoPlates()` in 40_animals.js, the species' `modelAccent`: a part that
+  stays on a sculpted body, one vertex-colored skinned mesh) on the spine where each base sits, with the same spine
+  weights as `fix_weights` (`stegoSpineW()`); their base heights follow the sculpted back (`STEGO_TOP`, sampled from
+  `shape()`). If the back changes, sample it again.
+- Velociraptor (2 m with the tail, 0.5 m at the hips): a biped like the T. rex, painted with the birds' plumage
+  (`bird.plumage()`, `feather_height()`: overlapping feathers in the color and normal maps), dark bars across the back
+  and the tail, a stripe back from the eye; a long low skull with lips and the tips of small teeth (`TEETH`), the
+  raised second toe with the sickle claw (`SICKLE`), folded arms with three clawed fingers. The arm feathers and the
+  tail fan are the game's feather blades (`SPEC.velociraptor.feathers`), cut from this file's feather atlas
+  (`FEATHER_ATLAS`, its own `extra_maps` and `export_extra` hooks: cell 0 the arm feathers, cell 1 the tail feathers).
+  The chick: fur shells on babies only and its own color map (tan with dark stripes).
+- Pterodactyl (Pteranodon, 7 m across the wings): the wing plane at `YM` = 0.9; the arm (humerus, forearm, the long
+  hand bone to the knuckle `KN`) and the 2 m wing finger make the leading edge, the membrane (`_outline()`: a little
+  propatagium in front of the arm, a long hollow trailing edge back to the thigh) is a plate 1.4 to 2.6 cm thick.
+  Weights (`fix_weights`): the leading edge along x on the arm's bones; behind the arm on the membrane's own bones
+  (`PLAG_X`, the game's `PTERO.plag`); past the knuckle between the finger (f0) and the last membrane bone (f8) by
+  the direction from the knuckle; the flank on the hips; the small fingers on the hand; the crest on its horn bone
+  (`hornC`: a hatchling has none, a girl's is smaller). In the game the folded arm is a long front leg standing on the
+  small fingers, the finger folded up and back along it (`PTERO.fold`, `fscl`), the membrane bones folded parallel to
+  it and shrunk across (`sc`), so the membrane lies along the folded finger.
+- Budget: see the Budget section.
