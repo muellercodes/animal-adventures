@@ -62,7 +62,7 @@ def _head_seams(s, th):
 
 M._head_seams = _head_seams
 SK.make(globals(), M, KS, eye_dir=(0.5, 0.8, 0.33))
-K = {k: SK.hexc(v) for k, v in dict(olive=0x56622E, oliveSide=0x6E7038, black=0x141410, ocell=0xC89A3A, belly=0xCCC06C, head=0x4E5A2C,
+K = {k: SK.hexc(v) for k, v in dict(olive=0x3E4A24, oliveSide=0x55592E, black=0x121210, ocell=0xC0923A, belly=0xC4B868, head=0x3A4422,
                                    stripe=0x16160E, orange=0xC8862E, gap=0x0E0D0A).items()}
 DSP = 0.05                                 # spacing of the big back spots (garter units)
 
@@ -95,7 +95,7 @@ def paint(P, N, c):
         col = SK.mix(col, K['black'], sstep(1.05, 0.9, rr) * on * sstep(0.5, 0.62, rr))
         col = SK.mix(col, K['ocell'], sstep(0.62, 0.48, rr) * on * 0.85)
     # the skin between the scales: dark lines
-    col = col * (0.7 + 0.3 * sstep(0.0, 0.12, E))[:, None] * (1 - head[:, None]) + col * head[:, None]
+    col = col * (0.82 + 0.18 * sstep(0.0, 0.12, E))[:, None] * (1 - head[:, None]) + col * head[:, None]
     # belly: yellowish with black marks
     bm = sstep(0.62, 0.72, vnoise(np.stack([CS * 120, CT * 6, CS * 0], 1).astype(F), 95))
     bc = SK.mix(np.tile(K['belly'], (n, 1)) * (0.9 + 0.12 * jit)[:, None], K['black'], bm * 0.85)
@@ -124,11 +124,11 @@ def paint(P, N, c):
 
 
 def detail(P, N, c):
-    return (M.scales(c['Pu'], N, c)[0] * KS).astype(F)
+    return (M.scales(c['Pu'], N, c)[0] * KS * 0.6).astype(F)   # smooth, low scales
 
 
-MAP_QUALITY = (66, 60)
+MAP_QUALITY = (66, 50)
 
 
 def meta(st):
-    return SK.meta_scaled(M, KS, {'iris': 0x8A6A2C, 'pupil': 'v', 'pupilR': 0.45, 'lidCol': 0x4E5A2C}, {'flat': 0x56622E})
+    return SK.meta_scaled(M, KS, {'iris': 0x8A6A2C, 'pupil': 'v', 'pupilR': 0.45, 'lidCol': 0x4E5A2C}, {'flat': 0x3E4A24})

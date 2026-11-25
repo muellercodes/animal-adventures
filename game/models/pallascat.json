@@ -1,0 +1,143 @@
+{
+ "v": 2,
+ "id": "pallascat",
+ "data": "pallascat.bin",
+ "enc": "deflate",
+ "raw": 78195,
+ "maps": {
+  "color": "pallascat-color.webp",
+  "normal": "pallascat-normal.webp",
+  "babyColor": "pallascat-baby.webp",
+  "fur": "pallascat-fur.webp",
+  "hair": "pallascat-hair.webp"
+ },
+ "nv": 2031,
+ "ntri": 2661,
+ "nbv": 2031,
+ "nbt": 2661,
+ "bbox": [
+  -0.083727,
+  -0.001171,
+  -0.445649,
+  0.083727,
+  0.323501,
+  0.261856
+ ],
+ "bones": [
+  "hips",
+  "rump",
+  "chest",
+  "neck",
+  "neck2",
+  "head",
+  "tail1",
+  "tail2",
+  "tail3",
+  "thighL",
+  "thighR",
+  "shinL",
+  "shinR",
+  "hmetaL",
+  "hmetaR",
+  "hpawL",
+  "hpawR",
+  "armL",
+  "armR",
+  "foreL",
+  "foreR",
+  "fmetaL",
+  "fmetaR",
+  "fpawL",
+  "fpawR",
+  "earL",
+  "earR",
+  "ctag"
+ ],
+ "eye": {
+  "p": [
+   0.01723,
+   0.29522,
+   0.23351
+  ],
+  "r": 0.0096,
+  "dir": [
+   0.2399,
+   0.05,
+   0.9695
+  ],
+  "lid": [
+   1.0,
+   -1.0,
+   0.05
+  ],
+  "iris": 12497994,
+  "irisR": 0.97,
+  "pupil": "round",
+  "pupilR": 0.34,
+  "rim": 4867092,
+  "lidCol": 9407622,
+  "babyLidCol": 4867650,
+  "babyIris": 10132074
+ },
+ "collar": {
+  "at": [
+   "neck",
+   "neck2",
+   0.75
+  ],
+  "lift": 0.4
+ },
+ "belly": [
+  0.0,
+  0.12,
+  -0.07
+ ],
+ "mouth": [
+  0.0,
+  0.2606,
+  0.2499
+ ],
+ "tint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "babyTint": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "rim": [
+  0.14,
+  0.13,
+  0.12
+ ],
+ "flat": 9078398,
+ "fur": {
+  "len": 0.045,
+  "n": 6,
+  "n1": 2,
+  "lean": 0.6,
+  "tile": 0.0016,
+  "babyLen": 0.9,
+  "babyLean": 0.4,
+  "shade": 0.55,
+  "uvm": 0.6094
+ },
+ "cards": {
+  "nv": 240,
+  "ntri": 192,
+  "bbox": [
+   -0.083238,
+   0.245382,
+   0.228496,
+   0.083238,
+   0.322819,
+   0.263523
+  ],
+  "bscale": 1e-06,
+  "rough": 0.45,
+  "alpha": 0.35
+ },
+ "bdelta": 0.020487
+}
