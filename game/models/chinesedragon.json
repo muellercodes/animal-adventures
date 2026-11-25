@@ -3,22 +3,22 @@
  "id": "chinesedragon",
  "data": "chinesedragon.bin",
  "enc": "deflate",
- "raw": 163818,
+ "raw": 123960,
  "maps": {
   "color": "chinesedragon-color.webp",
   "normal": "chinesedragon-normal.webp"
  },
- "nv": 5238,
- "ntri": 6351,
- "nbv": 5238,
- "nbt": 6351,
+ "nv": 4020,
+ "ntri": 4580,
+ "nbv": 4020,
+ "nbt": 4580,
  "bbox": [
   -0.31573,
   0.016157,
   -3.592232,
   0.31573,
   1.095866,
-  2.765076
+  2.755867
  ],
  "bones": [
   "hips",
@@ -75,7 +75,7 @@
    -0.81,
    0.25
   ],
-  "lidCol": 3028335,
+  "lidCol": 3094386,
   "iris": 15249440,
   "irisR": 0.86,
   "pupilR": 0.42,
@@ -116,5 +116,5 @@
   0.272,
   0.0
  ],
- "bdelta": 0.299795
+ "bdelta": 0.443578
 }

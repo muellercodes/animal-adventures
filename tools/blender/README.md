@@ -1886,3 +1886,43 @@ used only by the peacock's train and crest; the other kinds draw as before.
   City Zoo, the Safari Park and by the farm on the Land.
 - Budget: see the Budget section.
 
+
+## Round 17: the Chinese dragon (`chinesedragon.py`)
+
+Rosemary's dragon: "purple pink and blue: purple in the middle, blue on top, and pink on the bottom". The classic long
+Chinese dragon on the lizard template (`lizkit.py`), laid out in base units and scaled by KS = 12 (the file writes its
+numbers in game meters and divides them by KS, `G()`), about 6 m from the snout to the tail tip and about 30 cm
+across the body:
+- The body is one loft from the tail tip to the snout (`ROWS`, the same rows as `CDR.body` in `40_animals.js`): a
+  python-thin tube, the neck rising a little to a long head with a broad flat-topped snout narrowing to an upturned nose
+  with flared nostril pads, heavy brows over big round eyes (`EYE_R` 4.2 cm), a long mouth line, a lower jaw, two small
+  fangs over the lower lip (`fangs`). Short legs (elbows out behind, knees forward) with eagle's feet: three long toes
+  forward and one back, long hooked claws (`CLAW` 1.5).
+- `EXTRAS`: the fin crest all down the back (`lizkit.crest`, blade spines every 7.5 cm, up to 10.5 cm tall), the mane
+  (eight rows of broad flame-shaped locks rooted on the neck, lying back along it and lifting off at their tips, built
+  from points on the loft's surface, `_mane_lock`, so they never sink into the widening neck; each lock flattened
+  against the skin; locks on the cheeks and over the crown), the beard, the antlers (a main beam swept up and back
+  with three tines and a burr), the tail tuft (a fan of locks) and tufts behind the elbows and knees. `_chains()` is a
+  union of tapering chains, each evaluated only near its own box. Hair locks that end in thin points read as spikes:
+  they end at 1.2 to 1.6 cm and merge at their roots (blend 4 to 7 cm).
+- The chain is longer than a lizard's (four trunk bones `s1` .. `s4`, `neck1`, `neck2`, ten tail bones): the file
+  has its own `spine_chain()` (weights) and `spine_line()` (bend rings) over the game skeleton's pivots. `fix_extra()`
+  gives the antlers, beard, fangs and the front of the mane to the head (the chain would give an antler's tip to the
+  neck, which is nearer to it in the middle plane) and the elbow and knee tufts to the forearm and shin.
+- Skin: carp scales over the back and sides (`carp()`: staggered rows round the body, 28 scales round it, rows spaced
+  by the local girth so they shrink down the tail; the scale nearer the head lies on top, so each shows its rounded
+  free edge toward the tail), the belly in wide bands right across like a snake's (`TH_B`, each overlapping the next,
+  the free edge raised), small bead scales on the head and legs (the template's), strands along the hair, rays on
+  the crest's spines and ridges on the antlers, all as the height field.
+- Paint: by the angle round each section from the top (the surface's own on the legs): blue on top, purple on the
+  sides (from about 60 degrees), pink underneath (from about 115 degrees), blended over about 15 degrees; each scale a
+  little lighter or darker and a touch shifted in hue, the grooves darker, the free edge of each belly band a deeper
+  pink; pink lips and nose pads, purple-pink feet. Chosen to go with them: the mane, beard and tufts deep blue
+  (0x3B2FA0) going violet (0x7A48D0) toward their tips, the crest's spines deep blue (0x3440B0) to violet (0x8C5ADA),
+  the antlers pale pink (0xF2C8E4) at the burr going lavender (0xC6B4F2) at the tips, ivory claws and fangs, golden
+  eyes (iris 0xE8B020, round pupils). The whiskers are the game's (pale pink-lavender, `DWH` in `40_animals.js`).
+- The baby has the same colors and its own shape (`baby_offset()`): antler buds (the antlers drawn most of the way down
+  to their burrs), a short mane, beard and tufts, a low crest, a small tail tuft; the game makes it shorter and rounder
+  with a big head and eyes (`baby` in its spec).
+- The texture regions cut the long body into short pieces (`UV_Z`) so its islands pack into the square maps; the
+  antlers and the mane get their own islands.

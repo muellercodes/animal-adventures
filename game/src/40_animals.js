@@ -12778,6 +12778,14 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       accentRough: 0.45,
       extras: () => [{ bone: 'head', name: 'whiskers', geo: dragonWhiskerGeo(), mat: new THREE.MeshStandardMaterial({ color: linColor(C.whisker), roughness: 0.55, metalness: 0, side: THREE.DoubleSide }), at: DWH.at }],
       extend: (R) => dragonExtend(R),
+      // the menu picture: the tail swung round in an S and the head turned a little toward the camera, seen from in
+      // front and to one side (a straight 6 m dragon is a thin line in a square picture)
+      icon: (R) => {
+        const B = R.bones, k = R.age < 0.6 ? 0.78 : 1;
+        for (let i = 1; i <= 10; i++) B['tail' + i].rotation.y += i <= 3 ? 0.3 : i <= 8 ? -0.34 : 0.1;
+        B.s2.rotation.y += 0.08; B.s4.rotation.y -= 0.08; B.neck1.rotation.y -= 0.12; B.neck2.rotation.y += 0.2; B.head.rotation.y += 0.15;
+        return { size: 4.4 * k, at: [0.2, 0.55 * k, 0.45 * k], dir: [0.78, 0.42, 0.62] };
+      },
       eyes: [{ bone: 'head', p: [0.105, 0.635, 2.37], r: 0.042, dir: [0.85, 0.2, 0.45], iris: 0xE8B020, irisR: 0.86, pupilR: 0.4, rim: 0x3A1A08 }],
       mouth: [0, 0.53, 2.75],
       anim: {

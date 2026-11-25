@@ -47,7 +47,8 @@ ROWS = [
 M.BODY = [tuple(v / KS for v in r[:5]) + tuple(r[5:]) for r in ROWS]
 M.TAIL_TIP = G(0, 0.42, -3.2)
 M.Z_HEAD, M.Z_TAIL = g(2.12), g(-0.15)
-M.UV_Z = [g(-1.3), g(-2.4)]
+# (the long body in short pieces, so its islands pack well into the square maps)
+M.UV_Z = [g(1.1), g(0.2), g(-0.75), g(-1.7), g(-2.55)]
 M.HEAD_BOX = (G(-0.26, 0.36, 2.04), G(0.26, 0.8, 2.81))
 M.LEG_BOX = (G(-0.36, -0.01, -0.3), G(0.36, 0.52, 1.86))
 M.FOOT_BOX = (G(-0.38, -0.01, -0.26), G(0.38, 0.15, 1.92))
@@ -156,9 +157,9 @@ def _locks():
 
 LOCKS = _locks()
 # the beard: three locks hanging from the chin, merged into one pointed tuft that curls forward at its tip
-BEARD = [_lock([G(0.0, 0.47, 2.6), G(0.0, 0.41, 2.55), G(0.0, 0.35, 2.48), G(0.0, 0.3, 2.44)], 0.055, 0.014),
-         _lock([G(0.04, 0.47, 2.55), G(0.045, 0.41, 2.5), G(0.05, 0.36, 2.43), G(0.05, 0.32, 2.39)], 0.05, 0.014),
-         _lock([G(0.07, 0.48, 2.48), G(0.08, 0.43, 2.42), G(0.085, 0.39, 2.35), G(0.085, 0.36, 2.31)], 0.045, 0.013)]
+BEARD = [_lock([G(0.0, 0.47, 2.6), G(0.0, 0.41, 2.55), G(0.0, 0.35, 2.49), G(0.0, 0.31, 2.46)], 0.065, 0.018),
+         _lock([G(0.035, 0.47, 2.56), G(0.04, 0.41, 2.51), G(0.042, 0.36, 2.45), G(0.04, 0.33, 2.42)], 0.06, 0.017),
+         _lock([G(0.06, 0.48, 2.5), G(0.065, 0.43, 2.45), G(0.068, 0.39, 2.39), G(0.065, 0.37, 2.36)], 0.05, 0.016)]
 # the tail tuft: a flame of locks fanning back from the tip
 TUFT = []
 for ang, rad, L in ((90, 0.14, 0.42), (60, 0.15, 0.45), (30, 0.16, 0.47), (0, 0.16, 0.48), (-30, 0.15, 0.46), (-60, 0.14, 0.43), (-90, 0.12, 0.38), (90, 0.05, 0.5), (0, 0.06, 0.52), (-90, 0.04, 0.46)):
@@ -208,7 +209,7 @@ def mane(P):
 
 
 def beard(P):
-    return _chains(M.mirror(P), BEARD, g(0.04))
+    return _chains(M.mirror(P), BEARD, g(0.06))
 
 
 def tuft(P):
@@ -259,7 +260,7 @@ M.KEEP_FLOOR = 0.28
 M.FEET_KEEP = 0.22
 M.BODY_REACH = g(0.22)
 M.LEG_REACH = g(0.08)
-M.BEND_PITCH = (g(0.07), g(0.045))
+M.BEND_PITCH = (g(0.08), g(0.05))
 M.BAKE_CAGE = (g(0.016), g(0.05))
 M.AO_DIST = g(0.25)
 M.SPINE_BLEND = g(0.07)
@@ -538,7 +539,9 @@ def baby_offset(P, N, c):
     x, y, z = Pm[:, 0], Pm[:, 1], Pm[:, 2]
     out = np.zeros_like(P)
     bd = c['body']
-    on = lambda k: sstep(g(0.008), 0.0, c[k]) * sstep(-g(0.004), g(0.008), bd - c[k])
+    # (a generous reach: the game mesh's vertices at a lock's or a tine's tip lie a few cm off the sculpt, and one
+    # left out would stretch into a long spike)
+    on = lambda k: sstep(g(0.04), g(0.015), c[k]) * sstep(-g(0.01), g(0.01), bd - c[k])
     ka = on('antler')
     d = (A0 - Pm) * 0.8
     d[:, 0] *= sg
