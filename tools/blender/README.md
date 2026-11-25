@@ -862,6 +862,22 @@ is used:
   more): 49 KB + 46 + 41 + 6 + 10 + 7 + 23 + 1 + 8 KB, 198 KB of files, about 264 KB in the page. 9.7 MB / 6.4 MB. The
   peahen (`peafowlf`): 40 KB of files (about 53 KB in the page), 4.3 MB / 2.7 MB more.
 
+Round 17 prehistoric animals (texture memory with mipmaps on a phone, where the color and normal maps are capped at
+512; a baby's color map only when a baby is on screen):
+- Triceratops (`VOXEL=0.026 TRIS=6400 TEX=1024 WEIGHTS=transfer`, about 6 minutes on the shared machine): 8.4k
+  triangles; 1024 color and normal maps (WebP 66 and 48), 384 hatchling color map: 64 KB mesh + 37 + 138 + 7 KB,
+  249 KB of files (the normal map with its scales is most of it). About 2.8 MB on a phone (+0.8 MB for a baby).
+- Stegosaurus (`VOXEL=0.026 TRIS=6000 TEX=1024 WEIGHTS=transfer`): 8.4k triangles in the sculpt plus about 3.7k in the
+  game's plates (`stegoPlates()`, vertex colored, one draw call); the triceratops's set of maps: 61 KB + 35 + 137 + 6 KB,
+  242 KB of files. About 2.8 MB on a phone (+0.8 MB for a baby).
+- Velociraptor (`VOXEL=0.0045 TRIS=6400 TEX=768 WEIGHTS=transfer`): 9.7k triangles plus about 30 feather blades; 768
+  color and normal maps (WebP 70 and 56), 384 chick color map, 384 fur map (the chick's down), a 512 x 128 feather
+  atlas and its normal map, a 256 x 64 down atlas: 77 KB + 27 + 41 + 10 + 15 + 3 + 1 + 1 KB, 179 KB of files.
+- Pterodactyl (`VOXEL=0.012 TRIS=6400 TEX=1024 WEIGHTS=transfer`): 6.4k triangles; 1024 color and normal maps (WebP 68
+  and 52), 384 hatchling color map, 512 fur map (the pycnofibres): 47 KB + 18 + 26 + 5 + 20 KB, 119 KB of files.
+- Per world on a phone (round 16's `mem.py` walk plus the Sky Lands, before and after): the Land 309 to 325 MB (Dino
+  Park: all four), the Jungle 56 to 67 MB (the herds), the Sky Lands 38 to 40 MB; the other worlds as before.
+
 ## More cats and a hamster (round 7: `cat.py` as a template, `coat.py`, `hamster.py`)
 
 Five more cats (`blackcat`, `orangecat`, `calico`, `siamese`, `whitecat`) and a Syrian hamster. The tabby got its fixes
