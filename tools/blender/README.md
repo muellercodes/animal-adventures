@@ -1954,4 +1954,10 @@ VOXEL=0.012 TRIS=6400 TEX=1024 WEIGHTS=transfer BLENDER_PY=... python3 tools/ble
   (`hornC`: a hatchling has none, a girl's is smaller). In the game the folded arm is a long front leg standing on the
   small fingers, the finger folded up and back along it (`PTERO.fold`, `fscl`), the membrane bones folded parallel to
   it and shrunk across (`sc`), so the membrane lies along the folded finger.
+- Pterodactyl ground stance fix (later in round 17): the beak in front of the skull is now wholly on the head (its
+  lower edge drooped under the head mask's height and was half on the neck and the hips, which made a sail off the
+  beak tip whenever the neck bent), and only a narrow strip of membrane at the flank stays on the hips (`kh`, x 0.13 to
+  0.18 m), so the folded membrane gathers in to the humerus lying along the flank. Re-made from `lowpoly`
+  (`TRIS=6400 ... make.py pterodactyl lowpoly export`): the same mesh and textures, only the weights changed. The game
+  side (the ground fold `PTERO.ground`, the planted hands) is in the bird animator.
 - Budget: see the Budget section.

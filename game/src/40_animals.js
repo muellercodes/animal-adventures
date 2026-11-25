@@ -9408,7 +9408,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     }
     // round 10 (fruit bat): hang (asleep hanging upside down by the feet, wrapped in the wings) and crawl (on the
     // ground the folded arms step in turn, the bat walks on its wrists and feet)
-    const HG = P.hang || null, CR = P.crawl || null, qCr = new THREE.Quaternion();
+    const HG = P.hang || null, CR = P.crawl || null, qCr = new THREE.Quaternion(), qS0 = new THREE.Quaternion(), qE0 = new THREE.Quaternion(), crS = [0, 0, 0, 0];
     let hangK = 0;
     // round 16 (flamingo): oneLeg { rest, foot, flex }: asleep, and resting after standing still rest seconds, it
     // stands on one leg with the other folded up under the belly (foot: [height, forward] in leg heights; flex: the
@@ -9432,6 +9432,12 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     const side = (s) => (W ? { sh: B['wing' + s], el: B['wfore' + s], wr: B['whand' + s], fs: W.fb.map((f) => B[f.name.slice(0, -1) + s]) } : null);
     const shP0 = W ? B.wingL.userData.p0 : null, fpo = W && W.foldedPos ? W.foldedPos : [0, 0, 0];
     const wl = side('L'), wr = side('R');
+    // round 17 (pterodactyl; no other bird has it): gfold, the wing's own pose folded on the ground (the arm a bent front
+    // leg): joint angles hum, elb, wri and the folded plane's roll, pitch, yaw (deg), each wing bone's turn d (rad), and
+    // a hatchling's own (baby), blended by age (gfC). It is blended in by the fold amount, so a spread wing (flight) is
+    // posed exactly as before.
+    const GF = W && W.gfold ? W.gfold : null, GK = ['hum', 'elb', 'wri', 'roll', 'pitch', 'yaw'];
+    const gfC = GF ? { d: GF.d.slice() } : null;
     // neck poses come from the rig's current rest skeleton (recomputed when the age changes):
     // eating on the ground (body pitched forward) and on the water (body dropped); flight, swim, stand from segment elevations
     // (round 12: grownStance { pitch, elev, tail }, the grown-up's own stance over the species' (the rooster stands
@@ -9442,6 +9448,11 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     let eatG = 0, eatW = 0, eatPG = null, eatPW = null, flyN = null, swimN = null, standN = null;
     const refresh = () => {
       if (GS) { gk = sstep(0.6, 1.0, R.age); sp0 = (P.standPitch || 0) + (GS.pitch || 0) * gk; }
+      if (GF) {
+        const G0 = GF.baby || GF;
+        for (const k of GK) gfC[k] = lerp(G0[k], GF[k], R.age);
+        for (let i = 0; i < GF.d.length; i++) gfC.d[i] = lerp(G0.d[i], GF.d[i], R.age);
+      }
       for (const lg of legs) refreshLeg(lg, R.rest);
       legH = legs[0].hipH;
       const piv = P.neck.map((n) => R.rest[n].toArray()), mb = A.spec.mouthBone || 'head';
@@ -9473,7 +9484,7 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     // spread orientation: twist about the span, then flap roll, then yaw. folded orientation: drape about the folded length, then pitch, then yaw.
     // the two are slerped by the fold amount. bodyPitch keeps the spread wing level in root space.
     function wingPose(w, mir, f, flapRoll, twist, g, bodyPitch) {
-      const F = W.fold, sp = W.spread, fo = W.folded;
+      const F = W.fold, sp = W.spread, fo = GF ? gfC : W.folded;
       eS.set(sp.pitch * DEG + twist, sp.yaw * DEG, sp.roll * DEG + flapRoll);
       if (HG && hangK > 0) eF.set(lerp(fo.pitch, HG.wrap.pitch, hangK) * DEG, lerp(fo.yaw, HG.wrap.yaw, hangK) * DEG, lerp(fo.roll, HG.wrap.roll, hangK) * DEG + flapRoll * 0.3);
       else eF.set(fo.pitch * DEG, fo.yaw * DEG, fo.roll * DEG + flapRoll * 0.3);
@@ -9482,17 +9493,31 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       qC.setFromAxisAngle(AX, -bodyPitch * (1 - f));
       qW.premultiply(qC);
       const k2 = Math.min(1, f + (1 - f) * g);
-      qY.setFromAxisAngle(AY, F.hum * DEG * Math.min(1, f + (1 - f) * g * 0.3));
-      w.sh.quaternion.multiplyQuaternions(qW, qY);
-      w.el.quaternion.setFromAxisAngle(AY, F.elb * DEG * k2);
-      w.wr.quaternion.setFromAxisAngle(AY, F.wri * DEG * k2);
-      for (let i = 0; i < w.fs.length; i++) w.fs[i].quaternion.setFromAxisAngle(AY, W.fb[i].d * k2);
+      if (GF) {
+        // (round 17: the pterodactyl's own ground fold, gfold)
+        qY.setFromAxisAngle(AY, lerp(F.hum * Math.min(1, f + (1 - f) * g * 0.3), gfC.hum, f) * DEG);
+        w.sh.quaternion.multiplyQuaternions(qW, qY);
+        w.el.quaternion.setFromAxisAngle(AY, lerp(F.elb * k2, gfC.elb, f) * DEG);
+        w.wr.quaternion.setFromAxisAngle(AY, lerp(F.wri * k2, gfC.wri, f) * DEG);
+        for (let i = 0; i < w.fs.length; i++) w.fs[i].quaternion.setFromAxisAngle(AY, lerp(W.fb[i].d * k2, gfC.d[i], f));
+      } else {
+        qY.setFromAxisAngle(AY, F.hum * DEG * Math.min(1, f + (1 - f) * g * 0.3));
+        w.sh.quaternion.multiplyQuaternions(qW, qY);
+        w.el.quaternion.setFromAxisAngle(AY, F.elb * DEG * k2);
+        w.wr.quaternion.setFromAxisAngle(AY, F.wri * DEG * k2);
+        for (let i = 0; i < w.fs.length; i++) w.fs[i].quaternion.setFromAxisAngle(AY, W.fb[i].d * k2);
+      }
       // (round 10, the bat: a folding membrane's bones shrink across the wing as it folds, fb[i].sc)
       if (W.shrink) for (let i = 0; i < w.fs.length; i++) if (W.fb[i].sc != null) { w.fs[i].scale.z = lerp(1, W.fb[i].sc, k2); if (mir) mir.fs[i].scale.z = w.fs[i].scale.z; }
+      // (round 17, the pterodactyl: folded on the ground, the membrane bones' skin out past their own spot along the arm,
+      // the outer wing too, gathers in to them (gfold.sx))
+      if (GF && GF.sx != null) for (let i = 1; i < w.fs.length; i++) { w.fs[i].scale.x = lerp(1, GF.sx, f); if (mir) mir.fs[i].scale.x = w.fs[i].scale.x; }
       // (round 16b, the bat only: fscl, the first n finger bones shrink in the wing plane as the wing folds)
       if (W.fscl) {
         const fs = lerp(1, HG && hangK > 0 ? lerp(W.fscl.fold, W.fscl.hang, hangK) : W.fscl.fold, f);
         for (let i = 0; i < W.fscl.n; i++) { w.fs[i].scale.x = w.fs[i].scale.z = fs; if (mir) mir.fs[i].scale.x = mir.fs[i].scale.z = fs; }
+        // (round 17, the pterodactyl: z, folded its wing finger's skin gathers in to the finger more than it shortens)
+        if (W.fscl.z != null) { const fz = lerp(1, W.fscl.z, f); for (let i = 0; i < W.fscl.n; i++) { w.fs[i].scale.z = fz; if (mir) mir.fs[i].scale.z = fz; } }
         if (HG && hangK > 0) for (let i = 0; i < W.fscl.n; i++) w.fs[i].quaternion.setFromAxisAngle(AY, lerp(W.fb[i].d, W.fscl.hd[i], hangK) * k2);
       }
       w.sh.position.set(shP0.x + fpo[0] * f, shP0.y + fpo[1] * f, shP0.z + fpo[2] * f);
@@ -9603,7 +9628,50 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
         blurL.visible = blurR.visible = op > 0.02;
         blurL.material.opacity = op;
       }
-      if (CR && W) {
+      if (CR && W && CR.plant) {
+        // round 17 (pterodactyl): on all fours: the body sits as low as the folded arms (long front legs) let it, the
+        // knuckles at plant m over the ground (the hips kept between low hip heights and their rest height), the hind
+        // legs bending to match; walking, each hand steps like a foot, in step with the opposite hind leg (planted, it
+        // goes back at the walking speed; then lifted, lift m, it swings forward again), the arm swinging about the
+        // shoulder and bending at the elbow to put it there (a few Newton steps on the two angles)
+        const kp = ground * S.fold * (1 - sl);
+        if (kp > 0.001) {
+          const y0 = (rootPos(wl.fs[0], root, _v2).y + rootPos(wr.fs[0], root, _v3).y) * 0.5;
+          hips.position.y = clamp(hips.position.y - (y0 - CR.plant) * kp, legH * CR.low, hip0.y);
+        }
+        // (asleep the body sinks onto its belly and the arms fold more, the hands kept on the ground)
+        const k = gaitOn * S.fold, kA = ground * S.fold, dt2 = lerp(P.duty[0], P.duty[1], S.rw);
+        if (kA <= 0.001) crS.fill(0);
+        else {
+          for (let s = 0; s < 2; s++) {
+            const w = s ? wr : wl, p = fract(ph - (s ? 0 : 0.5));
+            let dz, dy = 0;
+            if (p < dt2) dz = (0.5 - p / dt2) * dt2 * L;
+            else { const u = (p - dt2) / (1 - dt2); dz = (sstep(0, 1, u) - 0.5) * dt2 * L; dy = Math.sin(PI * u) * CR.lift; }
+            qS0.copy(w.sh.quaternion); qE0.copy(w.el.quaternion);
+            rootPos(w.fs[0], root, _v2);
+            const ty = lerp(_v2.y, CR.plant + dy * k, kA), tz = _v2.z + dz * k;
+            let al = crS[s * 2], be = crS[s * 2 + 1];   // (from the last frame's answer)
+            const at = (x, y) => {
+              qCr.setFromAxisAngle(AX, x); w.sh.quaternion.multiplyQuaternions(qCr, qS0);
+              qCr.setFromAxisAngle(AY, y); w.el.quaternion.multiplyQuaternions(qE0, qCr);
+              return rootPos(w.fs[0], root, _v3);
+            };
+            for (let it2 = 0; it2 < 4; it2++) {
+              const y0 = at(al, be).y, z0 = _v3.z, ey = ty - y0, ez = tz - z0;
+              if (ey * ey + ez * ez < 1e-6) break;
+              const ya = at(al + 0.05, be).y, za = _v3.z, yb = at(al, be + 0.05).y, zb = _v3.z;
+              const j11 = (ya - y0) / 0.05, j12 = (yb - y0) / 0.05, j21 = (za - z0) / 0.05, j22 = (zb - z0) / 0.05, det = j11 * j22 - j12 * j21;
+              if (Math.abs(det) < 1e-6) break;
+              let da = (j22 * ey - j12 * ez) / det, db = (j11 * ez - j21 * ey) / det;
+              const m = Math.max(Math.abs(da), Math.abs(db)) / 0.3;
+              if (m > 1) { da /= m; db /= m; }
+              al = clamp(al + da, -1, 1); be = clamp(be + db, -1.2, 1.2);
+            }
+            at(al, be); crS[s * 2] = al; crS[s * 2 + 1] = be;
+          }
+        }
+      } else if (CR && W) {
         // crawling: each folded arm swings forward and back about the shoulder, in step with the opposite hind leg
         const k = gaitOn * S.fold * (1 - hangK);
         if (k > 0.001) {
@@ -12938,14 +13006,22 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     // the wing finger: [yaw in flight (deg, 0 straight out, 90 straight back), yaw folded (absolute), length]
     finger: [6, 150, 2.0],
     // folded, the wing finger shrinks toward the knuckle (its far end comes up to the shoulder, not high over the back)
-    fscl: { fold: 0.5 },
-    // folded into a front leg: the humerus back and down, the forearm down and a little forward, the hand down
+    // (round 17: z, and the skin behind it gathers in to the finger, so no flap of it shows)
+    fscl: { fold: 0.5, z: 0.12 },
+    // the arm's fold (a little of it on each upstroke in flight; folded on the ground it takes PTERO.ground's instead)
     fold: { hum: 60, elb: -95, wri: 10 },
     // the membrane's own bones along the humerus, the forearm and the hand: pointing back in flight, folded up along
     // the arm (their membrane gathers in across the arm as they shrink, sc)
     plag: [{ parent: 'wingL', n: 2, at: [0.35, 0.9], spread: [92, 90], fold: [70, 80] },
       { parent: 'wforeL', n: 3, at: [0.2, 0.9], spread: [90, 88], fold: [140, 148] },
       { parent: 'whandL', n: 3, at: [0.2, 0.9], spread: [86, 80], fold: [146, 150] }],
+    // round 17 (ground stance fix): folded on the ground (the animator's gfold): the arm a long front leg bent at the
+    // elbow and the wrist, the humerus back along the flank (the membrane gathers in along it, no flaps), the forearm
+    // down and forward, the hand straight down to the knuckle on the ground a little out to the side, the wing finger
+    // folded up and back along the side; [roll, pitch, yaw] of the folded plane and [hum, elb, wri] (deg), the
+    // grown-up's and the hatchling's (short arms: straighter); the membrane bones keep their folds along the arm, their
+    // skin gathered in to them along it too (sx)
+    ground: { fold: [-70, 40, 0, 60, -130, 50], baby: [-75, 30, -10, 50, -85, 20], finger: 150, sx: 0.1 },
   };
   SPEC.pterodactyl = () => {
     const K = { body: hex(0x8A7A66), dk: hex(0x5A4A3A), wing: hex(0x6A5446), beak: hex(0xD8C8A0), crest: hex(0xA8402A), leg: hex(0x6A5A4A) };
@@ -12960,6 +13036,10 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     W.wing.shrink = true;
     for (let i = 1; i < W.wing.fb.length; i++) W.wing.fb[i].sc = 0.1;
     W.wing.fscl = Object.assign({ n: 1, hd: [0] }, PTERO.fscl);
+    // (round 17: the ground fold, see PTERO.ground; the wing finger's turn from its own fold, the others' as folded)
+    const gf = (v) => ({ roll: v[0], pitch: v[1], yaw: v[2], hum: v[3], elb: v[4], wri: v[5],
+      d: W.wing.fb.map((f, i) => (i ? f.d : (PTERO.ground.finger - v[3] - v[4] - v[5] - PTERO.finger[0]) * DEG)) });
+    W.wing.gfold = Object.assign(gf(PTERO.ground.fold), { baby: gf(PTERO.ground.baby), sx: PTERO.ground.sx });
     const fa = PTERO.finger[0] * DEG, fT = (s) => [kn + Math.cos(fa) * PTERO.finger[2] * s, sy, sz - Math.sin(fa) * PTERO.finger[2] * s];
     const xL = 0.1;
     return {
@@ -13032,14 +13112,17 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
         type: 'bird', walk: 0.9, run: 2.6, stride: 0.6, strideMax: 1.8, duty: [0.65, 0.5], lift: 0.06, flex: 0.8,
         bob: 0.02, waddle: 0.05, yawSway: 0.05,
         neck: ['neck', 'neck2', 'head'], neckDist: [0.4, 0.35, 0.25], eatPitch: 0.25, eatElev: [-40, -60, -75], eatY: 0.02,
-        flyElev: [2, -2, -4], flyPitch: 0.0, standPitch: -0.45, standElev: [45, 20, -5], runPitch: 0.05,
+        // (round 17 ground stance: the body tipped up in front about 40 degrees on its long front legs (a hatchling's
+        // less, grownStance), the neck in an S, its base forward, then up, the head held forward and level)
+        flyElev: [2, -2, -4], flyPitch: 0.0, standPitch: -0.35, grownStance: { pitch: -0.2 }, standElev: [15, 50, 0], runPitch: 0.05,
         tail: 'tail', tailWag: 0.05,
         wing: W.wing, canFly: true, flyLegs: [-0.25, -1.1, 0.4], flyFlex: 0.3, jumpFlap: 0.8,
         lookPeriod: 3.5, lookRate: 2.5, lookAmp: 0.8, lookDist: [0.3, 0.3, 0.4],
         // slow deep wingbeats, then long glides
         soar: { climb: 0.8, every: 7, beats: 3 },
-        // on the ground: it walks on all fours, the folded arms stepping in turn (swing rad, lift m)
-        crawl: { swing: 0.3, lift: 0.06 },
+        // on the ground: it walks on all fours, the folded arms stepping in turn (round 17: the hands planted and
+        // stepping like feet, lifted lift m; plant, low: see the bird animator)
+        crawl: { lift: 0.08, plant: 0.03, low: 0.5 },
         // grab: catching a fish at the water surface in flight: the body tips down, the neck reaches down to dip the
         // beak, the legs trail
         grab: { legs: [-0.1, -0.9, 0.3], pitch: 0.12, wings: 18, neck: [0.25, 0.3, 0.25] },

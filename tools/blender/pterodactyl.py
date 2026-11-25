@@ -485,6 +485,11 @@ def fix_weights(W, wpos, names, G, weld):
         Wl = Wl * (1 - crb[:, None]); Wl[:, nb['hornC']] += crb
         tl = sstep(-0.36, -0.42, z) * sstep(0.04, 0.02, Q[:, 0])
         Wl = Wl * (1 - tl[:, None]); Wl[:, nb['tail']] += tl
+        # round 17 (ground stance fix): the beak in front of the skull wholly on the head (its lower edge droops under
+        # the head mask's height, which left the tip half on the neck and the hips: a sail off the beak tip when the
+        # neck bends)
+        bk = sstep(0.86, 0.92, z) * sstep(0.12, 0.08, Q[:, 0]) * (1 - cr)
+        Wl = Wl * (1 - bk[:, None]); Wl[:, nb['head']] += bk
         # hind legs: by height, the top blending into the hips
         dl = np.minimum(cs['leg'], np.minimum(cs['foot'], cs['claw'] + 0.002))
         onl = (dl < cs['trunk'] + 0.002) & (z < 0.0) & (y < 0.82)
@@ -519,7 +524,9 @@ def fix_weights(W, wpos, names, G, weld):
         ow[:, nb['f8']] = ua
         ko = sstep(KN[0] - 0.08, KN[0] + 0.1, Q[:, 0])
         pw = pw * (1 - ko[:, None]) + ow * ko[:, None]
-        kh = sstep(0.26, 0.14, Q[:, 0])
+        # (round 17 ground stance fix: only a narrow strip at the flank stays on the hips, so the folded membrane gathers
+        # in to the humerus lying along the flank instead of standing off the body as a ruffle)
+        kh = sstep(0.18, 0.13, Q[:, 0])
         hpw = np.zeros((n, len(names)), F); hpw[:, nb['hips']] = 1
         pw = pw * (1 - kh[:, None]) + hpw * kh[:, None]
         # the leading edge itself (the arm and the finger bones, the propatagium in front of them) on the arm's bones
