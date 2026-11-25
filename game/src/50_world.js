@@ -485,6 +485,8 @@ const World = (() => {
           ...SP7([{ sp: 'crocodile', n: 3, kids: 1, home: [30, -30], range: 45, water: true }]),
           // round 16: a flock of flamingos wading in the shallows round the pools (wade: they keep to shallow water)
           ...SP7([{ sp: 'flamingo', n: 8, kids: 2, home: [-50, -60], range: 30, wade: true }]),
+          // round 17: green anacondas in the swamp water
+          ...SP7([{ sp: 'anaconda', n: 2, kids: 1, home: [-30, -20], range: 40, water: true }]),
         ],
         ambient: [{ sp: 'frog', w: 4 }, { sp: 'turtle', w: 3, water: true }, { sp: 'snake', w: 2 }, { sp: 'duck', w: 2, water: true, kids: 3 }, { sp: 'otter', w: 1, water: true }, { sp: 'raccoon', w: 1 }],
         foods: { worm: 4, grass: 2, berries: 1, acorn: 1, smallfish: 4, fish: 3, bugs: 4, mushroom: 2, twigs: 1 },
@@ -566,6 +568,10 @@ const World = (() => {
           ...SP7([{ sp: 'dodo', n: 4, kids: 2, home: [12, -18], range: 30 }]),
           // round 17: two Chinese dragons along the river: they fly up and down it, swim and rest on its banks
           ...SP7([{ sp: 'chinesedragon', n: 2, home: [xc(-40), -40], range: 90, water: true }]),
+          // round 17: king cobras on the forest floor (one with a hatchling), green anacondas in the lagoon (a mother with
+          // her baby) and in the river (they keep to the water, divers' code in 60_actors)
+          ...SP7([{ sp: 'kingcobra', n: 2, kids: 1, home: [-30, -25], range: 35 }, { sp: 'kingcobra', n: 1, home: [25, -55], range: 30 },
+            { sp: 'anaconda', n: 1, kids: 1, home: [LAG.x, LAG.z], range: 12, water: true }, { sp: 'anaconda', n: 1, home: [xc(-90), -90], range: 40, water: true }]),
         ],
         ambient: [{ sp: 'parrot', w: 4 }, { sp: 'lizard', w: 3 }, { sp: 'frog', w: 2 }, { sp: 'snake', w: 2 }, { sp: 'turtle', w: 1, water: true }, { sp: 'otter', w: 1, water: true }],
         foods: { berries: 4, apple: 3, worm: 3, grass: 1, smallfish: 2, fish: 2, banana: 4, bugs: 3, twigs: 2, watermelon: 1, mushroom: 1, meat: 1, lettuce: 1, waterplants: 2 },   // (round 15: manatee: water plants in the river and the lagoon)
@@ -785,6 +791,8 @@ const World = (() => {
           ...SP7([{ sp: 'snowyowl', n: 2, home: [-50, 40], range: 45 }, { sp: 'snowyowl', n: 2, kids: 1, home: [30, 70], range: 40 }]),
           // round 17: ravens in the pine woods
           ...SP7([{ sp: 'raven', n: 4, kids: 1, home: [-25, -45], range: 50 }]),
+          // round 17: Pallas's cats on the rocky lower slopes of the mountains, a mother with her kitten among them
+          ...SP7([{ sp: 'pallascat', n: 3, kids: 1, home: [35, -85], range: 35 }]),
         ],
         ambient: [{ sp: 'fox', w: 2 }, { sp: 'owl', w: 1 }, { sp: 'moose', w: 1 }, ...SP7([{ sp: 'polarbear', w: 2 }, { sp: 'snowleopard', w: 1 }])],
         foods: { fish: 4, smallfish: 3, berries: 2, pinecone: 3, twigs: 2, seeds: 1, meat: 1 },
@@ -890,6 +898,9 @@ const World = (() => {
             { sp: 'ostrich', n: 5, kids: 3, home: [70, 70], range: 45 },
             { sp: 'ostrich', n: 3, home: [HOLE.x + 28, HOLE.z + 24], range: 25 },
           ]),
+          // round 17: western diamondback rattlesnakes in the desert of dunes (one with her baby) and on the near kopje's
+          // rocks
+          ...SP7([{ sp: 'rattlesnake', n: 2, kids: 1, home: [-165, 0], range: 35 }, { sp: 'rattlesnake', n: 2, home: [KOPJES[0][0] + 6, KOPJES[0][1] - 4], range: 16 }]),
         ],
         ambient: [{ sp: 'giraffe', w: 2 }, { sp: 'rhino', w: 1 }, ...SP7([{ sp: 'lion', w: 1, kids: 1 }, { sp: 'cheetah', w: 1 }, { sp: 'zebra', w: 2, kids: 1 }, { sp: 'ostrich', w: 1, kids: 1 }])],
         foods: { grass: 4, seeds: 3, bugs: 3, meat: 2, twigs: 2, berries: 1, watermelon: 1, dates: 1, hay: 1 },

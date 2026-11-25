@@ -2022,3 +2022,47 @@ across the body:
   about 10.7 MB on a computer, about 2.7 MB on a phone (the maps capped at 512). The maps are only a quarter covered
   (many small islands on the crest, mane and antlers, and the long body cut into strips); the body still gets about
   2 mm a texel on a computer.
+## Round 17: three more snakes on the garter snake's tube (`snakekit.py`: `kingcobra.py`, `rattlesnake.py`, `anaconda.py`) and Pallas's cat (`pallascat.py`)
+
+The snakes are built like the garter snake (no sculpt: an exact tube, made as the game mesh with even rings and
+evaluated per texel), with `snakekit.py`: `base(over)` runs `snake.py` in a module of its own with the species' cross
+sections, head landmarks and scale settings, all in "garter units" (the garter's head, 4.5 cm), and `make(globals(), M,
+KS)` installs the pipeline hooks, which scale everything by KS (the head scale) into game meters. The game rig is the
+same layout (`snakeKit` in 40_animals.js, `kH` = KS): the tip of the snout at 0.48 of the length, the first body bone
+0.052 KS behind it, the last one 6% of the length before the tail tip. A species can replace any of the tube's
+functions (`features()` for extra shape, `_head_seams()` for its head scales, `SK.dorsal(M, keel)` for smooth or keeled
+scales) and give its own `paint()`, `baby_paint()`, `detail()`, `baby_offset()` and `rings()`. Run them with the
+steps `rig lowpoly bake texture export` (`make.py <id> rig`, then `make.py <id> lowpoly export`; there is no sculpt):
+about 2 minutes each. `SK.small_scales()` draws small irregular scales (2D Worley cells).
+- King cobra (KS 2.4, 3.7 m, `TEX=1024`): a slender body with 15 rows of big smooth scales, a big head with large
+  plates and the pair of occipitals behind them, round pupils; olive brown with faint pale chevrons that point forward,
+  clearer toward the darker tail, a cream-yellow throat. Hatchlings (`baby_paint`, 512 map): glossy black with narrow
+  yellow-white chevrons and pale bars across the head. In the game it rears up the front third of its body (the head
+  about 1.15 m up) and spreads its hood (`anim.rear`, `anim.hood`): the seven bones under the hood (from just behind the
+  head down about 9 head lengths, 1 m) widen across, up to about 2.5 times the body, and flatten, and a flap bone on
+  each side of each of them (`hood<i>L` / `R`, in the bone's own place, so they change nothing at rest) carries the
+  sides of the neck (`fix_weights` here moves sin(th)^3 of each hood bone's weight onto them) and curves them forward,
+  so the hood is cupped and reads from the side too. The hood's back is a lighter olive with two pale chevrons and its
+  edges are dark, so the spread outline shows.
+- Western diamondback rattlesnake (KS 1.45, 1.4 m, `TEX=768`): a heavy body on a thin neck, 25 rows of keeled scales, a
+  broad triangular head with a heavy brow, the heat pit, small crown scales between the big brow plates, slit pupils;
+  gray-brown with dark brown diamonds rimmed in cream, the dark eye stripe between pale lines, a black and white banded
+  tail and a tan rattle of six segments, each with its front lobe and the groove behind it (`features()`, fine rings
+  over it). A newborn has a single button (`baby_offset` squeezes the rattle into its first segment). In the game it
+  coils and buzzes the rattle (`anim.rattle`).
+- Green anaconda (KS 3.4, 5 m, `TEX=768`, normal map WebP 50, the scale relief at 0.6): a thick body, a narrow flat
+  head with the eyes (`EYE_TH` 0.62) and nostrils on top and small scales all over it, narrow belly plates; dark olive
+  with two rows of big black ovals down the back (the halves mirror, so they pair up), black-ringed yellow-orange spots
+  low on the sides, a yellowish belly with black marks, the black and orange stripes back from the eye.
+- Pallas's cat (`VOXEL=0.0025 TRIS=4200 TEX=1024`, about 4 minutes on the shared machine): the fluffy white cat's way
+  with a long coat (the sculpt is the body plus the coat's volume) on the cat template: a broad flat face made broader by
+  long cheek fur, small round ears low on the sides (`CV.ear` 'round'; the game's ear bone moved there), big round
+  eyes set high, a thick blunt ringed tail; frosted gray (white tips on the coat strokes), buff low down, a few dark
+  bars over the loins and the backs of the hind legs, black spots on the forehead, two black stripes on each cheek,
+  white chin and muzzle. Long fur shells (`len` 0.045, 6 layers, 2 at detail 1). Kittens are darker gray with faint
+  marks.
+- Budget (files, about 4/3 of that in the page; texture memory with mipmaps on a computer and on a phone, where the
+  color and normal maps are capped at 512): king cobra 8.2k triangles, 186 KB (mesh 14, color 30, normal 121,
+  hatchling 18 KB), about 12.6 MB / 4.2 MB; rattlesnake 9.6k triangles, 171 KB (16 + 38 + 116 KB), 6.3 MB / 2.8 MB;
+  anaconda 8.2k triangles, 145 KB (15 + 36 + 93 KB), 6.3 MB / 2.8 MB; Pallas's cat 5.3k triangles plus 192 in the
+  whiskers, 191 KB (53 + 78 + 35 + 4 + 12 + 5 KB), about 13.4 MB / 5 MB.

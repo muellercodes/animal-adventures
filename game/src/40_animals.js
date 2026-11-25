@@ -3145,6 +3145,134 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     };
   };
 
+  // ===== round 17: bigger snakes on the garter snake's rig (king cobra, rattlesnake, green anaconda) =====
+  // snakeKit(o): the garter snake's skeleton, lofts and animator for a snake o.L long (snout to tail tip, m) with a head
+  // o.kH times the garter's (o.hw its width, o.hy its height off the ground) and a body o.R thick (its widest radius;
+  // o.rad(u) the radius along it, 0 at the neck to 1 at the tail tip) on o.N bones. The sculpted models
+  // (tools/blender/snakekit.py) are laid out the same way: the tip of the snout at 0.48 L, the first bone 0.052 kH behind
+  // it, the last one 6% of the length before the tail tip.
+  function snakeKit(o) {
+    const N = o.N, L = o.L, kH = o.kH, R = o.R, kL = L / SNAKE_L, hw = o.hw || 1, hy = o.hy;
+    const tip = 0.48 * L, z0 = tip - 0.052 * kH, dz = (0.94 * L - 0.052 * kH) / (N - 1), tailZ = tip - L;
+    const bones = [['head', null, 0, R, z0 + 0.012 * kH]], names = [];
+    for (let i = 0; i < N; i++) { bones.push(['s' + i, null, 0, R, z0 - i * dz]); names.push('s' + i); }
+    // the cobra's hood flaps (o.anim.hood): a bone each side on each hood bone, in its place, that the sides of the neck
+    // ride on (tools/blender/kingcobra.py), so they can curve forward as the hood spreads
+    for (const [i] of (o.anim && o.anim.hood) || []) bones.push(['hood' + i + 'L', 's' + i, 0, R, z0 - i * dz, 1]);
+    const keys = [];
+    for (let k = 0; k <= 24; k++) {
+      const u = k / 24, z = lerp(z0 + 0.005 * kH, tailZ, u), r = Math.max(R * o.rad(u), 0.002);
+      keys.push([0, r * 0.95, z, r, r * 0.92, r * 0.85, 2.15]);
+    }
+    const H = SNAKE_R * kH, hk = (y, z, w, t, b, e) => [0, hy + (y - 0.95) * H, z0 + z * kH, w * H * hw, t * H, b * H, e];
+    const tongue = () => {
+      const g = new THREE.BufferGeometry(), Lt = 0.03 * kH, w = 0.0012 * kH, f = 0.004 * kH;
+      const v = [-w, 0, 0, w, 0, 0, w, 0, Lt * 0.6, -w, 0, 0, w, 0, Lt * 0.6, -w, 0, Lt * 0.6, -w, 0, Lt * 0.6, 0, 0, Lt * 0.6, -f, 0, Lt, 0, 0, Lt * 0.6, w, 0, Lt * 0.6, f, 0, Lt];
+      g.setAttribute('position', new THREE.Float32BufferAttribute(v, 3));
+      g.computeVertexNormals();
+      return g;
+    };
+    return {
+      size: { length: L, height: 2 * R, radius: o.radius, eyeHeight: hy + 0.006 * kH },
+      tex: [128, 256], rough: 0.5,
+      detail: { kind: 'feather', tile: 0.012 * kH, amt: 0.22, bump: 0.5, sheen: 0.03 },
+      bones,
+      fur: [
+        { name: 'body', bones: names, blend: 0.03 * kL, segs: 10, sub: 2, cap1: 2, side: [-1, 0, 0], flow: 1, keys },
+        { name: 'head', bones: ['head'], segs: 12, cap0: 2, cap1: 3, capLen1: 0.6, dkind: 'scale', dtile: 2.2, keys: [
+          hk(0.92, -0.012, 0.68, 0.6, 0.6, 2.2), hk(0.96, 0.008, 0.98, 0.66, 0.64, 2.4), hk(0.94, 0.03, 0.86, 0.6, 0.56, 2.5), hk(0.87, 0.046, 0.56, 0.42, 0.4, 2.2),
+        ] },
+      ],
+      paint: o.paint,
+      babyPaint: o.babyPaint,
+      accent: [],
+      extras: () => [{ bone: 'head', name: 'tongue', geo: tongue(), mat: new THREE.MeshStandardMaterial({ color: linColor(o.tongue || 0x1E1A1C), roughness: 0.5, side: THREE.DoubleSide }), at: [0, hy - 0.2 * H, z0 + 0.04 * kH] }],
+      eyes: [Object.assign({ bone: 'head', p: [0.74 * H * hw, hy + 0.25 * H, z0 + 0.026 * kH], r: 0.0036 * kH, dir: [0.85, 0.3, 0.35], irisR: 0.92, pupilR: 0.5, lid: [0.95, -0.95, 0], noBlink: true }, o.eye)],
+      mouth: [0, hy - 0.15 * H, z0 + 0.05 * kH],
+      anim: Object.assign({ type: 'snake', stride: 0.6 * kL, names, z0, dz, R, kL, kH, headOff: 0.012 * kH }, o.anim),
+      // the menu picture: the snake in its pose (o.iconSt: reared, coiled to rattle, curled up) framed on its bones
+      icon: (Rg) => {
+        const st = Object.assign({ t: 0, speed: 0, mode: 'ground', vy: 0, eat: 0, turn: 0, idle: 0 }, o.iconSt);
+        for (let i = 0; i < 90; i++) { st.t += 1 / 30; Rg.rig.update(1 / 30, st); }
+        Rg.root.updateMatrixWorld(true);
+        const box = new THREE.Box3(), v = new THREE.Vector3();
+        for (const n of ['head', ...names.slice(0, o.iconN || N)]) box.expandByPoint(Rg.bones[n].getWorldPosition(v));
+        const sz = box.getSize(new THREE.Vector3());
+        return { size: Math.max(sz.x, sz.y, sz.z) * 1.1 + 4 * R, at: box.getCenter(v).toArray(), dir: o.iconDir || [0.72, 0.42, 0.75] };
+      },
+    };
+  }
+  ids.push('kingcobra', 'rattlesnake', 'anaconda');
+  // The king cobra: 3.7 m, slender, a big head; olive brown with faint pale cross bands, darker toward the tail, a pale
+  // yellow throat. It rears up the front third of its body and spreads its narrow hood (anim.rear, anim.hood: the bones
+  // under the hood widen across). Hatchlings are black with bright yellow-white bands.
+  SPEC.kingcobra = () => snakeKit({
+    L: 3.7, kH: 2.4, R: 0.032, N: 24, hw: 1.05, hy: 0.03, radius: 0.13,
+    rad: (u) => (u < 0.05 ? lerp(0.72, 0.85, u / 0.05) : u < 0.4 ? lerp(0.85, 1, sstep(0.05, 0.4, u)) : u < 0.78 ? lerp(1, 0.72, sstep(0.4, 0.78, u)) : lerp(0.72, 0.06, Math.pow((u - 0.78) / 0.22, 1.2))),
+    paint(P, C) {
+      const K = { olive: hex(0x4C4630), dark: hex(0x1E1C16), band: hex(0x8A8258), throat: hex(0xE0D49A) };
+      cset(C, K.olive);
+      if (P.part === 'body') {
+        cmix(C, K.dark, sstep(0.45, 0.95, P.v) * 0.8);
+        cmix(C, K.band, sstep(0.8, 0.95, Math.sin(P.arc * 20) * 0.5 + 0.5) * 0.45 * sstep(0.08, 0.2, P.v));
+        cmix(C, K.throat, sstep(-0.3, -0.7, P.ny) * (1 - sstep(0.1, 0.5, P.v) * 0.5));
+      } else cmix(C, K.throat, sstep(-0.1, -0.5, P.ny));
+      C.ro = 0.45;
+    },
+    babyPaint(P, C) {
+      cset(C, hex(0x16161A));
+      if (P.part === 'body') cmix(C, hex(0xE8E2B0), sstep(0.82, 0.92, Math.sin(P.arc * 24) * 0.5 + 0.5) * 0.9);
+      else cmix(C, hex(0xE8E2B0), sstep(-0.2, -0.6, P.ny) * 0.8);
+    },
+    eye: { iris: 0x4A3418, pupil: 'round', pupilR: 0.42 },
+    // (the hood: a long flat oval from just behind the head down about 9 head lengths, about 2.4 times the body wide
+    // at its widest; reared, the head is about 1.15 m up)
+    anim: { walk: 1.0, run: 3.4, floatDepth: 0.03, rear: [0.38, 0.08], hood: [[0, 1.8], [1, 2.6], [2, 2.75], [3, 2.55], [4, 2.1], [5, 1.55], [6, 1.12]], hoodCup: 0.1 },
+    iconSt: { happy: 1 }, iconDir: [0.8, 0.25, 0.55], iconN: 12,
+  });
+  // The western diamondback rattlesnake: 1.4 m and heavy, a broad triangular head on a thin neck, gray-brown with dark
+  // diamonds edged in cream, a black and white banded tail and the rattle. It coils with its head raised and buzzes
+  // its rattle (anim.rattle). Born live like the garter snake, the baby with a single button on its tail.
+  SPEC.rattlesnake = () => snakeKit({
+    L: 1.4, kH: 1.45, R: 0.032, N: 16, hw: 1.5, hy: 0.017, radius: 0.12,
+    rad: (u) => (u < 0.06 ? lerp(0.5, 0.75, u / 0.06) : u < 0.45 ? lerp(0.75, 1, sstep(0.06, 0.45, u)) : u < 0.86 ? lerp(1, 0.6, sstep(0.45, 0.86, u)) : lerp(0.6, 0.3, (u - 0.86) / 0.14)),
+    paint(P, C) {
+      const K = { ground: hex(0x9A8E78), dia: hex(0x5A4A3A), edge: hex(0xE4DAC0), belly: hex(0xD8D0B8) };
+      cset(C, K.ground);
+      if (P.part === 'body') {
+        const d = Math.abs(fract(P.arc * 9) - 0.5) * 2 + Math.abs(P.nx) * 2.2;
+        cmix(C, K.edge, sstep(0.95, 0.85, d) * sstep(0.7, 0.8, d) * 0.8);
+        cmix(C, K.dia, sstep(0.8, 0.7, d) * 0.85);
+        const tail = sstep(0.8, 0.84, P.v);
+        cmix(C, Math.sin(P.arc * 60) > 0 ? hex(0x161412) : hex(0xE8E4DA), tail);
+        cmix(C, hex(0xC4A87A), sstep(0.96, 0.97, P.v));
+        cmix(C, K.belly, sstep(-0.5, -0.8, P.ny) * (1 - tail));
+      }
+      C.ro = 0.55;
+    },
+    eye: { iris: 0x8A7A56, pupil: 'v', pupilR: 0.45 },
+    anim: { walk: 0.5, run: 1.3, floatDepth: 0.025, amp: 0.8, rattle: [0.3, 0.17] },
+    iconSt: { alert: 1 },
+  });
+  // The green anaconda: 5 m and very thick, olive green with big black spots, a narrow head with the eyes and nostrils
+  // on top. It swims and dives, slow on land, and rests at the surface with only the top of its head out (swimLift: the
+  // head comes up to the surface while the body floats low).
+  SPEC.anaconda = () => snakeKit({
+    L: 5.0, kH: 3.4, R: 0.11, N: 24, hw: 1.0, hy: 0.05, radius: 0.32,
+    rad: (u) => (u < 0.07 ? lerp(0.42, 0.7, u / 0.07) : u < 0.45 ? lerp(0.7, 1, sstep(0.07, 0.45, u)) : u < 0.86 ? lerp(1, 0.6, sstep(0.45, 0.86, u)) : lerp(0.6, 0.1, (u - 0.86) / 0.14)),
+    paint(P, C) {
+      cset(C, hex(0x58603A));
+      if (P.part === 'body') {
+        cmix(C, hex(0x141410), sstep(0.62, 0.7, noise(P.arc * 9, P.nx * 3, 0.5)) * 0.9);
+        cmix(C, hex(0xC8B868), sstep(-0.5, -0.8, P.ny));
+      }
+      C.ro = 0.4;
+    },
+    eye: { iris: 0x8A6A2A, pupil: 'v', pupilR: 0.4, dir: [0.55, 0.75, 0.35] },
+    anim: { walk: 0.4, run: 1.0, floatDepth: 0.17, amp: 0.7, swimLift: 0.1 },
+    iconSt: { mode: 'sleep' }, iconDir: [0.6, 0.6, 0.55],
+  });
+
   // ---------- round 2 species: horse, pig, goat, otter, hedgehog, raccoon ----------
   ids.push('horse', 'pig', 'goat', 'otter', 'hedgehog', 'raccoon');
 
@@ -4575,6 +4703,32 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     s.eyes[0].iris = T.iris;
     if (T.nose) s.accent[0].col = T.nose;
     if (T.spec) T.spec(s);
+    return s;
+  };
+
+  // ===== round 17: Pallas's cat =====
+  // A small wild cat of the cold steppe on the tabby's skeleton and animation (tools/blender/pallascat.py, on the fluffy
+  // white cat's coat in the sculpt): about the size of a house cat but much bigger looking in its very long, thick,
+  // frosted gray coat; a flat broad face, small round ears set low and wide on the sides of the head, round pupils,
+  // yellow-green eyes, a thick ringed tail with a black tip. It walks low and slow, the tail carried low.
+  ids.push('pallascat');
+  SPEC.pallascat = () => {
+    const s = SPEC.cat();
+    for (const b of s.bones) if (b[0] === 'earL') { b[2] = 0.036; b[3] = 0.293; b[4] = 0.187; }
+    for (const fp of s.fur) if (fp.name === 'body' || fp.name === 'tail') fp.keys = fp.keys.map((q) => [q[0], q[1], q[2], q[3] * 1.3, q[4] * 1.3, q[5] * 1.3]);
+    const K = { gray: hex(0x9A9488), frost: hex(0xD8D4CA), dark: hex(0x2A2622), white: hex(0xECE8E0), rust: hex(0x8A7458) };
+    s.paint = (P, C) => {
+      cset(C, K.gray); cmix(C, K.frost, (noise(P.x * 300, P.y * 300, P.z * 300) - 0.3) * 0.6); cmix(C, K.rust, sstep(-0.3, -0.8, P.ny) * 0.3);
+      if (P.part === 'tail') { cmix(C, K.dark, sstep(0.7, 0.85, Math.sin(P.arc * 120) * 0.5 + 0.5) * 0.8); cmix(C, K.dark, sstep(P.len - 0.05, P.len - 0.035, P.arc)); }
+      if (P.part === 'head') cmix(C, K.white, sstep(-0.3, -0.7, P.ny) * 0.8);
+      C.ro = 0.86; C.fl = P.part === 'head' ? 0.5 : 1;
+    };
+    s.babyPaint = (P, C) => { cmix(C, hex(0x6E6A64), 0.45); C.fl = 1; };
+    Object.assign(s.eyes[0], { iris: 0xB8BC52, pupil: 'round', pupilR: 0.34, rim: 0x3A3A14 });
+    s.accent[0].col = 0x8A625C;
+    s.shell.len = 0.024; s.shell.lean = 0.6;
+    s.baby = Object.assign({}, s.baby, { eye: 1.35 });
+    Object.assign(s.anim, { walk: 0.6, trot: 1.4, run: 3.8, tailIdle: [-0.45, 0.1, 0.2], tailWalkLift: [0.4, 0.1, 0.0], tailFlick: 0.12, wag: 0.08 });
     return s;
   };
 
@@ -10096,6 +10250,62 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     };
   }
 
+  // ---------- round 17: the king cobra's and the rattlesnake's displays (in the snake animator) ----------
+  // Rearing (P.rear = [part of the bones lifted, curl radius in garter lengths]): from a base on the ground the body
+  // curls up to stand straight, the front third off the ground as a king cobra does, the top bent forward under the head
+  // and swaying a little, while the rest keeps its S on the ground. Blended with the slither by rr; returns the head's
+  // extra pitch.
+  function snakeRear(P, S, rr, xs, ys, zs, N, dz, y0) {
+    const iB = Math.round(N * P.rear[0]), rc = P.rear[1] * P.kL, sR = iB * dz, arc = rc * PI * 0.5;
+    const bx = xs[iB], bz = zs[iB];
+    // the way the body runs at the base (forward), so it curls up in line with it
+    let fx = xs[iB - 1] - xs[Math.min(N, iB + 1)], fz = zs[iB - 1] - zs[Math.min(N, iB + 1)];
+    // (mostly straight ahead, the way the snake faces, so the hood faces what is in front of it and the camera behind it)
+    let fl = Math.hypot(fx, fz) || 1; fx = 0.3 * fx / fl; fz = 0.3 * fz / fl + 0.7; fl = Math.hypot(fx, fz) || 1; fx /= fl; fz /= fl;
+    for (let i = 0; i < iB; i++) {
+      const u = sR - i * dz;   // distance up from the base along the body
+      let up, fwd;
+      if (u < arc) { const a = u / rc; up = rc * (1 - Math.cos(a)); fwd = rc * Math.sin(a); }
+      else { up = rc + (u - arc); fwd = rc; }
+      const top = Math.max(0, u - sR * 0.8);
+      fwd += top * 0.5; up -= top * 0.12;
+      const sw = Math.sin(S.sway) * 0.05 * P.kL * (u / sR) * (u / sR);
+      xs[i] = lerp(xs[i], bx + fx * fwd + fz * sw, rr); zs[i] = lerp(zs[i], bz + fz * fwd - fx * sw, rr); ys[i] = lerp(ys[i], y0 + up, rr);
+    }
+    return -0.1 * rr;
+  }
+  // Coiling to rattle (P.rattle = [part of the bones in the raised neck, height of the head as a part of the length]):
+  // the body lies in the resting coil with the neck rising in an S over its front and the head held up facing forward;
+  // the tail end stands up in the middle of the coil and its tip buzzes (the rattle)
+  const _rq = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()], _rp = [];
+  function snakeRattle(P, S, rr, xs, ys, zs, cx, cz, N, dz, y0, t) {
+    const iF = Math.round(N * P.rattle[0]), Lb = N * dz, hh = P.rattle[1] * Lb;
+    for (let i = iF; i <= N; i++) {
+      const tl = sstep(N - 2.5, N, i);
+      xs[i] = lerp(xs[i], cx[i] * (1 - 0.7 * tl), rr); zs[i] = lerp(zs[i], cz[i] * (1 - 0.7 * tl), rr);
+      ys[i] = lerp(ys[i], y0 * 0.95 + tl * y0 * 3.5, rr);
+    }
+    xs[N] += Math.sin(t * 95) * y0 * 0.4 * rr; ys[N] += Math.sin(t * 95 + 1.3) * y0 * 0.15 * rr;
+    // the neck: a curve from where it leaves the coil up to the head, held over the front of the coil
+    const J = _rq[0].set(cx[iF], y0 * 0.95, cz[iF]), Hd = _rq[3].set(Math.sin(S.sway) * 0.025 * Lb, y0 + hh, Lb * 0.05);
+    const P1 = _rq[1].set(J.x * 0.4, y0 + hh * 0.2, J.z * 0.4 - Lb * 0.05), P2 = _rq[2].set(Hd.x * 0.5, y0 + hh * 1.1, Hd.z - Lb * 0.12), q = _rq[4];
+    let len = 0;
+    for (let k = 0; k <= 24; k++) {
+      const u = k / 24, a = (1 - u) * (1 - u) * (1 - u), b = 3 * (1 - u) * (1 - u) * u, c = 3 * (1 - u) * u * u, d = u * u * u;
+      const x = a * J.x + b * P1.x + c * P2.x + d * Hd.x, y = a * J.y + b * P1.y + c * P2.y + d * Hd.y, z = a * J.z + b * P1.z + c * P2.z + d * Hd.z;
+      if (k) len += Math.hypot(x - q.x, y - q.y, z - q.z);
+      q.set(x, y, z);
+      _rp[k] = [x, y, z, len];
+    }
+    for (let i = 0; i < iF; i++) {
+      const want = len * (1 - i / iF);
+      let k = 1; while (k < 24 && _rp[k][3] < want) k++;
+      const a = _rp[k - 1], b = _rp[k], f = clamp((want - a[3]) / Math.max(1e-6, b[3] - a[3]), 0, 1);
+      xs[i] = lerp(xs[i], lerp(a[0], b[0], f), rr); ys[i] = lerp(ys[i], lerp(a[1], b[1], f), rr); zs[i] = lerp(zs[i], lerp(a[2], b[2], f), rr);
+    }
+    return -0.08 * rr;
+  }
+
   // ---------- snake animator ----------
   // Each body bone is a root-level bone placed on a curve x(s) = A * sin(k * s - phase) (s = distance back from the head).
   // When moving, the phase advances with the distance traveled so the wave stays fixed relative to the ground (no sliding):
@@ -10103,22 +10313,27 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
   function animSnake(R, A) {
     const P = A.spec.anim, B = R.bones, names = P.names, N = names.length;
     const segs = names.map((n) => B[n]), head = B.head, tongue = R.extras.tongue;
-    const z0 = P.z0, dz = P.dz, y0 = SNAKE_R;
-    const S = { ph: R.rnd * TAU, amp: 0.05, spd: 0, swim: 0, eat: 0, air: 0, lean: 0, look: 0, k: 0, lift: 0 };
+    const z0 = P.z0, dz = P.dz, y0 = P.R || SNAKE_R;
+    // round 17: bigger snakes (snakeKit): kL scales the body wave, the coil and the steadier neck with the length, kH the
+    // head's lift and its place in front of the first bone with the head's size, amp the wave's width (a heavy snake
+    // swings less); all 1 for the garter snake
+    const kL = P.kL || 1, kH = P.kH || 1, ampK = P.amp || 1, hOff = P.headOff == null ? 0.012 : P.headOff;
+    const hoodMax = P.hood ? Math.max(...P.hood.map((h) => h[1])) : 1;
+    const S = { ph: R.rnd * TAU, amp: 0.05 * kL * ampK, spd: 0, swim: 0, eat: 0, air: 0, lean: 0, look: 0, k: 0, lift: 0, rear: 0, rearT: 0, sway: R.rnd * TAU };
     moodInit(S, R.rnd);
     const xs = new Float32Array(N + 1), zs = new Float32Array(N + 1), ys = new Float32Array(N + 1);
     const NZ = new THREE.Vector3(0, 0, -1);
     // resting coil: a flat spiral from the tail at the center outward, with the head brought back on top of the coils
     const cx = new Float32Array(N + 1), cz = new Float32Array(N + 1), cy = new Float32Array(N + 1);
     {
-      const Ls = N * dz, b = (2.15 * SNAKE_R) / TAU, r0 = 0.018, side = R.rnd < 0.5 ? 1 : -1;
+      const Ls = N * dz, b = (2.15 * y0) / TAU, r0 = 0.018 * kL, side = R.rnd < 0.5 ? 1 : -1;
       for (let i = 0; i <= N; i++) {
         const s = i * dz, u = Ls - s, th = (-r0 + Math.sqrt(r0 * r0 + 2 * b * u)) / b;
         let r = r0 + b * th;
-        const hk = 1 - sstep(0.0, 0.24, s);
+        const hk = 1 - sstep(0.0, 0.24 * kL, s);
         r *= 1 - 0.5 * hk;
         cx[i] = side * r * Math.cos(th + 0.6 * hk); cz[i] = r * Math.sin(th + 0.6 * hk);
-        cy[i] = SNAKE_R * 0.95 + SNAKE_R * 1.7 * hk;
+        cy[i] = y0 * 0.95 + y0 * 1.7 * hk;
       }
     }
     return function update(dt, st) {
@@ -10127,15 +10342,15 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       moodUpdate(R, S, st, dt);
       S.spd = damp(S.spd, spdIn, 4, dt);
       const spd = S.spd, it = S.it, sl = sstep(0, 1, S.sleep), sick = S.sick, hap = S.happy * (1 - S.sleep), sn = sneezeCurve(S.snT);
-      spring(S, 'swim', mode === 'swim' ? 1 : 0, 3, dt);
+      spring(S, 'swim', mode === 'swim' || mode === 'dive' ? 1 : 0, 3, dt);   // (round 17: the anaconda dives)
       S.air = damp(S.air, mode === 'air' || mode === 'fly' ? 1 : 0, 8, dt);
       spring(S, 'eat', eatEnvelope(st.eat || 0), 7, dt);
       S.lean = damp(S.lean, clamp(st.turn || 0, -3, 3), 3, dt);
       const moving = sstep(0.02, 0.3, spd);
       // wavelength shrinks a little and amplitude grows with speed
-      const lam = lerp(0.62, 0.5, sstep(0.3, 2.2, spd)) * (1 + S.swim * 0.2);
+      const lam = lerp(0.62, 0.5, sstep(0.3, 2.2, spd)) * (1 + S.swim * 0.2) * kL;
       const k = TAU / lam;
-      const ampT = lerp(0.045, lerp(0.05, 0.068, sstep(0.3, 2.2, spd)), moving) * (1 + S.swim * 0.2) * (1 - 0.3 * sick);
+      const ampT = lerp(0.045, lerp(0.05, 0.068, sstep(0.3, 2.2, spd)), moving) * (1 + S.swim * 0.2) * (1 - 0.3 * sick) * kL * ampK;
       S.amp = damp(S.amp, ampT, 2, dt);
       // phase: travel speed along the track, plus a slow idle drift
       S.ph += (spd * k * 1.02 + (1 - moving) * 0.25 * (1 - 0.6 * sick) * (1 - sl)) * dt;
@@ -10143,13 +10358,13 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
       const idle = st.idle || 0;
       const lookOn = sstep(1.0, 2.5, idle) * (1 - S.eat) * (1 - sl);
       S.look = damp(S.look, lookTarget(it, R.rnd, 3.3, 0.5) * lookOn + Math.sin(it * 3) * 0.35 * hap, 2, dt);
-      S.lift = damp(S.lift, (lookOn * 0.03 + (1 - moving) * 0.012 + hap * 0.03) * (1 - S.swim) * (1 - 0.8 * sick) - S.eat * 0.01, 2, dt);
+      S.lift = damp(S.lift, ((lookOn * 0.03 + (1 - moving) * 0.012 + hap * 0.03) * (1 - S.swim) * (1 - 0.8 * sick) - S.eat * 0.01) * kH + (P.swimLift ? P.swimLift * S.swim * (mode === 'dive' ? 0 : 1) : 0), 2, dt);
       // build positions along the curve, measured by arc length (approximate with fixed dz spacing in s)
       let px = 0, pz = z0;
       for (let i = 0; i <= N; i++) {
         const s = i * dz;
         // envelope: neck region steadier, tail swings fully
-        const env = sstep(-0.02, 0.18, s) * (1 + 0.25 * sstep(0.6, 0.95, s));
+        const env = sstep(-0.02 * kL, 0.18 * kL, s) * (1 + 0.25 * sstep(0.6 * kL, 0.95 * kL, s));
         let x = S.amp * env * Math.sin(k * s - S.ph);
         x += S.lean * 0.04 * s * s; // turning: body curves toward the turn
         if (i === 0) { px = x; pz = z0; }
@@ -10160,8 +10375,22 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
           px = x; pz = zs[i - 1] - zz;
         }
         xs[i] = px; zs[i] = pz;
-        ys[i] = y0 * (i === 0 ? 1 : 0.95) + (i < 3 ? S.lift * (1 - i / 3) : 0) - (S.swim * 0.002);
+        ys[i] = y0 * (i === 0 ? 1 : 0.95) + (i < 3 ? S.lift * (1 - i / 3) : 0) - (S.swim * 0.002 * kH);
         if (sl > 0.001) { xs[i] = lerp(xs[i], cx[i], sl); zs[i] = lerp(zs[i], cz[i], sl); ys[i] = lerp(ys[i], cy[i] + Math.sin(it * 1.2 - i * 0.3) * 0.0015, sl); }
+      }
+      // round 17: a king cobra rears up (P.rear) and a rattlesnake coils up to rattle (P.rattle): when it is happy (a
+      // call, being petted) and when something big comes near (st.alert), standing still on the ground
+      let pitchUp = 0;
+      if (P.rear || P.rattle) {
+        const al = (st.alert || 0) > 0, want = ((st.happy || 0) > 0.6 || hap > 0.45 || al) && !sleeping && mode === 'ground' && spd < 0.3;
+        S.rearT = want ? Math.max(S.rearT, al ? 1.5 : 3.5) : Math.max(0, S.rearT - dt);
+        if (mode !== 'ground' || spd > 0.6) S.rearT = 0;
+        spring(S, 'rear', S.rearT > 0 ? 1 : 0, S.rearT > 0 ? 2.4 : 1.8, dt);
+        S.sway += dt * (1.3 + 0.3 * Math.sin(it * 0.37));
+        const rr = sstep(0, 1, S.rear);
+        if (rr > 0.001) pitchUp = P.rear ? snakeRear(P, S, rr, xs, ys, zs, N, dz, y0) : snakeRattle(P, S, rr, xs, ys, zs, cx, cz, N, dz, y0, t);
+        // how far the head is up off the ground (rig units): the game's camera looks up at it (70_game followCamera)
+        if (R.rig) R.rig.raise = Math.max(0, ys[0] - y0) * rr;
       }
       // the body origin should stay near root origin: shift so the middle sits on z ~ 0 (rest layout is already centered)
       for (let i = 0; i < N; i++) {
@@ -10171,11 +10400,22 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
         _v1.set(xs[i + 1] - xs[i], ys[i + 1] - ys[i], zs[i + 1] - zs[i]).normalize();
         b.quaternion.setFromUnitVectors(NZ, _v1);
       }
+      // round 17: the cobra's hood (P.hood: [bone index, width]): the bones under it widen across and flatten a little
+      // as it rears
+      if (P.hood) {
+        const hr = sstep(0.35, 0.9, S.rear);
+        for (const [i, kx] of P.hood) {
+          const f = (kx - 1) / (hoodMax - 1);
+          segs[i].scale.set(1 + (kx - 1) * hr, 1 - 0.35 * hr * f, 1);
+          // the flaps curve forward (toward the throat), so the hood is cupped and shows from the side too
+          for (const sd of 'LR') { const hb = B['hood' + i + sd]; if (hb) hb.position.set(0, -(P.hoodCup || 0) * hr * f, 0); }
+        }
+      }
       // head follows the first segment, with look and eat pitch
       _v1.set(xs[0] - xs[1], 0, zs[0] - zs[1]).normalize();
-      const yaw = Math.atan2(_v1.x, _v1.z) * lerp(0.6, 1, sl) + S.look;
-      const pitch = -S.lift * 4 + S.eat * 0.35 + Math.sin(t * 13) * 0.03 * sstep(0.8, 0.95, S.eat) + sn + sick * 0.15 + sl * 0.12;
-      head.position.set(xs[0], ys[0], zs[0] + 0.012);
+      const yaw = Math.atan2(_v1.x, _v1.z) * lerp(0.6, 1, sl) + S.look * (1 - S.rear * 0.6);
+      const pitch = -S.lift * 4 / kH + S.eat * 0.35 + Math.sin(t * 13) * 0.03 * sstep(0.8, 0.95, S.eat) + sn + sick * 0.15 + sl * 0.12 + pitchUp;
+      head.position.set(xs[0], ys[0], zs[0] + hOff);
       head.rotation.set(pitch, yaw, 0, 'YXZ');
       // tongue flicks every few seconds
       if (tongue) {
@@ -11290,6 +11530,9 @@ void RE_Direct_AA(const in IncidentLight directLight, const in GeometricContext 
     blackcat: COLLAR.cat, orangecat: COLLAR.cat, calico: COLLAR.cat, siamese: COLLAR.cat, whitecat: COLLAR.cat,
     hamster: { at: ['neck', 'head', 0.6], r: 0.5, w: 0.4 },
   });
+  // round 17: the snakes wear it just behind the head like the garter snake (the cobra's in front of its hood), the
+  // Pallas's cat like the cats
+  Object.assign(COLLAR, { kingcobra: { at: ['s0', 's1', 0.2], tag: PI * 0.55 }, rattlesnake: COLLAR.snake, anaconda: COLLAR.snake, pallascat: COLLAR.cat });
   // round 7: cockatiel and crocodile
   COLLAR.cockatiel = { at: ['neck', 'head', 0.4] };
   COLLAR.crocodile = { at: ['chest', 'neck', 0.85], r: 1.6, w: 1.2 };

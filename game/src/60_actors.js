@@ -31,6 +31,9 @@ Object.assign(UPRIGHT, { robin: 1, barnowl: 1, raven: 1, roboteagle: 1, kiwi: 1,
 Object.assign(FEAR, { robin: 3.5, barnowl: 5, raven: 3, roboteagle: 4, kiwi: 4, dodo: 0.5 });
 // round 17: a Chinese dragon stands its ground, but flies off if something much bigger comes at it fast
 FEAR.chinesedragon = 2;
+// round 17: a king cobra and a rattlesnake stand their ground and show off instead (SPECIES display), and slip away only
+// from something big coming fast and close; an anaconda slides off into the water; a Pallas's cat is shy
+Object.assign(FEAR, { kingcobra: 1.2, rattlesnake: 1.2, anaconda: 3, pallascat: 5 });
 // extra bump circles along a long body: [how far ahead of the body's middle, as a part of its length; radius, as a part
 // of its radius]. A brachiosaurus's middle is at its shoulders: the trunk runs back from there to its hips and tail
 // (its neck is high up, so fences pass under it)
@@ -83,7 +86,8 @@ function setBodyAge(b, age) {
   } else {
     if (b.rig.setAge) b.rig.setAge(age);
     // (round 12: a grown-up boy or girl can be a little bigger or smaller, a lioness smaller than a lion)
-    b.k = lerp(0.42, 1, age) * (b.sex ? lerp(1, sexSize(b.sp, b.sex), age) : 1);
+    // (round 17: a species can be born much smaller, SPECIES newborn: the big snakes)
+    b.k = lerp(SPECIES[b.sp].newborn || 0.42, 1, age) * (b.sex ? lerp(1, sexSize(b.sp, b.sex), age) : 1);
   }
   b.rig.root.scale.setScalar(b.k);
   const r = b.rig, k = b.k;
@@ -517,6 +521,8 @@ function poseBody(b, dt, animate) {
   const st = b.st; st.t = G.t; st.speed = (b.mode === 'dive' ? Math.hypot(b.speed, b.vy) : b.speed) / b.k; st.mode = b.mode === 'perch' ? 'ground' : b.mode; st.vy = b.vy; st.eat = b.eat; st.turn = b.turn; st.idle = b.idle;
   st.sick = b.sick; st.happy = b.happy; st.swimSleep = b.mode === 'sleep' && b.sp === 'otter';
   if (SPECIES[b.sp].slide) st.slide = b.mode === 'ground' && b.speed > b.m.walk * 1.5 && onSnow(b);   // round 16: a penguin's belly slide
+  // round 17: a king cobra or a rattlesnake on the alert (b.alert seconds, set by Wild) rears up or coils and rattles
+  if (SPECIES[b.sp].display) { b.alert = Math.max(0, (b.alert || 0) - dt); st.alert = b.alert > 0 ? 1 : 0; }
   // round 11: a chameleon slowly takes on the color of what it is on: the ground under it, or bark when it is up a
   // tree. Indoors it keeps its own colors.
   if (rig.setTint) {
@@ -702,6 +708,7 @@ const Player = {
 // junk food: eat too much of it in a short time and your tummy hurts
 const JUNK = { hotdog: 1, candy: 1, bread: 0.5 };
 const HOOVES = { horse: 1, deer: 1, goat: 1, moose: 1, pig: 1, rhino: 1, zebra: 1 };   // (round 15: zebra)
+const SNAKES = { kingcobra: 1, rattlesnake: 1, anaconda: 1 };   // round 17: no paws to hurt
 const Sick = {
   sayT: 0,
   limb(sp) { return HOOVES[sp] ? 'leg' : (SPECIES[sp].egg || sp === 'frog') ? 'foot' : 'paw'; },
@@ -713,7 +720,7 @@ const Sick = {
   sync() { S.sick = S.ills && S.ills[S.animal] && !isAquatic(S.animal) && !SPECIES[S.animal].noSick ? 1 : 0; },
   start(kind, why) {
     if (S.sick > 0 || R.hatch || R.pupa || isAquatic(S.animal) || SPECIES[S.animal].noSick) return;
-    if (kind === 'paw' && S.animal === 'snake') kind = 'tummy';
+    if (kind === 'paw' && (S.animal === 'snake' || SNAKES[S.animal])) kind = 'tummy';   // (round 17: all snakes)
     S.ills = S.ills || {}; S.ills[S.animal] = kind; S.sick = 1;
     const nm = SPECIES[S.animal].name.toLowerCase();
     const msg = kind === 'tummy' ? `Uh oh, your ${nm} has a tummy ache${why || ''}.` : kind === 'paw' ? `Ouch! Your ${nm} hurt a ${this.limb(S.animal)}.` : `Achoo! Your ${nm} caught a cold${why || ''}.`;
@@ -934,7 +941,10 @@ const Wild = {
       const dv = canDive(b) && !b.caged && !b.room && (b.mode === 'swim' || b.mode === 'dive');
       if (dv) b.wantY = null;
       b.callT = (b.callT === undefined ? 5 + Math.random() * 40 : b.callT) - dt;
-      if (b.callT <= 0) { b.callT = 18 + Math.random() * 40; if (b.mode !== 'sleep' && G.sound && (!P || P.room === b.room)) G.sound.wildCall(b, camPos, G.camYaw || 0); }
+      if (b.callT <= 0) {
+        b.callT = 18 + Math.random() * 40; if (b.mode !== 'sleep' && G.sound && (!P || P.room === b.room)) G.sound.wildCall(b, camPos, G.camYaw || 0);
+        if (sp.display && b.mode === 'ground') { b.alert = 3; b.alertYaw = b.yaw; }   // round 17: it shows off as it calls
+      }
       const c = { dx: 0, dz: 0, want: 0 };
       const sleepy = night ? !NOCTURNAL[b.sp] : (b.sp === 'owl' || b.sp === 'raccoon' || b.sp === 'bat');
       // think a few times a second
@@ -952,6 +962,10 @@ const Wild = {
         let fr = 0;
         if (P.sp !== b.sp && !pAir && !P.room) fr = predator ? 7 : bigger ? (fast ? fear : fear * 0.45) : 0;
         if (b.mode === 'sleep' && d < fr * 0.6) b.mode = 'ground';
+        // round 17: a king cobra or a rattlesnake shows off at something big near it, facing it; and your own one at a
+        // big wild animal near it
+        if (sp.display && P.sp !== b.sp && !pAir && !P.room && b.mode === 'ground' && d < 3 + m.length * 0.6 && P.m.height > m.height * 3) { b.alert = 2.5; b.alertYaw = Math.atan2(P.pos.x - b.pos.x, P.pos.z - b.pos.z); }
+        if (psp.display && P.sp !== b.sp && !P.room && b.room === P.room && P.mode === 'ground' && d < 3 + P.m.length * 0.6 && m.height > P.m.height * 3) P.alert = 2;
         if (d < fr && b.state !== 'flee' && b.state !== 'flyaway' && b.state !== 'tree' && b.mode !== 'sleep') {
           const t = canClimb(b) && !b.pen ? G.world.treeNear(b.pos.x, b.pos.z, 7) : null;
           if (t) { b.state = 'tree'; b.target = t; b.timer = 10; b.perchT = 6 + Math.random() * 8; }
@@ -1167,6 +1181,8 @@ const Wild = {
         }
       }
       if (b.state === 'tree' && b.mode !== 'climb' && b.mode !== 'perch' && b.tree === null && b.perchT !== undefined && b.perchT <= 0 && b.target) { b.state = 'idle'; b.timer = 2; }
+      // round 17: on the alert it stops where it is and faces what it shows off at
+      if (sp.display && b.alert > 0 && b.state !== 'flee' && b.mode === 'ground') { c.want = 0; c.dx = c.dz = 0; c.face = b.alertYaw; b.eat = 0; }
       if (dv) this.steerDive(b, c, dt);
       moveBody(b, dt, c);
       poseBody(b, dt, true);
@@ -1455,6 +1471,7 @@ for (const sp of ['cardinal', 'bluejay', 'hummingbird', 'toucan']) CAGED[sp] = '
 CAGED.robin = 'birdCage';   // round 17
 CAGED.butterfly = 'terrarium';   // round 10: a caterpillar (and then its butterfly) lives in a glass tank
 for (const sp of ['gecko', 'beardeddragon', 'iguana', 'chameleon']) CAGED[sp] = 'terrarium';   // round 11: the small lizards
+CAGED.kingcobra = CAGED.rattlesnake = 'terrarium';   // round 17 (an anaconda is too big: it lives in a pen in the yard)
 const CAGE_WORDS = { terrarium: 'a glass tank', birdCage: 'a big bird cage', hutch: 'a cozy pen' };
 const Homes = {
   penT: 0, kennel: null,
