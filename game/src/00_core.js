@@ -271,6 +271,18 @@ SHOP.push('ostrich');
 SPECIES.peafowl = { name: 'Peacock', many: 'Peacocks', eats: ['seeds', 'bugs', 'berries', 'corn', 'grass'], fav: 'seeds', fly: true, flySpeed: 7, price: 800, egg: 0xEADCC2, outdoor: true, baby: 'Peachick' };
 SHOP.push('peafowl');
 // round 16: big and water birds (end)
+// round 17: prehistoric animals. Dinosaurs hatch from big eggs, like the brachiosaurus and the T. rex. The velociraptor
+// is the real one, the size of a big turkey. The pterodactyl (a Pteranodon)
+// flies and soars, snatches fish from the water surface in flight (grab), and walks on all fours on the ground;
+// soars: a wild one takes off now and then for a short flight over where it lives (60_actors Wild).
+Object.assign(SPECIES, {
+  triceratops: { name: 'Triceratops', many: 'Triceratops', eats: ['twigs', 'grass', 'hay', 'lettuce', 'apple'], fav: 'twigs', outdoor: true, noJump: true, price: 1900, egg: 0xE6DCC6, baby: 'Baby triceratops' },
+  stegosaurus: { name: 'Stegosaurus', many: 'Stegosauruses', eats: ['grass', 'twigs', 'lettuce', 'hay'], fav: 'grass', outdoor: true, noJump: true, price: 1800, egg: 0xE4DDC8, baby: 'Baby stegosaurus' },
+  velociraptor: { name: 'Velociraptor', many: 'Velociraptors', eats: ['meat', 'bugs', 'worm', 'smallfish'], fav: 'meat', hunter: true, outdoor: true, price: 1000, egg: 0xEDE6D6, eggSpeck: [0.62, 0.55, 0.46], baby: 'Velociraptor chick' },
+  pterodactyl: { name: 'Pterodactyl', many: 'Pterodactyls', eats: ['fish', 'smallfish', 'squid'], fav: 'fish', fly: true, flySpeed: 12, grab: true, soars: true, outdoor: true, price: 1700, egg: 0xEFE9DA, baby: 'Baby pterodactyl' },
+});
+SHOP.push('triceratops', 'stegosaurus', 'velociraptor', 'pterodactyl');
+// round 17: prehistoric animals (end)
 const WORLD_ORDER = ['land', 'sky', 'forest', 'swamp', 'jungle', 'meadow', 'snow', 'savanna', 'arctic'];
 const PEOPLE_NAMES = ['Maya', 'Leo', 'Nora', 'Sam', 'Ivy', 'Ben', 'Ruth', 'Omar', 'June', 'Eli', 'Hazel', 'Theo', 'Ada', 'Finn'];
 const SKIN = ['#F3D3B8', '#E6B691', '#C98E66', '#9A6544', '#6B4430'];
@@ -330,6 +342,8 @@ const SEX_LOOK = {
   flamingo: { base: 'm', f: { size: 0.88 } },
   ostrich: { base: 'm', f: { model: true, size: 0.9 } },
   peafowl: { base: 'm', m: { name: 'Peacock' }, f: { name: 'Peahen', model: true, horns: 0, size: 0.9 } },
+  // round 17: a girl pterodactyl (Pteranodon) is smaller with a much smaller crest (the crest is its horn bone)
+  pterodactyl: { base: 'm', f: { horns: 0.45, size: 0.8 } },
 };
 const sexLook = (id, sex) => (SEX_LOOK[id] && SEX_LOOK[id][sex]) || null;
 const sexOf = (id) => (S.sex && (S.sex[id] === 'm' || S.sex[id] === 'f') ? S.sex[id] : (SEX_LOOK[id] && SEX_LOOK[id].base) || 'f');

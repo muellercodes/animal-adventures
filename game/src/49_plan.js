@@ -332,14 +332,19 @@ const Plan = (() => {
       ],
       route: [[0, -26], [0, -9, 'goats'], [0, -8, 'pigs'], [0, 1], [-5, 1, 'bunnies'], [5, 1, 'hens'], [0, 1], [0, -26]],
       props: 'farm' },
-    { id: 'dino', name: 'Dino Park', d: 'Brachiosauruses, a T. rex and saber-toothed cats', x: 160, z: -200, hw: 92, hd: 70, gate: 'n', wall: 'rail',
+    { id: 'dino', name: 'Dino Park', d: 'Brachiosauruses, triceratops, stegosauruses, a T. rex, velociraptors, pterodactyls and saber-toothed cats', x: 160, z: -200, hw: 92, hd: 70, gate: 'n', wall: 'rail',
       paths: [[1, -62, 1, 100, 6], [1, 40, 26, 40, 4], [-84, 58, 84, 58, 5]],
       pens: [
-        { id: 'brachio', x: -46, z: -16, hw: 40, hd: 44, gate: 'e', style: 'dino', sp: [['brachiosaurus', 2, 1]], pool: { x: -62, z: -32, r: 11, depth: -1.5 }, jungle: 14 },
+        // (round 17: the plant eaters share the big paddock, triceratops and stegosauruses with the brachiosauruses)
+        { id: 'brachio', x: -46, z: -16, hw: 40, hd: 44, gate: 'e', style: 'dino', sp: [['brachiosaurus', 2, 1], ['triceratops', 2, 1], ['stegosaurus', 2, 0]], pool: { x: -62, z: -32, r: 11, depth: -1.5 }, jungle: 14 },
         { id: 'trex', x: 46, z: -22, hw: 38, hd: 38, gate: 'w', style: 'dino', sp: [['trex', 1, 1]], jungle: 10 },
         { id: 'saber', x: 46, z: 38, hw: 20, hd: 14, gate: 'w', style: 'dino', sp: [['smilodon', 2, 1]], rocks: 6 },
+        // round 17: along the south path, a pack of velociraptors and a rocky pen for the pterodactyls (they fly about
+        // inside it)
+        { id: 'raptors', x: -62, z: 42, hw: 22, hd: 11, gate: 'n', style: 'dino', sp: [['velociraptor', 4, 1]], rocks: 4, jungle: 3 },
+        { id: 'ptero', x: -22, z: 42, hw: 15, hd: 11, gate: 'n', style: 'dino', sp: [['pterodactyl', 3, 1]], rocks: 7 },
       ],
-      route: [[1, 84], [1, 58], [1, 40], [20, 40, 'saber'], [1, 40], [1, 14, 'trex'], [1, 2, 'brachio'], [1, -30, 'trex'], [1, -46, 'brachio'], [1, -58], [1, 40], [1, 84]],
+      route: [[1, 84], [1, 58], [-22, 58, 'ptero'], [-62, 58, 'raptors'], [1, 58], [1, 40], [20, 40, 'saber'], [1, 40], [1, 14, 'trex'], [1, 2, 'brachio'], [1, -30, 'trex'], [1, -46, 'brachio'], [1, -58], [1, 40], [1, 84]],
       props: 'dino' },
     // round 11: Safari Park, south of Maple Town: lions, tigers, cheetahs and camels in big pens, and a row of smaller
     // ones for the leopards, ocelots, Komodo dragons, pandas and lizards
