@@ -921,8 +921,29 @@ function sheetSettings() {
     <div class="setline">${API ? (cloud.user ? `Saving online as <b>${esc(cloud.user)}</b>. Your animals and leaves are saved on every device you sign in on. <button class="linkish" type="button" data-action="signout">Sign out</button>` : 'Your game saves on this device. <button class="linkish" type="button" data-action="cloud-here">Sign in to save online and play with other people</button>') : 'Your game saves on this device by itself.'}</div>
     ${API && cloud.user ? `<div class="setline">${Net.open ? `You're playing online. Other players show up as their animal (${Net.count() === 1 ? '1 other player' : Net.count() + ' other players'} in this world right now).` : 'Connecting to other players...'}</div>` : ''}
     ${R.cloudForm ? cloudFormHtml() : ''}
+    ${window.BugReport ? '<div class="setline"><button class="linkish" type="button" data-action="bug">Report a bug</button></div>' : ''}
     <div class="setline"><button class="linkish" type="button" data-action="quit">Back to the title screen</button></div></div>`;
 }
+// Bug reports. The form is an outside script the web page loads (build.mjs), so everything here does nothing without
+// window.BugReport: no button offline, none in the artifact flavor. Its floating tab is hidden during play, where it
+// could sit on a button. There Settings has "Report a bug", which puts the sheet away first so the form's picture is of
+// the game, and keeps the game paused until the form is closed.
+function reportBug() {
+  const B = window.BugReport; if (!B) return;
+  closeSheet(); R.paused = true; R.bug = true;
+  requestAnimationFrame(() => requestAnimationFrame(() => B.open()));
+}
+addEventListener('bugreport:close', () => { if (!R.bug) return; R.bug = false; if (R.mode === 'play' && !R.sheet) R.paused = false; });
+setInterval(() => { const B = window.BugReport; if (B) B.showButton(R.mode !== 'play'); }, 250);
+window.bugReportContext = () => {
+  const o = { mode: R.mode, sheet: R.sheet };
+  try {
+    o.world = S.world; o.animal = S.animal; o.leaves = S.leaves;
+    const b = Player.b;
+    if (b) { o.x = Math.round(b.pos.x); o.y = Math.round(b.pos.y); o.z = Math.round(b.pos.z); o.moving = b.mode; o.inside = !!b.room; }
+  } catch (e) { o.error = String((e && e.message) || e); }
+  return o;
+};
 function travel(id, after) {
   if (!World.META[id]) return;
   if (World.META[id].needsFly && !canFlyNow(Player.b)) return;
@@ -1216,6 +1237,7 @@ document.addEventListener('click', (e) => {
     case 'map': openSheet('map'); break;
     case 'animals': openSheet('animals'); break;
     case 'settings': R.cloudForm = false; openSheet('settings'); break;
+    case 'bug': reportBug(); break;
     case 'playonline': R.cloudForm = true; openSheet('settings'); setTimeout(() => { const i = $('cName'); if (i) i.focus(); }, 50); break;
     case 'home': goHome(); break;
     case 'govet': goVet(); break;

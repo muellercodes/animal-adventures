@@ -117,6 +117,10 @@ npx wrangler deploy
 
 The live game uses `https://animal-adventures-api.muellercodes.workers.dev`. Allowed browser origins are set by `ALLOWED_ORIGINS` in `wrangler.toml` (localhost is always allowed for testing).
 
+## Bug reports
+
+Settings has "Report a bug", and a small tab with a bug on it sits at the right edge of the title screen. Either one takes a picture of the screen, asks what went wrong, and sends it to [games.mueller.codes](https://games.mueller.codes), which keeps the reports for all the games. The tab is hidden during play so it can never sit on a button. The form is one outside script that `build.mjs` adds to the web page only; the game's side of it is `reportBug()` in `game/src/70_game.js`, which also sends the world, the animal and where it was standing. How to read the reports is in the games.mueller.codes README.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
