@@ -98,6 +98,9 @@ const scripts = `<script>\n${three}\n</script>\n<script>window.AA_ASSETS = ${JSO
   (process.env.INLINE_MODELS && Object.keys(models).length ? `<script>window.AA_MODELS = ${JSON.stringify(models)};</script>\n` : '') + loader + `<script>\n${js}</script>\n`;
 
 const cut = shell.indexOf('</style>') + '</style>'.length;
+// the bug report form, on the web page only (the artifact flavor cannot load an outside script). The form and the service
+// that keeps the reports live in the games.mueller.codes repo; the game's side of it is reportBug() in 70_game.js.
+const bugs = '<script src="https://games.mueller.codes/bug-report.js" data-game="animal-adventures" defer></script>\n';
 const page = `<!doctype html>
 <html lang="en">
 <head>
@@ -119,7 +122,7 @@ ${shell.slice(0, cut)}
 </head>
 <body>
 ${shell.slice(cut)}
-${scripts}</body>
+${scripts}${bugs}</body>
 </html>
 `;
 writeFileSync(`${OUT}/index.html`, page);
